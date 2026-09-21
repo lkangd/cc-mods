@@ -1,0 +1,3 @@
+plugin_root=/Users/liangkangda/Fe-project/cc-mods/.scratch/prompt-trail/prototypes/sqlite-helper/plugin
+plugin_data=/Users/liangkangda/.claude/plugins/data/prompt-trail-sqlite-probe-inline
+project_dir=/Users/liangkangda/Fe-project/cc-mods

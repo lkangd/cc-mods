@@ -1,0 +1,9 @@
+# Local Claude Code launch state
+.claude/.ccsp/
+
+# Test evidence
+mods/*/build/evidence/
+
+# Python test caches
+__pycache__/
+*.py[cod]

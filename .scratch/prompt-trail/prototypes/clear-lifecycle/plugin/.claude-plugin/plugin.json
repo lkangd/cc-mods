@@ -1,0 +1,5 @@
+{
+  "name": "prompt-trail-clear-lifecycle-probe",
+  "version": "0.0.0",
+  "description": "一次性原型：记录 Claude Code 2.1.273 的 clear、compact、reload 与退出生命周期事件。"
+}

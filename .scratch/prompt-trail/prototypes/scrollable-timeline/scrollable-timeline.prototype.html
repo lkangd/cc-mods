@@ -1,0 +1,1592 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Prompt Trail 交互台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #eef3f2;
+      --surface: #f8fbfa;
+      --surface-strong: #ffffff;
+      --ink: #172426;
+      --muted: #607073;
+      --line: #cbd7d5;
+      --line-strong: #94aaa7;
+      --accent: #087f83;
+      --accent-soft: #d9efee;
+      --accent-ink: #04585b;
+      --warning: #a85f15;
+      --warning-soft: #fff0d8;
+      --danger: #a84238;
+      --danger-soft: #fae4e1;
+      --success: #287154;
+      --success-soft: #dff1e8;
+      --terminal: #152124;
+      --terminal-raised: #1d2c2f;
+      --terminal-line: #34484b;
+      --terminal-ink: #e5efed;
+      --terminal-muted: #9eb0ad;
+      --terminal-accent: #6fd5d1;
+      --terminal-warning: #f3b866;
+      --terminal-danger: #ef8d82;
+      --shadow: 0 18px 50px rgba(22, 47, 49, 0.13);
+      --radius: 14px;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --page: #10191b;
+        --surface: #172225;
+        --surface-strong: #1d2a2d;
+        --ink: #e5efed;
+        --muted: #a2b4b1;
+        --line: #33474a;
+        --line-strong: #4c6568;
+        --accent: #64cbc7;
+        --accent-soft: #173b3c;
+        --accent-ink: #a5eeeb;
+        --warning: #efb66d;
+        --warning-soft: #49351f;
+        --danger: #ef9187;
+        --danger-soft: #4a2928;
+        --success: #72c9a5;
+        --success-soft: #213d32;
+        --terminal: #0c1315;
+        --terminal-raised: #142023;
+        --terminal-line: #2e4245;
+        --terminal-ink: #e5efed;
+        --terminal-muted: #9eb0ad;
+        --terminal-accent: #71d7d3;
+        --terminal-warning: #f3b866;
+        --terminal-danger: #ef8d82;
+        --shadow: 0 18px 52px rgba(0, 0, 0, 0.34);
+      }
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #10191b;
+      --surface: #172225;
+      --surface-strong: #1d2a2d;
+      --ink: #e5efed;
+      --muted: #a2b4b1;
+      --line: #33474a;
+      --line-strong: #4c6568;
+      --accent: #64cbc7;
+      --accent-soft: #173b3c;
+      --accent-ink: #a5eeeb;
+      --warning: #efb66d;
+      --warning-soft: #49351f;
+      --danger: #ef9187;
+      --danger-soft: #4a2928;
+      --success: #72c9a5;
+      --success-soft: #213d32;
+      --terminal: #0c1315;
+      --terminal-raised: #142023;
+      --terminal-line: #2e4245;
+      --terminal-ink: #e5efed;
+      --terminal-muted: #9eb0ad;
+      --terminal-accent: #71d7d3;
+      --terminal-warning: #f3b866;
+      --terminal-danger: #ef8d82;
+      --shadow: 0 18px 52px rgba(0, 0, 0, 0.34);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.55;
+      overflow-x: hidden;
+    }
+
+    button, input, textarea { font: inherit; }
+    button { color: inherit; }
+
+    button:focus-visible,
+    [tabindex]:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
+      outline-offset: 2px;
+    }
+
+    .shell {
+      width: min(1180px, 100%);
+      margin-inline: auto;
+      padding-inline: 16px;
+      padding-block: 28px 48px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .intro {
+      display: grid;
+      gap: 14px;
+      border-bottom: 1px solid var(--line-strong);
+      padding-bottom: 22px;
+    }
+
+    .eyebrow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      color: var(--accent-ink);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .badge {
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: var(--muted);
+      letter-spacing: .04em;
+      text-transform: none;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      max-width: 16ch;
+      font-size: clamp(30px, 6vw, 54px);
+      line-height: .98;
+      letter-spacing: -.045em;
+      text-wrap: balance;
+    }
+
+    .question {
+      max-width: 72ch;
+      color: var(--muted);
+      font-size: clamp(15px, 2vw, 18px);
+    }
+
+    .assumption {
+      max-width: 78ch;
+      border-left: 3px solid var(--accent);
+      padding-left: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .workbench {
+      display: grid;
+      grid-template-columns: minmax(240px, 330px) minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .rail {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section {
+      display: grid;
+      gap: 12px;
+    }
+
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    .section-heading h2 {
+      font-size: 16px;
+      letter-spacing: -.01em;
+    }
+
+    .section-heading span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .scenario-tabs {
+      display: grid;
+      gap: 7px;
+    }
+
+    .scenario-tab {
+      width: 100%;
+      border: 1px solid transparent;
+      border-left: 3px solid var(--line-strong);
+      background: transparent;
+      padding: 9px 10px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .scenario-tab:hover { background: var(--surface); }
+    .scenario-tab[aria-selected="true"] {
+      border-color: var(--line);
+      border-left-color: var(--accent);
+      background: var(--surface-strong);
+      color: var(--accent-ink);
+      font-weight: 720;
+    }
+
+    .walkthrough {
+      display: grid;
+      gap: 10px;
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      padding: 13px;
+    }
+
+    .walkthrough p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .steps { display: grid; gap: 7px; }
+
+    .step {
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      padding: 5px;
+      text-align: left;
+    }
+
+    .step:not(:disabled) { cursor: pointer; }
+    .step:not(:disabled):hover { background: var(--accent-soft); }
+    .step:disabled { color: var(--muted); opacity: .64; }
+    .step.is-done { opacity: .72; text-decoration: line-through; }
+
+    .step-num {
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--line-strong);
+      border-radius: 50%;
+      font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .step:not(:disabled) .step-num {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-ink);
+    }
+
+    .control-groups { display: grid; gap: 12px; }
+
+    .control-group {
+      display: grid;
+      gap: 7px;
+    }
+
+    .control-group h3 {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .control-button {
+      border: 1px solid var(--line);
+      background: var(--surface-strong);
+      padding: 8px 9px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .control-button:hover { border-color: var(--accent); color: var(--accent-ink); }
+    .control-button:disabled { cursor: not-allowed; opacity: .46; }
+    .control-button.is-wide { grid-column: 1 / -1; }
+    .control-button.is-warning { border-color: color-mix(in srgb, var(--warning) 48%, var(--line)); }
+
+    .stage {
+      min-width: 0;
+      display: grid;
+      gap: 14px;
+      position: sticky;
+      top: calc(env(safe-area-inset-top, 0px) + 16px);
+    }
+
+    .terminal-frame {
+      min-width: 0;
+      background: var(--terminal);
+      color: var(--terminal-ink);
+      border: 1px solid var(--terminal-line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .terminal-frame.is-narrow {
+      width: min(100%, 430px);
+      justify-self: center;
+    }
+
+    .terminal-chrome {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--terminal-line);
+      padding: 9px 12px;
+      color: var(--terminal-muted);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .terminal-chrome strong { color: var(--terminal-ink); font-weight: 650; }
+
+    .terminal-body {
+      min-height: 500px;
+      display: grid;
+      grid-template-rows: minmax(90px, 1fr) auto auto;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    .transcript-sample {
+      display: grid;
+      align-content: end;
+      gap: 10px;
+      color: var(--terminal-muted);
+      font-size: 12px;
+    }
+
+    .transcript-line {
+      border-left: 2px solid var(--terminal-line);
+      padding-left: 9px;
+    }
+
+    .above-prompt {
+      min-width: 0;
+      border-top: 1px solid var(--terminal-line);
+      border-bottom: 1px solid var(--terminal-line);
+      background: var(--terminal-raised);
+    }
+
+    .trail-title {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border: 0;
+      background: transparent;
+      color: var(--terminal-ink);
+      padding: 9px 10px;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .trail-title:hover { background: color-mix(in srgb, var(--terminal-accent) 8%, transparent); }
+
+    .trail-title-main {
+      min-width: 0;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .trail-title-main strong { color: var(--terminal-accent); }
+
+    .trail-title-meta {
+      color: var(--terminal-muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .new-badge {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid color-mix(in srgb, var(--terminal-warning) 65%, transparent);
+      border-radius: 999px;
+      padding: 1px 6px;
+      color: var(--terminal-warning);
+      font-size: 10px;
+    }
+
+    .timeline {
+      min-width: 0;
+      border-top: 1px solid var(--terminal-line);
+      outline: none;
+      touch-action: pan-y;
+    }
+
+    .timeline-help {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 7px;
+      border-bottom: 1px solid var(--terminal-line);
+      padding: 5px 10px;
+      color: var(--terminal-muted);
+      font-size: 10px;
+    }
+
+    .timeline-row {
+      min-width: 0;
+      height: 30px;
+      display: grid;
+      grid-template-columns: 36px 54px minmax(0, 1fr) 18px;
+      align-items: center;
+      gap: 7px;
+      border: 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--terminal-line) 62%, transparent);
+      background: transparent;
+      color: var(--terminal-ink);
+      padding: 0 9px;
+      font-family: inherit;
+      font-size: 11px;
+      text-align: left;
+      width: 100%;
+    }
+
+    button.timeline-row { cursor: pointer; }
+    button.timeline-row:hover { background: color-mix(in srgb, var(--terminal-accent) 7%, transparent); }
+    .timeline-row.is-selected { background: color-mix(in srgb, var(--terminal-accent) 14%, transparent); }
+    .timeline-row.is-selected::before {
+      content: "›";
+      position: absolute;
+      margin-left: -7px;
+      color: var(--terminal-accent);
+    }
+
+    .timeline-row.is-unavailable { color: var(--terminal-muted); }
+    .timeline-row.is-inactive-branch { opacity: .7; }
+
+    .row-seq, .row-time {
+      color: var(--terminal-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .row-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .row-jump { text-align: right; color: var(--terminal-accent); }
+    .is-unavailable .row-jump { color: var(--terminal-muted); }
+
+    .boundary-row {
+      height: 30px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--terminal-warning);
+      padding: 0 9px;
+      font-size: 10px;
+    }
+
+    .boundary-row::before,
+    .boundary-row::after {
+      content: "";
+      height: 1px;
+      background: color-mix(in srgb, var(--terminal-warning) 42%, var(--terminal-line));
+      flex: 1;
+    }
+
+    .boundary-row.run { color: var(--terminal-accent); }
+
+    .loading-edge {
+      min-height: 22px;
+      display: grid;
+      place-items: center;
+      color: var(--terminal-muted);
+      font-size: 10px;
+    }
+
+    .new-items {
+      width: 100%;
+      border: 0;
+      border-top: 1px solid var(--terminal-line);
+      background: color-mix(in srgb, var(--terminal-warning) 10%, transparent);
+      color: var(--terminal-warning);
+      padding: 6px 10px;
+      text-align: center;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 10px;
+    }
+
+    .foreign-panel {
+      display: grid;
+      gap: 5px;
+      padding: 14px 12px;
+      color: var(--terminal-warning);
+      font-size: 11px;
+    }
+
+    .foreign-panel span { color: var(--terminal-muted); }
+
+    .parent-choice {
+      display: grid;
+      gap: 8px;
+      border-top: 1px solid var(--terminal-line);
+      padding: 10px;
+    }
+
+    .parent-choice h3 { color: var(--terminal-warning); font-size: 12px; }
+    .parent-choice p { color: var(--terminal-muted); font-size: 10px; }
+
+    .candidate-list { display: grid; gap: 4px; }
+
+    .candidate {
+      display: grid;
+      grid-template-columns: 20px minmax(0, 1fr);
+      gap: 7px;
+      width: 100%;
+      border: 1px solid var(--terminal-line);
+      background: transparent;
+      color: var(--terminal-ink);
+      padding: 7px;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 10px;
+    }
+
+    .candidate.is-selected {
+      border-color: var(--terminal-warning);
+      background: color-mix(in srgb, var(--terminal-warning) 9%, transparent);
+    }
+
+    .composer {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      border: 1px solid var(--terminal-line);
+      padding: 10px 11px;
+      color: var(--terminal-ink);
+      font-size: 12px;
+    }
+
+    .composer.is-focused { border-color: var(--terminal-accent); }
+    .composer.is-blocked { border-color: var(--terminal-warning); color: var(--terminal-muted); }
+    .composer-prompt { color: var(--terminal-accent); font-weight: 700; }
+    .composer-text { min-width: 0; overflow-wrap: anywhere; }
+
+    .terminal-notice {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      border-top: 1px solid var(--terminal-line);
+      padding: 7px 12px;
+      color: var(--terminal-muted);
+      font-size: 10px;
+    }
+
+    .terminal-notice[data-tone="warning"] { color: var(--terminal-warning); }
+    .terminal-notice[data-tone="danger"] { color: var(--terminal-danger); }
+    .terminal-notice[data-tone="success"] { color: var(--terminal-accent); }
+
+    .state-panel {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .state-item {
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 9px 10px;
+    }
+
+    .state-item:nth-child(4n) { border-right: 0; }
+    .state-item:nth-last-child(-n + 4) { border-bottom: 0; }
+
+    .state-label {
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .state-value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font: 650 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .review {
+      display: grid;
+      gap: 14px;
+      border-top: 1px solid var(--line-strong);
+      padding-top: 22px;
+    }
+
+    .review h2 { font-size: 22px; letter-spacing: -.025em; }
+    .review > p { color: var(--muted); max-width: 70ch; }
+
+    .decision-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .decision {
+      display: grid;
+      gap: 6px;
+      border-top: 3px solid var(--accent);
+      background: var(--surface-strong);
+      padding: 13px;
+    }
+
+    .decision strong { font-size: 14px; }
+    .decision p { color: var(--muted); font-size: 13px; }
+
+    .prototype-note {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .workbench { grid-template-columns: 1fr; }
+      .stage { position: static; }
+      .rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .rail .section:last-child { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 650px) {
+      .shell { padding-block: 20px 34px; }
+      .rail { grid-template-columns: 1fr; }
+      .rail .section:last-child { grid-column: auto; }
+      .terminal-body { min-height: 440px; padding: 10px; }
+      .state-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .state-item:nth-child(4n) { border-right: 1px solid var(--line); }
+      .state-item:nth-child(2n) { border-right: 0; }
+      .state-item:nth-last-child(-n + 4) { border-bottom: 1px solid var(--line); }
+      .state-item:nth-last-child(-n + 2) { border-bottom: 0; }
+      .decision-list { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 430px) {
+      .button-grid { grid-template-columns: 1fr; }
+      .control-button.is-wide { grid-column: auto; }
+      .timeline-row { grid-template-columns: 32px minmax(0, 1fr) 16px; }
+      .timeline-row .row-time { display: none; }
+      .terminal-chrome span:last-child { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="intro">
+      <div class="eyebrow">
+        Prompt Trail
+        <span class="badge">一次性行为原型</span>
+        <span class="badge">不代表正式视觉设计</span>
+      </div>
+      <h1>可滚动时间线行为原型</h1>
+      <p class="question">本原型要回答：一条永久、连续的项目时间线，如何在 <code>AbovePrompt</code> 中完成折叠、按需加载、鼠标与键盘导航、焦点交接、新条目提示、强边界展示，以及回退歧义确认和草稿恢复？</p>
+      <p class="assumption">选择“逻辑原型”而非视觉方案：终端外观只用来让状态变化可感知；需要验证的是交互规则与状态机。所有档案数据均为内存中的示例。</p>
+    </header>
+
+    <section class="workbench" aria-label="Prompt Trail 原型工作台">
+      <aside class="rail">
+        <section class="section" aria-labelledby="scenario-title">
+          <div class="section-heading">
+            <h2 id="scenario-title">引导场景</h2>
+            <span>选场景会重置状态</span>
+          </div>
+          <div id="scenario-tabs" class="scenario-tabs" role="tablist" aria-label="引导场景"></div>
+          <div class="walkthrough">
+            <p id="scenario-description"></p>
+            <div id="scenario-steps" class="steps"></div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="freeplay-title">
+          <div class="section-heading">
+            <h2 id="freeplay-title">自由操作</h2>
+            <span>任意顺序</span>
+          </div>
+          <div id="freeplay" class="control-groups"></div>
+        </section>
+      </aside>
+
+      <div class="stage">
+        <section id="terminal-frame" class="terminal-frame" aria-label="交互式终端模拟">
+          <div class="terminal-chrome">
+            <span><strong>交互式终端模拟</strong> · AbovePrompt</span>
+            <span id="terminal-size">96 列 · 8 行窗口</span>
+          </div>
+          <div class="terminal-body">
+            <div class="transcript-sample" aria-hidden="true">
+              <div class="transcript-line">上一条响应保留在 transcript 中……</div>
+              <div class="transcript-line">Prompt Trail 只在输入框上方绘制自己的时间线。</div>
+            </div>
+            <div id="above-prompt" class="above-prompt"></div>
+            <div id="composer" class="composer"></div>
+          </div>
+          <div id="terminal-notice" class="terminal-notice" role="status" aria-live="polite"></div>
+        </section>
+
+        <section id="state-panel" class="state-panel" aria-label="完整相关状态"></section>
+      </div>
+    </section>
+
+    <section class="review" aria-labelledby="review-title">
+      <h2 id="review-title">请重点判断四条规则</h2>
+      <p>按完引导场景后，请确认这些行为是“保留”还是“调整”。它们是本票据需要锁定的决策，不是视觉偏好。</p>
+      <div class="decision-list">
+        <article class="decision">
+          <strong>1. 默认折叠，主动展开</strong>
+          <p>平时只占一行；点击标题或运行 <code>/prompt-history</code> 后展开并把键盘焦点交给时间线。</p>
+        </article>
+        <article class="decision">
+          <strong>2. 查看旧历史时不抢位置</strong>
+          <p>到底部才跟随新增项；离开底部后保持视觉锚点，仅显示“有 N 条新条目”。</p>
+        </article>
+        <article class="decision">
+          <strong>3. 瞬时 UI 优先</strong>
+          <p>其他界面占用 <code>AbovePrompt</code> 时，Prompt Trail 完全让出并保存焦点、游标和滚动位置；释放后原样恢复。</p>
+        </article>
+        <article class="decision">
+          <strong>4. 歧义先阻止，再恢复草稿</strong>
+          <p>父节点不唯一时丢弃本次提交、强制聚焦候选；选择后回到输入框并恢复原草稿，由用户重新提交。</p>
+        </article>
+      </div>
+      <p class="prototype-note">此文件不读写数据库、不修改 Claude Code transcript、不使用网络或第三方运行时依赖。</p>
+    </section>
+  </main>
+
+  <script>
+    const TrailMachine = (() => {
+      const CHUNK_SIZE = 9;
+
+      function prompt(seq, run, segment, time, text, options = {}) {
+        return {
+          type: "prompt",
+          id: `p-${seq}`,
+          seq,
+          run,
+          segment,
+          time,
+          text,
+          jumpable: Boolean(options.jumpable),
+          activeBranch: options.activeBranch !== false,
+          branch: options.branch || "main"
+        };
+      }
+
+      function boundary(seq, kind, label) {
+        return { type: "boundary", id: `b-${seq}-${kind}`, seq, kind, label };
+      }
+
+      function seedArchive() {
+        return [
+          boundary(1, "run", "Run 1 · 09:12 开始"),
+          prompt(2, "R1", "S1", "09:13", "梳理插件目标与约束"),
+          prompt(3, "R1", "S1", "09:18", "保留重复 prompt，不做文本去重"),
+          prompt(4, "R1", "S1", "09:24", "多行输入第一行 ↵ 第二行 ↵ 第三行"),
+          prompt(5, "R1", "S1", "09:31", "核实 function hooks 的生命周期事件"),
+          prompt(6, "R1", "S1", "09:46", "时间线从旧到新显示"),
+          boundary(7, "clear", "/clear · 新 Conversation segment"),
+          prompt(8, "R1", "S2", "10:02", "clear 之后继续研究边界"),
+          prompt(9, "R1", "S2", "10:16", "记录 compact 与 reload 的差异"),
+          prompt(10, "R1", "S2", "10:29", "旧 Run 的跳转目标应视为失效"),
+          prompt(11, "R1", "S2", "10:45", "用项目根路径隔离档案"),
+          prompt(12, "R1", "S2", "11:02", "确认 SQLite helper 的职责边界"),
+          boundary(13, "run", "Run 1 · 11:18 正常结束"),
+          boundary(14, "run", "Run 2 · 14:03 恢复项目"),
+          prompt(15, "R2", "S1", "14:04", "继续上一次未完成的交互设计", { activeBranch: false, branch: "old" }),
+          prompt(16, "R2", "S1", "14:11", "如果用户回退到重复 prompt 怎么办", { activeBranch: false, branch: "old" }),
+          prompt(17, "R2", "S1", "14:20", "这条旧后续属于非活动分支", { activeBranch: false, branch: "old" }),
+          boundary(18, "run", "↳ 回退后建立活动分支"),
+          prompt(19, "R2", "S1", "14:27", "重新选择交互路径", { jumpable: true, branch: "active" }),
+          prompt(20, "R2", "S1", "14:33", "默认状态保持折叠", { jumpable: true, branch: "active" }),
+          prompt(21, "R2", "S1", "14:38", "点击标题后展开并聚焦", { jumpable: true, branch: "active" }),
+          prompt(22, "R2", "S1", "14:43", "鼠标滚轮连续加载旧条目", { jumpable: true, branch: "active" }),
+          prompt(23, "R2", "S1", "14:49", "PageUp 保持明确的视觉锚点", { jumpable: true, branch: "active" }),
+          prompt(24, "R2", "S1", "14:54", "离开底部时不要被新条目拉回", { jumpable: true, branch: "active" }),
+          boundary(25, "clear", "/clear · 新 Conversation segment"),
+          prompt(26, "R2", "S2", "15:01", "窄终端仍保留一行一个条目", { jumpable: true, branch: "active" }),
+          prompt(27, "R2", "S2", "15:06", "不可跳转条目仍显示但禁用激活", { jumpable: false, branch: "active" }),
+          prompt(28, "R2", "S2", "15:12", "查看旧历史时提示新增条目", { jumpable: true, branch: "active" }),
+          prompt(29, "R2", "S2", "15:19", "歧义确认必须先保存草稿", { jumpable: true, branch: "active" }),
+          prompt(30, "R2", "S2", "15:26", "选择父节点后恢复草稿", { jumpable: true, branch: "active" }),
+          prompt(31, "R2", "S2", "15:34", "验证 AbovePrompt 焦点交接", { jumpable: true, branch: "active" })
+        ];
+      }
+
+      function rowCount(state) {
+        return state.width === "narrow" ? 6 : 8;
+      }
+
+      function lastViewStart(state) {
+        return Math.max(0, state.archive.length - rowCount(state));
+      }
+
+      function promptIndices(state) {
+        const result = [];
+        state.archive.forEach((event, index) => {
+          if (event.type === "prompt") result.push(index);
+        });
+        return result;
+      }
+
+      function lastPromptIndex(state) {
+        const indices = promptIndices(state);
+        return indices[indices.length - 1] ?? 0;
+      }
+
+      function nearestPromptInWindow(state, preferredDirection) {
+        const start = state.viewStart;
+        const end = Math.min(state.archive.length - 1, start + rowCount(state) - 1);
+        const indices = promptIndices(state).filter(index => index >= start && index <= end);
+        if (!indices.length) return state.cursor;
+        return preferredDirection < 0 ? indices[0] : indices[indices.length - 1];
+      }
+
+      function normalizeWindow(state, preferredDirection = 1) {
+        const maxStart = lastViewStart(state);
+        state.viewStart = Math.max(0, Math.min(state.viewStart, maxStart));
+        if (state.viewStart <= state.loadedStart + 1) {
+          state.loadedStart = Math.max(0, state.viewStart - CHUNK_SIZE);
+        }
+        const end = state.viewStart + rowCount(state) - 1;
+        if (state.cursor < state.viewStart || state.cursor > end || state.archive[state.cursor]?.type !== "prompt") {
+          state.cursor = nearestPromptInWindow(state, preferredDirection);
+        }
+        state.pinnedBottom = state.viewStart >= maxStart;
+        if (state.pinnedBottom) state.unseen = 0;
+        return state;
+      }
+
+      function ensureCursorVisible(state) {
+        const rows = rowCount(state);
+        if (state.cursor < state.viewStart) state.viewStart = state.cursor;
+        if (state.cursor >= state.viewStart + rows) state.viewStart = state.cursor - rows + 1;
+        if (state.cursor < state.loadedStart + 1) {
+          state.loadedStart = Math.max(0, state.cursor - CHUNK_SIZE);
+        }
+        return normalizeWindow(state, 1);
+      }
+
+      function cloneState(state) {
+        return {
+          ...state,
+          archive: state.archive.slice(),
+          pending: state.pending ? {
+            ...state.pending,
+            candidates: state.pending.candidates.map(candidate => ({ ...candidate }))
+          } : null,
+          suspended: state.suspended ? { ...state.suspended } : null,
+          notice: { ...state.notice }
+        };
+      }
+
+      function createInitialState() {
+        const archive = seedArchive();
+        return {
+          archive,
+          loadedStart: Math.max(0, archive.length - 13),
+          viewStart: Math.max(0, archive.length - 8),
+          cursor: archive.length - 1,
+          expanded: false,
+          focus: "composer",
+          mode: "trail",
+          width: "wide",
+          slotFree: true,
+          suspended: null,
+          pinnedBottom: true,
+          unseen: 0,
+          pending: null,
+          parentCursor: 0,
+          restoredDraft: "",
+          branchParent: "p-30",
+          appendedCount: 0,
+          notice: { tone: "neutral", text: "默认折叠；点击 Prompt Trail 或运行 /prompt-history 展开。" },
+          lastChange: "初始化"
+        };
+      }
+
+      function moveCursor(state, amount) {
+        const indices = promptIndices(state);
+        let position = indices.indexOf(state.cursor);
+        if (position < 0) position = indices.length - 1;
+        position = Math.max(0, Math.min(indices.length - 1, position + amount));
+        state.cursor = indices[position];
+        state.lastChange = amount < 0 ? "游标向旧条目移动" : "游标向新条目移动";
+        return ensureCursorVisible(state);
+      }
+
+      function activate(state, index) {
+        const event = state.archive[index];
+        state.cursor = index;
+        if (!event || event.type !== "prompt") return state;
+        if (!event.jumpable) {
+          state.notice = { tone: "warning", text: "该档案条目没有当前 Run 的有效跳转目标；时间线保持展开。" };
+          state.lastChange = "拒绝失效跳转";
+          return state;
+        }
+        state.expanded = false;
+        state.focus = "composer";
+        state.notice = { tone: "success", text: `已跳转至 #${event.seq}；时间线折叠，焦点回到输入框。` };
+        state.lastChange = "完成跳转并折叠";
+        return state;
+      }
+
+      function reducer(current, action) {
+        const state = cloneState(current);
+        const rows = rowCount(state);
+
+        switch (action.type) {
+          case "TOGGLE": {
+            if (!state.slotFree) {
+              state.notice = { tone: "warning", text: "AbovePrompt 正由瞬时界面占用；Prompt Trail 不覆盖它。" };
+              state.lastChange = "拒绝争抢槽位";
+              return state;
+            }
+            if (state.mode === "parent") {
+              state.notice = { tone: "warning", text: "必须先选择回退父节点，不能折叠确认界面。" };
+              state.lastChange = "阻止折叠候选确认"
+              return state;
+            }
+            state.expanded = !state.expanded;
+            state.focus = state.expanded ? "trail" : "composer";
+            state.notice = {
+              tone: "neutral",
+              text: state.expanded ? "时间线已展开；方向键、PageUp/PageDown、Home/End 和 Enter 可用。" : "时间线已折叠；焦点回到输入框。"
+            };
+            state.lastChange = state.expanded ? "展开时间线" : "折叠时间线";
+            return state;
+          }
+
+          case "OPEN_COMMAND": {
+            if (!state.slotFree) {
+              state.notice = { tone: "warning", text: "/prompt-history 已收到，但 AbovePrompt 正忙；释放后可恢复原位置。" };
+              state.lastChange = "命令等待槽位释放";
+              return state;
+            }
+            state.expanded = true;
+            state.focus = state.mode === "parent" ? "parent" : "trail";
+            state.notice = { tone: "neutral", text: "/prompt-history 已展开时间线并取得焦点。" };
+            state.lastChange = "命令展开时间线";
+            return state;
+          }
+
+          case "MOVE": {
+            if (!state.expanded || state.mode !== "trail" || !state.slotFree) return state;
+            return moveCursor(state, action.amount);
+          }
+
+          case "PAGE": {
+            if (!state.expanded || state.mode !== "trail" || !state.slotFree) return state;
+            state.viewStart += action.direction * Math.max(1, rows - 1);
+            state.lastChange = action.direction < 0 ? "向旧历史翻一屏" : "向新历史翻一屏";
+            return normalizeWindow(state, action.direction);
+          }
+
+          case "SCROLL": {
+            if (!state.expanded || state.mode !== "trail" || !state.slotFree) return state;
+            state.viewStart += action.direction;
+            state.lastChange = action.direction < 0 ? "滚轮向旧历史滚动" : "滚轮向新历史滚动";
+            return normalizeWindow(state, action.direction);
+          }
+
+          case "HOME": {
+            if (!state.expanded || state.mode !== "trail" || !state.slotFree) return state;
+            state.loadedStart = 0;
+            state.viewStart = 0;
+            state.cursor = promptIndices(state)[0];
+            state.pinnedBottom = false;
+            state.lastChange = "跳到档案开头";
+            state.notice = { tone: "neutral", text: "已到项目时间线最早处；旧数据按需进入加载范围。" };
+            return state;
+          }
+
+          case "END":
+          case "GO_NEW": {
+            state.viewStart = lastViewStart(state);
+            state.cursor = lastPromptIndex(state);
+            state.pinnedBottom = true;
+            state.unseen = 0;
+            state.lastChange = action.type === "END" ? "跳到底部" : "查看新增条目";
+            state.notice = { tone: "neutral", text: "已回到底部；后续新条目会自动跟随。" };
+            return state;
+          }
+
+          case "ACTIVATE": {
+            if (!state.expanded || state.mode !== "trail" || !state.slotFree) return state;
+            return activate(state, state.cursor);
+          }
+
+          case "CLICK_PROMPT": {
+            if (!state.expanded || state.mode !== "trail" || !state.slotFree) return state;
+            return activate(state, action.index);
+          }
+
+          case "APPEND": {
+            const seq = Math.max(...state.archive.map(event => event.seq)) + 1;
+            const count = state.appendedCount + 1;
+            state.archive.push(prompt(
+              seq,
+              "R2",
+              "S2",
+              `15:${String(34 + count * 3).padStart(2, "0")}`,
+              `新增 prompt ${count}：继续评审时间线交互`,
+              { jumpable: true, branch: "active" }
+            ));
+            state.appendedCount = count;
+            if (state.pinnedBottom) {
+              state.viewStart = lastViewStart(state);
+              state.cursor = state.archive.length - 1;
+              state.notice = { tone: "success", text: "位于底部：新条目已进入视窗并继续跟随。" };
+              state.lastChange = "追加并自动跟随";
+            } else {
+              state.unseen += 1;
+              state.notice = { tone: "warning", text: `正在查看旧历史：保持视觉位置，累计 ${state.unseen} 条新条目。` };
+              state.lastChange = "追加但保持旧位置";
+            }
+            return state;
+          }
+
+          case "TOGGLE_WIDTH": {
+            const wasBottom = state.pinnedBottom;
+            state.width = state.width === "wide" ? "narrow" : "wide";
+            if (wasBottom) state.viewStart = lastViewStart(state);
+            state.lastChange = state.width === "narrow" ? "切换到窄终端" : "切换到宽终端";
+            state.notice = {
+              tone: "neutral",
+              text: state.width === "narrow" ? "窄终端：隐藏次要元数据，仍保持一行一个事件。" : "宽终端：恢复时间与序号列。"
+            };
+            return normalizeWindow(state, 1);
+          }
+
+          case "TOGGLE_SLOT": {
+            if (state.slotFree) {
+              state.suspended = { expanded: state.expanded, focus: state.focus };
+              state.slotFree = false;
+              state.expanded = false;
+              state.focus = "external";
+              state.notice = { tone: "warning", text: "Prompt Trail 已完全让出 AbovePrompt；滚动、游标和待确认状态均未丢失。" };
+              state.lastChange = "让出 AbovePrompt";
+            } else {
+              state.slotFree = true;
+              state.expanded = state.suspended?.expanded ?? false;
+              state.focus = state.suspended?.focus ?? "composer";
+              state.suspended = null;
+              state.notice = { tone: "success", text: "AbovePrompt 已释放；Prompt Trail 恢复到让出前的位置和焦点。" };
+              state.lastChange = "恢复 AbovePrompt 状态";
+            }
+            return state;
+          }
+
+          case "AMBIGUITY": {
+            state.slotFree = true;
+            state.suspended = null;
+            state.pending = {
+              draft: "继续实现时间线，并保留这段多行草稿 ↵ 第二行",
+              candidates: [
+                { id: "p-23", label: "#23 · PageUp 保持明确的视觉锚点" },
+                { id: "p-26", label: "#26 · 窄终端仍保留一行一个条目" },
+                { id: "root", label: "新根分支 · 不关联已有 prompt" }
+              ]
+            };
+            state.parentCursor = 0;
+            state.mode = "parent";
+            state.expanded = true;
+            state.focus = "parent";
+            state.restoredDraft = "";
+            state.notice = { tone: "danger", text: "本次提交已被 drop；草稿暂存在内存中，必须先选择父节点。" };
+            state.lastChange = "阻止歧义提交并聚焦候选";
+            return state;
+          }
+
+          case "PARENT_MOVE": {
+            if (state.mode !== "parent" || !state.pending || !state.slotFree) return state;
+            const max = state.pending.candidates.length - 1;
+            state.parentCursor = Math.max(0, Math.min(max, state.parentCursor + action.amount));
+            state.lastChange = "移动父节点候选游标";
+            return state;
+          }
+
+          case "CHOOSE_PARENT": {
+            if (state.mode !== "parent" || !state.pending || !state.slotFree) return state;
+            const candidate = state.pending.candidates[action.index ?? state.parentCursor];
+            state.branchParent = candidate.id;
+            state.restoredDraft = state.pending.draft;
+            state.pending = null;
+            state.mode = "trail";
+            state.expanded = false;
+            state.focus = "composer";
+            state.notice = { tone: "success", text: `已选择「${candidate.label}」；草稿已恢复，请人工重新提交。` };
+            state.lastChange = "确认父节点并恢复草稿";
+            return state;
+          }
+
+          case "ESCAPE": {
+            if (state.mode === "parent") {
+              state.notice = { tone: "warning", text: "不能跳过父节点确认；草稿仍安全暂存，候选界面保持聚焦。" };
+              state.lastChange = "阻止退出候选确认";
+              return state;
+            }
+            if (state.expanded) {
+              state.expanded = false;
+              state.focus = "composer";
+              state.notice = { tone: "neutral", text: "已折叠时间线并把焦点还给输入框。" };
+              state.lastChange = "Esc 折叠时间线";
+            }
+            return state;
+          }
+
+          case "EXPIRE_SELECTED": {
+            const selected = state.archive[state.cursor];
+            if (!selected || selected.type !== "prompt") return state;
+            state.archive[state.cursor] = { ...selected, jumpable: false };
+            state.notice = { tone: "warning", text: `#${selected.seq} 的临时 Jump Target 已失效；档案条目仍保留。` };
+            state.lastChange = "使当前跳转目标失效";
+            return state;
+          }
+
+          default:
+            return state;
+        }
+      }
+
+      function scenarioState(id) {
+        let state = createInitialState();
+        const apply = action => { state = reducer(state, action); };
+
+        if (id === "browse") {
+          apply({ type: "OPEN_COMMAND" });
+          state.notice = { tone: "neutral", text: "从底部开始；按引导连续浏览并激活条目。" };
+        }
+
+        if (id === "new-items") {
+          apply({ type: "OPEN_COMMAND" });
+          apply({ type: "PAGE", direction: -1 });
+          state.notice = { tone: "neutral", text: "已经离开底部；观察新条目到来时是否抢走位置。" };
+        }
+
+        if (id === "narrow-slot") {
+          apply({ type: "OPEN_COMMAND" });
+          apply({ type: "TOGGLE_WIDTH" });
+          apply({ type: "PAGE", direction: -1 });
+          state.notice = { tone: "neutral", text: "窄终端已打开并停在旧位置；下一步模拟槽位竞争。" };
+        }
+
+        if (id === "ambiguity") {
+          apply({ type: "AMBIGUITY" });
+        }
+
+        if (id === "stale") {
+          apply({ type: "OPEN_COMMAND" });
+          state.cursor = state.archive.findIndex(event => event.id === "p-27");
+          state.viewStart = Math.max(0, state.cursor - 3);
+          normalizeWindow(state, 1);
+          state.notice = { tone: "neutral", text: "游标位于保留但不可跳转的 #27。" };
+        }
+
+        return state;
+      }
+
+      function visibleEvents(state) {
+        return state.archive.slice(state.viewStart, state.viewStart + rowCount(state));
+      }
+
+      function inspect(state) {
+        const loaded = state.archive.length - state.loadedStart;
+        const selected = state.archive[state.cursor];
+        return {
+          rows: rowCount(state),
+          loaded,
+          selected,
+          visibleStart: state.viewStart + 1,
+          visibleEnd: Math.min(state.archive.length, state.viewStart + rowCount(state))
+        };
+      }
+
+      return { createInitialState, reducer, scenarioState, visibleEvents, inspect, rowCount };
+    })();
+
+    const scenarios = [
+      {
+        id: "browse",
+        title: "连续浏览与跳转",
+        description: "验证连续滚动、按需加载、键盘游标和成功跳转后的焦点交接。",
+        steps: [
+          { label: "PageUp：向旧历史翻一屏", action: { type: "PAGE", direction: -1 } },
+          { label: "滚轮向上：触发更早范围加载", action: { type: "SCROLL", direction: -1 } },
+          { label: "方向键 ↑：选择上一条 prompt", action: { type: "MOVE", amount: -1 } },
+          { label: "Enter：跳转并返回输入框", action: { type: "ACTIVATE" } }
+        ]
+      },
+      {
+        id: "new-items",
+        title: "旧历史与新条目",
+        description: "验证查看旧历史时保持位置，只累计提示；回到底部后重新跟随。",
+        steps: [
+          { label: "追加一条新 prompt", action: { type: "APPEND" } },
+          { label: "再追加一条新 prompt", action: { type: "APPEND" } },
+          { label: "点击新条目提示回到底部", action: { type: "GO_NEW" } },
+          { label: "再追加：应自动跟随", action: { type: "APPEND" } }
+        ]
+      },
+      {
+        id: "narrow-slot",
+        title: "窄终端与槽位竞争",
+        description: "验证窄宽度降级，以及瞬时界面占用 AbovePrompt 时的完整让出与恢复。",
+        steps: [
+          { label: "占用 AbovePrompt", action: { type: "TOGGLE_SLOT" } },
+          { label: "尝试 /prompt-history：不得覆盖", action: { type: "OPEN_COMMAND" } },
+          { label: "释放 AbovePrompt：恢复原位", action: { type: "TOGGLE_SLOT" } },
+          { label: "切回宽终端", action: { type: "TOGGLE_WIDTH" } }
+        ]
+      },
+      {
+        id: "ambiguity",
+        title: "回退父节点歧义",
+        description: "验证提交被阻止、候选强制聚焦，以及选择后只恢复草稿而不自动重提。",
+        steps: [
+          { label: "Esc：尝试跳过确认", action: { type: "ESCAPE" } },
+          { label: "↓：选择下一候选", action: { type: "PARENT_MOVE", amount: 1 } },
+          { label: "Enter：确认父节点", action: { type: "CHOOSE_PARENT" } },
+          { label: "展开查看：确认时间线仍可用", action: { type: "OPEN_COMMAND" } }
+        ]
+      },
+      {
+        id: "stale",
+        title: "失效跳转目标",
+        description: "验证档案条目不会因临时 requestId 失效而消失，激活失败也不折叠时间线。",
+        steps: [
+          { label: "Enter：尝试激活失效条目", action: { type: "ACTIVATE" } },
+          { label: "↓：移动到下一条可跳转项", action: { type: "MOVE", amount: 1 } },
+          { label: "Enter：完成有效跳转", action: { type: "ACTIVATE" } }
+        ]
+      }
+    ];
+
+    const freeplayGroups = [
+      {
+        title: "显示与焦点",
+        controls: [
+          ["点击标题 / 切换", { type: "TOGGLE" }],
+          ["/prompt-history", { type: "OPEN_COMMAND" }],
+          ["Esc", { type: "ESCAPE" }],
+          ["宽 / 窄终端", { type: "TOGGLE_WIDTH" }]
+        ]
+      },
+      {
+        title: "浏览",
+        controls: [
+          ["↑", { type: "MOVE", amount: -1 }],
+          ["↓", { type: "MOVE", amount: 1 }],
+          ["PageUp", { type: "PAGE", direction: -1 }],
+          ["PageDown", { type: "PAGE", direction: 1 }],
+          ["Home", { type: "HOME" }],
+          ["End", { type: "END" }],
+          ["滚轮向上", { type: "SCROLL", direction: -1 }],
+          ["滚轮向下", { type: "SCROLL", direction: 1 }],
+          ["Enter / 激活", { type: "ACTIVATE" }, "wide"]
+        ]
+      },
+      {
+        title: "边界情况",
+        controls: [
+          ["追加新 prompt", { type: "APPEND" }],
+          ["查看新条目", { type: "GO_NEW" }],
+          ["占用 / 释放槽位", { type: "TOGGLE_SLOT" }],
+          ["使目标失效", { type: "EXPIRE_SELECTED" }],
+          ["制造回退歧义", { type: "AMBIGUITY" }, "wide warning"],
+          ["候选 ↑", { type: "PARENT_MOVE", amount: -1 }],
+          ["候选 ↓", { type: "PARENT_MOVE", amount: 1 }],
+          ["确认候选", { type: "CHOOSE_PARENT" }]
+        ]
+      }
+    ];
+
+    let activeScenario = "browse";
+    let scenarioStep = 0;
+    let state = TrailMachine.scenarioState(activeScenario);
+
+    const $ = selector => document.querySelector(selector);
+    const abovePrompt = $("#above-prompt");
+    const composer = $("#composer");
+    const notice = $("#terminal-notice");
+    const terminalFrame = $("#terminal-frame");
+    const statePanel = $("#state-panel");
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function dispatch(action) {
+      state = TrailMachine.reducer(state, action);
+      render();
+    }
+
+    function eventRow(event, index) {
+      if (event.type === "boundary") {
+        return `<div class="boundary-row ${event.kind === "run" ? "run" : ""}" aria-label="${escapeHtml(event.label)}"><span>${escapeHtml(event.label)}</span></div>`;
+      }
+      const selected = index === state.cursor;
+      const classes = [
+        "timeline-row",
+        selected ? "is-selected" : "",
+        event.jumpable ? "" : "is-unavailable",
+        event.activeBranch ? "" : "is-inactive-branch"
+      ].filter(Boolean).join(" ");
+      const status = event.jumpable ? "可跳转" : "不可跳转";
+      return `
+        <button class="${classes}" data-prompt-index="${index}" aria-current="${selected ? "true" : "false"}" aria-label="#${event.seq} ${escapeHtml(event.text)}，${status}">
+          <span class="row-seq">#${event.seq}</span>
+          <span class="row-time">${event.time}</span>
+          <span class="row-text">${escapeHtml(event.text)}</span>
+          <span class="row-jump" aria-hidden="true">${event.jumpable ? "↵" : "×"}</span>
+        </button>`;
+    }
+
+    function renderTrail() {
+      if (!state.slotFree) {
+        abovePrompt.innerHTML = `
+          <div class="foreign-panel">
+            <strong>其他瞬时界面正在使用 AbovePrompt</strong>
+            <span>Prompt Trail 已让出槽位；其内部状态保持不变。</span>
+          </div>`;
+        return;
+      }
+
+      const inspection = TrailMachine.inspect(state);
+      const totalPrompts = state.archive.filter(event => event.type === "prompt").length;
+      const stale = state.archive.filter(event => event.type === "prompt" && !event.jumpable).length;
+      const caret = state.expanded ? "▾" : "▸";
+      const newBadge = state.unseen ? `<span class="new-badge">${state.unseen} 条新条目</span>` : "";
+      const title = `
+        <button id="trail-title-button" class="trail-title" aria-expanded="${state.expanded}">
+          <span class="trail-title-main"><span>${caret}</span><strong>Prompt Trail</strong>${newBadge}</span>
+          <span class="trail-title-meta">${totalPrompts} prompts · ${stale} 不可跳转</span>
+        </button>`;
+
+      if (state.mode === "parent" && state.pending) {
+        const candidates = state.pending.candidates.map((candidate, index) => `
+          <button class="candidate ${index === state.parentCursor ? "is-selected" : ""}" data-candidate-index="${index}" aria-current="${index === state.parentCursor}">
+            <span>${index === state.parentCursor ? "›" : " "}</span>
+            <span>${escapeHtml(candidate.label)}</span>
+          </button>`).join("");
+        abovePrompt.innerHTML = `${title}
+          <section class="parent-choice" aria-label="选择回退父节点">
+            <h3>无法唯一判断回退父节点</h3>
+            <p>本次提交已阻止，草稿暂存。↑/↓ 选择，Enter 确认；Esc 不会绕过确认。</p>
+            <div class="candidate-list">${candidates}</div>
+          </section>`;
+        wireAbovePrompt();
+        return;
+      }
+
+      if (!state.expanded) {
+        abovePrompt.innerHTML = title;
+        wireAbovePrompt();
+        return;
+      }
+
+      const rows = TrailMachine.visibleEvents(state).map((event, offset) => eventRow(event, state.viewStart + offset)).join("");
+      const topEdge = state.loadedStart > 0
+        ? `<div class="loading-edge">↑ 继续滚动会按需载入更早事件 · 当前缓存 ${inspection.loaded}/${state.archive.length}</div>`
+        : `<div class="loading-edge">— 项目时间线起点 —</div>`;
+      const newItems = state.unseen
+        ? `<button class="new-items" data-action="go-new">↓ ${state.unseen} 条新条目 · 保持当前位置</button>`
+        : "";
+
+      abovePrompt.innerHTML = `${title}
+        <div id="timeline" class="timeline" tabindex="0" aria-label="Prompt Trail 时间线">
+          <div class="timeline-help"><span>↑↓ 选择 · PgUp/PgDn 滚动 · Enter 跳转</span><span>${inspection.visibleStart}–${inspection.visibleEnd} / ${state.archive.length}</span></div>
+          ${topEdge}
+          ${rows}
+          ${newItems}
+        </div>`;
+      wireAbovePrompt();
+    }
+
+    function wireAbovePrompt() {
+      const titleButton = $("#trail-title-button");
+      if (titleButton) titleButton.addEventListener("click", () => dispatch({ type: "TOGGLE" }));
+
+      document.querySelectorAll("[data-prompt-index]").forEach(button => {
+        button.addEventListener("click", () => dispatch({ type: "CLICK_PROMPT", index: Number(button.dataset.promptIndex) }));
+      });
+
+      document.querySelectorAll("[data-candidate-index]").forEach(button => {
+        button.addEventListener("click", () => dispatch({ type: "CHOOSE_PARENT", index: Number(button.dataset.candidateIndex) }));
+      });
+
+      const goNew = document.querySelector('[data-action="go-new"]');
+      if (goNew) goNew.addEventListener("click", () => dispatch({ type: "GO_NEW" }));
+
+      const timeline = $("#timeline");
+      if (timeline) {
+        timeline.addEventListener("wheel", event => {
+          event.preventDefault();
+          dispatch({ type: "SCROLL", direction: event.deltaY < 0 ? -1 : 1 });
+        }, { passive: false });
+        if (state.focus === "trail") queueMicrotask(() => timeline.focus({ preventScroll: true }));
+      }
+    }
+
+    function renderComposer() {
+      const blocked = state.mode === "parent";
+      const focused = state.focus === "composer";
+      const text = blocked
+        ? "提交已阻止；草稿暂存，等待父节点确认"
+        : state.restoredDraft || "输入下一条 prompt…";
+      composer.className = `composer ${focused ? "is-focused" : ""} ${blocked ? "is-blocked" : ""}`;
+      composer.innerHTML = `<span class="composer-prompt">›</span><span class="composer-text">${escapeHtml(text)}</span>`;
+    }
+
+    function renderState() {
+      const inspection = TrailMachine.inspect(state);
+      const selected = inspection.selected;
+      const values = [
+        ["显示", state.slotFree ? (state.expanded ? "展开" : "折叠") : "已让出槽位"],
+        ["焦点", state.focus],
+        ["模式", state.mode === "parent" ? "父节点确认" : "时间线"],
+        ["终端", state.width === "narrow" ? "窄 · 6 行" : "宽 · 8 行"],
+        ["档案 / 缓存", `${state.archive.length} / ${inspection.loaded}`],
+        ["可视范围", `${inspection.visibleStart}–${inspection.visibleEnd}`],
+        ["底部跟随", state.pinnedBottom ? "是" : "否"],
+        ["未看新条目", String(state.unseen)],
+        ["当前游标", selected?.type === "prompt" ? `#${selected.seq}` : "边界"],
+        ["Jump Target", selected?.type === "prompt" ? (selected.jumpable ? "有效" : "失效") : "不适用"],
+        ["逻辑父节点", state.branchParent],
+        ["最近变化", state.lastChange]
+      ];
+      statePanel.innerHTML = values.map(([label, value]) => `
+        <div class="state-item"><span class="state-label">${escapeHtml(label)}</span><span class="state-value">${escapeHtml(value)}</span></div>`).join("");
+    }
+
+    function renderNotice() {
+      notice.dataset.tone = state.notice.tone;
+      notice.textContent = state.notice.text;
+    }
+
+    function renderScenarioTabs() {
+      $("#scenario-tabs").innerHTML = scenarios.map(scenario => `
+        <button class="scenario-tab" role="tab" aria-selected="${scenario.id === activeScenario}" data-scenario="${scenario.id}">${escapeHtml(scenario.title)}</button>`).join("");
+
+      document.querySelectorAll("[data-scenario]").forEach(button => {
+        button.addEventListener("click", () => {
+          activeScenario = button.dataset.scenario;
+          scenarioStep = 0;
+          state = TrailMachine.scenarioState(activeScenario);
+          render();
+        });
+      });
+
+      const scenario = scenarios.find(item => item.id === activeScenario);
+      $("#scenario-description").textContent = scenario.description;
+      $("#scenario-steps").innerHTML = scenario.steps.map((step, index) => `
+        <button class="step ${index < scenarioStep ? "is-done" : ""}" data-step="${index}" ${index === scenarioStep ? "" : "disabled"}>
+          <span class="step-num">${index + 1}</span><span>${escapeHtml(step.label)}</span>
+        </button>`).join("");
+
+      const current = document.querySelector(`[data-step="${scenarioStep}"]`);
+      if (current) {
+        current.addEventListener("click", () => {
+          dispatch(scenario.steps[scenarioStep].action);
+          scenarioStep += 1;
+          renderScenarioTabs();
+        });
+      }
+    }
+
+    function renderFreeplay() {
+      $("#freeplay").innerHTML = freeplayGroups.map(group => `
+        <div class="control-group">
+          <h3>${escapeHtml(group.title)}</h3>
+          <div class="button-grid">
+            ${group.controls.map(([label, action, style = ""]) => {
+              const encoded = encodeURIComponent(JSON.stringify(action));
+              return `<button class="control-button ${style.includes("wide") ? "is-wide" : ""} ${style.includes("warning") ? "is-warning" : ""}" data-free-action="${encoded}">${escapeHtml(label)}</button>`;
+            }).join("")}
+          </div>
+        </div>`).join("");
+
+      document.querySelectorAll("[data-free-action]").forEach(button => {
+        button.addEventListener("click", () => dispatch(JSON.parse(decodeURIComponent(button.dataset.freeAction))));
+      });
+    }
+
+    function render() {
+      terminalFrame.classList.toggle("is-narrow", state.width === "narrow");
+      $("#terminal-size").textContent = state.width === "narrow" ? "42 列 · 6 行窗口" : "96 列 · 8 行窗口";
+      renderTrail();
+      renderComposer();
+      renderState();
+      renderNotice();
+      renderScenarioTabs();
+      renderFreeplay();
+    }
+
+    document.addEventListener("keydown", event => {
+      if (state.focus === "parent") {
+        if (event.key === "ArrowUp") { event.preventDefault(); dispatch({ type: "PARENT_MOVE", amount: -1 }); }
+        if (event.key === "ArrowDown") { event.preventDefault(); dispatch({ type: "PARENT_MOVE", amount: 1 }); }
+        if (event.key === "Enter") { event.preventDefault(); dispatch({ type: "CHOOSE_PARENT" }); }
+        if (event.key === "Escape") { event.preventDefault(); dispatch({ type: "ESCAPE" }); }
+        return;
+      }
+      if (state.focus !== "trail") return;
+      const actions = {
+        ArrowUp: { type: "MOVE", amount: -1 },
+        ArrowDown: { type: "MOVE", amount: 1 },
+        PageUp: { type: "PAGE", direction: -1 },
+        PageDown: { type: "PAGE", direction: 1 },
+        Home: { type: "HOME" },
+        End: { type: "END" },
+        Enter: { type: "ACTIVATE" },
+        Escape: { type: "ESCAPE" }
+      };
+      if (actions[event.key]) {
+        event.preventDefault();
+        dispatch(actions[event.key]);
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

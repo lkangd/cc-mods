@@ -1,0 +1,5 @@
+{
+  "name": "prompt-trail-alignment-rewind-probe",
+  "version": "0.0.0",
+  "description": "一次性原型：记录 Claude Code 2.1.273 的 prompt 对齐、回退、恢复与分支事件。"
+}

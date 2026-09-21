@@ -1,0 +1,91 @@
+{
+  "prototype": "Prompt Trail SQLite helper",
+  "target": "Claude Code 2.1.273 on macOS arm64",
+  "result": "pass",
+  "failures": [],
+  "checks": {
+    "project_identity": {
+      "symlink_collapses": true,
+      "subdirectory_git_root_collapses": true,
+      "worktree_isolated": true,
+      "moved_root_policy": "canonical absolute root changes identity"
+    },
+    "idempotency": {
+      "same_event_returns_same_sequence": true,
+      "duplicate_flag": true,
+      "repeated_text_remains_distinct": true
+    },
+    "concurrency": {
+      "writers": 24,
+      "errors": [],
+      "all_committed": true,
+      "project_sequences_contiguous": true
+    },
+    "incremental_range": {
+      "requested_after": 2,
+      "requested_limit": 5,
+      "sequences": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "ordered_and_bounded": true
+    },
+    "crash_recovery": {
+      "exit_code": 86,
+      "expected_forced_exit": true,
+      "count_unchanged": true,
+      "sequence_unchanged": true,
+      "marker_absent": true,
+      "integrity": "ok"
+    },
+    "migration": {
+      "version": 2,
+      "text_hash_column_added": true,
+      "legacy_prompt_preserved": true,
+      "integrity": "ok"
+    },
+    "physical_delete": {
+      "before": {
+        "run_marker_present": true,
+        "project_marker_present": true
+      },
+      "delete_run": {
+        "deleted": 1
+      },
+      "after_run": {
+        "run_marker_absent": true,
+        "project_marker_present": true
+      },
+      "delete_project": {
+        "deletedProjects": 1
+      },
+      "after_project": {
+        "project_marker_absent": true,
+        "remaining_events": 0
+      }
+    },
+    "command_hook_bridge": {
+      "locator": ".claude/plugins/data/.function-hook-locators/prompt-trail-sqlite-probe.json",
+      "locator_mode": "0o600",
+      "locator_directory_mode": "0o700",
+      "database_directory_mode": "0o700",
+      "helper_is_absolute": true,
+      "database_is_absolute": true
+    },
+    "archive_permissions": {
+      "directory": "0o700",
+      "database": "0o600"
+    },
+    "packaging": {
+      "binary": "/Users/liangkangda/Fe-project/cc-mods/.scratch/prompt-trail/prototypes/sqlite-helper/plugin/bin/prompt-trail-sqlite-probe: Mach-O 64-bit executable arm64",
+      "linkage": [
+        "/usr/lib/libsqlite3.dylib (compatibility version 9.0.0, current version 377.0.0)",
+        "/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)"
+      ],
+      "prototype_scope": "host-specific macOS binary; production requires per-platform builds"
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "description": "Record lifecycle event ordering for the Prompt Trail prototype",
+  "modules": ["./register.ts"]
+}

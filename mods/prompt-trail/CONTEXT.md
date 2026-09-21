@@ -1,0 +1,81 @@
+# Prompt Trail
+
+Prompt Trail provides an in-terminal timeline of prompts entered during the current Claude Code run so people can return to earlier conversation points.
+
+## Language
+
+**Prompt Trail**:
+The navigable timeline of human-entered prompts collected during the current run.
+_Avoid_: Prompt history, input history
+
+**Run**:
+The lifetime of one interactive Claude Code process. A run may contain multiple conversation segments and survives Mod reloads.
+_Avoid_: Module instance, session
+
+**Conversation segment**:
+A contiguous portion of a run bounded by the start or a clear boundary.
+_Avoid_: Session
+
+**Clear boundary**:
+A non-prompt timeline marker separating the conversation segments before and after a `/clear` action.
+_Avoid_: Prompt, message
+
+**Project timeline**:
+The durable chronological history associated with one project root. Different worktrees have different project timelines.
+_Avoid_: Global history, session history
+
+**Timeline event**:
+An immutable occurrence in a project timeline, such as a run starting, a prompt being entered, a clear boundary, or a run ending.
+_Avoid_: Mutable message
+
+**Prompt entry**:
+A timeline event representing one composer submission confirmed present in the conversation history. It retains the complete final text plus only the count and broad kinds of any attachments, never attachment contents, names, paths, or hashes. It remains archived without a Jump target, and identical text in different entries remains distinct.
+_Avoid_: Render event, deduplicated prompt, attachment archive
+
+**Jump target**:
+A temporary association from a prompt entry to its currently rendered transcript position. It is valid only while that transcript position remains available.
+_Avoid_: Prompt identity, archive identifier
+
+**Conversation branch**:
+A logical lineage of prompt entries. A rewind or fork creates a new branch from an earlier prompt while preserving the previous branch.
+_Avoid_: Run, conversation segment
+
+**Active branch**:
+The conversation branch aligned with one Run's current transcript. Concurrent Runs in the same project each have their own active branch.
+_Avoid_: Project-wide active branch, latest events
+
+**Collection consent**:
+The person's explicit authorization for one Project Timeline to begin retaining complete prompt text. Each worktree and a project at a new canonical path requires its own consent. Before consent, Prompt Trail creates no Prompt Entries.
+_Avoid_: Plugin installation, implied consent, global consent
+
+**Run collection mode**:
+Whether one Run is currently recording Prompt Entries after its Project Timeline has Collection consent. Disabling one Run does not revoke project consent or change another Run's mode.
+_Avoid_: Collection consent, project-wide switch
+
+**Collection boundary**:
+A non-prompt timeline marker recording that one Run's collection began, ended, or resumed. It never claims to reconstruct prompts entered while that Run's collection was disabled.
+_Avoid_: Clear boundary, inferred history
+
+**Archive generation**:
+The incarnation of a Project Timeline created by the latest clear-all operation. A clear-all atomically retires the previous generation so concurrent Runs cannot restore deleted records.
+_Avoid_: Run, conversation segment
+
+**Pending capture**:
+A durably staged composer submission whose final entry into the Claude Code conversation has not yet been confirmed. It is not a Prompt Entry until confirmed and must be explicitly reconciled after an interrupted submission.
+_Avoid_: Prompt Entry, timeline gap
+
+**Archive unavailable**:
+A safety state in which Prompt Trail cannot prove that new Prompt Entries can be retained correctly. A Run-local failure blocks that Run; a shared archive failure blocks every Run using the affected Archive generation. Composer submissions remain blocked until recovery or an explicit choice to disable collection for the current Run.
+_Avoid_: Silent degradation, best-effort mode
+
+**Quarantined archive**:
+An archive generation removed from active use after an integrity failure while its original database files are preserved unchanged for later recovery or deletion.
+_Avoid_: Migration backup, active archive generation
+
+**Integrity gap**:
+A detected interval where Prompt Trail cannot prove that its Prompt Entries and lifecycle boundaries match the Claude Code conversation, typically after a host-level fail-open or unrecoverable lifecycle write. It is shown explicitly and never treated as a complete timeline.
+_Avoid_: Archive unavailable, silent omission, disabled collection interval
+
+**Integrity recovery boundary**:
+A non-prompt timeline marker ending an Integrity gap when Prompt Trail can again prove correct collection. It starts a new verifiable interval but never reconstructs, hides, or makes the preceding gap complete.
+_Avoid_: Gap deletion, proof of historical completeness

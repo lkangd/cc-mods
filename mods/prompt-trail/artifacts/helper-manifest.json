@@ -1,0 +1,32 @@
+{
+  "formatVersion": 1,
+  "target": "darwin-arm64-macos15",
+  "file": "bin/prompt-trail-helper",
+  "sha256": "87091bfb645bae5fef4146dbfd00465fbeb17f77f05726740cf1e390f3801f4e",
+  "bridgeFile": "bin/prompt-trail-bridge",
+  "bridgeSha256": "b9c66b3d4d3d051cdadd60d19272601a5543081e093866fcca9a276099f75336",
+  "helperProtocol": 1,
+  "schemaReadMin": 1,
+  "schemaReadMax": 1,
+  "schemaWriteMin": 1,
+  "schemaWriteMax": 1,
+  "sqliteMinimumVersionNumber": 3035000,
+  "sqliteRequiredCapability": "UPDATE RETURNING",
+  "compiler": "Apple clang version 17.0.0 (clang-1700.3.19.1)",
+  "sdkVersion": "26.0",
+  "linker": "ld64 through Apple clang",
+  "source": "src/prompt_trail_helper.c",
+  "sourceSha256": "2685535e5e79d21903b12991c9813e3cf95663b84cccbaec35632af7a8f6bad5",
+  "bridgeSource": "src/prompt_trail_bridge.c",
+  "bridgeSourceSha256": "bb0f87ee905c5993f3508eaeab3d0cf4e741c5c3a6629c8b14456baa999ab5e7",
+  "commonSource": "src/prompt_trail_common.c",
+  "commonSourceSha256": "85b65834787ce64cabee61ebda7c96e54f23fcdd93c2e8e9870fb845ed7b5833",
+  "generatedHeader": "src/prompt_trail_generated_artifact.h",
+  "generatedHeaderSha256": "e320353f95fff6c993a61b88dabd00b0bd2b829fd86c841f3e65382ccd78e271",
+  "buildCommand": "scripts/build-artifacts.sh",
+  "buildScriptSha256": "e2970c76eb56387c01c33002340ef608bef1b685e6bdd0c4389d14bf0ca23267",
+  "allowedDynamicDependencies": [
+    "/usr/lib/libSystem.B.dylib",
+    "/usr/lib/libsqlite3.dylib"
+  ]
+}

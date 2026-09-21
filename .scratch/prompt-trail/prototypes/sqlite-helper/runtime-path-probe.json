@@ -1,0 +1,13 @@
+{
+  "target": "Claude Code 2.1.273",
+  "moduleUrl": "file:///Users/liangkangda/Fe-project/cc-mods/.scratch/prompt-trail/prototypes/sqlite-helper/plugin/hooks/register.ts",
+  "hookEnv": {
+    "home": "/Users/liangkangda"
+  },
+  "childEnv": [],
+  "childDefaultCwd": "/Users/liangkangda/Fe-project/cc-mods",
+  "processExitCodes": {
+    "env": 0,
+    "pwd": 0
+  }
+}

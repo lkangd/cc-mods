@@ -1,0 +1,21 @@
+{
+  "description": "Probe bundled SQLite helper execution from function hooks",
+  "modules": ["./register.ts"],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/prompt-trail-sqlite-probe",
+            "args": [
+              "bridge-publish",
+              "${CLAUDE_PLUGIN_DATA}/prompt-trail.sqlite",
+              "${CLAUDE_PLUGIN_ROOT}/bin/prompt-trail-sqlite-probe"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

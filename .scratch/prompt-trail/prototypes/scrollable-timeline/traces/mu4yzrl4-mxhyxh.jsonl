@@ -1,0 +1,2 @@
+{"sequence":1,"at":"2026-09-17T03:28:40.574Z","moduleInstanceId":"mu4yzrl4-mxhyxh","event":"above-prompt.render","bodyColumns":113,"maxRows":19,"engineOffset":0,"engineBodyRows":18,"expanded":false,"mode":"timeline","eventRows":15,"viewStart":31,"loadedStart":26}
+{"sequence":2,"at":"2026-09-17T03:28:40.575Z","moduleInstanceId":"mu4yzrl4-mxhyxh","event":"session.start","cwd":"/Users/liangkangda/Fe-project/cc-mods","surface":"terminal","targetVersion":"2.1.273"}
