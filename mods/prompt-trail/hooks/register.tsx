@@ -53,6 +53,20 @@ type RunModeState = {
   stopBoundaryMissing?: true
 }
 
+/* A Pending Capture whose outcome is not known: the submission entered the
+   session but its confirmation never landed. It is persisted per project
+   rather than per Run, because the pending lives in the project's archive and
+   a restart into a new Run still owes an answer for it. It carries identity
+   only; the draft never enters `$.store`. */
+type ReconcileState = {
+  version: 1
+  eventId: string
+  runId: string
+  branchId: string
+  parentEventId: string | null
+  attachmentCount: number
+}
+
 type TimelineItem =
   | {
     kind: 'prompt'
@@ -193,6 +207,17 @@ let expanded = false
 let timeline: TimelineItem[] = []
 let archiveUnavailable = false
 let runMode: { key: string; value: RunModeState } | undefined
+/* `text` is present only while the module instance that staged the capture is
+   still loaded; after a restart the staged bytes in the archive are the only
+   copy of the prompt, and the helper confirms from them without handing them
+   back. */
+let reconcile: { state: ReconcileState; text?: string } | undefined
+/* One archive-side discovery per Run: a restart has to learn that a pending is
+   owed, but a healthy Run must not pay for a subprocess on every prompt. */
+let pendingDiscovered = false
+/* Set when the archive could not say whether anything is owed. Not knowing is
+   not the same as nothing being owed, and status says so. */
+let pendingUnknown = false
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -729,6 +754,10 @@ function archiveStateKey(projectId: string): string {
   return `prompt-trail:archive-state:${projectId}`
 }
 
+function reconcileKey(projectId: string): string {
+  return `prompt-trail:reconcile:${projectId}`
+}
+
 /* Keyed by Run rather than by classic session, so a module reload inside the
    same Run keeps the switch while a new process starts from the default. */
 function runModeKey(projectId: string, runId: string): string {
@@ -786,6 +815,35 @@ function storedRunMode(value: unknown): RunModeState | undefined {
       sequence: boundary.sequence as number,
     },
     ...missing,
+  }
+}
+
+function storedReconcile(value: unknown): ReconcileState | undefined {
+  if (
+    !isRecord(value) ||
+    value.version !== 1 ||
+    typeof value.eventId !== 'string' ||
+    !SAFE_IDENTIFIER.test(value.eventId) ||
+    typeof value.runId !== 'string' ||
+    !SAFE_IDENTIFIER.test(value.runId) ||
+    typeof value.branchId !== 'string' ||
+    !SAFE_IDENTIFIER.test(value.branchId)
+  ) return undefined
+  const parent = value.parentEventId
+  if (parent !== null && (typeof parent !== 'string' || !SAFE_IDENTIFIER.test(parent))) {
+    return undefined
+  }
+  const attachmentCount = Number.isSafeInteger(value.attachmentCount)
+    && (value.attachmentCount as number) >= 0
+    ? value.attachmentCount as number
+    : 0
+  return {
+    version: 1,
+    eventId: value.eventId,
+    runId: value.runId,
+    branchId: value.branchId,
+    parentEventId: parent,
+    attachmentCount,
   }
 }
 
@@ -938,15 +996,22 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
   }
   const consent = storedConsent(await $.store.get(consentKey(id)))
   let blocked = false
+  let owed: ReconcileState | undefined
   try {
     const archiveState = await $.store.get(archiveStateKey(id))
     blocked = isRecord(archiveState)
       && archiveState.version === 1
       && archiveState.state === 'unavailable'
+    owed = storedReconcile(await $.store.get(reconcileKey(id)))
   } catch {
+    /* Not knowing whether something is owed is itself a reason to stop, so an
+       unreadable record fails closed exactly as an unreadable archive does. */
     blocked = consent === 'enabled'
   }
   archiveUnavailable = blocked
+  reconcile = owed ? { state: owed } : undefined
+  pendingDiscovered = false
+  pendingUnknown = false
   runMode = undefined
   project = {
     root,
@@ -1103,11 +1168,14 @@ async function beginCapture(
   currentProject.archiveReady = true
 }
 
+/* `text` is the text `next(e)` returned. Without it — a reconciliation after a
+   restart, where the draft is gone — the helper archives the bytes it already
+   staged, which never leave it. */
 async function confirmCapture(
   $: EngineInterface,
   currentProject: ProjectState,
   eventId: string,
-  text: string,
+  text: string | undefined,
 ): Promise<number> {
   if (!startup.helperPath || !startup.databaseRoot) {
     throw new Error('capture-identity')
@@ -1122,13 +1190,87 @@ async function confirmCapture(
       eventId,
       EXPECTED_HELPER_SHA256,
       String(HELPER_PROTOCOL),
-      '--stdin',
+      text === undefined ? '--pending' : '--stdin',
     ],
     10_000,
     text,
   )
   if (result.exitCode !== 0) throw new Error('capture-confirm')
   return parseConfirmedResponse(result.stdout, eventId, currentProject.id)
+}
+
+function parsePendingList(text: string, projectId: string): ReconcileState[] {
+  const value: unknown = JSON.parse(text)
+  if (
+    !isRecord(value) ||
+    value.projectId !== projectId ||
+    !Array.isArray(value.pending)
+  ) throw new Error('capture-list')
+  const owed: ReconcileState[] = []
+  for (const row of value.pending) {
+    const state = storedReconcile(isRecord(row) ? { ...row, version: 1 } : undefined)
+    if (!state) throw new Error('capture-list')
+    owed.push(state)
+  }
+  return owed
+}
+
+/* What the archive still holds unresolved. It is the only way a new process
+   learns that a previous one left a Pending Capture behind — its `$.store`
+   record may never have been written. */
+async function listPending(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<ReconcileState[]> {
+  if (!startup.helperPath || !startup.databaseRoot) {
+    throw new Error('capture-identity')
+  }
+  const result = await run(
+    $,
+    [
+      startup.helperPath,
+      'capture-list',
+      startup.databaseRoot,
+      currentProject.id,
+      EXPECTED_HELPER_SHA256,
+      String(HELPER_PROTOCOL),
+    ],
+    10_000,
+  )
+  if (result.exitCode !== 0) throw new Error('capture-list')
+  return parsePendingList(result.stdout, currentProject.id)
+}
+
+async function saveReconcile(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  state: ReconcileState,
+  text: string | undefined,
+): Promise<void> {
+  reconcile = { state, text }
+  try {
+    await $.store.set(reconcileKey(currentProject.id), state)
+  } catch {
+    /* The in-memory block still holds for this module instance; a reload
+       re-discovers the pending from the archive. */
+  }
+}
+
+async function clearReconcile(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<void> {
+  reconcile = undefined
+  /* A crash can leave more than one Run's pending behind, and only the first
+     was taken. Settling one re-opens the question rather than letting the rest
+     pass unnoticed; the extra listing costs a subprocess only after an actual
+     reconciliation. */
+  pendingDiscovered = false
+  try {
+    await $.store.delete(reconcileKey(currentProject.id))
+  } catch {
+    // The archive no longer holds the pending, so a stale record self-heals.
+  }
 }
 
 async function abortCapture(
@@ -1151,6 +1293,202 @@ async function abortCapture(
     10_000,
   )
   if (result.exitCode !== 0) throw new Error('capture-abort')
+}
+
+/* `$.session.messages()` answers at most the latest 4096 rows and mixes the
+   engine's own `user` rows in with the person's, so it proves an outcome only
+   in the two unambiguous shapes: the staged text appears exactly once, or it
+   appears nowhere in a transcript short enough to be whole. Anything else is
+   for the person to settle. */
+const TRANSCRIPT_LIMIT = 4096
+
+function transcriptVerdict(
+  messages: readonly { role: string; text: string }[],
+  text: string,
+): 'entered' | 'absent' | 'ambiguous' {
+  const matches = messages.filter(
+    message => message.role === 'user' && message.text === text,
+  ).length
+  if (matches === 1) return 'entered'
+  if (matches === 0 && messages.length < TRANSCRIPT_LIMIT) return 'absent'
+  return 'ambiguous'
+}
+
+/* Settling one Pending Capture. It answers whether the Run may collect again;
+   every path that does not reach a definite answer leaves the block in place
+   rather than guessing, and no path resubmits the prompt that was dropped. */
+async function reconcilePending(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<'resolved' | 'blocked'> {
+  const owed = reconcile
+  if (!owed) return 'resolved'
+
+  const confirmPending = async (): Promise<'resolved' | 'blocked'> => {
+    try {
+      const sequence = await confirmCapture(
+        $,
+        currentProject,
+        owed.state.eventId,
+        owed.text,
+      )
+      /* Only the Run that staged it may chain its own Active Branch onto the
+         entry; another Run's branch is not this reconciliation's to move. */
+      if (startup.runId === owed.state.runId && startup.sessionId) {
+        await $.store.set(
+          branchKey(currentProject.id, startup.runId, startup.sessionId),
+          {
+            version: 1,
+            branchId: owed.state.branchId,
+            parentEventId: owed.state.eventId,
+          } satisfies BranchState,
+        )
+      }
+      if (owed.text !== undefined) {
+        timeline = [
+          ...timeline,
+          {
+            kind: 'prompt',
+            eventId: owed.state.eventId,
+            sequence,
+            text: owed.text,
+            attachmentCount: owed.state.attachmentCount,
+          },
+        ]
+        $.ui.invalidate('ui.render')
+      }
+      await clearReconcile($, currentProject)
+      return 'resolved'
+    } catch {
+      return 'blocked'
+    }
+  }
+
+  const discardPending = async (): Promise<'resolved' | 'blocked'> => {
+    try {
+      await abortCapture($, currentProject, owed.state.eventId)
+      await clearReconcile($, currentProject)
+      return 'resolved'
+    } catch {
+      return 'blocked'
+    }
+  }
+
+  let verdict: 'entered' | 'absent' | 'ambiguous' = 'ambiguous'
+  if (owed.text !== undefined) {
+    try {
+      verdict = transcriptVerdict(await $.session.messages(), owed.text)
+    } catch {
+      verdict = 'ambiguous'
+    }
+  }
+  if (verdict === 'entered') return confirmPending()
+  if (verdict === 'absent') return discardPending()
+
+  let answer: string | undefined
+  try {
+    answer = await $.ui.ask(
+      [
+        'Prompt Trail 有一条未决的 Pending Capture：提交已交给 Claude Code，但归档确认没有完成。',
+        `事件 ID：${owed.state.eventId.slice(0, 8)}`,
+        '时间线无法唯一证明这条提交是否进入会话，请选择如何记录它。',
+        '“已进入”归档为 Prompt Entry；“未进入”丢弃这条 pending；',
+        '“新根分支”同样不归档，并让其后的 prompt 从新的根 Conversation Branch 开始。',
+      ].join('\n'),
+      {
+        header: '未决 Pending Capture',
+        options: ['已进入', '未进入', '新根分支'],
+      },
+    )
+  } catch {
+    return 'blocked'
+  }
+
+  if (answer === '已进入') return confirmPending()
+  if (answer === '未进入') return discardPending()
+  if (answer === '新根分支') {
+    /* Nothing after an outcome nobody could vouch for is chained onto it. The
+       new root is written first: if that write fails the pending is still
+       there, so the block holds and the choice is not silently lost. */
+    if (startup.runId && startup.sessionId) {
+      try {
+        await $.store.set(
+          branchKey(currentProject.id, startup.runId, startup.sessionId),
+          {
+            version: 1,
+            branchId: crypto.randomUUID(),
+            parentEventId: null,
+          } satisfies BranchState,
+        )
+      } catch {
+        return 'blocked'
+      }
+    }
+    return discardPending()
+  }
+  /* A closed or cancelled dialog is not an answer: the Run stays blocked. */
+  return 'blocked'
+}
+
+/* Whether anything is owed before this Run archives its first prompt. The
+   archive is asked once, because a previous process may have left a pending
+   without ever writing its `$.store` record. */
+async function discoverPending(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<void> {
+  if (pendingDiscovered || reconcile) return
+  let owed: ReconcileState[]
+  try {
+    owed = await listPending($, currentProject)
+  } catch (error) {
+    pendingUnknown = true
+    throw error
+  }
+  pendingDiscovered = true
+  pendingUnknown = false
+  const first = owed[0]
+  /* Persisted, not just held in memory: a reconciliation that gets partway —
+     the entry confirmed but its branch not yet written — must still be owed
+     after a restart, and by then the archive no longer lists it. */
+  if (first) await saveReconcile($, currentProject, first, undefined)
+}
+
+/* A crash can leave one pending per Run behind, so settling one re-asks the
+   archive rather than assuming it was the only one. The bound is the helper's
+   own fixed batch, which is also the most a single listing can report. */
+const PENDING_SETTLE_LIMIT = 64
+
+async function settlePending(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<'clear' | 'settled' | 'blocked'> {
+  let settledAny = false
+  for (let attempt = 0; attempt < PENDING_SETTLE_LIMIT; attempt += 1) {
+    await discoverPending($, currentProject)
+    if (!reconcile) return settledAny ? 'settled' : 'clear'
+    if (await reconcilePending($, currentProject) === 'blocked') return 'blocked'
+    settledAny = true
+  }
+  return 'blocked'
+}
+
+/* The draft belongs to the person, not to the submission Prompt Trail
+   refused: it goes back into the composer, and they decide whether to send
+   it again. */
+async function restoreDraft($: EngineInterface, text: string): Promise<boolean> {
+  try {
+    const filled = await $.prompt.fill({ text })
+    return filled.isFilled !== false
+  } catch {
+    return false
+  }
+}
+
+/* Never claim the draft came back when it did not: a dialog holding the keys
+   or a surface with no prompt box both answer `isFilled: false`. */
+function draftNote(restored: boolean): string {
+  return restored ? '草稿已恢复' : '草稿未能恢复，请重新输入'
 }
 
 /* One row of the expanded list: the entry's text folded to a single line, or a
@@ -1181,11 +1519,21 @@ function boundarySummary(mode: RunModeState | undefined): string {
   return `${mode.boundary.kind} · sequence ${mode.boundary.sequence}`
 }
 
+/* Enough to identify the unresolved event and nothing more: no draft, no
+   prompt text, not even its length. */
+function reconcileSummary(): string {
+  if (reconcile) return `${reconcile.state.eventId.slice(0, 8)} · 待对账`
+  if (pendingUnknown) return 'unknown · 未决 Pending Capture 不可读'
+  return 'none'
+}
+
 /* Why this Run is or is not collecting, most specific reason first. */
 function collectionModeText(): string {
   if (!runMode) return 'unknown · Run collection mode 不可读'
   if (runMode.value.mode === 'disabled') return 'disabled · 本 Run 已停用采集'
   if (project?.consent !== 'enabled') return 'disabled · 未授予 Collection consent'
+  if (reconcile) return 'disabled · 未决 Pending Capture 待对账'
+  if (pendingUnknown) return 'unknown · 未决 Pending Capture 不可读'
   if (archiveUnavailable) return 'disabled · 档案不可用'
   if (startup.support !== 'supported') {
     return `disabled · ${statusValue(startup.reason)}`
@@ -1234,6 +1582,7 @@ function statusText(): string {
     `collection consent: ${consent}`,
     `Run collection mode: ${collectionMode}`,
     `latest collection boundary: ${boundarySummary(runMode?.value)}`,
+    `pending reconciliation: ${reconcileSummary()}`,
     `archive: ${archive}`,
     `project: ${startup.projectPath ? statusValue(startup.projectPath) : 'unavailable'}`,
     `database root: ${startup.databaseRoot ? statusValue(startup.databaseRoot) : 'unavailable'}`,
@@ -1322,10 +1671,20 @@ async function enableCollection($: EngineInterface): Promise<string> {
     return '请选择“启用”或“继续但不启用”后再运行 /prompt-history enable。'
   }
 
-  /* An unresolved Pending Capture is exactly what leaves the archive blocked,
-     so enable refuses instead of resuming over an unreconciled submission. */
+  /* Resuming over an unreconciled submission would archive the next prompt
+     without ever settling the last one, so enable reconciles first — ahead of
+     the archive block, which an earlier uncertain failure may have raised over
+     the very pending that needs settling — and refuses while anything is owed. */
+  try {
+    if (await settlePending($, currentProject) === 'blocked') {
+      return '仍有未决的 Pending Capture 待对账，未启用采集；请先完成对账。'
+    }
+  } catch {
+    return 'Prompt Trail 无法读取未决的 Pending Capture，未启用采集。'
+  }
+
   if (archiveUnavailable) {
-    return 'Prompt Trail 档案当前不可用，未启用采集；请先解决未决的 Pending Capture。'
+    return 'Prompt Trail 档案当前不可用，未启用采集。'
   }
 
   /* Already collecting means the switch is on and consent was granted before
@@ -1525,6 +1884,16 @@ export const register: Register = on => {
         try {
           const currentProject = await prepareProject($)
           await loadRunMode($, currentProject)
+          /* Best effort: a pending this Run has not met yet still blocks it,
+             so status says so rather than reading as healthy. A failure here
+             never costs the rest of the report. */
+          try {
+            await discoverPending($, currentProject)
+          } catch {
+            /* `discoverPending` has already recorded that the archive could
+               not be asked, so the report says "unknown" rather than reading
+               as healthy; the other lines still stand. */
+          }
         } catch {
           // status stays available without a proven project identity.
         }
@@ -1565,10 +1934,6 @@ export const register: Register = on => {
     }
     if (mode.mode === 'disabled') return next(e)
 
-    if (archiveUnavailable) {
-      return { drop: 'Prompt Trail 档案当前不可用；为避免漏记，本次提交已阻止。' }
-    }
-
     try {
       startup = await inspectTarget(
         $,
@@ -1605,6 +1970,37 @@ export const register: Register = on => {
       return { drop: '请选择“启用”或“继续但不启用”后再提交。' }
     }
 
+    /* Anything unresolved is settled before another capture is staged, so a
+       second pending can never pile onto the first. This runs ahead of the
+       archive block, because a pending the archive still holds is exactly what
+       an earlier uncertain failure may have left behind — blocking on the flag
+       first would make it unreachable forever. */
+    let settled: 'clear' | 'settled' | 'blocked'
+    try {
+      settled = await settlePending($, currentProject)
+    } catch {
+      await markArchiveUnavailable($, currentProject)
+      const restored = await restoreDraft($, e.text)
+      return {
+        drop: `Prompt Trail 无法读取未决的 Pending Capture，${draftNote(restored)}；为避免漏记，本次提交已阻止。`,
+      }
+    }
+    if (settled !== 'clear') {
+      /* A submission that met a reconciliation is never sent on the person's
+         behalf, whether or not it succeeded: the draft goes back and they
+         press Enter again. */
+      const restored = await restoreDraft($, e.text)
+      return {
+        drop: settled === 'settled'
+          ? `Prompt Trail 已完成对账，${draftNote(restored)}；请重新提交。`
+          : `Prompt Trail 仍有未决的 Pending Capture 待对账，${draftNote(restored)}；本次提交未进入会话。`,
+      }
+    }
+
+    if (archiveUnavailable) {
+      return { drop: 'Prompt Trail 档案当前不可用；为避免漏记，本次提交已阻止。' }
+    }
+
     let branch: { key: string; value: BranchState }
     const eventId = crypto.randomUUID()
     const attachmentKinds = e.attachments?.map(attachment => attachment.type) ?? []
@@ -1620,14 +2016,24 @@ export const register: Register = on => {
         attachmentKinds,
       )
     } catch {
+      /* The helper may have committed the pending row and died before saying
+         so, so this Run stops trusting its earlier "nothing owed" answer and
+         asks the archive again on the next submission. */
+      pendingDiscovered = false
       await markArchiveUnavailable($, currentProject)
-      return { drop: 'Prompt Trail 无法预写 Pending Capture；本次提交未进入会话。' }
+      const restored = await restoreDraft($, e.text)
+      return {
+        drop: `Prompt Trail 无法预写 Pending Capture，${draftNote(restored)}；本次提交未进入会话。`,
+      }
     }
 
     let result
     try {
       result = await next(e)
     } catch (error) {
+      /* The capture is staged and the submission's fate is unknown, so the
+         pending must be rediscoverable rather than sealed behind the flag. */
+      pendingDiscovered = false
       await markArchiveUnavailable($, currentProject)
       throw error
     }
@@ -1679,7 +2085,23 @@ export const register: Register = on => {
       ]
       $.ui.invalidate('ui.render')
     } catch {
-      await markArchiveUnavailable($, currentProject)
+      /* The prompt did enter the session, so the pending is kept rather than
+         dropped, and this Run collects nothing further until the outcome is
+         settled. The final text stays in memory so a reconciliation in this
+         module instance can still archive exactly what entered. */
+      await saveReconcile(
+        $,
+        currentProject,
+        {
+          version: 1,
+          eventId,
+          runId: startup.runId ?? branch.value.branchId,
+          branchId: branch.value.branchId,
+          parentEventId: branch.value.parentEventId,
+          attachmentCount: attachmentKinds.length,
+        },
+        finalText,
+      )
     }
     return result
   })

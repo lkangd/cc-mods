@@ -39,7 +39,10 @@ test('enable on an unconsented project asks first, then starts collection', asyn
   expect(boundaries).toHaveLength(1)
   expect(boundaries[0]?.argv[7]).toBe('collection-started')
   // A control command is not a composer submission, so it archives no prompt.
-  expect(calls.some(call => call.argv[1]?.startsWith('capture-'))).toBe(false)
+  // Asking the archive what is unresolved is a read, not a capture.
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(0)
+  expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
   expect(store[runModeKey()]).toMatchObject({ version: 1, mode: 'enabled' })
 })
 
