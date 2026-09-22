@@ -10,14 +10,74 @@ def fail(category: str) -> None:
     raise SystemExit(1)
 
 
+def pending_row(event_id: str, expected: dict) -> tuple:
+    return (
+        event_id,
+        expected["runId"],
+        expected["segmentId"],
+        expected["branchId"],
+        expected.get("parentEventId"),
+        expected["occurredAtMs"],
+        expected["attachmentCount"],
+        expected["attachmentKinds"],
+        expected["promptText"],
+    )
+
+
+def boundary_row(event_id: str, sequence: int, expected: dict) -> tuple:
+    return (
+        event_id,
+        sequence,
+        expected["kind"],
+        expected["runId"],
+        expected["segmentId"],
+        expected["branchId"],
+        expected["occurredAtMs"],
+    )
+
+
+def entry_row(event_id: str, sequence: int, expected: dict) -> tuple:
+    return (
+        event_id,
+        sequence,
+        expected["runId"],
+        expected["segmentId"],
+        expected["branchId"],
+        expected.get("parentEventId"),
+        expected["occurredAtMs"],
+        "composer",
+        expected["attachmentCount"],
+        expected["attachmentKinds"],
+        expected["promptText"],
+    )
+
+
 def main() -> None:
     try:
         request = json.load(sys.stdin)
         database_path = pathlib.Path(request["database"])
         project_id = request["projectId"]
-        event_id = request["eventId"]
         expected_state = request["state"]
-        expected = request["expected"]
+        if expected_state == "set":
+            event_id = None
+            expected = None
+            expected_pending_input = request["pending"]
+            expected_entries_input = request["entries"]
+            # Prompt Entries and non-prompt Timeline Events share one sequence,
+            # so naming any boundary makes every sequence explicit.
+            expected_boundaries_input = request.get("boundaries")
+            explicit_sequences = expected_boundaries_input is not None
+            if expected_boundaries_input is None:
+                expected_boundaries_input = []
+            if not isinstance(expected_pending_input, list):
+                raise TypeError
+            if not isinstance(expected_entries_input, list):
+                raise TypeError
+            if not isinstance(expected_boundaries_input, list):
+                raise TypeError
+        else:
+            event_id = request["eventId"]
+            expected = request["expected"]
     except (KeyError, TypeError, ValueError, json.JSONDecodeError):
         fail("invalid-request")
 
@@ -36,66 +96,89 @@ def main() -> None:
             "parent_event_id, occurred_at_ms, source, attachment_count, "
             "attachment_kinds, prompt_text FROM prompt_entries ORDER BY sequence"
         ).fetchall()
+        boundaries = database.execute(
+            "SELECT event_id, sequence, kind, run_id, segment_id, branch_id, "
+            "occurred_at_ms FROM timeline_events ORDER BY sequence"
+        ).fetchall()
     except sqlite3.Error:
         fail("archive-unreadable")
     finally:
         if "database" in locals():
             database.close()
 
-    expected_metadata = [
-        (project_id, 1, 0 if expected_state == "pending" else 1)
-    ]
-    expected_pending = []
-    expected_entries = []
-    if expected_state == "pending":
-        expected_pending = [(
-            event_id,
-            expected["runId"],
-            expected["segmentId"],
-            expected["branchId"],
-            expected.get("parentEventId"),
-            expected["occurredAtMs"],
-            expected["attachmentCount"],
-            expected["attachmentKinds"],
-            expected["promptText"],
-        )]
+    if expected_state == "set":
+        # An explicit ordered set: every archived row must be named once, so a
+        # missing, an extra and a duplicated confirmation each fail.
+        try:
+            expected_pending = sorted(
+                pending_row(item["eventId"], item) for item in expected_pending_input
+            )
+            expected_entries = [
+                entry_row(
+                    item["eventId"],
+                    item["sequence"] if explicit_sequences else index + 1,
+                    item,
+                )
+                for index, item in enumerate(expected_entries_input)
+            ]
+            expected_boundaries = [
+                boundary_row(item["eventId"], item["sequence"], item)
+                for item in expected_boundaries_input
+            ]
+        except (KeyError, TypeError):
+            fail("invalid-request")
+        expected_metadata = [
+            (project_id, 1, len(expected_entries) + len(expected_boundaries))
+        ]
+    elif expected_state == "pending":
+        expected_metadata = [(project_id, 1, 0)]
+        expected_pending = [pending_row(event_id, expected)]
+        expected_entries = []
+        expected_boundaries = []
     elif expected_state == "confirmed":
-        expected_entries = [(
-            event_id,
-            1,
-            expected["runId"],
-            expected["segmentId"],
-            expected["branchId"],
-            expected.get("parentEventId"),
-            expected["occurredAtMs"],
-            "composer",
-            expected["attachmentCount"],
-            expected["attachmentKinds"],
-            expected["promptText"],
-        )]
+        expected_metadata = [(project_id, 1, 1)]
+        expected_pending = []
+        expected_entries = [entry_row(event_id, 1, expected)]
+        expected_boundaries = []
     else:
         fail("invalid-state")
 
+    distinct_entry_ids = {row[0] for row in entries}
+    sequences = [row[1] for row in entries] + [row[1] for row in boundaries]
+    # One event identity space: no id may name a staged capture, a Prompt Entry
+    # and a boundary at once, or a retry would address the wrong record.
+    all_ids = (
+        [row[0] for row in entries]
+        + [row[0] for row in boundaries]
+        + [row[0] for row in pending]
+    )
     checks = {
         "projectIdentity": metadata == expected_metadata,
         "pendingSet": pending == expected_pending,
         "promptEntrySet": entries == expected_entries,
+        "boundarySet": boundaries == expected_boundaries,
+        "promptEntriesDistinct": len(distinct_entry_ids) == len(entries),
+        "eventIdsDistinct": len(set(all_ids)) == len(all_ids),
+        # One shared allocator: every archived event holds a distinct sequence.
+        "sequencesDistinct": len(set(sequences)) == len(sequences),
         "pendingCount": len(pending),
         "promptEntryCount": len(entries),
+        "boundaryCount": len(boundaries),
     }
+    required = (
+        "projectIdentity",
+        "pendingSet",
+        "promptEntrySet",
+        "boundarySet",
+        "promptEntriesDistinct",
+        "eventIdsDistinct",
+        "sequencesDistinct",
+    )
     print(json.dumps({
-        "status": "verified" if all(
-            value is True or isinstance(value, int)
-            for value in checks.values()
-        ) and all(
-            checks[name]
-            for name in ("projectIdentity", "pendingSet", "promptEntrySet")
-        ) else "mismatch",
+        "status": "verified" if all(checks[name] for name in required) else "mismatch",
         "checks": checks,
     }))
-    if any(not checks[name] for name in (
-        "projectIdentity", "pendingSet", "promptEntrySet"
-    )):
+    if any(not checks[name] for name in required):
         raise SystemExit(1)
 
 

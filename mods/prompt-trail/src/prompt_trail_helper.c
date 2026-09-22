@@ -32,6 +32,22 @@
 #define EXIT_SQLITE_CAPABILITY 24
 #define EXIT_ARCHIVE_UNAVAILABLE 25
 
+/* Non-prompt Timeline Events. They share the project-level monotonic sequence
+   with prompt entries, so a boundary is ordered against prompts by sequence
+   alone and never carries prompt text. */
+#define TIMELINE_EVENTS_DDL \
+  "CREATE TABLE timeline_events(" \
+  " event_id TEXT PRIMARY KEY," \
+  " sequence INTEGER NOT NULL UNIQUE," \
+  " kind TEXT NOT NULL," \
+  " run_id TEXT NOT NULL," \
+  " segment_id TEXT NOT NULL," \
+  " branch_id TEXT NOT NULL," \
+  " occurred_at_ms INTEGER NOT NULL" \
+  ");" \
+  "CREATE INDEX timeline_events_run_sequence " \
+  "ON timeline_events(run_id, sequence);"
+
 static void json_error(int status, const char *category) {
   fprintf(stderr, "{\"category\":\"%s\"}\n", category);
   exit(status);
@@ -736,6 +752,15 @@ static void capture_runtime(
   }
 }
 
+static int archive_schema_version(sqlite3 *database) {
+  sqlite3_stmt *version = archive_prepare(database, "PRAGMA user_version");
+  int schema_version = sqlite3_step(version) == SQLITE_ROW
+    ? sqlite3_column_int(version, 0)
+    : -1;
+  sqlite3_finalize(version);
+  return schema_version;
+}
+
 static sqlite3 *open_archive(
   const char *database_root,
   const char *project_id,
@@ -779,52 +804,64 @@ static sqlite3 *open_archive(
   archive_sql(database, "PRAGMA foreign_keys=ON");
   archive_sql(database, "PRAGMA secure_delete=ON");
 
-  sqlite3_stmt *version = archive_prepare(database, "PRAGMA user_version");
-  int schema_version = sqlite3_step(version) == SQLITE_ROW
-    ? sqlite3_column_int(version, 0)
-    : -1;
-  sqlite3_finalize(version);
-  if (schema_version == 0) {
-    archive_sql(
-      database,
-      "BEGIN IMMEDIATE;"
-      "CREATE TABLE metadata("
-      " project_id TEXT PRIMARY KEY,"
-      " policy_version INTEGER NOT NULL,"
-      " next_sequence INTEGER NOT NULL DEFAULT 0"
-      ");"
-      "CREATE TABLE pending_captures("
-      " event_id TEXT PRIMARY KEY,"
-      " run_id TEXT NOT NULL,"
-      " segment_id TEXT NOT NULL,"
-      " branch_id TEXT NOT NULL,"
-      " parent_event_id TEXT,"
-      " occurred_at_ms INTEGER NOT NULL,"
-      " attachment_count INTEGER NOT NULL,"
-      " attachment_kinds TEXT NOT NULL,"
-      " prompt_text TEXT NOT NULL"
-      ");"
-      "CREATE TABLE prompt_entries("
-      " event_id TEXT PRIMARY KEY,"
-      " sequence INTEGER NOT NULL UNIQUE,"
-      " run_id TEXT NOT NULL,"
-      " segment_id TEXT NOT NULL,"
-      " branch_id TEXT NOT NULL,"
-      " parent_event_id TEXT,"
-      " occurred_at_ms INTEGER NOT NULL,"
-      " source TEXT NOT NULL,"
-      " attachment_count INTEGER NOT NULL,"
-      " attachment_kinds TEXT NOT NULL,"
-      " prompt_text TEXT NOT NULL"
-      ");"
-      "CREATE INDEX prompt_entries_run_sequence "
-      "ON prompt_entries(run_id, sequence);"
-      "PRAGMA user_version=1;"
-      "COMMIT;"
-    );
-  } else if (schema_version != 1) {
-    sqlite3_close(database);
-    archive_error("schema-version");
+  /* An already-current archive needs no write lock. Anything older takes one
+     and re-reads the version under it, so two Runs opening the same schema-1
+     archive cannot both replay the migration onto an upgraded file. */
+  if (archive_schema_version(database) != 2) {
+    archive_sql(database, "BEGIN IMMEDIATE");
+    int schema_version = archive_schema_version(database);
+    if (schema_version == 0) {
+      archive_sql(
+        database,
+        "CREATE TABLE metadata("
+        " project_id TEXT PRIMARY KEY,"
+        " policy_version INTEGER NOT NULL,"
+        " next_sequence INTEGER NOT NULL DEFAULT 0"
+        ");"
+        "CREATE TABLE pending_captures("
+        " event_id TEXT PRIMARY KEY,"
+        " run_id TEXT NOT NULL,"
+        " segment_id TEXT NOT NULL,"
+        " branch_id TEXT NOT NULL,"
+        " parent_event_id TEXT,"
+        " occurred_at_ms INTEGER NOT NULL,"
+        " attachment_count INTEGER NOT NULL,"
+        " attachment_kinds TEXT NOT NULL,"
+        " prompt_text TEXT NOT NULL"
+        ");"
+        "CREATE TABLE prompt_entries("
+        " event_id TEXT PRIMARY KEY,"
+        " sequence INTEGER NOT NULL UNIQUE,"
+        " run_id TEXT NOT NULL,"
+        " segment_id TEXT NOT NULL,"
+        " branch_id TEXT NOT NULL,"
+        " parent_event_id TEXT,"
+        " occurred_at_ms INTEGER NOT NULL,"
+        " source TEXT NOT NULL,"
+        " attachment_count INTEGER NOT NULL,"
+        " attachment_kinds TEXT NOT NULL,"
+        " prompt_text TEXT NOT NULL"
+        ");"
+        "CREATE INDEX prompt_entries_run_sequence "
+        "ON prompt_entries(run_id, sequence);"
+        TIMELINE_EVENTS_DDL
+        "PRAGMA user_version=2;"
+      );
+    } else if (schema_version == 1) {
+      /* The one declared upgrade: schema 1 gained the non-prompt Timeline
+         Event table. It only adds a table, so it preserves every archived row
+         and the shared sequence allocator untouched. */
+      archive_sql(
+        database,
+        TIMELINE_EVENTS_DDL
+        "PRAGMA user_version=2;"
+      );
+    } else if (schema_version != 2) {
+      archive_sql(database, "ROLLBACK");
+      sqlite3_close(database);
+      archive_error("schema-version");
+    }
+    archive_sql(database, "COMMIT");
   }
 
   sqlite3_stmt *metadata = archive_prepare(
@@ -861,6 +898,21 @@ static long long existing_sequence(sqlite3 *database, const char *event_id) {
     : 0;
   sqlite3_finalize(statement);
   return sequence;
+}
+
+/* Prompt Entries, staged captures and non-prompt Timeline Events share one
+   event identity space. An id already spent in any of them is rejected rather
+   than becoming two records that a retry cannot tell apart. */
+static bool event_id_present(
+  sqlite3 *database,
+  const char *sql,
+  const char *event_id
+) {
+  sqlite3_stmt *statement = archive_prepare(database, sql);
+  archive_bind_text(database, statement, 1, event_id);
+  bool present = sqlite3_step(statement) == SQLITE_ROW;
+  sqlite3_finalize(statement);
+  return present;
 }
 
 static bool same_text(const unsigned char *stored, int stored_bytes, const char *value) {
@@ -947,7 +999,12 @@ static void capture_begin(int argc, char **argv) {
   char *prompt = read_prompt_text(&prompt_length);
   sqlite3 *database = open_archive(database_root, project_id, true);
   archive_sql(database, "BEGIN IMMEDIATE");
-  if (existing_sequence(database, event_id) > 0) {
+  if (existing_sequence(database, event_id) > 0
+      || event_id_present(
+        database,
+        "SELECT 1 FROM timeline_events WHERE event_id=?1",
+        event_id
+      )) {
     archive_error("capture-conflict");
   }
   if (pending_matches(
@@ -1025,6 +1082,19 @@ static void write_confirmation(
   printf(",\"sequence\":%lld}\n", sequence);
 }
 
+static long long allocate_sequence(sqlite3 *database, const char *project_id) {
+  sqlite3_stmt *allocate = archive_prepare(
+    database,
+    "UPDATE metadata SET next_sequence=next_sequence+1 WHERE project_id=?1 "
+    "RETURNING next_sequence"
+  );
+  archive_bind_text(database, allocate, 1, project_id);
+  if (sqlite3_step(allocate) != SQLITE_ROW) archive_error("archive-sqlite");
+  long long sequence = sqlite3_column_int64(allocate, 0);
+  sqlite3_finalize(allocate);
+  return sequence;
+}
+
 static void capture_confirm(int argc, char **argv) {
   if (argc != 8 || strcmp(argv[7], "--stdin") != 0) usage();
   const char *database_root = argv[2];
@@ -1066,15 +1136,7 @@ static void capture_confirm(int argc, char **argv) {
   const char *attachment_kinds = (const char *)sqlite3_column_text(pending, 6);
   require_known_parent(database, parent_event_id);
 
-  sqlite3_stmt *allocate = archive_prepare(
-    database,
-    "UPDATE metadata SET next_sequence=next_sequence+1 WHERE project_id=?1 "
-    "RETURNING next_sequence"
-  );
-  archive_bind_text(database, allocate, 1, project_id);
-  if (sqlite3_step(allocate) != SQLITE_ROW) archive_error("archive-sqlite");
-  sequence = sqlite3_column_int64(allocate, 0);
-  sqlite3_finalize(allocate);
+  sequence = allocate_sequence(database, project_id);
 
   sqlite3_stmt *insert = archive_prepare(
     database,
@@ -1137,6 +1199,116 @@ static void capture_abort(int argc, char **argv) {
   printf("{\"aborted\":%s}\n", removed > 0 ? "true" : "false");
 }
 
+/* The Collection Boundary kinds one Run can record: collection beginning,
+   stopping, and resuming. Other Timeline Event kinds arrive with their own
+   tickets; an unknown kind fails closed rather than entering the archive. */
+static bool boundary_kind_valid(const char *kind) {
+  return strcmp(kind, "collection-started") == 0
+    || strcmp(kind, "collection-stopped") == 0
+    || strcmp(kind, "collection-resumed") == 0;
+}
+
+/* A repeat of the same boundary is idempotent only when every recorded field
+   matches; a reused id carrying different facts fails closed instead of
+   silently answering the stored sequence. */
+static long long existing_boundary_sequence(
+  sqlite3 *database,
+  const char *event_id,
+  const char *kind,
+  const char *run_id,
+  const char *segment_id,
+  const char *branch_id,
+  long long occurred_at
+) {
+  sqlite3_stmt *statement = archive_prepare(
+    database,
+    "SELECT sequence, kind, run_id, segment_id, branch_id, occurred_at_ms"
+    " FROM timeline_events WHERE event_id=?1"
+  );
+  archive_bind_text(database, statement, 1, event_id);
+  long long sequence = 0;
+  if (sqlite3_step(statement) == SQLITE_ROW) {
+    sequence = sqlite3_column_int64(statement, 0);
+    bool identical =
+      strcmp((const char *)sqlite3_column_text(statement, 1), kind) == 0
+      && strcmp((const char *)sqlite3_column_text(statement, 2), run_id) == 0
+      && strcmp((const char *)sqlite3_column_text(statement, 3), segment_id) == 0
+      && strcmp((const char *)sqlite3_column_text(statement, 4), branch_id) == 0
+      && sqlite3_column_int64(statement, 5) == occurred_at;
+    sqlite3_finalize(statement);
+    if (!identical) archive_error("boundary-conflict");
+    return sequence;
+  }
+  sqlite3_finalize(statement);
+  return sequence;
+}
+
+static void boundary_append(int argc, char **argv) {
+  if (argc != 12) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  const char *run_id = argv[4];
+  const char *segment_id = argv[5];
+  const char *branch_id = argv[6];
+  const char *kind = argv[7];
+  const char *event_id = argv[8];
+  long long occurred_at = nonnegative_integer(argv[9]);
+  if (!pt_is_safe_identifier(run_id)
+      || !pt_is_safe_identifier(segment_id)
+      || !pt_is_safe_identifier(branch_id)
+      || !pt_is_safe_identifier(event_id)
+      || !boundary_kind_valid(kind)) {
+    archive_error("boundary-input");
+  }
+  capture_runtime(database_root, argv[10], argv[11], true);
+
+  sqlite3 *database = open_archive(database_root, project_id, true);
+  archive_sql(database, "BEGIN IMMEDIATE");
+  if (existing_sequence(database, event_id) > 0
+      || event_id_present(
+        database,
+        "SELECT 1 FROM pending_captures WHERE event_id=?1",
+        event_id
+      )) {
+    archive_error("boundary-conflict");
+  }
+  long long sequence = existing_boundary_sequence(
+    database,
+    event_id,
+    kind,
+    run_id,
+    segment_id,
+    branch_id,
+    occurred_at
+  );
+  if (sequence == 0) {
+    sequence = allocate_sequence(database, project_id);
+
+    sqlite3_stmt *insert = archive_prepare(
+      database,
+      "INSERT INTO timeline_events("
+      " event_id, sequence, kind, run_id, segment_id, branch_id, occurred_at_ms"
+      ") VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7)"
+    );
+    archive_bind_text(database, insert, 1, event_id);
+    sqlite3_bind_int64(insert, 2, sequence);
+    archive_bind_text(database, insert, 3, kind);
+    archive_bind_text(database, insert, 4, run_id);
+    archive_bind_text(database, insert, 5, segment_id);
+    archive_bind_text(database, insert, 6, branch_id);
+    sqlite3_bind_int64(insert, 7, occurred_at);
+    if (sqlite3_step(insert) != SQLITE_DONE) archive_error("boundary-conflict");
+    sqlite3_finalize(insert);
+  }
+  archive_sql(database, "COMMIT");
+  sqlite3_close(database);
+
+  write_status_string("{\"eventId\":", event_id);
+  write_status_string(",\"projectId\":", project_id);
+  write_status_string(",\"kind\":", kind);
+  printf(",\"sequence\":%lld}\n", sequence);
+}
+
 static void usage(void) {
   fputs("{\"category\":\"invalid-command\"}\n", stderr);
   exit(2);
@@ -1169,6 +1341,10 @@ int main(int argc, char **argv) {
   }
   if (argc > 1 && strcmp(argv[1], "capture-abort") == 0) {
     capture_abort(argc, argv);
+    return 0;
+  }
+  if (argc > 1 && strcmp(argv[1], "boundary-append") == 0) {
+    boundary_append(argc, argv);
     return 0;
   }
   usage();

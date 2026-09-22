@@ -214,6 +214,9 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 14. **迁移、更新与制品信任**
     - 只执行 manifest 声明的已知单向 schema 迁移；高于 helper 支持版本的数据库拒绝打开。
     - 迁移前做完整性与空间检查，在同目录创建同权限敏感备份；迁移事务完成并复检，下一次成功打开后才删备份。
+      当前实现状态：schema 已到 2，manifest 声明 `1->2`（只新增非 prompt Timeline Event 表，
+      在一个事务内完成），完整性检查、空间检查与备份生命周期尚未实现，由
+      [Issue 27](issues/27-safe-schema-migration.md) 落实。
     - manifest 固定 target、文件名、SHA-256、helper protocol、可读写 schema 范围、最低 SQLite 能力、编译器/SDK/链接器来源与允许动态依赖。
     - 发布检查验证 Mach-O 架构、PIE、deployment target 和动态依赖；不宣称未经证实的字节级可复现。
     - 不在运行时下载、编译、替换 helper，不修改 quarantine/xattr 或系统安全策略，也不捆绑另一份 SQLite。
@@ -306,6 +309,9 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 - React、Ink、DOM、Node API、终端转义序列或第三方 runtime UI/storage 框架。
 - 触控板/滚轮保证、展开后自动聚焦、Esc 自动折叠；PageUp/PageDown/Home/End 在真实验收通过前不承诺。
 - 第三方插件之间的通用 AbovePrompt 槽位仲裁。
+- 纯附件提交在 Claude Code `2.1.278` 上不会产生无文本 submission：宿主把粘贴的附件
+  替换成 `[Image #N]` 占位文本再提交，Prompt Trail 逐字保存该最终文本。空文本路径
+  仍然实现并受测，但不承诺在当前宿主上出现。
 - 无 Jump Target 的历史条目跳转、禁用区间补录或跨 Integrity gap 的完整性声明。
 - 应用配额、自动轮转、自动过期、自动截断或自动删除。
 - 数据加密、抵御当前账户/root/同时篡改 plugin 与 helper 的主体、恶意数据库篡改证明或 SSD 物理不可恢复擦除。

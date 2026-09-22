@@ -31,11 +31,42 @@ type BranchState = {
   parentEventId: string | null
 }
 
-type TimelineEntry = {
-  eventId: string
-  sequence: number
-  text: string
+type CollectionBoundaryKind =
+  | 'collection-started'
+  | 'collection-stopped'
+  | 'collection-resumed'
+
+/* The Run-level switch, persisted per project and Run so an explicit disable
+   survives a module reload. A Run with no record collects by default; only
+   `/prompt-history disable` turns the switch off. */
+type RunModeState = {
+  version: 1
+  mode: 'enabled' | 'disabled'
+  boundary?: {
+    kind: CollectionBoundaryKind
+    eventId: string
+    sequence: number
+  }
+  /* Set when disable could not write its stop boundary. The archive then has
+     no durable record of where collection ended, so resuming would leave a
+     resume boundary with no matching stop and misrepresent the gap. */
+  stopBoundaryMissing?: true
 }
+
+type TimelineItem =
+  | {
+    kind: 'prompt'
+    eventId: string
+    sequence: number
+    text: string
+    attachmentCount: number
+  }
+  | {
+    kind: 'boundary'
+    eventId: string
+    sequence: number
+    boundary: CollectionBoundaryKind
+  }
 
 type RuntimeTarget = {
   isInteractive: boolean
@@ -93,6 +124,8 @@ const SAFE_IDENTIFIER = /^[A-Za-z0-9_-]{1,128}$/
 const SAFE_ERROR_CATEGORIES = new Set([
   'architecture',
   'archive-sqlite',
+  'boundary-conflict',
+  'boundary-input',
   'capture-conflict',
   'capture-input',
   'capture-not-found',
@@ -157,8 +190,9 @@ let startup: StartupState = {
 let runtimeTarget: RuntimeTarget | undefined
 let project: ProjectState | undefined
 let expanded = false
-let entries: TimelineEntry[] = []
+let timeline: TimelineItem[] = []
 let archiveUnavailable = false
+let runMode: { key: string; value: RunModeState } | undefined
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -695,6 +729,12 @@ function archiveStateKey(projectId: string): string {
   return `prompt-trail:archive-state:${projectId}`
 }
 
+/* Keyed by Run rather than by classic session, so a module reload inside the
+   same Run keeps the switch while a new process starts from the default. */
+function runModeKey(projectId: string, runId: string): string {
+  return `prompt-trail:run-mode:${projectId}:${runId}`
+}
+
 function storedConsent(value: unknown): ConsentDecision | undefined {
   if (!isRecord(value) || value.policyVersion !== COLLECTION_POLICY_VERSION) {
     return undefined
@@ -716,6 +756,136 @@ function storedBranch(value: unknown): BranchState | undefined {
     ))
   ) return undefined
   return value as BranchState
+}
+
+function storedRunMode(value: unknown): RunModeState | undefined {
+  if (
+    !isRecord(value) ||
+    value.version !== 1 ||
+    (value.mode !== 'enabled' && value.mode !== 'disabled')
+  ) return undefined
+  const missing = value.stopBoundaryMissing === true
+    ? { stopBoundaryMissing: true as const }
+    : {}
+  const boundary = value.boundary
+  if (boundary === undefined) return { version: 1, mode: value.mode, ...missing }
+  if (
+    !isRecord(boundary) ||
+    !isCollectionBoundaryKind(boundary.kind) ||
+    typeof boundary.eventId !== 'string' ||
+    !SAFE_IDENTIFIER.test(boundary.eventId) ||
+    !Number.isSafeInteger(boundary.sequence) ||
+    (boundary.sequence as number) < 1
+  ) return { version: 1, mode: value.mode, ...missing }
+  return {
+    version: 1,
+    mode: value.mode,
+    boundary: {
+      kind: boundary.kind,
+      eventId: boundary.eventId,
+      sequence: boundary.sequence as number,
+    },
+    ...missing,
+  }
+}
+
+function isCollectionBoundaryKind(value: unknown): value is CollectionBoundaryKind {
+  return value === 'collection-started'
+    || value === 'collection-stopped'
+    || value === 'collection-resumed'
+}
+
+/* A Run with no stored record collects by default; `stored` tells enable
+   whether this Run is resuming after its own explicit disable. */
+async function loadRunMode(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<{ key: string; value: RunModeState }> {
+  if (!startup.runId) {
+    /* Without a proven Run id the switch still has to be readable, or an
+       unhealthy target would silently resume collecting a disabled Run. */
+    if (runMode?.key.startsWith(`prompt-trail:run-mode:${currentProject.id}:`)) {
+      return { key: runMode.key, value: runMode.value }
+    }
+    throw new Error('capture-identity')
+  }
+  const key = runModeKey(currentProject.id, startup.runId)
+  if (runMode?.key === key) return { key, value: runMode.value }
+  /* An unreadable switch is not an absent one: defaulting to enabled here
+     would resume collecting a Run the person explicitly disabled, so the
+     failure propagates and the caller fails closed. */
+  const value = storedRunMode(await $.store.get(key))
+    ?? { version: 1, mode: 'enabled' as const }
+  runMode = { key, value }
+  return { key, value }
+}
+
+async function saveRunMode(
+  $: EngineInterface,
+  key: string,
+  value: RunModeState,
+): Promise<void> {
+  runMode = { key, value }
+  await $.store.set(key, value)
+}
+
+function parseBoundaryResponse(
+  text: string,
+  eventId: string,
+  projectId: string,
+  kind: CollectionBoundaryKind,
+): number {
+  const value: unknown = JSON.parse(text)
+  if (
+    !isRecord(value) ||
+    value.eventId !== eventId ||
+    value.projectId !== projectId ||
+    value.kind !== kind ||
+    !Number.isSafeInteger(value.sequence) ||
+    (value.sequence as number) < 1
+  ) throw new Error('boundary-response')
+  return value.sequence as number
+}
+
+/* A Collection Boundary is a non-prompt Timeline Event: it carries no text and
+   takes the next project-level sequence, so it orders against Prompt Entries. */
+async function appendBoundary(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  branchId: string,
+  kind: CollectionBoundaryKind,
+): Promise<{ eventId: string; sequence: number }> {
+  if (!startup.helperPath || !startup.databaseRoot || !startup.runId || !startup.sessionId) {
+    throw new Error('capture-identity')
+  }
+  const eventId = crypto.randomUUID()
+  const result = await run(
+    $,
+    [
+      startup.helperPath,
+      'boundary-append',
+      startup.databaseRoot,
+      currentProject.id,
+      startup.runId,
+      startup.sessionId,
+      branchId,
+      kind,
+      eventId,
+      String(await $.clock.now()),
+      EXPECTED_HELPER_SHA256,
+      String(HELPER_PROTOCOL),
+    ],
+    10_000,
+  )
+  if (result.exitCode !== 0) throw new Error('boundary-append')
+  const sequence = parseBoundaryResponse(
+    result.stdout,
+    eventId,
+    currentProject.id,
+    kind,
+  )
+  currentProject.archiveReady = true
+  return { eventId, sequence }
 }
 
 async function canonicalProjectRoot(
@@ -777,6 +947,7 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
     blocked = consent === 'enabled'
   }
   archiveUnavailable = blocked
+  runMode = undefined
   project = {
     root,
     id,
@@ -982,6 +1153,46 @@ async function abortCapture(
   if (result.exitCode !== 0) throw new Error('capture-abort')
 }
 
+/* One row of the expanded list: the entry's text folded to a single line, or a
+   marker for an attachment-only submission, which archives no text at all. */
+function entryLine(entry: Extract<TimelineItem, { kind: 'prompt' }>): string {
+  if (entry.text === '') {
+    return entry.attachmentCount > 0 ? `（附件 ×${entry.attachmentCount}）` : '（空提交）'
+  }
+  return entry.text.replace(/\r\n?|\n/g, ' ↵ ')
+}
+
+/* A disabled interval is drawn as an explicit break, never as continuous
+   history: the stop marker says the prompts after it were not recorded and the
+   resume marker says nothing from that interval is reconstructed. */
+function boundaryLine(kind: CollectionBoundaryKind): string {
+  if (kind === 'collection-stopped') {
+    return '—— 采集已停止（其后的 prompt 未记录）——'
+  }
+  if (kind === 'collection-resumed') {
+    return '—— 采集已恢复（新根分支；停用期间的 prompt 不补录）——'
+  }
+  return '—— 采集已开始 ——'
+}
+
+function boundarySummary(mode: RunModeState | undefined): string {
+  if (mode?.stopBoundaryMissing) return 'collection-stopped · 未能写入档案'
+  if (!mode?.boundary) return 'none'
+  return `${mode.boundary.kind} · sequence ${mode.boundary.sequence}`
+}
+
+/* Why this Run is or is not collecting, most specific reason first. */
+function collectionModeText(): string {
+  if (!runMode) return 'unknown · Run collection mode 不可读'
+  if (runMode.value.mode === 'disabled') return 'disabled · 本 Run 已停用采集'
+  if (project?.consent !== 'enabled') return 'disabled · 未授予 Collection consent'
+  if (archiveUnavailable) return 'disabled · 档案不可用'
+  if (startup.support !== 'supported') {
+    return `disabled · ${statusValue(startup.reason)}`
+  }
+  return 'enabled'
+}
+
 function statusValue(value: string): string {
   return value.replace(
     /[\u0000-\u001f\u007f]/g,
@@ -1000,14 +1211,15 @@ function statusText(): string {
       : startup.support === 'checking'
         ? 'checking'
         : `not checked${helperPath ? ` · ${helperPath}` : ''}`
-  const consent = project?.consent === 'enabled'
-    ? `granted · policy ${COLLECTION_POLICY_VERSION}`
+  const consentState = project?.consent === 'enabled'
+    ? 'granted'
     : project?.consent === 'declined'
-      ? `declined · policy ${COLLECTION_POLICY_VERSION}`
+      ? 'declined'
       : 'not granted'
-  const collectionMode = project?.consent === 'enabled' && !archiveUnavailable
-    ? 'enabled'
-    : 'disabled'
+  const consent = `${consentState} · policy ${COLLECTION_POLICY_VERSION}`
+  /* The Run switch and what it actually amounts to are reported together, so a
+     Run that is switched on but not collecting never reads as collecting. */
+  const collectionMode = collectionModeText()
   const archive = archiveUnavailable
     ? 'unavailable'
     : project?.archiveReady && project.databasePath
@@ -1021,12 +1233,253 @@ function statusText(): string {
     `detected: ${statusValue(startup.detected)}`,
     `collection consent: ${consent}`,
     `Run collection mode: ${collectionMode}`,
+    `latest collection boundary: ${boundarySummary(runMode?.value)}`,
     `archive: ${archive}`,
     `project: ${startup.projectPath ? statusValue(startup.projectPath) : 'unavailable'}`,
     `database root: ${startup.databaseRoot ? statusValue(startup.databaseRoot) : 'unavailable'}`,
     `helper: ${helper}`,
     `locator: ${startup.locatorPath ? statusValue(startup.locatorPath) : 'unavailable'}`,
   ].join('\n')
+}
+
+async function refreshStartup($: EngineInterface): Promise<void> {
+  if (!runtimeTarget) return
+  try {
+    startup = await inspectTarget(
+      $,
+      runtimeTarget.isInteractive,
+      runtimeTarget.surface,
+      runtimeTarget.cwd,
+    )
+    if (RETRYABLE_LOCATOR_REASONS.has(startup.reason)) {
+      startup = await inspectTarget(
+        $,
+        runtimeTarget.isInteractive,
+        runtimeTarget.surface,
+        runtimeTarget.cwd,
+      )
+    }
+  } catch {
+    startup = {
+      support: 'helper unavailable',
+      reason: 'preflight-failed',
+      detected: 'target could not be proven',
+      projectPath: runtimeTarget.cwd,
+    }
+  }
+}
+
+function recordBoundary(
+  kind: CollectionBoundaryKind,
+  appended: { eventId: string; sequence: number },
+): void {
+  timeline = [
+    ...timeline,
+    {
+      kind: 'boundary',
+      eventId: appended.eventId,
+      sequence: appended.sequence,
+      boundary: kind,
+    },
+  ]
+}
+
+/* Turning the current Run's collection on. It never reports success from an
+   unsupported or unhealthy target, and a real off-to-on transition starts a
+   fresh root Conversation Branch so nothing from the disabled interval is
+   back-filled onto the new lineage. */
+async function enableCollection($: EngineInterface): Promise<string> {
+  if (!runtimeTarget) return 'Prompt Trail 尚未确定运行目标，无法启用采集。'
+
+  let currentProject: ProjectState
+  try {
+    currentProject = await prepareProject($)
+  } catch {
+    return 'Prompt Trail 无法证明当前项目身份，未启用采集。'
+  }
+
+  await refreshStartup($)
+  if (startup.support !== 'supported') {
+    return `Prompt Trail 在当前环境不可采集（${startup.support}：${startup.reason}），未启用采集。`
+  }
+  if (!startup.databaseRoot) {
+    return 'Prompt Trail 无法证明数据库位置，未启用采集。'
+  }
+  currentProject.databasePath = `${startup.databaseRoot}/${currentProject.id}.sqlite3`
+  startup.projectPath = currentProject.root
+
+  const hadConsent = currentProject.consent === 'enabled'
+  let decision: ConsentDecision | undefined
+  try {
+    decision = await requestConsent($, currentProject)
+  } catch {
+    return 'Prompt Trail 无法完成采集同意，未启用采集。'
+  }
+  if (decision === 'declined') {
+    return '这个 Project Timeline 未授予 Collection consent，采集保持关闭。'
+  }
+  if (decision !== 'enabled') {
+    return '请选择“启用”或“继续但不启用”后再运行 /prompt-history enable。'
+  }
+
+  /* An unresolved Pending Capture is exactly what leaves the archive blocked,
+     so enable refuses instead of resuming over an unreconciled submission. */
+  if (archiveUnavailable) {
+    return 'Prompt Trail 档案当前不可用，未启用采集；请先解决未决的 Pending Capture。'
+  }
+
+  /* Already collecting means the switch is on and consent was granted before
+     this command ran; there is no transition to mark. */
+  let current: { key: string; value: RunModeState }
+  try {
+    current = await loadRunMode($, currentProject)
+  } catch {
+    return 'Prompt Trail 无法读取当前 Run collection mode，未启用采集。'
+  }
+  if (current.value.mode === 'enabled' && hadConsent && !current.value.stopBoundaryMissing) {
+    return '当前 Run 已在采集，未写入新的 Collection Boundary。'
+  }
+
+  /* A resume whose matching stop boundary never reached the archive would
+     present the disabled interval as continuous history, so the stop is
+     retried first and the resume waits until it lands. */
+  if (current.value.stopBoundaryMissing) {
+    let stop: { eventId: string; sequence: number }
+    try {
+      const branch = await branchState($, currentProject)
+      stop = await appendBoundary(
+        $,
+        currentProject,
+        branch.value.branchId,
+        'collection-stopped',
+      )
+    } catch {
+      return '上一次停用的 Collection Boundary 仍未写入档案；在它写入前不恢复采集，否则禁用区间会被显示为完整历史。'
+    }
+    recordBoundary('collection-stopped', stop)
+    current = {
+      key: current.key,
+      value: {
+        version: 1,
+        mode: current.value.mode,
+        boundary: { kind: 'collection-stopped', ...stop },
+      },
+    }
+    await saveRunMode($, current.key, current.value)
+  }
+
+  const kind: CollectionBoundaryKind = current.value.mode === 'disabled'
+    ? 'collection-resumed'
+    : 'collection-started'
+  const branchId = crypto.randomUUID()
+  let appended: { eventId: string; sequence: number }
+  try {
+    appended = await appendBoundary($, currentProject, branchId, kind)
+  } catch {
+    await markArchiveUnavailable($, currentProject)
+    return 'Prompt Trail 无法写入 Collection Boundary，未启用采集。'
+  }
+
+  try {
+    if (startup.runId && startup.sessionId) {
+      await $.store.set(
+        branchKey(currentProject.id, startup.runId, startup.sessionId),
+        { version: 1, branchId, parentEventId: null } satisfies BranchState,
+      )
+    }
+    await saveRunMode($, current.key, {
+      version: 1,
+      mode: 'enabled',
+      boundary: { kind, eventId: appended.eventId, sequence: appended.sequence },
+    })
+  } catch {
+    return '已写入 Collection Boundary，但无法保存 Run collection mode；reload 后状态可能回到默认值。'
+  }
+
+  recordBoundary(kind, appended)
+  $.ui.invalidate('ui.render')
+  return kind === 'collection-resumed'
+    ? '当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。'
+    : '当前 Run 已开始采集，并从新的根 Conversation Branch 开始。'
+}
+
+/* Turning the current Run's collection off. Stopping always takes effect —
+   that is the direction that cannot lose data — and the Collection Boundary is
+   attempted afterwards and reported honestly if it could not be written. */
+async function disableCollection($: EngineInterface): Promise<string> {
+  if (!runtimeTarget) return 'Prompt Trail 尚未确定运行目标，无法停用采集。'
+
+  let currentProject: ProjectState
+  try {
+    currentProject = await prepareProject($)
+  } catch {
+    return 'Prompt Trail 无法证明当前项目身份，未改变 Run collection mode。'
+  }
+
+  let current: { key: string; value: RunModeState }
+  try {
+    current = await loadRunMode($, currentProject)
+  } catch {
+    return 'Prompt Trail 无法读取当前 Run collection mode，未改变采集开关。'
+  }
+  if (current.value.mode === 'disabled') {
+    return '当前 Run 已停用采集，未写入新的 Collection Boundary。'
+  }
+
+  /* The boundary is attempted even when the archive is already flagged
+     unavailable: the flag can be stale, and a stop that lands is what keeps
+     the disabled interval from reading as continuous history. */
+  const kind: CollectionBoundaryKind = 'collection-stopped'
+  let appended: { eventId: string; sequence: number } | undefined
+  if (
+    startup.support === 'supported' &&
+    startup.databaseRoot &&
+    currentProject.consent === 'enabled'
+  ) {
+    try {
+      const branch = await branchState($, currentProject)
+      appended = await appendBoundary($, currentProject, branch.value.branchId, kind)
+    } catch {
+      appended = undefined
+    }
+  }
+
+  const boundaryRequired = currentProject.consent === 'enabled'
+  const value: RunModeState = {
+    version: 1,
+    mode: 'disabled',
+    ...(appended
+      ? {
+        boundary: {
+          kind,
+          eventId: appended.eventId,
+          sequence: appended.sequence,
+        },
+      }
+      : {}),
+    ...(boundaryRequired && !appended ? { stopBoundaryMissing: true as const } : {}),
+  }
+  let persisted = true
+  try {
+    await saveRunMode($, current.key, value)
+  } catch {
+    persisted = false
+    runMode = { key: current.key, value }
+  }
+
+  if (appended) {
+    recordBoundary(kind, appended)
+    $.ui.invalidate('ui.render')
+  }
+  const boundaryNote = !boundaryRequired
+    ? '该项目尚未授予 Collection consent，本就没有采集，未写入 Collection Boundary'
+    : appended
+      ? '已写入 Collection Boundary'
+      : '未能写入 Collection Boundary；在它补写成功前 enable 不会恢复采集'
+  const persistenceNote = persisted
+    ? ''
+    : '；无法保存 Run collection mode，reload 后可能回到默认值'
+  return `当前 Run 已停用采集，${boundaryNote}${persistenceNote}。既有 Prompt Entries、Collection consent 和其他 Run 均未改变。`
 }
 
 export const register: Register = on => {
@@ -1039,7 +1492,7 @@ export const register: Register = on => {
     await $.command.register({
       name: 'prompt-history',
       description: 'Show Prompt Trail or inspect its status',
-      argumentHint: '[status]',
+      argumentHint: '[enable|disable|status]',
       immediate: true,
     })
     try {
@@ -1062,35 +1515,25 @@ export const register: Register = on => {
       $.ui.invalidate('ui.render')
       return { text: 'Prompt Trail 已展开。' }
     }
-    if (args !== 'status') {
-      return { text: '用法：/prompt-history [status]' }
-    }
-    if (runtimeTarget) {
-      try {
-        startup = await inspectTarget(
-          $,
-          runtimeTarget.isInteractive,
-          runtimeTarget.surface,
-          runtimeTarget.cwd,
-        )
-        if (RETRYABLE_LOCATOR_REASONS.has(startup.reason)) {
-          startup = await inspectTarget(
-            $,
-            runtimeTarget.isInteractive,
-            runtimeTarget.surface,
-            runtimeTarget.cwd,
-          )
-        }
-      } catch {
-        startup = {
-          support: 'helper unavailable',
-          reason: 'preflight-failed',
-          detected: 'target could not be proven',
-          projectPath: runtimeTarget.cwd,
+    if (args === 'status') {
+      await refreshStartup($)
+      /* An unsupported target is reported without resolving the project, so
+         status never probes a host Prompt Trail does not run on. A merely
+         unhealthy helper still has a real project whose consent and Run mode
+         are worth reporting. */
+      if (startup.support !== 'unsupported target') {
+        try {
+          const currentProject = await prepareProject($)
+          await loadRunMode($, currentProject)
+        } catch {
+          // status stays available without a proven project identity.
         }
       }
+      return { text: statusText() }
     }
-    return { text: statusText() }
+    if (args === 'enable') return { text: await enableCollection($) }
+    if (args === 'disable') return { text: await disableCollection($) }
+    return { text: '用法：/prompt-history [enable|disable|status]' }
   })
 
   on('prompt.submit', async ($, e, next) => {
@@ -1101,11 +1544,27 @@ export const register: Register = on => {
     try {
       currentProject = await prepareProject($)
     } catch {
+      /* A Run that is already known to be disabled collects nothing, so there
+         is nothing to miss and nothing to block. */
+      if (runMode?.value.mode === 'disabled') return next(e)
       if (project?.consent === 'enabled') {
         return { drop: 'Prompt Trail 无法证明当前项目身份；为避免漏记，本次提交已阻止。' }
       }
       return next(e)
     }
+    /* A disabled Run lets the submission through untouched: no Pending Capture,
+       no Prompt Entry, and no archive block standing in its way. */
+    let mode: RunModeState
+    try {
+      mode = (await loadRunMode($, currentProject)).value
+    } catch {
+      if (currentProject.consent === 'enabled') {
+        return { drop: 'Prompt Trail 无法读取当前 Run collection mode；为避免漏记，本次提交已阻止。' }
+      }
+      return next(e)
+    }
+    if (mode.mode === 'disabled') return next(e)
+
     if (archiveUnavailable) {
       return { drop: 'Prompt Trail 档案当前不可用；为避免漏记，本次提交已阻止。' }
     }
@@ -1148,6 +1607,7 @@ export const register: Register = on => {
 
     let branch: { key: string; value: BranchState }
     const eventId = crypto.randomUUID()
+    const attachmentKinds = e.attachments?.map(attachment => attachment.type) ?? []
     try {
       branch = await branchState($, currentProject)
       await beginCapture(
@@ -1157,7 +1617,7 @@ export const register: Register = on => {
         eventId,
         await $.clock.now(),
         e.text,
-        e.attachments?.map(attachment => attachment.type) ?? [],
+        attachmentKinds,
       )
     } catch {
       await markArchiveUnavailable($, currentProject)
@@ -1181,6 +1641,25 @@ export const register: Register = on => {
       return result
     }
 
+    /* `/prompt-history disable` runs immediately, so it can land while this
+       submission is still in flight. The stop boundary says later prompts were
+       not recorded, so a capture the stop overtook is discarded rather than
+       archived inside the disabled interval. */
+    let stillCollecting = true
+    try {
+      stillCollecting = (await loadRunMode($, currentProject)).value.mode === 'enabled'
+    } catch {
+      stillCollecting = false
+    }
+    if (!stillCollecting) {
+      try {
+        await abortCapture($, currentProject, eventId)
+      } catch {
+        await markArchiveUnavailable($, currentProject)
+      }
+      return result
+    }
+
     try {
       const sequence = await confirmCapture($, currentProject, eventId, finalText)
       const nextBranch: BranchState = {
@@ -1188,7 +1667,16 @@ export const register: Register = on => {
         parentEventId: eventId,
       }
       await $.store.set(branch.key, nextBranch)
-      entries = [...entries, { eventId, sequence, text: finalText }]
+      timeline = [
+        ...timeline,
+        {
+          kind: 'prompt',
+          eventId,
+          sequence,
+          text: finalText,
+          attachmentCount: attachmentKinds.length,
+        },
+      ]
       $.ui.invalidate('ui.render')
     } catch {
       await markArchiveUnavailable($, currentProject)
@@ -1212,6 +1700,15 @@ export const register: Register = on => {
         />
       )
     }
+    /* The displayed number counts Prompt Entries only, so a boundary drawn in
+       between never consumes a position in the session-level numbering. */
+    let position = 0
+    const rows = [...timeline]
+      .sort((left, right) => left.sequence - right.sequence)
+      .map(item => ({
+        item,
+        position: item.kind === 'prompt' ? (position += 1) : 0,
+      }))
     return (
       <Box flexDirection="column">
         <Button
@@ -1220,11 +1717,17 @@ export const register: Register = on => {
           label="▾ Prompt Trail"
           onPress={toggle}
         />
-        {entries.length === 0 ? (
+        {rows.length === 0 ? (
           <Text dimColor>尚无 Prompt Entry</Text>
-        ) : entries.map((entry, index) => (
-          <Text key={`prompt-trail:entry:${entry.eventId}`} wrap="truncate-end">
-            {`${index + 1}. ${entry.text.replace(/\r\n?|\n/g, ' ↵ ')}`}
+        ) : rows.map(row => (
+          <Text
+            key={`prompt-trail:${row.item.kind}:${row.item.eventId}`}
+            wrap="truncate-end"
+            {...(row.item.kind === 'boundary' ? { dimColor: true } : {})}
+          >
+            {row.item.kind === 'boundary'
+              ? boundaryLine(row.item.boundary)
+              : `${row.position}. ${entryLine(row.item)}`}
           </Text>
         ))}
       </Box>

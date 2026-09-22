@@ -34,6 +34,7 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 - [定稿兼容与验收契约](issues/05-finalize-acceptance-contract.md)：以唯一支持矩阵中的零缺失、零跳过 MUST 门禁，锁定采集、生命周期、分支、长历史交互、故障恢复、删除与隐私场景；SQLite schema 保持内部，宿主限制预先列为不承诺。
 - [可信启动并报告支持状态](issues/11-trusted-startup-status.md)：Prompt Trail 以 `mods/prompt-trail/` 为独立插件根，在 macOS 15.x arm64、Claude Code `>=2.1.273` 下通过可信 locator、预构建 helper 和只读 preflight 报告支持状态；真实 PTY 已验证成功启动、`/clear` 轮换、退出清理及版本/helper 摘要/protocol 主要拒绝路径。
 - [同意采集并显示首个 Prompt Entry](issues/12-consent-first-prompt-entry.md)：首次 composer 提交前询问一次带 policy version 的 Collection consent；拒绝则 prompt 正常进入且零建档，启用则先预写 Pending Capture、`next(e)` 成功后原子确认为 Prompt Entry。prompt 原文只经 stdin 进 helper，consent 与 Archive unavailable 持久化在 `$.store` 以跨 reload 保持；展开后的显示序号是会话级、从 1 开始，项目级永久 sequence 只存在于档案内。
+- [严格匹配人类 composer 提交](issues/13-strict-composer-capture.md)：成员资格只取决于 `origin.kind === 'composer'` 且 `next(e)` 成功返回文本的 `prompt.submit`，不看 classic hook、transcript `user` row、`ui.render`，也不按 `/` 前缀过滤——slash 命令走 `command.run`，不经过 `prompt.submit`。重复文本按事件身份保持独立，宽字符与空行逐字保存，附件只留数量和宽泛类型，下游 drop 幂等丢弃 Pending Capture，render 重放不重复归档。宿主限制：`2.1.278` 把粘贴的附件替换成 `[Image #N]` 占位文本，故无文本 submission 不承诺出现。
 
 ## Not yet specified
 
