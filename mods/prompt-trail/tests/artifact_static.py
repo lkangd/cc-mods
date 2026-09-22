@@ -48,12 +48,13 @@ class StaticArtifactTests(unittest.TestCase):
         self.assertEqual(manifest["helperProtocol"], 1)
         self.assertEqual(
             (manifest["schemaReadMin"], manifest["schemaReadMax"]),
-            (1, 1),
+            (1, 2),
         )
         self.assertEqual(
             (manifest["schemaWriteMin"], manifest["schemaWriteMax"]),
-            (1, 1),
+            (2, 2),
         )
+        self.assertEqual(manifest["schemaMigrations"], ["1->2"])
         self.assertEqual(manifest["sqliteMinimumVersionNumber"], 3_035_000)
         self.assertEqual(manifest["sqliteRequiredCapability"], "UPDATE RETURNING")
         self.assertEqual(
