@@ -700,11 +700,21 @@ static void archive_bind_prompt(
   }
 }
 
-static void capture_runtime(
+/* What a subcommand needs of the archive root. A write either creates it
+   (PT_ROOT_CREATE) or requires it (PT_ROOT_REQUIRE); a read that asks whether
+   anything is unresolved treats an absent root as "nothing archived yet"
+   (PT_ROOT_OPTIONAL) rather than as a failure. */
+typedef enum {
+  PT_ROOT_REQUIRE,
+  PT_ROOT_CREATE,
+  PT_ROOT_OPTIONAL,
+} pt_root_mode;
+
+static bool capture_runtime(
   const char *database_root,
   const char *expected_sha,
   const char *protocol_text,
-  bool create_root
+  pt_root_mode root_mode
 ) {
   (void)parse_protocol(protocol_text);
   if (!lowercase_sha256(expected_sha)) {
@@ -738,11 +748,21 @@ static void capture_runtime(
     archive_error("plugin-data-permissions");
   }
 
-  if (create_root) {
+  if (root_mode == PT_ROOT_CREATE) {
     if (!pt_ensure_private_directory(database_root)) {
       archive_error("database-root-permissions");
     }
   } else if (!pt_path_is_private_directory(database_root)) {
+    /* Only a root that provably is not there answers "nothing archived yet".
+       One that exists but fails ownership, type or permission checks is an
+       archive this helper must not speak for, so it fails closed even for a
+       read. */
+    struct stat root_status;
+    if (root_mode == PT_ROOT_OPTIONAL
+        && lstat(database_root, &root_status) != 0
+        && errno == ENOENT) {
+      return false;
+    }
     archive_error("database-root-unavailable");
   }
   char canonical_root[PATH_MAX];
@@ -750,6 +770,7 @@ static void capture_runtime(
       || strcmp(database_root, canonical_root) != 0) {
     archive_error("database-root-permissions");
   }
+  return true;
 }
 
 static int archive_schema_version(sqlite3 *database) {
@@ -993,7 +1014,7 @@ static void capture_begin(int argc, char **argv) {
       || !attachment_kinds_valid(attachment_kinds)) {
     archive_error("capture-input");
   }
-  capture_runtime(database_root, argv[12], argv[13], true);
+  capture_runtime(database_root, argv[12], argv[13], PT_ROOT_CREATE);
 
   size_t prompt_length = 0;
   char *prompt = read_prompt_text(&prompt_length);
@@ -1095,16 +1116,22 @@ static long long allocate_sequence(sqlite3 *database, const char *project_id) {
   return sequence;
 }
 
+/* `--stdin` confirms with the text `next(e)` returned; `--pending` confirms
+   with the text already staged, which is the only form a reconciliation after
+   a restart can use — the plugin no longer holds the draft, and the staged
+   bytes never leave the helper. */
 static void capture_confirm(int argc, char **argv) {
-  if (argc != 8 || strcmp(argv[7], "--stdin") != 0) usage();
+  if (argc != 8) usage();
+  bool from_stdin = strcmp(argv[7], "--stdin") == 0;
+  if (!from_stdin && strcmp(argv[7], "--pending") != 0) usage();
   const char *database_root = argv[2];
   const char *project_id = argv[3];
   const char *event_id = argv[4];
   if (!pt_is_safe_identifier(event_id)) archive_error("capture-input");
-  capture_runtime(database_root, argv[5], argv[6], false);
+  capture_runtime(database_root, argv[5], argv[6], PT_ROOT_REQUIRE);
 
   size_t prompt_length = 0;
-  char *prompt = read_prompt_text(&prompt_length);
+  char *prompt = from_stdin ? read_prompt_text(&prompt_length) : NULL;
   sqlite3 *database = open_archive(database_root, project_id, false);
   archive_sql(database, "BEGIN IMMEDIATE");
   long long sequence = existing_sequence(database, event_id);
@@ -1120,7 +1147,7 @@ static void capture_confirm(int argc, char **argv) {
   sqlite3_stmt *pending = archive_prepare(
     database,
     "SELECT run_id, segment_id, branch_id, parent_event_id, occurred_at_ms,"
-    " attachment_count, attachment_kinds"
+    " attachment_count, attachment_kinds, prompt_text"
     " FROM pending_captures WHERE event_id=?1"
   );
   archive_bind_text(database, pending, 1, event_id);
@@ -1134,6 +1161,12 @@ static void capture_confirm(int argc, char **argv) {
   long long occurred_at = sqlite3_column_int64(pending, 4);
   long long attachment_count = sqlite3_column_int64(pending, 5);
   const char *attachment_kinds = (const char *)sqlite3_column_text(pending, 6);
+  if (!from_stdin) {
+    /* The row stays on this statement, which is not stepped again before the
+       insert binds it, so the staged bytes are read straight across. */
+    prompt = (char *)sqlite3_column_text(pending, 7);
+    prompt_length = (size_t)sqlite3_column_bytes(pending, 7);
+  }
   require_known_parent(database, parent_event_id);
 
   sequence = allocate_sequence(database, project_id);
@@ -1157,6 +1190,7 @@ static void capture_confirm(int argc, char **argv) {
   archive_bind_prompt(insert, 10, prompt, prompt_length);
   if (sqlite3_step(insert) != SQLITE_DONE) archive_error("archive-sqlite");
   sqlite3_finalize(insert);
+  if (!from_stdin) prompt = NULL;
   sqlite3_finalize(pending);
 
   sqlite3_stmt *remove = archive_prepare(
@@ -1180,7 +1214,7 @@ static void capture_abort(int argc, char **argv) {
   const char *project_id = argv[3];
   const char *event_id = argv[4];
   if (!pt_is_safe_identifier(event_id)) archive_error("capture-input");
-  capture_runtime(database_root, argv[5], argv[6], false);
+  capture_runtime(database_root, argv[5], argv[6], PT_ROOT_REQUIRE);
   sqlite3 *database = open_archive(database_root, project_id, false);
   archive_sql(database, "BEGIN IMMEDIATE");
   if (existing_sequence(database, event_id) > 0) {
@@ -1197,6 +1231,96 @@ static void capture_abort(int argc, char **argv) {
   archive_sql(database, "COMMIT");
   sqlite3_close(database);
   printf("{\"aborted\":%s}\n", removed > 0 ? "true" : "false");
+}
+
+/* The fixed maximum batch a single listing answers. The protocol offers no
+   way to ask for more in one call, so a caller cannot turn this read into an
+   unbounded table scan; `truncated` says another call is owed. */
+#define PENDING_LIST_LIMIT 64
+
+/* Unresolved Pending Captures, oldest staged first. It answers identity only —
+   no prompt text and no attachment kinds — because its whole job is to let a
+   Run discover, after a crash or a restart, that something is owed. */
+static void capture_list(int argc, char **argv) {
+  if (argc != 6) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  bool root_present =
+    capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
+
+  bool archived = false;
+  if (root_present) {
+    char database_path[PATH_MAX];
+    int length = snprintf(
+      database_path,
+      sizeof(database_path),
+      "%s/%s.sqlite3",
+      database_root,
+      project_id
+    );
+    if (length < 0 || (size_t)length >= sizeof(database_path)) {
+      archive_error("database-path");
+    }
+    struct stat status;
+    if (lstat(database_path, &status) == 0) {
+      archived = true;
+    } else if (errno != ENOENT) {
+      archive_error("database-unavailable");
+    }
+  }
+
+  /* An archive that was never created owes nothing, which is an answer rather
+     than a failure: the caller asked whether anything is unresolved. */
+  if (!archived) {
+    write_status_string("{\"projectId\":", project_id);
+    fputs(",\"pending\":[],\"truncated\":false}\n", stdout);
+    return;
+  }
+
+  sqlite3 *database = open_archive(database_root, project_id, false);
+  sqlite3_stmt *rows = archive_prepare(
+    database,
+    "SELECT event_id, run_id, segment_id, branch_id, parent_event_id,"
+    " occurred_at_ms, attachment_count"
+    " FROM pending_captures ORDER BY rowid LIMIT ?1"
+  );
+  sqlite3_bind_int(rows, 1, PENDING_LIST_LIMIT + 1);
+
+  write_status_string("{\"projectId\":", project_id);
+  fputs(",\"pending\":[", stdout);
+  int listed = 0;
+  bool truncated = false;
+  int step;
+  while ((step = sqlite3_step(rows)) == SQLITE_ROW) {
+    if (listed == PENDING_LIST_LIMIT) {
+      truncated = true;
+      break;
+    }
+    const char *parent = sqlite3_column_type(rows, 4) == SQLITE_NULL
+      ? NULL
+      : (const char *)sqlite3_column_text(rows, 4);
+    if (listed > 0) fputs(",", stdout);
+    write_status_string("{\"eventId\":", (const char *)sqlite3_column_text(rows, 0));
+    write_status_string(",\"runId\":", (const char *)sqlite3_column_text(rows, 1));
+    write_status_string(",\"segmentId\":", (const char *)sqlite3_column_text(rows, 2));
+    write_status_string(",\"branchId\":", (const char *)sqlite3_column_text(rows, 3));
+    if (parent) {
+      write_status_string(",\"parentEventId\":", parent);
+    } else {
+      fputs(",\"parentEventId\":null", stdout);
+    }
+    printf(
+      ",\"occurredAtMs\":%lld,\"attachmentCount\":%lld}",
+      (long long)sqlite3_column_int64(rows, 5),
+      (long long)sqlite3_column_int64(rows, 6)
+    );
+    listed++;
+  }
+  if (step != SQLITE_ROW && step != SQLITE_DONE) archive_error("archive-sqlite");
+  sqlite3_finalize(rows);
+  sqlite3_close(database);
+  printf("],\"truncated\":%s}\n", truncated ? "true" : "false");
 }
 
 /* The Collection Boundary kinds one Run can record: collection beginning,
@@ -1260,7 +1384,7 @@ static void boundary_append(int argc, char **argv) {
       || !boundary_kind_valid(kind)) {
     archive_error("boundary-input");
   }
-  capture_runtime(database_root, argv[10], argv[11], true);
+  capture_runtime(database_root, argv[10], argv[11], PT_ROOT_CREATE);
 
   sqlite3 *database = open_archive(database_root, project_id, true);
   archive_sql(database, "BEGIN IMMEDIATE");
@@ -1341,6 +1465,10 @@ int main(int argc, char **argv) {
   }
   if (argc > 1 && strcmp(argv[1], "capture-abort") == 0) {
     capture_abort(argc, argv);
+    return 0;
+  }
+  if (argc > 1 && strcmp(argv[1], "capture-list") == 0) {
+    capture_list(argc, argv);
     return 0;
   }
   if (argc > 1 && strcmp(argv[1], "boundary-append") == 0) {

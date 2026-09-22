@@ -4,7 +4,7 @@
 
 **Blocked by:** 12「同意采集并显示首个 Prompt Entry」
 
-**Status:** claimed
+**Status:** resolved
 
 - [x] `/prompt-history enable` 只在项目已 consent 且 preflight 健康时启用当前 Run；控制命令本身不创建 Prompt Entry。
 - [x] `/prompt-history disable` 只停止当前 Run 的后续采集，不删除旧 Prompt Entries、不撤销 Collection consent。
@@ -15,7 +15,7 @@
 - [x] 未 consent 项目运行 enable 时先进入 consent 流程；不受支持或不健康环境不能呈现为成功启用。
 - [x] 一个 Run 的 enable/disable 不修改其他 Run 的模式；并发隔离将在后续双 Run 场景中端到端复验。
 - [x] reload 后当前 Run collection mode 与边界状态保持，普通进程重启按新 Run 的默认模式处理。
-- [ ] plugin test、helper semantic test 与真实 PTY 覆盖 enable、disable、重新 enable、disabled submission 和无补录行为。
+- [x] plugin test、helper semantic test 与真实 PTY 覆盖 enable、disable、重新 enable、disabled submission 和无补录行为。
 
 ## Comments
 
@@ -126,3 +126,71 @@ semantic verifier 增加 `eventIdsDistinct`，跨 `prompt_entries`/`timeline_eve
 
 backlog 4 条见 `docs/code-review-backlog/`：Run 身份在模块存活期间可能过期（归 Issue 17）、
 `$.store` 写失败时 Run mode 的持久性、有界持久化时间线视图（归 Issue 21）、三条小清理。
+
+### 2026-09-22 真人 PTY 验收
+
+对**修复后**的构建（提交 `7517412`）验收。先重跑
+`mods/prompt-trail/scripts/verify-startup.sh`，exit 0 全绿，制品不陈旧。
+
+真实终端：`env -u CLAUDECODE CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1 npx -y
+@anthropic-ai/claude-code@2.1.278 --plugin-dir mods/prompt-trail`，按
+status → 提交 → disable → 提交两条 → status → enable → 提交 → 展开
+的顺序跑完，使用者确认五步的呈现全部符合预期：disabled 期间两条 prompt 正常进入
+Claude Code 且无任何建档提示，`status` 给出 `disabled · 本 Run 已停用采集` 与
+`collection-stopped`，enable 后为 `collection-resumed`，展开列表的停止/恢复两行
+文案可见且显示序号跳过禁用区间。
+
+档案形态核对（只读，只打印形态；`prompt_text` 未进入任何对话或报告）：
+
+| | 验收前 | 验收后 |
+|---|---|---|
+| schema `user_version` | 2 | 2 |
+| prompt entries | 17 | 19 |
+| timeline events | 2 | 4 |
+| pending captures | 0 | 0 |
+| `metadata.next_sequence` | 19 | 23 |
+
+新增的 sequence 20..23 全部属于同一个新 Run，形态是
+`prompt` → `collection-stopped` → `collection-resumed` → `prompt`：
+
+- 禁用期间的两条 submission **没有留下任何行**，既无 Prompt Entry 也无 Pending Capture，
+  且 sequence 无缺口——证明它们根本没有进入分配器，而不是建档后被删。
+- 恢复边界与其后的 prompt 共用一个与停止边界不同的 `branch_id`（`2b0b4f` → `b58ec2`），
+  证明重新 enable 确实从新的根 Conversation Branch 开始，没有补录。
+- 停止与恢复边界各一条、成对出现，禁用区间因此在展开视图里被显式标界。
+- 三条控制命令（`status`/`disable`/`enable`）没有产生 Prompt Entry，符合第 1 条勾选项。
+
+第 10 条勾选项据此成立：plugin test、helper semantic test 与真实 PTY 三层都覆盖了
+enable、disable、重新 enable、disabled submission 与无补录行为。
+
+## Answer
+
+Run collection mode 成立：它是 `$.store` 里 `prompt-trail:run-mode:<projectId>:<runId>`
+这一条 Run 级记录，键只含 project 与 Run，所以 reload 读回同一开关、新进程（新 Run）
+无记录并按默认 `enabled` 采集；默认不能设成 `disabled`，否则 Issue 12 的首次 consent
+询问永远不触发。`disable` 只停当前 Run 的后续采集，既有 Prompt Entries、Collection
+consent 和其他 Run 的记录一律不动。
+
+真实的开始/停止/恢复由档案侧的 `timeline_events` 表与 `boundary-append` 子命令承载
+（schema 升到 2，已存在的 1 号库在打开时走 manifest 声明的 `1->2` 迁移，迁移判定在写锁内
+重读 `user_version` 因此并发打开安全）。边界不含任何文本，与 Prompt Entry 共用
+`metadata.next_sequence` 这一个项目级分配器，因此边界与 prompt 的先后只由 sequence 决定，
+事件身份跨 `prompt_entries`/`timeline_events`/`pending_captures` 三张表唯一。
+
+方向性是这套设计的核心：**停用永远生效**（不丢数据的方向），边界写入是随后尝试的，写不进
+就在文案里如实说明并把 `stopBoundaryMissing` 持久化；**恢复则必须先补上那条停止边界**，
+补不上就拒绝恢复——否则档案里会出现没有对应停止的恢复边界，把禁用区间显示成完整历史。
+同理，`enable` 在 preflight 不健康或 `archiveUnavailable` 时拒绝启用而不是假装成功；
+读不到开关时 `loadRunMode` 向上抛错、按既有失败关闭语义处理，绝不猜成「无记录」。
+重新 enable 会把 branch 重置为新 `branchId` + `parentEventId: null`，所以恢复后是新的根
+分支，禁用期间的 prompt 不补录。
+
+已知欠账：spec「迁移、更新与制品信任」要求的迁移前完整性检查、空间检查与同权限备份本轮
+没有实现，已在 `spec.md` 就地标注，留给 Issue 27。`archiveUnavailable` 时的完整 Pending
+Capture 对账留给 Issue 15。
+
+**本票据被 Issue 15 取代的一点**：上面的进度记录里把 `archiveUnavailable` 说成「也就是存在
+未解决的 Pending Capture」。那是 Issue 14 当时的实现事实，现在不再成立——Issue 15 把未决
+Pending Capture 拆成独立的持久「待对账」状态（`$.store` 的
+`prompt-trail:reconcile:<projectId>`），`archiveUnavailable` 退回它本来的含义：档案真的不可用。
+判断 enable 的拒绝原因、`status` 的显示和失败路径时以 Issue 15 为准。

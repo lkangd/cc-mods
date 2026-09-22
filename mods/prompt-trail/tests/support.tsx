@@ -42,20 +42,41 @@ export type TargetOptions = {
   hasGitDirectory?: boolean
   preflightThrows?: boolean
   confirmFails?: boolean
+  /* Fails only the first confirmation, so a later reconciliation can land. */
+  confirmFailsOnce?: boolean
+  beginFails?: boolean
   abortFails?: boolean
   boundaryFails?: boolean
+  listFails?: boolean
+  /* What `capture-list` answers: the pendings the archive still holds. A
+     resolved one is dropped from the front, the way the archive would. */
+  pendingList?: Record<string, unknown>[]
+  /* What `$.session.messages()` answers during reconciliation. */
+  messages?: readonly { role: 'user' | 'assistant'; text: string }[]
+  /* Collects every `$.prompt.fill`, so a test can see the restored draft. */
+  fills?: string[]
+  /* The host refuses to write the draft back, as a dialog holding the keys
+     or a headless session would. */
+  fillFails?: boolean
+  /* The answer a reconciliation dialog receives; `undefined` cancels it. */
+  reconcileAnswer?: '已进入' | '未进入' | '新根分支' 
   /* Any store key containing this substring throws on read. */
   storeGetFailsFor?: string
+  /* Conversation Branch writes throw once this many have succeeded. */
+  branchSetFailsAfter?: number
   /* Runs while a composer submission is inside the downstream hook. */
   duringSubmit?: () => Promise<void>
 }
 
 /* Prompt Entries and Collection Boundaries share one project-level sequence,
    so the mock allocates from a single counter the way the helper does. */
-function nextSequence(calls: readonly ProcessCall[]): number {
+function nextSequence(
+  calls: readonly ProcessCall[],
+  failedConfirms: number,
+): number {
   return calls.filter(call => (
     call.argv[1] === 'capture-confirm' || call.argv[1] === 'boundary-append'
-  )).length
+  )).length - failedConfirms
 }
 
 export function installSupportedTarget(
@@ -63,6 +84,9 @@ export function installSupportedTarget(
   options: TargetOptions = {},
 ): ProcessCall[] {
   const calls: ProcessCall[] = []
+  /* A rolled-back confirmation allocates no sequence in the real helper. */
+  let failedConfirms = 0
+  let branchWrites = 0
   mock.env(on, { HOME: home })
   mock.clock(on, { now: 1_795_000_000_000 })
   if (options.storeSetFails) {
@@ -79,6 +103,13 @@ export function installSupportedTarget(
       return { value: store[e.key] }
     })
     on('store.set', (_$, e) => {
+      if (e.key.startsWith('prompt-trail:branch:')
+          && options.branchSetFailsAfter !== undefined) {
+        if (branchWrites >= options.branchSetFailsAfter) {
+          throw new Error('store unavailable: PT-SECRET-STORE-SET')
+        }
+        branchWrites += 1
+      }
       store[e.key] = e.value
       return { value: undefined }
     })
@@ -119,6 +150,21 @@ export function installSupportedTarget(
   }))
   on('tool.call', { tool: 'AskUserQuestion' }, (_$, e) => {
     const question = e.questions[0]?.question ?? ''
+    const choices = e.questions[0]?.options ?? []
+    const isReconcile = choices.some(choice => (
+      (typeof choice === 'string' ? choice : choice.label) === '已进入'
+    ))
+    if (isReconcile) {
+      /* A cancelled dialog answers nothing, which is what keeps the Run
+         blocked rather than defaulting to confirm or discard. */
+      if (!options.reconcileAnswer) return { result: { questions: e.questions, answers: {} } }
+      return {
+        result: {
+          questions: e.questions,
+          answers: { [question]: options.reconcileAnswer },
+        },
+      }
+    }
     return {
       result: {
         questions: e.questions,
@@ -126,6 +172,19 @@ export function installSupportedTarget(
       },
     }
   })
+  if (options.fills || options.fillFails) {
+    const fills = options.fills
+    on('prompt.fill', (_$, e) => {
+      fills?.push(e.text)
+      return { isFilled: !options.fillFails }
+    })
+  }
+  if (options.messages) {
+    const messages = options.messages
+    on('session.messages', () => ({
+      value: messages.map(message => ({ ...message, toolUses: [] })),
+    }))
+  }
   on('process.run', (_$, e) => {
     const argv = [...e.argv]
     calls.push({ argv, stdin: e.init?.stdin })
@@ -207,17 +266,7 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'capture-begin') {
       const eventId = argv[8]
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({ eventId, projectId, pending: true }),
-          stderr: '',
-        },
-      }
-    }
-    if (argv[0] === helperPath && argv[1] === 'capture-confirm') {
-      const eventId = argv[4]
-      if (options.confirmFails) {
+      if (options.beginFails) {
         return {
           value: {
             exitCode: 25,
@@ -229,10 +278,39 @@ export function installSupportedTarget(
       return {
         value: {
           exitCode: 0,
+          stdout: JSON.stringify({ eventId, projectId, pending: true }),
+          stderr: '',
+        },
+      }
+    }
+    if (argv[0] === helperPath && argv[1] === 'capture-confirm') {
+      const eventId = argv[4]
+      const isFirstConfirm =
+        calls.filter(call => call.argv[1] === 'capture-confirm').length === 1
+      if (options.confirmFails || (options.confirmFailsOnce && isFirstConfirm)) {
+        failedConfirms += 1
+        return {
+          value: {
+            exitCode: 25,
+            stdout: '',
+            stderr: '{"category":"archive-sqlite"}',
+          },
+        }
+      }
+      /* A confirmed capture is no longer pending, exactly as the helper's own
+         transaction leaves it. */
+      if (options.pendingList) {
+        options.pendingList = options.pendingList.filter(
+          row => row.eventId !== eventId,
+        )
+      }
+      return {
+        value: {
+          exitCode: 0,
           stdout: JSON.stringify({
             eventId,
             projectId,
-            sequence: nextSequence(calls),
+            sequence: nextSequence(calls, failedConfirms),
           }),
           stderr: '',
         },
@@ -255,7 +333,29 @@ export function installSupportedTarget(
             eventId: argv[8],
             projectId,
             kind: argv[7],
-            sequence: nextSequence(calls),
+            sequence: nextSequence(calls, failedConfirms),
+          }),
+          stderr: '',
+        },
+      }
+    }
+    if (argv[0] === helperPath && argv[1] === 'capture-list') {
+      if (options.listFails) {
+        return {
+          value: {
+            exitCode: 25,
+            stdout: '',
+            stderr: '{"category":"archive-sqlite"}',
+          },
+        }
+      }
+      return {
+        value: {
+          exitCode: 0,
+          stdout: JSON.stringify({
+            projectId,
+            pending: options.pendingList ?? [],
+            truncated: false,
           }),
           stderr: '',
         },
@@ -270,6 +370,13 @@ export function installSupportedTarget(
             stderr: '{"category":"archive-sqlite"}',
           },
         }
+      }
+      /* Only a successful abort removes the row; a failed one leaves the
+         pending in the archive, still blocking. */
+      if (options.pendingList) {
+        options.pendingList = options.pendingList.filter(
+          row => row.eventId !== argv[4],
+        )
       }
       return { value: { exitCode: 0, stdout: '{"aborted":true}', stderr: '' } }
     }

@@ -61,7 +61,10 @@ test('a slash command run archives nothing while slash text still does', async (
     origin: { kind: 'composer' },
     presentation: { isFullscreen: true, columns: 80 },
   })
-  expect(calls.some(call => call.argv[1]?.startsWith('capture-'))).toBe(false)
+  /* Asking the archive what is unresolved is a read, not a capture. */
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(0)
+  expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
 
   const typed = await composerPrompt($, { text: '/cost' })
 

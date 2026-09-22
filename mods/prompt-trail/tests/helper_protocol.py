@@ -1215,6 +1215,260 @@ class HelperProtocolTests(unittest.TestCase):
 
         self.assertEqual((first, second), (1, 2))
 
+    def list_argv(self, *, project_id: str) -> tuple[str, ...]:
+        return (
+            "capture-list",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+    def confirm_from_pending_argv(
+        self,
+        event_id: str,
+        *,
+        project_id: str,
+    ) -> tuple[str, ...]:
+        return (
+            "capture-confirm",
+            str(self.plugin_data / "archives"),
+            project_id,
+            event_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+            "--pending",
+        )
+
+    def test_capture_list_reports_unresolved_pendings_without_prompt_text(self) -> None:
+        project_id = "a" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        first = str(uuid.uuid4())
+        second = str(uuid.uuid4())
+        self.assertEqual(
+            self.run_helper(
+                *self.begin_argv(first, **identity),
+                input_text="PT-SECRET-FIRST",
+            ).returncode,
+            0,
+        )
+        self.assertEqual(
+            self.run_helper(
+                *self.begin_argv(second, **identity),
+                input_text="PT-SECRET-SECOND",
+            ).returncode,
+            0,
+        )
+
+        listed = self.run_helper(*self.list_argv(project_id=project_id))
+
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(listed.stderr, "")
+        self.assertNotIn("PT-SECRET", listed.stdout)
+        payload = json.loads(listed.stdout)
+        self.assertEqual(payload["projectId"], project_id)
+        self.assertIs(payload["truncated"], False)
+        self.assertEqual([row["eventId"] for row in payload["pending"]], [first, second])
+        row = payload["pending"][0]
+        self.assertEqual(row["runId"], identity["run_id"])
+        self.assertEqual(row["segmentId"], identity["segment_id"])
+        self.assertEqual(row["branchId"], identity["branch_id"])
+        self.assertIsNone(row["parentEventId"])
+        self.assertEqual(row["occurredAtMs"], 1_795_000_000_000)
+        self.assertEqual(row["attachmentCount"], 1)
+        self.assertNotIn("promptText", row)
+        self.assertNotIn("attachmentKinds", row)
+
+    def test_capture_list_answers_an_absent_archive_without_creating_one(self) -> None:
+        project_id = "b" * 64
+        database_root = self.plugin_data / "archives"
+
+        listed = self.run_helper(*self.list_argv(project_id=project_id))
+
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(json.loads(listed.stdout)["pending"], [])
+        self.assertFalse((database_root / f"{project_id}.sqlite3").exists())
+
+    def test_capture_list_enforces_a_fixed_maximum_batch(self) -> None:
+        project_id = "c" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        staged = []
+        for _ in range(65):
+            event_id = str(uuid.uuid4())
+            staged.append(event_id)
+            self.assertEqual(
+                self.run_helper(
+                    *self.begin_argv(event_id, **identity),
+                    input_text="PT-SECRET-BULK",
+                ).returncode,
+                0,
+            )
+
+        payload = json.loads(
+            self.run_helper(*self.list_argv(project_id=project_id)).stdout
+        )
+
+        self.assertEqual(len(payload["pending"]), 64)
+        self.assertIs(payload["truncated"], True)
+        self.assertEqual(
+            [row["eventId"] for row in payload["pending"]],
+            staged[:64],
+        )
+
+    def test_confirm_from_pending_archives_the_staged_text(self) -> None:
+        project_id = "d" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        event_id = str(uuid.uuid4())
+        staged_text = "PT-SECRET-STAGED\nsecond line"
+        self.assertEqual(
+            self.run_helper(
+                *self.begin_argv(event_id, **identity),
+                input_text=staged_text,
+            ).returncode,
+            0,
+        )
+
+        confirmed = self.run_helper(
+            *self.confirm_from_pending_argv(event_id, project_id=project_id)
+        )
+
+        self.assertEqual(confirmed.returncode, 0, confirmed.stderr)
+        self.assertNotIn("PT-SECRET", confirmed.stdout + confirmed.stderr)
+        self.assertEqual(json.loads(confirmed.stdout)["sequence"], 1)
+        semantics = self.verify_archive({
+            "database": str(self.plugin_data / "archives" / f"{project_id}.sqlite3"),
+            "projectId": project_id,
+            "state": "set",
+            "pending": [],
+            "entries": [{
+                "eventId": event_id,
+                "runId": identity["run_id"],
+                "segmentId": identity["segment_id"],
+                "branchId": identity["branch_id"],
+                "parentEventId": None,
+                "occurredAtMs": 1_795_000_000_000,
+                "attachmentCount": 1,
+                "attachmentKinds": "image",
+                "promptText": staged_text,
+            }],
+        })
+        self.assertEqual(semantics["status"], "verified")
+        self.assertEqual(semantics["checks"]["pendingCount"], 0)
+        self.assertEqual(semantics["checks"]["promptEntryCount"], 1)
+
+    def test_confirm_from_pending_repeats_without_doubling_the_entry(self) -> None:
+        project_id = "e" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        event_id = str(uuid.uuid4())
+        self.assertEqual(
+            self.run_helper(
+                *self.begin_argv(event_id, **identity),
+                input_text="PT-SECRET-ONCE",
+            ).returncode,
+            0,
+        )
+        argv = self.confirm_from_pending_argv(event_id, project_id=project_id)
+
+        first = self.run_helper(*argv)
+        repeat = self.run_helper(*argv)
+
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(repeat.returncode, 0, repeat.stderr)
+        self.assertEqual(
+            json.loads(first.stdout)["sequence"],
+            json.loads(repeat.stdout)["sequence"],
+        )
+        semantics = self.verify_archive({
+            "database": str(self.plugin_data / "archives" / f"{project_id}.sqlite3"),
+            "projectId": project_id,
+            "state": "set",
+            "pending": [],
+            "entries": [{
+                "eventId": event_id,
+                "runId": identity["run_id"],
+                "segmentId": identity["segment_id"],
+                "branchId": identity["branch_id"],
+                "parentEventId": None,
+                "occurredAtMs": 1_795_000_000_000,
+                "attachmentCount": 1,
+                "attachmentKinds": "image",
+                "promptText": "PT-SECRET-ONCE",
+            }],
+        })
+        self.assertEqual(semantics["checks"]["promptEntryCount"], 1)
+
+    def test_confirm_from_pending_refuses_an_unknown_event(self) -> None:
+        project_id = "9" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        self.assertEqual(
+            self.run_helper(
+                *self.begin_argv(str(uuid.uuid4()), **identity),
+                input_text="PT-SECRET-OTHER",
+            ).returncode,
+            0,
+        )
+
+        result = self.run_helper(
+            *self.confirm_from_pending_argv(str(uuid.uuid4()), project_id=project_id)
+        )
+
+        self.assertEqual(result.returncode, 25)
+        self.assertEqual(json.loads(result.stderr)["category"], "capture-not-found")
+
+    def test_capture_list_refuses_an_archive_root_it_cannot_vouch_for(self) -> None:
+        project_id = "8" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        self.assertEqual(
+            self.run_helper(
+                *self.begin_argv(str(uuid.uuid4()), **identity),
+                input_text="PT-SECRET-OWED",
+            ).returncode,
+            0,
+        )
+        database_root = self.plugin_data / "archives"
+        database_root.chmod(0o755)
+        self.addCleanup(database_root.chmod, 0o700)
+
+        listed = self.run_helper(*self.list_argv(project_id=project_id))
+
+        # A widened root that still holds an unresolved capture must not
+        # read as an empty archive.
+        self.assertEqual(listed.returncode, 25)
+        self.assertEqual(
+            json.loads(listed.stderr)["category"],
+            "database-root-unavailable",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
