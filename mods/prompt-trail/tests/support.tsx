@@ -30,6 +30,25 @@ export const session = {
   isInteractive: true,
 }
 
+/* One Timeline Event as the archive holds it. A test that shares one array
+   between two phases is sharing the archive across them, the way a reload or a
+   restart shares the project's SQLite file. */
+export type ArchiveRow = {
+  kind: string
+  eventId: string
+  sequence: number
+  runId: string
+  segmentId: string
+  branchId: string
+  occurredAt?: number
+  text?: string
+  attachmentCount?: number
+}
+
+/* The Run the locator names, held in a box so a test can start a new process
+   generation's Run the way a restart does. */
+export type RunIdentity = { runId: string }
+
 export type ProcessCall = {
   argv: string[]
   stdin?: string
@@ -75,14 +94,24 @@ export type TargetOptions = {
   /* The classic session the host reports; rotating `id` moves the target onto
      the locator a `/clear` would have published. */
   classicSession?: ClassicSession
+  /* The persisted archive; confirmed prompts and boundaries are appended to it
+     and `timeline-read` answers from it. */
+  archive?: ArchiveRow[]
+  readFails?: boolean
+  run?: RunIdentity
+  /* The digest `shasum` reports for the helper file right now. */
+  helperDigest?: { value: string }
 }
+
+/* The helper's fixed read batch. */
+export const TIMELINE_READ_LIMIT = 128
 
 /* Prompt Entries and every kind of boundary share one project-level sequence,
    and the helper allocates it once per event id: a repeat answers the stored
    sequence rather than a second one, and a rolled-back write allocates none. */
-function sequenceAllocator(): (eventId: string) => number {
-  const allocated = new Map<string, number>()
-  let next = 0
+function sequenceAllocator(archive: readonly ArchiveRow[]): (eventId: string) => number {
+  const allocated = new Map<string, number>(archive.map(row => [row.eventId, row.sequence]))
+  let next = archive.reduce((highest, row) => Math.max(highest, row.sequence), 0)
   return eventId => {
     const existing = allocated.get(eventId)
     if (existing !== undefined) return existing
@@ -99,7 +128,10 @@ export function installSupportedTarget(
   const calls: ProcessCall[] = []
   const classic = options.classicSession ?? { id: sessionId }
   const currentLocatorPath = () => `${locatorDirectory}/${classic.id}.json`
-  const allocateSequence = sequenceAllocator()
+  const archive = options.archive ?? []
+  const allocateSequence = sequenceAllocator(archive)
+  const identity = options.run ?? { runId }
+  const staged = new Map<string, Omit<ArchiveRow, 'sequence'>>()
   let branchWrites = 0
   mock.env(on, { HOME: home })
   mock.clock(on, { now: 1_795_000_000_000 })
@@ -170,7 +202,7 @@ export function installSupportedTarget(
       manifestPath,
       helperSha256: EXPECTED_HELPER_SHA256,
       artifactStatus: 'trusted',
-      runId,
+      runId: identity.runId,
       archiveGeneration,
     }),
   }))
@@ -251,7 +283,7 @@ export function installSupportedTarget(
       return {
         value: {
           exitCode: 0,
-          stdout: `${EXPECTED_HELPER_SHA256}  ${helperPath}\n`,
+          stdout: `${options.helperDigest?.value ?? EXPECTED_HELPER_SHA256}  ${helperPath}\n`,
           stderr: '',
         },
       }
@@ -277,7 +309,7 @@ export function installSupportedTarget(
             status: 'supported',
             artifactStatus: 'trusted',
             sessionId: classic.id,
-            runId,
+            runId: identity.runId,
             archiveGeneration,
             databaseRoot,
             helperPath,
@@ -300,6 +332,17 @@ export function installSupportedTarget(
             stderr: '{"category":"archive-sqlite"}',
           },
         }
+      }
+      if (eventId && !archive.some(row => row.eventId === eventId)) {
+        staged.set(eventId, {
+          kind: 'prompt',
+          eventId,
+          runId: argv[4] ?? '',
+          segmentId: argv[5] ?? '',
+          branchId: argv[6] ?? '',
+          text: e.init?.stdin ?? '',
+          attachmentCount: Number(argv[10]),
+        })
       }
       return {
         value: {
@@ -329,6 +372,15 @@ export function installSupportedTarget(
           row => row.eventId !== eventId,
         )
       }
+      const pending = staged.get(eventId ?? '')
+      if (pending) {
+        staged.delete(eventId ?? '')
+        archive.push({
+          ...pending,
+          ...(argv[7] === '--stdin' ? { text: e.init?.stdin ?? '' } : {}),
+          sequence: allocateSequence(eventId ?? ''),
+        })
+      }
       return {
         value: {
           exitCode: 0,
@@ -351,14 +403,72 @@ export function installSupportedTarget(
           },
         }
       }
+      /* As strict as the helper: a repeated id answers the stored sequence
+         only when every recorded fact matches, and a changed one is refused. */
+      const [runField, segmentId, branchId, kind, eventId, occurredAt] = argv.slice(4, 10)
+      const existing = archive.find(row => row.eventId === eventId)
+      if (existing && (
+        existing.kind !== kind ||
+        existing.runId !== runField ||
+        existing.segmentId !== segmentId ||
+        existing.branchId !== branchId ||
+        existing.occurredAt !== Number(occurredAt)
+      )) {
+        return {
+          value: {
+            exitCode: 25,
+            stdout: '',
+            stderr: '{"category":"boundary-conflict"}',
+          },
+        }
+      }
+      const sequence = allocateSequence(eventId ?? '')
+      if (!existing) {
+        archive.push({
+          kind: kind ?? '',
+          eventId: eventId ?? '',
+          sequence,
+          runId: runField ?? '',
+          segmentId: segmentId ?? '',
+          branchId: branchId ?? '',
+          occurredAt: Number(occurredAt),
+        })
+      }
+      return {
+        value: {
+          exitCode: 0,
+          stdout: JSON.stringify({ eventId, projectId, kind, sequence }),
+          stderr: '',
+        },
+      }
+    }
+    if (argv[0] === helperPath && argv[1] === 'timeline-read') {
+      if (options.readFails) {
+        return {
+          value: {
+            exitCode: 25,
+            stdout: '',
+            stderr: '{"category":"archive-sqlite"}',
+          },
+        }
+      }
+      const ordered = [...archive].sort((left, right) => left.sequence - right.sequence)
+      const latest = ordered.slice(-TIMELINE_READ_LIMIT)
       return {
         value: {
           exitCode: 0,
           stdout: JSON.stringify({
-            eventId: argv[8],
             projectId,
-            kind: argv[7],
-            sequence: allocateSequence(argv[8] ?? ''),
+            events: latest.map(row => ({
+              eventId: row.eventId,
+              sequence: row.sequence,
+              runId: row.runId,
+              kind: row.kind,
+              ...(row.kind === 'prompt'
+                ? { text: row.text ?? '', attachmentCount: row.attachmentCount ?? 0 }
+                : {}),
+            })),
+            truncated: ordered.length > latest.length,
           }),
           stderr: '',
         },
@@ -422,6 +532,14 @@ export function installSupportedTarget(
 
 export function captureCalls(calls: readonly ProcessCall[], command: string) {
   return calls.filter(call => call.argv[1] === command)
+}
+
+/* The segment and collection boundaries a test is asking about. A Run's own
+   start and end are appended through the same subcommand; the tests that are
+   about them ask for them by kind. */
+export function boundaryCalls(calls: readonly ProcessCall[]) {
+  return captureCalls(calls, 'boundary-append')
+    .filter(call => call.argv[7] !== 'run-started' && call.argv[7] !== 'run-ended')
 }
 
 export function composerPrompt(

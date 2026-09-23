@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import {
   SECRET,
+  boundaryCalls,
   captureCalls,
   composerPrompt,
   installSupportedTarget,
@@ -35,7 +36,7 @@ test('enable on an unconsented project asks first, then starts collection', asyn
 
   expect(result.text).toContain('已开始采集')
   expect(store[`prompt-trail:consent:${projectId}`]).toStrictEqual(consentGranted)
-  const boundaries = captureCalls(calls, 'boundary-append')
+  const boundaries = boundaryCalls(calls)
   expect(boundaries).toHaveLength(1)
   expect(boundaries[0]?.argv[7]).toBe('collection-started')
   // A control command is not a composer submission, so it archives no prompt.
@@ -56,7 +57,7 @@ test('disable stops this Run without deleting entries or revoking consent', asyn
   const result = await promptHistory($, 'disable')
 
   expect(result.text).toContain('已停用采集')
-  const boundaries = captureCalls(calls, 'boundary-append')
+  const boundaries = boundaryCalls(calls)
   expect(boundaries).toHaveLength(1)
   expect(boundaries[0]?.argv[7]).toBe('collection-stopped')
   expect(store[`prompt-trail:consent:${projectId}`]).toStrictEqual(consentGranted)
@@ -120,7 +121,7 @@ test('re-enabling starts a new root Conversation Branch and back-fills nothing',
   const afterEnable = branchIds(store) as { branchId: string; parentEventId: string | null }
   expect(afterEnable.branchId).not.toBe(beforeDisable.branchId)
   expect(afterEnable.parentEventId).toBe(null)
-  expect(captureCalls(calls, 'boundary-append').map(call => call.argv[7]))
+  expect(boundaryCalls(calls).map(call => call.argv[7]))
     .toStrictEqual(['collection-stopped', 'collection-resumed'])
 
   const begins = captureCalls(calls, 'capture-begin')
@@ -161,7 +162,7 @@ test('enable on an unhealthy target never reads as a successful enable', async (
   expect(result.text).toContain('未启用采集')
   expect(result.text).not.toContain('已开始采集')
   expect(result.text).not.toContain('已恢复采集')
-  expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
+  expect(boundaryCalls(calls)).toHaveLength(0)
   expect(store[runModeKey()]).toBe(undefined)
   expect((await promptHistory($, 'status')).text)
     .toContain('Run collection mode: disabled ·')
@@ -268,9 +269,11 @@ test('a stop boundary that never landed blocks resume until it is written', asyn
     stopBoundaryMissing: true,
   })
 
+  /* The Run's own start never landed either, so it is what enable meets
+     first; either way nothing resumes. */
   const refused = await promptHistory($, 'enable')
-  expect(refused.text).toContain('不恢复采集')
-  expect(captureCalls(calls, 'boundary-append')
+  expect(refused.text).toContain('未启用采集')
+  expect(boundaryCalls(calls)
     .filter(call => call.argv[7] === 'collection-resumed')).toHaveLength(0)
 
   // Once the archive accepts writes again, enable writes the missing stop
@@ -278,7 +281,7 @@ test('a stop boundary that never landed blocks resume until it is written', asyn
   options.boundaryFails = false
   const resumed = await promptHistory($, 'enable')
   expect(resumed.text).toContain('已恢复采集')
-  const landed = captureCalls(calls, 'boundary-append').map(call => call.argv[7])
+  const landed = boundaryCalls(calls).map(call => call.argv[7])
   expect(landed.slice(-2)).toStrictEqual(['collection-stopped', 'collection-resumed'])
   expect(store[runModeKey()]).toMatchObject({ mode: 'enabled' })
 })

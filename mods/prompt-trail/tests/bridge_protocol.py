@@ -44,9 +44,15 @@ class BridgeProtocolTests(unittest.TestCase):
         plugin_root: pathlib.Path = ROOT,
         helper: pathlib.Path = HELPER,
         manifest: pathlib.Path = MANIFEST,
+        via_child: bool = False,
     ) -> subprocess.CompletedProcess[str]:
+        # A shell that outlives the bridge becomes its parent, so the bridge
+        # sees a host process of another generation that inherited this one's
+        # whole environment.
+        wrapper = ["/bin/sh", "-c", '"$@"; exit $?', "sh"] if via_child else []
         return subprocess.run(
             [
+                *wrapper,
                 str(BRIDGE),
                 operation,
                 str(plugin_root),
@@ -396,6 +402,82 @@ class BridgeProtocolTests(unittest.TestCase):
         self.assertTrue(unsafe_locator.exists())
         self.assertTrue((active_locator.parent / f"{active_session}.json").exists())
         self.assertTrue(self.locator.exists())
+
+
+    def test_in_process_resume_keeps_the_run_identity(self) -> None:
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        previous_locator = self.locator
+        previous_payload = json.loads(previous_locator.read_text())
+
+        resume_end = self.session_input("SessionEnd")
+        resume_end["reason"] = "resume"
+        retained = self.run_bridge("remove", resume_end)
+        self.assertEqual(retained.returncode, 0, retained.stderr)
+        self.assertTrue(previous_locator.exists())
+
+        self.session_id = str(uuid.uuid4())
+        resume_start = self.session_input("SessionStart")
+        resume_start["source"] = "resume"
+        resumed = self.run_bridge("publish", resume_start)
+
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        self.assertFalse(previous_locator.exists())
+        current_payload = json.loads(self.locator.read_text())
+        self.assertEqual(current_payload["sessionId"], self.session_id)
+        self.assertEqual(current_payload["runId"], previous_payload["runId"])
+        self.assertEqual(current_payload["hostPid"], previous_payload["hostPid"])
+
+    def test_resume_in_a_new_process_starts_a_new_run(self) -> None:
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        previous_payload = json.loads(self.locator.read_text())
+
+        resume_start = self.session_input("SessionStart")
+        resume_start["source"] = "resume"
+        resumed = self.run_bridge("publish", resume_start, via_child=True)
+
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        current_payload = json.loads(self.locator.read_text())
+        self.assertEqual(current_payload["sessionId"], self.session_id)
+        self.assertNotEqual(current_payload["hostPid"], previous_payload["hostPid"])
+        self.assertNotEqual(current_payload["runId"], previous_payload["runId"])
+
+    def test_a_child_that_inherits_the_run_environment_gets_its_own_run(self) -> None:
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        parent_locator = self.locator
+        parent_payload = json.loads(parent_locator.read_text())
+        # Whatever the parent exported travels with the child; none of it may
+        # stand in for the child's own process generation.
+        self.environment = {
+            **self.environment,
+            "PROMPT_TRAIL_RUN_ID": parent_payload["runId"],
+            "PROMPT_TRAIL_SESSION_ID": parent_payload["sessionId"],
+            "CLAUDE_CODE_SESSION_ID": parent_payload["sessionId"],
+        }
+
+        self.session_id = str(uuid.uuid4())
+        clear_start = self.session_input("SessionStart")
+        clear_start["source"] = "clear"
+        refused = self.run_bridge("publish", clear_start, via_child=True)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertEqual(
+            json.loads(refused.stderr),
+            {"category": "locator-predecessor-missing"},
+        )
+        self.assertTrue(parent_locator.exists())
+
+        for source in ("fork", "resume", "startup"):
+            self.session_id = str(uuid.uuid4())
+            start = self.session_input("SessionStart")
+            start["source"] = source
+            child = self.run_bridge("publish", start, via_child=True)
+            self.assertEqual(child.returncode, 0, child.stderr)
+            child_payload = json.loads(self.locator.read_text())
+            self.assertNotEqual(child_payload["runId"], parent_payload["runId"], source)
+            self.assertNotEqual(child_payload["hostPid"], parent_payload["hostPid"], source)
+        self.assertTrue(parent_locator.exists())
 
 
 if __name__ == "__main__":

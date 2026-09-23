@@ -10,6 +10,7 @@ import {
 } from '../hooks/lifecycle'
 import {
   SECRET,
+  boundaryCalls,
   captureCalls,
   composerPrompt,
   installSupportedTarget,
@@ -154,7 +155,9 @@ test('a session end that is not a clear creates no Clear Boundary', () => {
       { event: 'session-end', sessionId: endedSessionId, reason },
       context,
     )
-    expect(decision.note, reason).toBe('not-clear')
+    /* An exit ends the Run, not a segment — and a Run that never archived
+       anything has no start for an end to close. */
+    expect(decision.note, reason).toBe(reason === 'resume' ? 'not-clear' : 'run-not-started')
     expect(decision.write, reason).toBeUndefined()
     expect(decision.state, reason).toEqual(emptyLifecycle())
   }
@@ -262,14 +265,14 @@ test('the recovery queue dedupes, empties and refuses to grow without bound', ()
 test('a queued Clear Boundary is written before the next Prompt Entry', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
   }
   const calls = installSupportedTarget(on, { store })
 
   await $.session.start(session)
   await composerPrompt($)
 
-  const boundaries = captureCalls(calls, 'boundary-append')
+  const boundaries = boundaryCalls(calls)
   expect(boundaries).toHaveLength(1)
   /* Replayed verbatim: a drifted field would reach the helper as a
      `boundary-conflict` rather than as the same boundary. */
@@ -297,7 +300,7 @@ test('a Clear Boundary that will not write blocks the submission', async ($, on)
   const fills: string[] = []
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
   }
   const calls = installSupportedTarget(on, { store, boundaryFails: true, fills })
 
@@ -318,6 +321,7 @@ test('an owed Clear Boundary and an unfinished transition are reported', async (
     ...consentedStore(),
     [lifecycleKey()]: {
       version: 1,
+      started: true,
       queue: [clearWrite()],
       clear: { eventId: clearEventId, endedSessionId, runId: 'a-previous-run' },
     },
@@ -337,6 +341,7 @@ test('a completed transition reports as completed and blocks nothing', async ($,
     ...consentedStore(),
     [lifecycleKey()]: {
       version: 1,
+      started: true,
       queue: [],
       clear: {
         eventId: clearEventId,
@@ -394,7 +399,7 @@ test('the timeline keeps both sides of a clear in their original order', async (
   const classicSession = { id: endedSessionId }
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, queue: [] },
+    [lifecycleKey()]: { version: 1, started: true, queue: [] },
   }
   const calls = installSupportedTarget(on, { store, classicSession })
 
@@ -417,13 +422,13 @@ test('the timeline keeps both sides of a clear in their original order', async (
   expect([...rows].sort((left, right) => left - right)).toEqual(rows)
   /* Exactly one boundary row, however often the band is drawn. */
   expect(band.split('新的 Conversation Segment')).toHaveLength(2)
-  expect(captureCalls(calls, 'boundary-append')).toHaveLength(1)
+  expect(boundaryCalls(calls)).toHaveLength(1)
 })
 
 test('drawing the band again archives nothing', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
   }
   const calls = installSupportedTarget(on, { store })
 
@@ -434,13 +439,13 @@ test('drawing the band again archives nothing', async ($, on) => {
   await renderBand($)
 
   expect(calls).toHaveLength(before)
-  expect(captureCalls(calls, 'boundary-append')).toHaveLength(1)
+  expect(boundaryCalls(calls)).toHaveLength(1)
 })
 
 test('a control command creates no Prompt Entry of its own', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
   }
   const calls = installSupportedTarget(on, { store })
 
@@ -452,13 +457,13 @@ test('a control command creates no Prompt Entry of its own', async ($, on) => {
      composer submission, so nothing is staged and nothing is archived. */
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   expect(captureCalls(calls, 'capture-confirm')).toHaveLength(0)
-  expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
+  expect(boundaryCalls(calls)).toHaveLength(0)
 })
 
 test('a boundary replayed after an unsaved drain still draws one row', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
   }
   /* The boundary lands but the record of it landing does not, so the next
      submission replays the very same event id. */
@@ -476,7 +481,7 @@ test('a boundary replayed after an unsaved drain still draws one row', async ($,
     drop: expect.stringContaining('无法补写中断的 Clear Boundary'),
   })
   expect(allowed).toMatchObject({ drop: expect.any(String) })
-  const boundaries = captureCalls(calls, 'boundary-append')
+  const boundaries = boundaryCalls(calls)
   expect(boundaries).toHaveLength(2)
   expect(boundaries.map(call => call.argv[8])).toEqual([clearEventId, clearEventId])
 
@@ -488,7 +493,7 @@ test('a boundary replayed after an unsaved drain still draws one row', async ($,
 test('a failed drain names the category the helper refused with', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
   }
   installSupportedTarget(on, { store, boundaryFails: true, fills: [] })
 
@@ -507,6 +512,7 @@ test('an unreadable queue entry is dropped and the loss is reported', async ($, 
     ...consentedStore(),
     [lifecycleKey()]: {
       version: 1,
+      started: true,
       /* A row that would replay into a permanent `boundary-conflict`. */
       queue: [{ ...clearWrite(), occurredAt: 'not a number' }],
     },
@@ -516,8 +522,8 @@ test('an unreadable queue entry is dropped and the loss is reported', async ($, 
   await $.session.start(session)
   const status = await promptHistory($, 'status')
 
-  expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
-  expect(status.text).toContain('恢复队列有无法重放的记录，其 Clear Boundary 已丢失')
+  expect(boundaryCalls(calls)).toHaveLength(0)
+  expect(status.text).toContain('恢复队列有无法重放的记录，其 Clear Boundary 或 Run 边界已丢失')
   /* The loss blocks nothing: there is no boundary left to owe. */
   expect(status.text).toContain('Run collection mode: enabled')
 })
@@ -578,7 +584,7 @@ test('a queued boundary replays the Run that owns it, not the Run draining it', 
   await $.session.start(session)
   await composerPrompt($)
 
-  const boundaries = captureCalls(calls, 'boundary-append')
+  const boundaries = boundaryCalls(calls)
   expect(boundaries).toHaveLength(1)
   /* argv[4] is the Run the boundary belongs to. Sending this Run's id would
      either misattribute the boundary or, once the original Run had already
@@ -617,7 +623,7 @@ test('one Run draining does not erase another Run’s queued boundary', async ($
   const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
     [lifecycleKey(otherRun)]: {
       version: 1,
       queue: [clearWrite({ runId: otherRun, eventId: 'f'.repeat(64) })],
@@ -630,7 +636,7 @@ test('one Run draining does not erase another Run’s queued boundary', async ($
 
   /* Both records are drained and both are emptied: a project-level record
      would have let one whole-value write erase the other's entry. */
-  const boundaries = captureCalls(calls, 'boundary-append')
+  const boundaries = boundaryCalls(calls)
   expect(boundaries).toHaveLength(2)
   expect(new Set(boundaries.map(call => call.argv[4]))).toEqual(new Set([runId, otherRun]))
   expect((store[lifecycleKey()] as { queue: unknown[] }).queue).toEqual([])
@@ -652,12 +658,13 @@ test('a clear waits for an unsettled pre-clear Pending Capture', async ($, on) =
   await composerPrompt($)
   expect(store[`prompt-trail:reconcile:${projectId}`]).toBeDefined()
 
-  const before = captureCalls(calls, 'boundary-append').length
+  const before = boundaryCalls(calls).length
   /* A `/clear` landing here must not take the sequence between them: the
      pending prompt belongs to the segment the boundary closes. */
   await composerPrompt($, { text: 'PT-AFTER' })
   const order = calls
-    .filter(call => call.argv[1] === 'capture-confirm' || call.argv[1] === 'boundary-append')
+    .filter(call => call.argv[1] === 'capture-confirm'
+      || (call.argv[1] === 'boundary-append' && call.argv[7] !== 'run-started'))
     .map(call => call.argv[1])
 
   expect(before).toBe(0)

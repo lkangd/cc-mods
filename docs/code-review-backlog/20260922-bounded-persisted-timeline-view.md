@@ -57,3 +57,20 @@ read path, so build it once.
 - `.scratch/prompt-trail/spec.md` §11 for the exact interaction contract.
 - `mods/prompt-trail/tests/collection_mode.test.tsx` and `composer_capture.test.tsx` both render
   through the shared `renderBand()` helper in `tests/support.tsx`.
+
+---
+
+## Update 2026-09-23 (Issue 17 review)
+
+Issue 17 delivered part of this: a helper `timeline-read` subcommand returns the latest fixed
+batch (`TIMELINE_READ_LIMIT` = 128) of Prompt Entries and boundaries in `sequence` order with a
+`truncated` flag, and `session.start` plus a fresh consent grant merge it into `timeline`
+(`loadTimeline()` in `mods/prompt-trail/hooks/register.tsx`). Reload/restart rehydration is
+therefore done; what remains for Issue 21 is unchanged: cursor-based earlier batches, the bounded
+render window with overscan, keyed-button continuity, and capping the in-memory array.
+
+One new gap the Issue 17 review surfaced (minor, CONFIRMED) belongs here too:
+`parseTimeline()` validates `truncated` and then drops it, so when the project holds more than
+128 events the band shows the latest batch with no sign that older history exists. Issue 21
+should carry the flag into the render state and show an "earlier events" affordance (which is
+also where "load the previous batch when the earliest visible entry takes focus" hooks in).
