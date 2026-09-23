@@ -48,10 +48,17 @@ test('a failed pre-write drops the submission and restores the draft', async ($,
   expect(store[reconcileKey()]).toBeUndefined()
 })
 
+/* A transcript that cannot settle the pending either way: the prompt appears
+   twice, so reconciliation has to ask rather than confirm or discard. */
+const UNPROVABLE = [
+  { role: 'user' as const, text: SECRET },
+  { role: 'user' as const, text: SECRET },
+]
+
 test('a failed confirmation keeps the pending and blocks the next submission', async ($, on) => {
   const store = consentedStore()
   const fills: string[] = []
-  const calls = installSupportedTarget(on, { store, confirmFails: true, fills })
+  const calls = installSupportedTarget(on, { store, confirmFails: true, fills, messages: UNPROVABLE })
   await $.session.start(session)
 
   const entered = await composerPrompt($)
@@ -178,7 +185,8 @@ test('新根分支 discards the pending and starts a new root branch', async ($,
      parent the reconciliation could not vouch for. */
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(1)
   expect(branchIds(store).branchId).not.toBe(before)
-  expect(branchIds(store)).toMatchObject({ parentEventId: null })
+  /* A root the person chose: a later resume's transcript does not overrule it. */
+  expect(branchIds(store)).toMatchObject({ parentEventId: null, explicitRoot: true })
   expect(store[reconcileKey()]).toBeUndefined()
 })
 
@@ -226,7 +234,7 @@ test('status reports the reconciliation and its event id without prompt text', a
 
 test('disable keeps the pending and enable refuses until it is reconciled', async ($, on) => {
   const store = consentedStore()
-  const calls = installSupportedTarget(on, { store, confirmFails: true })
+  const calls = installSupportedTarget(on, { store, confirmFails: true, messages: UNPROVABLE })
   await $.session.start(session)
   await composerPrompt($)
 

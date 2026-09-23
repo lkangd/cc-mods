@@ -11,7 +11,7 @@ import {
   emptyLifecycle,
   queueLifecycleWrite,
 } from '../hooks/lifecycle'
-import type { ArchiveRow } from './support'
+import type { ArchiveRow, ProcessCall } from './support'
 import {
   SECRET,
   TIMELINE_READ_LIMIT,
@@ -675,7 +675,21 @@ test('an in-process resume into another Run leaves the one the process was in', 
   const archive: ArchiveRow[] = []
   const classicSession = { id: sessionId }
   const identity = { runId }
-  installSupportedTarget(on, { store, archive, classicSession, run: identity })
+  /* Each session's transcript still ends on the prompt it archived. */
+  const branchMatch = (call: ProcessCall) => {
+    const own = archive.filter(row => (
+      row.kind === 'prompt' && row.runId === call.argv[4] && row.segmentId === call.argv[5]
+    )).at(-1)
+    return own
+      ? {
+          match: 'unique',
+          eventId: own.eventId,
+          candidates: [{ eventId: own.eventId, sequence: own.sequence, runId: own.runId }],
+          candidateCount: 1,
+        }
+      : { match: 'none', candidates: [], candidateCount: 0 }
+  }
+  installSupportedTarget(on, { store, archive, classicSession, run: identity, branchMatch })
   await $.session.start(session)
   await composerPrompt($)
 

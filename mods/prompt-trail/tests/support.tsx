@@ -1,4 +1,4 @@
-import type { On, PromptAttachment, PromptOrigin } from 'claude-code'
+import type { On, PromptAttachment, PromptOrigin, ToolResultSummary } from 'claude-code'
 import { mock } from 'claude-code/testing'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from '../hooks/artifact'
 
@@ -45,6 +45,8 @@ export type ArchiveRow = {
   runId: string
   segmentId: string
   branchId: string
+  /* A Prompt Entry's logical parent; boundaries have none. */
+  parentEventId?: string | null
   occurredAt?: number
   text?: string
   attachmentCount?: number
@@ -80,8 +82,19 @@ export type TargetOptions = {
   /* What `capture-list` answers: the pendings the archive still holds. A
      resolved one is dropped from the front, the way the archive would. */
   pendingList?: Record<string, unknown>[]
-  /* What `$.session.messages()` answers during reconciliation. */
-  messages?: readonly { role: 'user' | 'assistant'; text: string }[]
+  /* What `$.session.messages()` answers: to reconciliation, and to the
+     Active Branch alignment ahead of a session's first capture. */
+  messages?: readonly { role: 'user' | 'assistant'; text: string; toolResults?: ToolResultSummary[] }[]
+  messagesFail?: boolean
+  /* What `branch-match` answers; a function sees the call. The default is the
+     answer for a transcript nothing archived matches. */
+  branchMatch?: Record<string, unknown> | ((call: ProcessCall) => Record<string, unknown>)
+  branchMatchFails?: boolean
+  /* The label a parent-confirmation dialog receives, picked from its options;
+     `undefined` cancels it. */
+  parentAnswer?: (labels: string[]) => string | undefined
+  /* Every question a parent-confirmation dialog asked. */
+  parentQuestions?: { question: string; labels: string[] }[]
   /* Collects every `$.prompt.fill`, so a test can see the restored draft. */
   fills?: string[]
   /* The host refuses to write the draft back, as a dialog holding the keys
@@ -105,6 +118,11 @@ export type TargetOptions = {
   archive?: ArchiveRow[]
   readFails?: boolean
   run?: RunIdentity
+  /* Whether the bridge has published this session's locator yet; a session
+     the host started a moment ago may run its hooks before it has. */
+  locatorPublished?: { value: boolean }
+  /* Hands the test the mocked clock, to move it past a wait. */
+  onClock?: (clock: import('claude-code/testing').MockClock) => void
   /* The digest `shasum` reports for the helper file right now. */
   helperDigest?: { value: string }
 }
@@ -141,7 +159,8 @@ export function installSupportedTarget(
   const staged = new Map<string, Omit<ArchiveRow, 'sequence'>>()
   let branchWrites = 0
   mock.env(on, { HOME: home })
-  mock.clock(on, { now: 1_795_000_000_000 })
+  const clock = mock.clock(on, { now: 1_795_000_000_000 })
+  options.onClock?.(clock)
   if (options.storeSetFails) {
     on('store.get', () => ({ value: undefined }))
     on('store.keys', () => ({ value: [] }))
@@ -189,7 +208,7 @@ export function installSupportedTarget(
   }
   on('fs.exists', () => ({ value: options.hasGitDirectory ?? false }))
   on('fs.list', (_$, e) => ({
-    value: e.path === locatorDirectory
+    value: e.path === locatorDirectory && (options.locatorPublished?.value ?? true)
       ? [{ name: locatorName(classic.id, identity.hostPid), kind: 'file' as const, size: 1 }]
       : [],
   }))
@@ -221,9 +240,18 @@ export function installSupportedTarget(
   on('tool.call', { tool: 'AskUserQuestion' }, (_$, e) => {
     const question = e.questions[0]?.question ?? ''
     const choices = e.questions[0]?.options ?? []
-    const isReconcile = choices.some(choice => (
-      (typeof choice === 'string' ? choice : choice.label) === '已进入'
-    ))
+    const labels = choices.map(choice => (typeof choice === 'string' ? choice : choice.label))
+    const isReconcile = labels.includes('已进入')
+    if (!isReconcile && labels.includes('新根分支')) {
+      options.parentQuestions?.push({ question, labels })
+      const answer = options.parentAnswer?.(labels)
+      return {
+        result: {
+          questions: e.questions,
+          answers: answer === undefined ? {} : { [question]: answer },
+        },
+      }
+    }
     if (isReconcile) {
       /* A cancelled dialog answers nothing, which is what keeps the Run
          blocked rather than defaulting to confirm or discard. */
@@ -249,12 +277,12 @@ export function installSupportedTarget(
       return { isFilled: !options.fillFails }
     })
   }
-  if (options.messages) {
-    const messages = options.messages
-    on('session.messages', () => ({
-      value: messages.map(message => ({ ...message, toolUses: [] })),
-    }))
-  }
+  on('session.messages', () => {
+    if (options.messagesFail) throw new Error('transcript unavailable: PT-SECRET-MESSAGES')
+    return {
+      value: (options.messages ?? []).map(message => ({ ...message, toolUses: [] })),
+    }
+  })
   on('process.run', (_$, e) => {
     const argv = [...e.argv]
     calls.push({ argv, stdin: e.init?.stdin })
@@ -352,6 +380,7 @@ export function installSupportedTarget(
           runId: argv[4] ?? '',
           segmentId: argv[5] ?? '',
           branchId: argv[6] ?? '',
+          parentEventId: argv[7] === '-' ? null : argv[7] ?? null,
           text: e.init?.stdin ?? '',
           attachmentCount: Number(argv[10]),
         })
@@ -476,15 +505,38 @@ export function installSupportedTarget(
               sequence: row.sequence,
               runId: row.runId,
               segmentId: row.segmentId,
+              branchId: row.branchId,
               kind: row.kind,
               ...(row.kind === 'prompt'
-                ? { text: row.text ?? '', attachmentCount: row.attachmentCount ?? 0 }
+                ? {
+                    parentEventId: row.parentEventId ?? null,
+                    text: row.text ?? '',
+                    attachmentCount: row.attachmentCount ?? 0,
+                  }
                 : {}),
             })),
             truncated: ordered.length > latest.length,
           }),
           stderr: '',
         },
+      }
+    }
+    if (argv[0] === helperPath && argv[1] === 'branch-match') {
+      if (options.branchMatchFails) {
+        return {
+          value: {
+            exitCode: 25,
+            stdout: '',
+            stderr: '{"category":"archive-sqlite"}',
+          },
+        }
+      }
+      const call = calls[calls.length - 1]!
+      const answer = typeof options.branchMatch === 'function'
+        ? options.branchMatch(call)
+        : options.branchMatch ?? { match: 'none', candidates: [], candidateCount: 0 }
+      return {
+        value: { exitCode: 0, stdout: JSON.stringify({ projectId, ...answer }), stderr: '' },
       }
     }
     if (argv[0] === helperPath && argv[1] === 'capture-list') {

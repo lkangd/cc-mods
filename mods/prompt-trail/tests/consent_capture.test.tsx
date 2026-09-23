@@ -156,7 +156,12 @@ test('a confirmation failure keeps collection blocked across a reload', async ($
   const store: Record<string, unknown> = {
     [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' },
   }
-  const calls = installSupportedTarget(on, { store, confirmFails: true })
+  /* The prompt appears twice, so the transcript cannot settle the pending. */
+  const calls = installSupportedTarget(on, {
+    store,
+    confirmFails: true,
+    messages: [{ role: 'user', text: SECRET }, { role: 'user', text: SECRET }],
+  })
   await $.session.start(session)
 
   const first = await composerPrompt($)

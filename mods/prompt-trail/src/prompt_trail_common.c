@@ -316,6 +316,15 @@ bool pt_json_get_i64(const char *json, const char *key, int64_t *output) {
 }
 
 bool pt_read_fd(int descriptor, char **output, size_t *length) {
+  return pt_read_fd_limited(descriptor, output, length, PT_TEXT_LIMIT);
+}
+
+bool pt_read_fd_limited(
+  int descriptor,
+  char **output,
+  size_t *length,
+  size_t limit
+) {
   size_t used = 0;
   size_t capacity = 4096;
   char *buffer = malloc(capacity + 1);
@@ -323,7 +332,7 @@ bool pt_read_fd(int descriptor, char **output, size_t *length) {
 
   for (;;) {
     if (used == capacity) {
-      if (capacity >= PT_TEXT_LIMIT) {
+      if (capacity >= limit) {
         free(buffer);
         errno = EFBIG;
         return false;

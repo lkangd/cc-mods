@@ -1734,6 +1734,26 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertNotIn("text", payload["events"][0])
         self.assertEqual(payload["events"][0]["runId"], identity["run_id"])
 
+    def test_timeline_read_names_each_events_branch_and_each_entrys_parent(self) -> None:
+        project_id = "b1" * 32
+        identity = self.identity(project_id)
+        root = self.capture("PT-SECRET-ROOT", identity=identity)
+        child = self.capture("PT-SECRET-CHILD", identity=identity, parent=root)
+        boundary, _ = self.boundary(identity=identity, kind="clear")
+
+        events = json.loads(
+            self.run_helper(*self.read_argv(project_id=project_id)).stdout
+        )["events"]
+
+        self.assertEqual(
+            [(row["eventId"], row["branchId"], row.get("parentEventId", "absent")) for row in events],
+            [
+                (root, identity["branch_id"], None),
+                (child, identity["branch_id"], root),
+                (boundary, identity["branch_id"], "absent"),
+            ],
+        )
+
     def test_timeline_read_answers_an_absent_archive_without_creating_one(self) -> None:
         project_id = "7" * 64
         database_root = self.plugin_data / "archives"
@@ -1771,6 +1791,218 @@ class HelperProtocolTests(unittest.TestCase):
             [row["sequence"] for row in payload["events"]],
             list(range(2, 130)),
         )
+
+    def match_argv(
+        self,
+        *,
+        project_id: str,
+        run_id: str = "-",
+        segment_id: str = "-",
+        transcript: str = "whole",
+        prefer: str = "-",
+    ) -> tuple[str, ...]:
+        return (
+            "branch-match",
+            str(self.plugin_data / "archives"),
+            project_id,
+            run_id,
+            segment_id,
+            transcript,
+            prefer,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+            "--stdin",
+        )
+
+    def match(self, rows: list[str], **argv: str) -> dict[str, object]:
+        """Ask which archived Prompt Entry the transcript's `user` rows end on."""
+        encoded = "".join(f"{len(row.encode())}\n{row}" for row in rows)
+        result = self.run_helper(*self.match_argv(**argv), input_text=encoded)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertNotIn("PT-SECRET", result.stdout)
+        return json.loads(result.stdout)
+
+    def test_branch_match_finds_the_entry_a_resumed_transcript_ends_on(self) -> None:
+        project_id = "a1" * 32
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        first = self.capture("PT-SECRET-A", identity=identity)
+        second = self.capture("PT-SECRET-B", identity=identity, parent=first)
+
+        # A task notification is an ordinary `user` row in the transcript; it
+        # is skipped rather than breaking the ordered prefix.
+        payload = self.match(
+            ["PT-SECRET-A", "<task-notification>PT-SECRET-N", "PT-SECRET-B"],
+            project_id=project_id,
+            run_id=identity["run_id"],
+            segment_id=identity["segment_id"],
+        )
+
+        self.assertEqual(payload["match"], "unique")
+        self.assertEqual(payload["eventId"], second)
+
+    def identity(self, project_id: str, **fixed: str) -> dict[str, str]:
+        return {
+            "project_id": project_id,
+            "run_id": fixed.get("run_id", str(uuid.uuid4())),
+            "segment_id": fixed.get("segment_id", str(uuid.uuid4())),
+            "branch_id": fixed.get("branch_id", str(uuid.uuid4())),
+        }
+
+    def test_branch_match_tells_repeated_prompts_apart_by_their_whole_prefix(self) -> None:
+        project_id = "a2" * 32
+        identity = self.identity(project_id)
+        first = self.capture("PT-SECRET-SAME", identity=identity)
+        second = self.capture("PT-SECRET-SAME", identity=identity, parent=first)
+        self.capture("PT-SECRET-LATER", identity=identity, parent=second)
+        scope = {"run_id": identity["run_id"], "segment_id": identity["segment_id"]}
+
+        both = self.match(["PT-SECRET-SAME", "PT-SECRET-SAME"], project_id=project_id, **scope)
+        one = self.match(["PT-SECRET-SAME"], project_id=project_id, **scope)
+
+        # The later entry never outruns the transcript: it ends on the second
+        # repeat, and a transcript holding only one repeat ends on the first.
+        self.assertEqual((both["match"], both["eventId"]), ("unique", second))
+        self.assertEqual((one["match"], one["eventId"]), ("unique", first))
+
+    def test_branch_match_leaves_identical_lineages_to_the_caller(self) -> None:
+        project_id = "a3" * 32
+        runs = [self.identity(project_id), self.identity(project_id)]
+        tips = []
+        for identity in runs:
+            root = self.capture("PT-SECRET-ROOT", identity=identity)
+            tips.append(self.capture("PT-SECRET-TIP", identity=identity, parent=root))
+
+        payload = self.match(["PT-SECRET-ROOT", "PT-SECRET-TIP"], project_id=project_id)
+
+        self.assertEqual(payload["match"], "ambiguous")
+        self.assertNotIn("eventId", payload)
+        self.assertEqual(payload["candidateCount"], 2)
+        self.assertEqual(
+            [(row["eventId"], row["runId"]) for row in payload["candidates"]],
+            [(tips[1], runs[1]["run_id"]), (tips[0], runs[0]["run_id"])],
+        )
+        self.assertEqual(payload["candidates"][0]["sequence"], 4)
+
+    def test_branch_match_lists_at_most_eight_tied_candidates(self) -> None:
+        project_id = "a4" * 32
+        for _ in range(9):
+            self.capture("PT-SECRET-ROOT", identity=self.identity(project_id))
+
+        payload = self.match(["PT-SECRET-ROOT"], project_id=project_id)
+
+        self.assertEqual(payload["candidateCount"], 9)
+        self.assertEqual(len(payload["candidates"]), 8)
+        self.assertEqual(
+            [row["sequence"] for row in payload["candidates"]],
+            list(range(9, 1, -1)),
+        )
+
+    def test_branch_match_lists_a_preferred_tied_candidate_first(self) -> None:
+        project_id = "b2" * 32
+        roots = [
+            self.capture("PT-SECRET-ROOT", identity=self.identity(project_id))
+            for _ in range(9)
+        ]
+
+        # The oldest would fall outside the eight newest; preferred, it leads.
+        payload = self.match(["PT-SECRET-ROOT"], project_id=project_id, prefer=roots[0])
+        unrelated = self.match(["PT-SECRET-ROOT"], project_id=project_id, prefer=str(uuid.uuid4()))
+
+        self.assertEqual(payload["candidates"][0]["eventId"], roots[0])
+        self.assertEqual(len(payload["candidates"]), 8)
+        self.assertEqual(
+            [row["eventId"] for row in unrelated["candidates"]],
+            list(reversed(roots))[:8],
+        )
+
+    def test_branch_match_keeps_a_resume_inside_its_own_session(self) -> None:
+        project_id = "a5" * 32
+        resumed = self.identity(project_id)
+        other = self.identity(project_id)
+        own = self.capture("PT-SECRET-ROOT", identity=resumed)
+        self.capture("PT-SECRET-ROOT", identity=other)
+
+        payload = self.match(
+            ["PT-SECRET-ROOT"],
+            project_id=project_id,
+            run_id=resumed["run_id"],
+            segment_id=resumed["segment_id"],
+        )
+
+        self.assertEqual((payload["match"], payload["eventId"]), ("unique", own))
+
+    def test_branch_match_follows_a_fork_across_runs(self) -> None:
+        project_id = "a6" * 32
+        source = self.identity(project_id)
+        forked = self.identity(project_id)
+        root = self.capture("PT-SECRET-ROOT", identity=source)
+        tip = self.capture("PT-SECRET-FORKED", identity=forked, parent=root)
+
+        # A session that archived nothing yet is matched across the project.
+        empty = self.identity(project_id)
+        payload = self.match(
+            ["PT-SECRET-ROOT", "PT-SECRET-FORKED"],
+            project_id=project_id,
+            run_id=empty["run_id"],
+            segment_id=empty["segment_id"],
+        )
+
+        self.assertEqual((payload["match"], payload["eventId"]), ("unique", tip))
+
+    def test_branch_match_accepts_a_missing_chain_head_only_when_truncated(self) -> None:
+        project_id = "a7" * 32
+        identity = self.identity(project_id)
+        root = self.capture("PT-SECRET-OLDEST", identity=identity)
+        tip = self.capture("PT-SECRET-NEWEST", identity=identity, parent=root)
+        scope = {"run_id": identity["run_id"], "segment_id": identity["segment_id"]}
+
+        whole = self.match(["PT-SECRET-NEWEST"], project_id=project_id, **scope)
+        truncated = self.match(
+            ["PT-SECRET-NEWEST"],
+            project_id=project_id,
+            transcript="truncated",
+            **scope,
+        )
+
+        self.assertEqual(whole["match"], "none")
+        self.assertEqual(whole["candidates"], [])
+        self.assertEqual((truncated["match"], truncated["eventId"]), ("unique", tip))
+
+    def test_branch_match_answers_an_absent_archive_without_creating_one(self) -> None:
+        project_id = "a8" * 32
+
+        payload = self.match(["PT-SECRET-ROOT"], project_id=project_id)
+
+        self.assertEqual(payload, {
+            "projectId": project_id,
+            "match": "none",
+            "candidates": [],
+            "candidateCount": 0,
+        })
+        self.assertFalse((self.plugin_data / "archives" / f"{project_id}.sqlite3").exists())
+
+    def test_branch_match_refuses_malformed_rows_without_echoing_them(self) -> None:
+        project_id = "a9" * 32
+        self.capture("PT-SECRET-ROOT", identity=self.identity(project_id))
+
+        for encoded in ("99\nPT-SECRET-SHORT", "PT-SECRET-NO-LENGTH", "4PT-SECRET"):
+            result = self.run_helper(
+                *self.match_argv(project_id=project_id),
+                input_text=encoded,
+            )
+            self.assertEqual(result.returncode, 25)
+            self.assertEqual(result.stdout, "")
+            self.assertEqual(json.loads(result.stderr), {"category": "match-input"})
+
+        too_many = "".join("1\nx" for _ in range(4097))
+        result = self.run_helper(*self.match_argv(project_id=project_id), input_text=too_many)
+        self.assertEqual(json.loads(result.stderr), {"category": "match-input"})
 
     def test_timeline_read_refuses_an_archive_root_it_cannot_vouch_for(self) -> None:
         project_id = "4" * 64
