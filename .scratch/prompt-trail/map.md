@@ -55,6 +55,13 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   固定只回最新 128 条、带 `truncated`；游标、窗口和 `truncated` 的 UI 归 Issue 21（backlog
   `20260922-bounded-persisted-timeline-view.md`）。只经 classic 事件到达的逻辑，`2.1.273` 的
   plugin test 触发不到，必须补静态检查或 PTY 验收。
+- [Run 谱系跨 resume 延续](issues/32-run-lineage-across-resume.md)（从 Issue 18 拆出）：
+  Run 改为会话谱系，**推翻了 Issue 17「新进程开新 Run」**。resume（`--resume`/`--continue`/会话内
+  `/resume`）按 bridge 的会话索引找回 Run，找不到就新开；普通启动和 fork 仍开新 Run；进程内 `/resume`
+  到别的 Run 的会话时，进程改绑到那个 Run。locator 按进程命名，并发 resume 同一会话时后到的进程
+  新开 Run，「从 Run X 分出」由 `segmentId` 推导。边界是 `run-started/attached/detached`，且仍然惰性：
+  不归档的进程（含已停用采集的）不留痕迹。恢复队列总上限 64。`clear-all` 必须一并删除会话索引记录（Issue 30）。
+  Issue 18 现在只剩分支重建和视图折叠（离开活动路径的条目折叠成「另一分支 · N 条」）。
 
 ## Not yet specified
 
