@@ -27,6 +27,13 @@ const endedSessionId = sessionId
 const resumedSessionId = '66666666-7777-4888-8999-aaaaaaaaaaaa'
 const clearEventId = 'c'.repeat(64)
 const clearBranchId = 'dddddddd-eeee-4fff-8000-111111111111'
+/* This process's stretch of the Run, as a Run that has already archived
+   something in this process records it: a reload finds it open. */
+const ownAttachment = {
+  id: 'b0b0b0b0-c1c1-4d2d-8e3e-f4f4f4f4f4f4',
+  host: '4242-100-200',
+  segmentId: sessionId,
+}
 
 function consentedStore(): Record<string, unknown> {
   return { [`prompt-trail:consent:${projectId}`]: consentGranted }
@@ -155,9 +162,9 @@ test('a session end that is not a clear creates no Clear Boundary', () => {
       { event: 'session-end', sessionId: endedSessionId, reason },
       context,
     )
-    /* An exit ends the Run, not a segment — and a Run that never archived
-       anything has no start for an end to close. */
-    expect(decision.note, reason).toBe(reason === 'resume' ? 'not-clear' : 'run-not-started')
+    /* An exit leaves the Run, not a segment — and a process that never took the
+       Run up has no attachment to leave. */
+    expect(decision.note, reason).toBe(reason === 'resume' ? 'not-clear' : 'run-not-attached')
     expect(decision.write, reason).toBeUndefined()
     expect(decision.state, reason).toEqual(emptyLifecycle())
   }
@@ -265,7 +272,7 @@ test('the recovery queue dedupes, empties and refuses to grow without bound', ()
 test('a queued Clear Boundary is written before the next Prompt Entry', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, attachment: ownAttachment, queue: [clearWrite()] },
   }
   const calls = installSupportedTarget(on, { store })
 
@@ -300,7 +307,7 @@ test('a Clear Boundary that will not write blocks the submission', async ($, on)
   const fills: string[] = []
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, attachment: ownAttachment, queue: [clearWrite()] },
   }
   const calls = installSupportedTarget(on, { store, boundaryFails: true, fills })
 
@@ -321,7 +328,7 @@ test('an owed Clear Boundary and an unfinished transition are reported', async (
     ...consentedStore(),
     [lifecycleKey()]: {
       version: 1,
-      started: true,
+      started: true, attachment: ownAttachment,
       queue: [clearWrite()],
       clear: { eventId: clearEventId, endedSessionId, runId: 'a-previous-run' },
     },
@@ -341,7 +348,7 @@ test('a completed transition reports as completed and blocks nothing', async ($,
     ...consentedStore(),
     [lifecycleKey()]: {
       version: 1,
-      started: true,
+      started: true, attachment: ownAttachment,
       queue: [],
       clear: {
         eventId: clearEventId,
@@ -399,7 +406,7 @@ test('the timeline keeps both sides of a clear in their original order', async (
   const classicSession = { id: endedSessionId }
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, started: true, queue: [] },
+    [lifecycleKey()]: { version: 1, started: true, attachment: ownAttachment, queue: [] },
   }
   const calls = installSupportedTarget(on, { store, classicSession })
 
@@ -428,7 +435,7 @@ test('the timeline keeps both sides of a clear in their original order', async (
 test('drawing the band again archives nothing', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, attachment: ownAttachment, queue: [clearWrite()] },
   }
   const calls = installSupportedTarget(on, { store })
 
@@ -445,7 +452,7 @@ test('drawing the band again archives nothing', async ($, on) => {
 test('a control command creates no Prompt Entry of its own', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, attachment: ownAttachment, queue: [clearWrite()] },
   }
   const calls = installSupportedTarget(on, { store })
 
@@ -463,7 +470,7 @@ test('a control command creates no Prompt Entry of its own', async ($, on) => {
 test('a boundary replayed after an unsaved drain still draws one row', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, attachment: ownAttachment, queue: [clearWrite()] },
   }
   /* The boundary lands but the record of it landing does not, so the next
      submission replays the very same event id. */
@@ -493,7 +500,7 @@ test('a boundary replayed after an unsaved drain still draws one row', async ($,
 test('a failed drain names the category the helper refused with', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, attachment: ownAttachment, queue: [clearWrite()] },
   }
   installSupportedTarget(on, { store, boundaryFails: true, fills: [] })
 
@@ -512,7 +519,7 @@ test('an unreadable queue entry is dropped and the loss is reported', async ($, 
     ...consentedStore(),
     [lifecycleKey()]: {
       version: 1,
-      started: true,
+      started: true, attachment: ownAttachment,
       /* A row that would replay into a permanent `boundary-conflict`. */
       queue: [{ ...clearWrite(), occurredAt: 'not a number' }],
     },
@@ -623,7 +630,7 @@ test('one Run draining does not erase another Run’s queued boundary', async ($
   const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [lifecycleKey()]: { version: 1, started: true, queue: [clearWrite()] },
+    [lifecycleKey()]: { version: 1, started: true, attachment: ownAttachment, queue: [clearWrite()] },
     [lifecycleKey(otherRun)]: {
       version: 1,
       queue: [clearWrite({ runId: otherRun, eventId: 'f'.repeat(64) })],

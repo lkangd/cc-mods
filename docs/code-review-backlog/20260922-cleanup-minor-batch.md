@@ -94,7 +94,39 @@ Issue 16 只把它的 `kind` 参数类型从 `CollectionBoundaryKind` 放宽到 
 **为什么延后**：纯质量问题；Issue 21 会在同一协议上扩展时间线读取，届时一起收拢改动面更小。
 
 **修法草图**：`const BOUNDARY_KINDS = ['collection-started', 'collection-stopped',
-'collection-resumed', 'clear', 'run-started', 'run-ended'] as const`，
+'collection-resumed', 'clear', 'run-started', 'run-attached', 'run-detached'] as const`（Issue 32 后的集合；旧 `run-ended` 只是读取时的兼容映射 `LEGACY_KINDS`，不进白名单），
 `type BoundaryKind = typeof BOUNDARY_KINDS[number]`，`TIMELINE_KINDS = new Set<string>(BOUNDARY_KINDS)`；
 `CollectionBoundaryKind` 用 `Extract<BoundaryKind, \`collection-${string}\`>` 或保持显式。
 门禁原样通过即完成。
+
+## 6. bridge 里 session 索引与 locator 各有一份私有原子发布
+
+*来自 Issue 32 的 review（`/code-review` round 1，minor，PLAUSIBLE、未验证）。*
+
+`mods/prompt-trail/src/prompt_trail_bridge.c` 的 `write_session_index()` 与 `publish_locator()`
+都是「UUID 临时文件 → `O_EXCL | O_NOFOLLOW` 0600 打开 → 写入 → `fsync`/`close` → 私有权限检查
+→ `rename` → 目录 `fsync`」。以后改临时文件安全或发布流程要同步改两处。
+
+**为什么延后**：纯质量问题，两份实现当前行为一致；抽取会动 locator 发布这条已验收的路径，
+不值得在 Issue 32 里顺手做。
+
+**修法草图**：抽一个 `publish_private_file(directory, final_name, write_body)`（或接受已渲染
+好的缓冲区），统一临时名、打开标志、刷新、权限检查、`rename`、目录 `fsync` 与失败清理；
+`publish_locator()` 与 `write_session_index()` 改为调用它。bridge 协议测试原样通过即完成。
+
+## 7. 多个 locator 候选时逐个重复检查共享的 owner 与目录
+
+*来自 Issue 32 的 review（`/code-review` round 1，nit，PLAUSIBLE、未验证）。*
+
+`inspectTarget()` 对每个 `<session>.*.json` 候选调用 `inspectLocator()`，每次都重新跑
+`/usr/bin/id -u`，并对同一个 locator 目录做 `fileIdentity()` 和 `hasExtendedAcl()`。只有两个
+进程同时 resume 同一会话时才会出现多个候选，但 `inspectTarget()` 在每次 composer 提交时都会
+调用。
+
+**为什么延后**：只在并发 resume 这个少见场景下多几次子进程；改动会拆开一段失败分类很细的
+检查链，风险大于收益。
+
+**修法草图**：在候选循环外求一次 owner 并校验目录（身份、权限、ACL），把结果传给
+`inspectLocator()`，函数里只保留对候选文件本身的检查；`startup_refusal.test.tsx` 的目录
+ACL 用例原样通过即完成。
+

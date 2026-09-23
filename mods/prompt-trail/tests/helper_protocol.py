@@ -32,11 +32,11 @@ class HelperProtocolTests(unittest.TestCase):
 
     @property
     def locator(self) -> pathlib.Path:
-        return (
-            self.home
-            / ".claude/plugins/data/.function-hook-locators/prompt-trail"
-            / f"{self.session_id}.json"
-        )
+        # The bridge names a locator per process: `<session>.<pid>-<start>.json`.
+        # These tests publish once per session, so there is exactly one.
+        directory = self.home / ".claude/plugins/data/.function-hook-locators/prompt-trail"
+        found = sorted(directory.glob(f"{self.session_id}.*.json"))
+        return found[0] if found else directory / f"{self.session_id}.missing.json"
 
     def run_helper(
         self,
@@ -348,14 +348,15 @@ class HelperProtocolTests(unittest.TestCase):
     def test_preflight_rejects_a_symlink_locator(self) -> None:
         self.publish_locator()
         manifest = json.loads(MANIFEST.read_text())
-        target = self.locator.with_suffix('.target')
-        self.locator.rename(target)
-        self.locator.symlink_to(target)
+        locator = self.locator
+        target = locator.with_suffix('.target')
+        locator.rename(target)
+        locator.symlink_to(target)
 
         result = self.run_helper(
             "preflight",
             "--locator",
-            str(self.locator),
+            str(locator),
             "--session",
             self.session_id,
             "--expected-sha",
@@ -367,6 +368,30 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(result.returncode, 21)
         self.assertEqual(result.stdout, "")
         self.assertEqual(json.loads(result.stderr)["category"], "locator-permissions")
+
+    def test_preflight_refuses_another_processs_locator_for_the_same_session(self) -> None:
+        self.publish_locator()
+        manifest = json.loads(MANIFEST.read_text())
+        own = self.locator
+        other = own.parent / f"{self.session_id}.1-2-3.json"
+        other.write_bytes(own.read_bytes())
+        other.chmod(0o600)
+
+        result = self.run_helper(
+            "preflight",
+            "--locator",
+            str(other),
+            "--session",
+            self.session_id,
+            "--expected-sha",
+            manifest["sha256"],
+            "--protocol",
+            "1",
+        )
+
+        self.assertEqual(result.returncode, 21)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(json.loads(result.stderr)["category"], "locator-path")
 
     def test_preflight_rejects_a_stale_host_generation(self) -> None:
         self.publish_locator()
@@ -1630,15 +1655,32 @@ class HelperProtocolTests(unittest.TestCase):
         }
         started, started_sequence = self.boundary(identity=identity, kind="run-started")
         self.capture("PT-SECRET-RUN", identity=identity)
-        ended, ended_sequence = self.boundary(identity=identity, kind="run-ended")
+        detached, detached_sequence = self.boundary(identity=identity, kind="run-detached")
+        attached, attached_sequence = self.boundary(identity=identity, kind="run-attached")
 
-        self.assertEqual((started_sequence, ended_sequence), (1, 3))
-        repeated = self.run_helper(
-            *self.boundary_argv(started, kind="run-started", **identity)
+        self.assertEqual((started_sequence, detached_sequence, attached_sequence), (1, 3, 4))
+        for event_id, kind, sequence in (
+            (started, "run-started", 1),
+            (detached, "run-detached", 3),
+            (attached, "run-attached", 4),
+        ):
+            repeated = self.run_helper(*self.boundary_argv(event_id, kind=kind, **identity))
+            self.assertEqual(repeated.returncode, 0, repeated.stderr)
+            self.assertEqual(json.loads(repeated.stdout)["sequence"], sequence)
+
+    def test_a_run_no_longer_ends_it_only_detaches(self) -> None:
+        identity = {
+            "project_id": "5" * 64,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        refused = self.run_helper(
+            *self.boundary_argv(str(uuid.uuid4()), kind="run-ended", **identity)
         )
-        self.assertEqual(repeated.returncode, 0, repeated.stderr)
-        self.assertEqual(json.loads(repeated.stdout)["sequence"], 1)
-        self.assertNotEqual(started, ended)
+
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertEqual(json.loads(refused.stderr), {"category": "boundary-input"})
 
     def test_timeline_read_returns_entries_and_boundaries_in_sequence_order(self) -> None:
         project_id = "6" * 64
@@ -1660,7 +1702,7 @@ class HelperProtocolTests(unittest.TestCase):
             ).returncode,
             0,
         )
-        ended, _ = self.boundary(identity=identity, kind="run-ended")
+        ended, _ = self.boundary(identity=identity, kind="run-detached")
 
         read = self.run_helper(*self.read_argv(project_id=project_id))
 
@@ -1676,8 +1718,14 @@ class HelperProtocolTests(unittest.TestCase):
                 (started, 1, "run-started"),
                 (first, 2, "prompt"),
                 (clear, 3, "clear"),
-                (ended, 4, "run-ended"),
+                (ended, 4, "run-detached"),
             ],
+        )
+        # The segment each event belongs to: identity only, and what tells a Run
+        # that split off an already-open session apart from a fresh one.
+        self.assertEqual(
+            {row["segmentId"] for row in payload["events"]},
+            {identity["segment_id"]},
         )
         entry = payload["events"][1]
         self.assertEqual(entry["text"], text)

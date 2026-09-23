@@ -1,18 +1,22 @@
 import type { EngineInterface, Register } from 'claude-code'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from './artifact'
 import type {
+  Attachment,
   LifecycleEvent,
   LifecycleState,
   LifecycleWrite,
 } from './lifecycle'
 import {
-  LIFECYCLE_QUEUE_LIMIT,
-  beginRun,
+  LIFECYCLE_QUEUE_CAPACITY,
+  attachRun,
+  attachmentOpening,
   clearTransitionState,
   decideLifecycle,
   dequeueLifecycleWrite,
+  detachAbandoned,
   emptyLifecycle,
   queueLifecycleWrite,
+  stayAttached,
 } from './lifecycle'
 
 type StartupState = {
@@ -30,6 +34,9 @@ type StartupState = {
      Run's start boundary records, and it is the same on every reload and every
      replay of that boundary, as its idempotency requires. */
   hostStartedAt?: number
+  /* This host process generation, `<pid>-<start seconds>-<start µs>`: what
+     tells this process's attachment to a Run from another process's. */
+  hostGeneration?: string
   helperTrusted?: true
 }
 
@@ -56,10 +63,16 @@ type CollectionBoundaryKind =
 
 /* Every non-prompt Timeline Event the plugin writes. A Clear Boundary is not a
    Collection Boundary: it records where a Conversation Segment ended, not
-   whether a Run was recording; a Run boundary records where one process's Run
-   began or ended. They share the table, the project-level sequence and the
-   drawing of one dim row, and nothing else. */
-type BoundaryKind = CollectionBoundaryKind | 'clear' | 'run-started' | 'run-ended'
+   whether a Run was recording; a Run boundary records where a Run first
+   appeared, or where a process took it up again or left it. They share the
+   table, the project-level sequence and the drawing of one dim row, and
+   nothing else. */
+type BoundaryKind =
+  | CollectionBoundaryKind
+  | 'clear'
+  | 'run-started'
+  | 'run-attached'
+  | 'run-detached'
 
 /* The Run-level switch, persisted per project and Run so an explicit disable
    survives a module reload. A Run with no record collects by default; only
@@ -101,6 +114,7 @@ type TimelineItem =
     eventId: string
     sequence: number
     runId: string
+    segmentId?: string
     text: string
     attachmentCount: number
   }
@@ -109,6 +123,7 @@ type TimelineItem =
     eventId: string
     sequence: number
     runId: string
+    segmentId?: string
     boundary: BoundaryKind
   }
 
@@ -552,236 +567,271 @@ async function inspectTarget(
     )
   }
 
-  const locatorPath = `${home}/${LOCATOR_SUFFIX}/${sessionId}.json`
-  const locatorDirectory = locatorPath.slice(0, locatorPath.lastIndexOf('/'))
-  let owner: number
+  /* One locator per process that has this session open, named after the
+     process generation that published it. Which one is this process's own is
+     for the helper to say — it knows its host process — so every candidate is
+     inspected and the first one it vouches for is taken. */
+  const locatorDirectory = `${home}/${LOCATOR_SUFFIX}`
+  let candidates: string[] = []
   try {
-    const ownerText = await runText($, ['/usr/bin/id', '-u'])
-    owner = Number.parseInt(ownerText ?? '', 10)
-    if (!Number.isSafeInteger(owner)) throw new Error('locator-permissions')
-    const [locatorFile, locatorDir] = await Promise.all([
-      fileIdentity($, locatorPath, 'claude-code-version-unproven'),
-      fileIdentity($, locatorDirectory, 'locator-directory-permissions'),
-    ])
-    if (locatorFile.kind !== 'Regular File'
-        || locatorFile.owner !== owner
-        || locatorFile.mode !== 0o600) {
-      throw new Error('locator-permissions')
-    }
-    if (locatorDir.kind !== 'Directory'
-        || locatorDir.owner !== owner
-        || locatorDir.mode !== 0o700) {
-      throw new Error('locator-directory-permissions')
-    }
-    const [locatorAcl, locatorDirectoryAcl] = await Promise.all([
-      hasExtendedAcl($, locatorPath, 'locator-permissions'),
-      hasExtendedAcl($, locatorDirectory, 'locator-directory-permissions'),
-    ])
-    if (locatorAcl) throw new Error('locator-permissions')
-    if (locatorDirectoryAcl) throw new Error('locator-directory-permissions')
-    if (await realpath($, locatorPath) !== locatorPath) {
-      throw new Error('locator-permissions')
-    }
-  } catch (error) {
-    const reason = error instanceof Error && SAFE_ERROR_CATEGORIES.has(error.message)
-      ? error.message
-      : 'locator-permissions'
-    return unsupported(
-      reason,
-      `${detectedPlatform} · Claude Code version unproven`,
-      cwd,
-      { locatorPath, sessionId },
-    )
-  }
-
-  let locator: Locator
-  try {
-    locator = parseLocator(await $.fs.read(locatorPath))
+    const ownName = new RegExp(`^${sessionId}\\.\\d+-\\d+-\\d+\\.json$`)
+    candidates = (await $.fs.list(locatorDirectory))
+      .filter(entry => entry.kind === 'file' && ownName.test(entry.name))
+      .map(entry => `${locatorDirectory}/${entry.name}`)
+      .sort()
   } catch {
+    // Inspected below as a locator that is missing.
+  }
+  /* No bridge published anything for this session: the host never ran the
+     classic hook that would have proven its version. */
+  if (candidates.length === 0) {
     return unsupported(
       'claude-code-version-unproven',
       `${detectedPlatform} · Claude Code version unproven`,
       cwd,
-      { locatorPath, sessionId },
+      { sessionId },
     )
   }
+  let refusal: StartupState | undefined
+  for (const candidate of candidates) {
+    const inspected = await inspectLocator(candidate)
+    if (inspected.support === 'supported') return inspected
+    refusal ??= inspected
+  }
+  return refusal as StartupState
 
-  const commonFields = {
-    locatorPath,
-    sessionId,
-    runId: locator.runId,
-    archiveGeneration: locator.archiveGeneration,
-    hostStartedAt: locator.hostStartSeconds * 1000
-      + Math.floor(locator.hostStartMicroseconds / 1000),
-    helperPath: locator.helperPath,
-    databaseRoot: locator.databaseRoot,
-  }
-  if (!supportsClaudeVersion(locator.hostVersion)) {
-    const reason = /^\d+\.\d+\.\d+$/.test(locator.hostVersion)
-      ? 'claude-code-version'
-      : 'claude-code-version-unproven'
-    return unsupported(
-      reason,
-      `${detectedPlatform} · Claude Code ${locator.hostVersion}`,
-      cwd,
-      commonFields,
-    )
-  }
-  const detected = `${detectedPlatform} · Claude Code ${locator.hostVersion}`
-  if (locator.sessionId !== sessionId) {
-    return unavailable('locator-session', detected, cwd, commonFields)
-  }
-  if (!SAFE_IDENTIFIER.test(locator.runId)
-      || !SAFE_IDENTIFIER.test(locator.archiveGeneration)) {
-    return unavailable('locator-identifiers', detected, cwd, commonFields)
-  }
-  if (locator.helperProtocol !== HELPER_PROTOCOL) {
-    return unavailable('protocol-mismatch', detected, cwd, commonFields)
-  }
-  if (locator.helperSha256 !== EXPECTED_HELPER_SHA256) {
-    return unavailable('locator-digest-mismatch', detected, cwd, commonFields)
-  }
-  if (locator.artifactStatus !== 'trusted') {
-    const reason = SAFE_ERROR_CATEGORIES.has(locator.artifactStatus)
-      ? locator.artifactStatus
-      : 'artifact-untrusted'
-    return unavailable(reason, detected, cwd, commonFields)
-  }
-  if (
-    !locator.pluginRoot.startsWith('/') ||
-    !locator.pluginData.startsWith('/') ||
-    locator.helperPath !== `${locator.pluginRoot}/bin/prompt-trail-helper` ||
-    locator.manifestPath !== `${locator.pluginRoot}/artifacts/helper-manifest.json` ||
-    locator.databaseRoot !== `${locator.pluginData}/archives`
-  ) {
-    return unavailable('locator-path', detected, cwd, commonFields)
-  }
-
-  try {
-    const pluginBin = `${locator.pluginRoot}/bin`
-    const pluginArtifacts = `${locator.pluginRoot}/artifacts`
-    const identities = await Promise.all([
-      fileIdentity($, locator.pluginRoot, 'plugin-root-untrusted'),
-      fileIdentity($, pluginBin, 'plugin-bin-untrusted'),
-      fileIdentity($, pluginArtifacts, 'plugin-artifacts-untrusted'),
-      fileIdentity($, locator.pluginData, 'plugin-data-permissions'),
-      fileIdentity($, locator.helperPath, 'helper-missing'),
-      fileIdentity($, locator.manifestPath, 'manifest-missing'),
-    ])
-    const [pluginRoot, pluginBinDirectory, pluginArtifactsDirectory, pluginData, helper, manifest] = identities
-    for (const [identity, reason] of [
-      [pluginRoot, 'plugin-root-untrusted'],
-      [pluginBinDirectory, 'plugin-bin-untrusted'],
-      [pluginArtifactsDirectory, 'plugin-artifacts-untrusted'],
-    ] as const) {
-      if (identity.kind !== 'Directory'
-          || (identity.owner !== owner && identity.owner !== 0)
-          || (identity.mode & 0o022) !== 0) {
-        throw new Error(reason)
+  async function inspectLocator(locatorPath: string): Promise<StartupState> {
+    let owner: number
+    try {
+      const ownerText = await runText($, ['/usr/bin/id', '-u'])
+      owner = Number.parseInt(ownerText ?? '', 10)
+      if (!Number.isSafeInteger(owner)) throw new Error('locator-permissions')
+      const [locatorFile, locatorDir] = await Promise.all([
+        fileIdentity($, locatorPath, 'claude-code-version-unproven'),
+        fileIdentity($, locatorDirectory, 'locator-directory-permissions'),
+      ])
+      if (locatorFile.kind !== 'Regular File'
+          || locatorFile.owner !== owner
+          || locatorFile.mode !== 0o600) {
+        throw new Error('locator-permissions')
       }
-    }
-    if (pluginData.kind !== 'Directory' || pluginData.owner !== owner || pluginData.mode !== 0o700) {
-      throw new Error('plugin-data-permissions')
-    }
-    if (helper.kind !== 'Regular File') throw new Error('helper-not-regular')
-    if (helper.owner !== owner || (helper.mode & 0o022) !== 0) {
-      throw new Error('helper-untrusted')
-    }
-    if ((helper.mode & 0o111) === 0) throw new Error('helper-not-executable')
-    if (manifest.kind !== 'Regular File'
-        || manifest.owner !== owner
-        || (manifest.mode & 0o022) !== 0) {
-      throw new Error('manifest-untrusted')
+      if (locatorDir.kind !== 'Directory'
+          || locatorDir.owner !== owner
+          || locatorDir.mode !== 0o700) {
+        throw new Error('locator-directory-permissions')
+      }
+      const [locatorAcl, locatorDirectoryAcl] = await Promise.all([
+        hasExtendedAcl($, locatorPath, 'locator-permissions'),
+        hasExtendedAcl($, locatorDirectory, 'locator-directory-permissions'),
+      ])
+      if (locatorAcl) throw new Error('locator-permissions')
+      if (locatorDirectoryAcl) throw new Error('locator-directory-permissions')
+      if (await realpath($, locatorPath) !== locatorPath) {
+        throw new Error('locator-permissions')
+      }
+    } catch (error) {
+      const reason = error instanceof Error && SAFE_ERROR_CATEGORIES.has(error.message)
+        ? error.message
+        : 'locator-permissions'
+      return unsupported(
+        reason,
+        `${detectedPlatform} · Claude Code version unproven`,
+        cwd,
+        { locatorPath, sessionId },
+      )
     }
 
-    const canonicalChecks = [
-      locator.pluginRoot,
-      pluginBin,
-      pluginArtifacts,
-      locator.pluginData,
-      locator.helperPath,
-      locator.manifestPath,
-    ]
-    for (const path of canonicalChecks) {
-      if (await realpath($, path) !== path) throw new Error('noncanonical-path')
+    let locator: Locator
+    try {
+      locator = parseLocator(await $.fs.read(locatorPath))
+    } catch {
+      return unsupported(
+        'claude-code-version-unproven',
+        `${detectedPlatform} · Claude Code version unproven`,
+        cwd,
+        { locatorPath, sessionId },
+      )
     }
 
-    const digest = await run(
-      $,
-      ['/usr/bin/shasum', '-a', '256', locator.helperPath],
-    )
-    const actualDigest = digest.exitCode === 0
-      ? digest.stdout.trim().split(/\s+/, 1)[0]
-      : undefined
-    if (actualDigest !== EXPECTED_HELPER_SHA256) throw new Error('digest-mismatch')
-  } catch (error) {
-    const reason = error instanceof Error && SAFE_ERROR_CATEGORIES.has(error.message)
-      ? error.message
-      : error instanceof Error && error.message === 'file-unavailable'
-        ? 'helper-missing'
+    const commonFields = {
+      locatorPath,
+      sessionId,
+      runId: locator.runId,
+      archiveGeneration: locator.archiveGeneration,
+      hostStartedAt: locator.hostStartSeconds * 1000
+        + Math.floor(locator.hostStartMicroseconds / 1000),
+      hostGeneration:
+        `${locator.hostPid}-${locator.hostStartSeconds}-${locator.hostStartMicroseconds}`,
+      helperPath: locator.helperPath,
+      databaseRoot: locator.databaseRoot,
+    }
+    if (!supportsClaudeVersion(locator.hostVersion)) {
+      const reason = /^\d+\.\d+\.\d+$/.test(locator.hostVersion)
+        ? 'claude-code-version'
+        : 'claude-code-version-unproven'
+      return unsupported(
+        reason,
+        `${detectedPlatform} · Claude Code ${locator.hostVersion}`,
+        cwd,
+        commonFields,
+      )
+    }
+    const detected = `${detectedPlatform} · Claude Code ${locator.hostVersion}`
+    if (locator.sessionId !== sessionId) {
+      return unavailable('locator-session', detected, cwd, commonFields)
+    }
+    if (!SAFE_IDENTIFIER.test(locator.runId)
+        || !SAFE_IDENTIFIER.test(locator.archiveGeneration)) {
+      return unavailable('locator-identifiers', detected, cwd, commonFields)
+    }
+    if (locator.helperProtocol !== HELPER_PROTOCOL) {
+      return unavailable('protocol-mismatch', detected, cwd, commonFields)
+    }
+    if (locator.helperSha256 !== EXPECTED_HELPER_SHA256) {
+      return unavailable('locator-digest-mismatch', detected, cwd, commonFields)
+    }
+    if (locator.artifactStatus !== 'trusted') {
+      const reason = SAFE_ERROR_CATEGORIES.has(locator.artifactStatus)
+        ? locator.artifactStatus
         : 'artifact-untrusted'
-    return unavailable(reason, detected, cwd, commonFields)
-  }
-
-  let result
-  try {
-    result = await run(
-      $,
-      [
-        locator.helperPath,
-        'preflight',
-        '--locator',
-        locatorPath,
-        '--session',
-        sessionId,
-        '--expected-sha',
-        EXPECTED_HELPER_SHA256,
-        '--protocol',
-        String(HELPER_PROTOCOL),
-      ],
-      10_000,
-    )
-  } catch {
-    return unavailable('execution-refused', detected, cwd, commonFields)
-  }
-  if (result.exitCode !== 0) {
-    const reason = safeCategory(result.stderr, 'execution-refused')
-    if (
-      reason === 'operating-system' ||
-      reason === 'operating-system-unproven' ||
-      reason === 'architecture' ||
-      reason === 'macos-major-version' ||
-      reason === 'macos-version-unproven' ||
-      reason === 'claude-code-version'
-    ) {
-      return unsupported(reason, detected, cwd, commonFields)
+      return unavailable(reason, detected, cwd, commonFields)
     }
-    return unavailable(reason, detected, cwd, commonFields)
-  }
-
-  try {
-    const preflight = parseHelperPreflight(result.stdout)
     if (
-      preflight.sessionId !== sessionId ||
-      preflight.runId !== locator.runId ||
-      preflight.archiveGeneration !== locator.archiveGeneration ||
-      preflight.databaseRoot !== locator.databaseRoot ||
-      preflight.helperPath !== locator.helperPath ||
-      preflight.helperProtocol !== HELPER_PROTOCOL ||
-      !preflight.macosVersion.startsWith('15.') ||
-      preflight.sqliteVersionNumber < 3_035_000
-    ) throw new Error('preflight-response')
-  } catch {
-    return unavailable('preflight-response', detected, cwd, commonFields)
-  }
+      !locator.pluginRoot.startsWith('/') ||
+      !locator.pluginData.startsWith('/') ||
+      locator.helperPath !== `${locator.pluginRoot}/bin/prompt-trail-helper` ||
+      locator.manifestPath !== `${locator.pluginRoot}/artifacts/helper-manifest.json` ||
+      locator.databaseRoot !== `${locator.pluginData}/archives`
+    ) {
+      return unavailable('locator-path', detected, cwd, commonFields)
+    }
 
-  return {
-    support: 'supported',
-    reason: 'preflight-ok',
-    detected,
-    projectPath: cwd,
-    ...commonFields,
-    helperTrusted: true,
+    try {
+      const pluginBin = `${locator.pluginRoot}/bin`
+      const pluginArtifacts = `${locator.pluginRoot}/artifacts`
+      const identities = await Promise.all([
+        fileIdentity($, locator.pluginRoot, 'plugin-root-untrusted'),
+        fileIdentity($, pluginBin, 'plugin-bin-untrusted'),
+        fileIdentity($, pluginArtifacts, 'plugin-artifacts-untrusted'),
+        fileIdentity($, locator.pluginData, 'plugin-data-permissions'),
+        fileIdentity($, locator.helperPath, 'helper-missing'),
+        fileIdentity($, locator.manifestPath, 'manifest-missing'),
+      ])
+      const [pluginRoot, pluginBinDirectory, pluginArtifactsDirectory, pluginData, helper, manifest] = identities
+      for (const [identity, reason] of [
+        [pluginRoot, 'plugin-root-untrusted'],
+        [pluginBinDirectory, 'plugin-bin-untrusted'],
+        [pluginArtifactsDirectory, 'plugin-artifacts-untrusted'],
+      ] as const) {
+        if (identity.kind !== 'Directory'
+            || (identity.owner !== owner && identity.owner !== 0)
+            || (identity.mode & 0o022) !== 0) {
+          throw new Error(reason)
+        }
+      }
+      if (pluginData.kind !== 'Directory' || pluginData.owner !== owner || pluginData.mode !== 0o700) {
+        throw new Error('plugin-data-permissions')
+      }
+      if (helper.kind !== 'Regular File') throw new Error('helper-not-regular')
+      if (helper.owner !== owner || (helper.mode & 0o022) !== 0) {
+        throw new Error('helper-untrusted')
+      }
+      if ((helper.mode & 0o111) === 0) throw new Error('helper-not-executable')
+      if (manifest.kind !== 'Regular File'
+          || manifest.owner !== owner
+          || (manifest.mode & 0o022) !== 0) {
+        throw new Error('manifest-untrusted')
+      }
+
+      const canonicalChecks = [
+        locator.pluginRoot,
+        pluginBin,
+        pluginArtifacts,
+        locator.pluginData,
+        locator.helperPath,
+        locator.manifestPath,
+      ]
+      for (const path of canonicalChecks) {
+        if (await realpath($, path) !== path) throw new Error('noncanonical-path')
+      }
+
+      const digest = await run(
+        $,
+        ['/usr/bin/shasum', '-a', '256', locator.helperPath],
+      )
+      const actualDigest = digest.exitCode === 0
+        ? digest.stdout.trim().split(/\s+/, 1)[0]
+        : undefined
+      if (actualDigest !== EXPECTED_HELPER_SHA256) throw new Error('digest-mismatch')
+    } catch (error) {
+      const reason = error instanceof Error && SAFE_ERROR_CATEGORIES.has(error.message)
+        ? error.message
+        : error instanceof Error && error.message === 'file-unavailable'
+          ? 'helper-missing'
+          : 'artifact-untrusted'
+      return unavailable(reason, detected, cwd, commonFields)
+    }
+
+    let result
+    try {
+      result = await run(
+        $,
+        [
+          locator.helperPath,
+          'preflight',
+          '--locator',
+          locatorPath,
+          '--session',
+          sessionId,
+          '--expected-sha',
+          EXPECTED_HELPER_SHA256,
+          '--protocol',
+          String(HELPER_PROTOCOL),
+        ],
+        10_000,
+      )
+    } catch {
+      return unavailable('execution-refused', detected, cwd, commonFields)
+    }
+    if (result.exitCode !== 0) {
+      const reason = safeCategory(result.stderr, 'execution-refused')
+      if (
+        reason === 'operating-system' ||
+        reason === 'operating-system-unproven' ||
+        reason === 'architecture' ||
+        reason === 'macos-major-version' ||
+        reason === 'macos-version-unproven' ||
+        reason === 'claude-code-version'
+      ) {
+        return unsupported(reason, detected, cwd, commonFields)
+      }
+      return unavailable(reason, detected, cwd, commonFields)
+    }
+
+    try {
+      const preflight = parseHelperPreflight(result.stdout)
+      if (
+        preflight.sessionId !== sessionId ||
+        preflight.runId !== locator.runId ||
+        preflight.archiveGeneration !== locator.archiveGeneration ||
+        preflight.databaseRoot !== locator.databaseRoot ||
+        preflight.helperPath !== locator.helperPath ||
+        preflight.helperProtocol !== HELPER_PROTOCOL ||
+        !preflight.macosVersion.startsWith('15.') ||
+        preflight.sqliteVersionNumber < 3_035_000
+      ) throw new Error('preflight-response')
+    } catch {
+      return unavailable('preflight-response', detected, cwd, commonFields)
+    }
+
+    return {
+      support: 'supported',
+      reason: 'preflight-ok',
+      detected,
+      projectPath: cwd,
+      ...commonFields,
+      helperTrusted: true,
+    }
   }
 }
 
@@ -920,9 +970,15 @@ function storedReconcile(value: unknown): ReconcileState | undefined {
    record is accepted only when every field it will replay is intact; a damaged
    one is dropped rather than retried into a permanent refusal. */
 function storedLifecycleWrite(value: unknown): LifecycleWrite | undefined {
+  if (!isRecord(value)) return undefined
+  /* An end a build from before Runs were lineages still owes: it is the same
+     fact, a process leaving the Run, and is replayed under its original id. */
+  const kind = value.kind === 'run-ended' ? 'run-detached' : value.kind
   if (
-    !isRecord(value) ||
-    (value.kind !== 'clear' && value.kind !== 'run-started' && value.kind !== 'run-ended') ||
+    (kind !== 'clear'
+      && kind !== 'run-started'
+      && kind !== 'run-attached'
+      && kind !== 'run-detached') ||
     !isSafeId(value.eventId) ||
     !isSafeId(value.runId) ||
     !isSafeId(value.segmentId) ||
@@ -931,7 +987,7 @@ function storedLifecycleWrite(value: unknown): LifecycleWrite | undefined {
     (value.occurredAt as number) < 0
   ) return undefined
   return {
-    kind: value.kind,
+    kind,
     eventId: value.eventId,
     runId: value.runId,
     segmentId: value.segmentId,
@@ -957,13 +1013,33 @@ function storedClearTransition(value: unknown): LifecycleState['clear'] {
   }
 }
 
+/* A damaged attachment is dropped: the next process opens a new one, and the
+   old one reads as a stretch whose leaving was never recorded, which is true. */
+function storedAttachment(value: unknown): Attachment | undefined {
+  if (
+    !isRecord(value) ||
+    !isSafeId(value.id) ||
+    typeof value.host !== 'string' ||
+    !/^\d+-\d+-\d+$/.test(value.host) ||
+    !isSafeId(value.segmentId)
+  ) return undefined
+  const leaving = value.leaving === undefined ? undefined : storedLifecycleWrite(value.leaving)
+  return {
+    id: value.id,
+    host: value.host,
+    segmentId: value.segmentId,
+    ...(value.closed === true ? { closed: true as const } : {}),
+    ...(leaving?.kind === 'run-detached' ? { leaving } : {}),
+  }
+}
+
 function storedLifecycle(value: unknown): LifecycleState | undefined {
   if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.queue)) {
     return undefined
   }
   const queue: LifecycleWrite[] = []
   let damaged = value.damaged === true
-  for (const row of value.queue.slice(0, LIFECYCLE_QUEUE_LIMIT)) {
+  for (const row of value.queue.slice(0, LIFECYCLE_QUEUE_CAPACITY)) {
     const write = storedLifecycleWrite(row)
     if (write) queue.push(write)
     /* Replaying a row whose fields no longer hold would fail as a
@@ -971,8 +1047,9 @@ function storedLifecycle(value: unknown): LifecycleState | undefined {
        because a lifecycle fact that cannot be written is a gap, not a no-op. */
     else damaged = true
   }
-  if (value.queue.length > LIFECYCLE_QUEUE_LIMIT) damaged = true
+  if (value.queue.length > LIFECYCLE_QUEUE_CAPACITY) damaged = true
   const clear = storedClearTransition(value.clear)
+  const attachment = storedAttachment(value.attachment)
   return {
     version: 1,
     queue,
@@ -981,7 +1058,7 @@ function storedLifecycle(value: unknown): LifecycleState | undefined {
     ...(value.overflowed === true ? { overflowed: true as const } : {}),
     ...(damaged ? { damaged: true as const } : {}),
     ...(value.started === true ? { started: true as const } : {}),
-    ...(value.ended === true ? { ended: true as const } : {}),
+    ...(attachment ? { attachment } : {}),
   }
 }
 
@@ -1496,8 +1573,13 @@ const TIMELINE_KINDS = new Set<string>([
   'collection-resumed',
   'clear',
   'run-started',
-  'run-ended',
+  'run-attached',
+  'run-detached',
 ])
+
+/* What an archive written before a Run became a conversation's lineage called
+   a process leaving it. */
+const LEGACY_KINDS = new Map<string, BoundaryKind>([['run-ended', 'run-detached']])
 
 /* A response that is not exactly the shape the helper writes is refused
    whole: a row that cannot be trusted is not drawn as history. */
@@ -1517,10 +1599,14 @@ function parseTimeline(text: string, projectId: string): TimelineItem[] {
       !Number.isSafeInteger(row.sequence) ||
       (row.sequence as number) < 1
     ) throw new Error('timeline-read')
+    if (row.segmentId !== undefined && !isSafeId(row.segmentId)) {
+      throw new Error('timeline-read')
+    }
     const identity = {
       eventId: row.eventId,
       sequence: row.sequence as number,
       runId: row.runId,
+      ...(row.segmentId === undefined ? {} : { segmentId: row.segmentId }),
     }
     if (row.kind === 'prompt') {
       if (
@@ -1535,10 +1621,9 @@ function parseTimeline(text: string, projectId: string): TimelineItem[] {
         attachmentCount: row.attachmentCount as number,
       }
     }
-    if (typeof row.kind !== 'string' || !TIMELINE_KINDS.has(row.kind)) {
-      throw new Error('timeline-read')
-    }
-    return { kind: 'boundary', ...identity, boundary: row.kind as BoundaryKind }
+    const kind = typeof row.kind === 'string' ? LEGACY_KINDS.get(row.kind) ?? row.kind : undefined
+    if (kind === undefined || !TIMELINE_KINDS.has(kind)) throw new Error('timeline-read')
+    return { kind: 'boundary', ...identity, boundary: kind as BoundaryKind }
   })
 }
 
@@ -1815,42 +1900,111 @@ async function clearEventId(projectId: string, sessionId: string): Promise<strin
   return sha256(`prompt-trail:clear-boundary:1:${projectId}:${sessionId}`)
 }
 
-/* A Run boundary's idempotency key, derived from the Run it opens or closes.
-   Every replay — a retry from the recovery queue, a reload asking again, a later
-   process draining what an exiting one could not write — names the same event,
-   so there is exactly one start and at most one end per Run. */
+/* A Run boundary's idempotency key. The start is derived from the Run alone,
+   because a Run appears only once; an attach or a detach also from the
+   attachment it opens or closes, because the same process may leave a Run and
+   come back to it. Every replay — a retry from the recovery queue, a reload
+   asking again, a later process draining what an exiting one could not write —
+   names the same event. */
 async function runBoundaryEventId(
-  kind: 'run-started' | 'run-ended',
+  kind: 'run-started' | 'run-attached' | 'run-detached',
   projectId: string,
   runId: string,
+  attachmentId: string,
 ): Promise<string> {
-  return sha256(`prompt-trail:${kind}:1:${projectId}:${runId}`)
+  return sha256(kind === 'run-started'
+    ? `prompt-trail:run-started:1:${projectId}:${runId}`
+    : `prompt-trail:${kind}:1:${projectId}:${runId}:${attachmentId}`)
 }
 
-/* Owing this Run's start boundary before its first write of anything else. It
-   is only queued here, and persisted before anything is attempted; the writer
-   that runs next lands it ahead of whatever the Run was about to record.
-   `forSessionId` names the segment the Run is in when that is not the current
-   one — at `classic.SessionEnd` the segment is the one that is ending. */
-async function ensureRunStarted(
+/* Closing whatever this process left open in another Run of the project. An
+   in-process `/resume` into another Run's session leaves the Run it came from,
+   and only now, with this Run current, is that known. The detach is queued on
+   the Run it belongs to, and the drain lands it ahead of anything this Run
+   writes. Answers whether nothing is left open. */
+async function detachAbandonedRuns(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<boolean> {
+  const host = startup.hostGeneration
+  if (!host) return false
+  const prefix = lifecyclePrefix(currentProject.id)
+  try {
+    for (const record of await foreignLifecycles($, currentProject)) {
+      const attachment = record.value.attachment
+      if (!attachment || attachment.closed || attachment.host !== host) continue
+      const abandonedRunId = record.key.slice(prefix.length)
+      const branch = storedBranch(await $.store.get(
+        branchKey(currentProject.id, abandonedRunId, attachment.segmentId),
+      ))
+      const decision = detachAbandoned(
+        record.value,
+        { runId: abandonedRunId, host },
+        {
+          eventId: await runBoundaryEventId(
+            'run-detached',
+            currentProject.id,
+            abandonedRunId,
+            attachment.id,
+          ),
+          branchId: branch?.branchId ?? attachment.id,
+          occurredAt: await $.clock.now(),
+        },
+      )
+      await $.store.set(record.key, decision.state)
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
+/* Opening this process's attachment to the Run before its first write of
+   anything else: the Run's start if it has never appeared, an attach if this
+   process is taking it up again. It is only queued here, and persisted before
+   anything is attempted; the writer that runs next lands it ahead of whatever
+   the attachment was about to record. `forSessionId` names the segment the Run
+   is in when that is not the current one — at `classic.SessionEnd` the segment
+   is the one that is ending. */
+async function ensureRunAttached(
   $: EngineInterface,
   currentProject: ProjectState,
   forSessionId?: string,
 ): Promise<boolean> {
   const sessionId = forSessionId ?? startup.sessionId
-  if (!startup.runId || !sessionId || startup.hostStartedAt === undefined) return false
+  const host = startup.hostGeneration
+  if (!startup.runId || !sessionId || startup.hostStartedAt === undefined || !host) {
+    return false
+  }
+  if (!await detachAbandonedRuns($, currentProject)) return false
   try {
     const state = await loadLifecycle($, currentProject)
-    if (state.started) return true
-    const decision = beginRun(state, {
-      eventId: await runBoundaryEventId('run-started', currentProject.id, startup.runId),
-      runId: startup.runId,
-      segmentId: sessionId,
-      branchId: (await branchState($, currentProject, sessionId)).value.branchId,
-      occurredAt: startup.hostStartedAt,
-    })
+    const kind = attachmentOpening(state, host)
+    if (!kind) {
+      const stayed = stayAttached(state)
+      if (stayed !== state) await saveLifecycle($, currentProject, stayed)
+      return true
+    }
+    /* Derived, not drawn: two writers of this process opening the same stretch
+       at once name the same attach, and the helper answers it once. */
+    const attachmentId = await sha256(
+      `prompt-trail:attachment:1:${host}:${state.attachment?.id ?? 'none'}`,
+    )
+    const decision = attachRun(
+      state,
+      {
+        eventId: await runBoundaryEventId(kind, currentProject.id, startup.runId, attachmentId),
+        runId: startup.runId,
+        segmentId: sessionId,
+        branchId: (await branchState($, currentProject, sessionId)).value.branchId,
+        /* A Run's start is dated by the process that began it, the same on every
+           replay; an attach by the moment this process took the Run up. */
+        occurredAt: kind === 'run-started' ? startup.hostStartedAt : await $.clock.now(),
+      },
+      { id: attachmentId, host },
+    )
     await saveLifecycle($, currentProject, decision.state)
-    return true
+    return decision.note !== 'run-attach-refused'
   } catch {
     return false
   }
@@ -1950,6 +2104,7 @@ async function applyLifecycle(
 ): Promise<void> {
   if (!runtimeTarget) return
   const isClearEnd = input.event === 'session-end' && input.reason === 'clear'
+  const isResumeEnd = input.event === 'session-end' && input.reason === 'resume'
   const isRunEnd = input.event === 'session-end'
     && input.reason !== 'clear'
     && input.reason !== 'resume'
@@ -1985,9 +2140,10 @@ async function applyLifecycle(
   /* A Run whose collection is switched off records nothing between its stop and
      resume boundaries, and a Clear Boundary inside that interval would describe
      the shape of prompts that were never archived. The structural fact still
-     survives: resuming starts a new root Conversation Branch of its own. A Run
-     end is not such a shape: a disabled Run that did start still closes. */
-  if (!isRunEnd) {
+     survives: resuming starts a new root Conversation Branch of its own. A
+     process leaving the Run is not such a shape: a disabled Run it took up is
+     still left. */
+  if (!isRunEnd && !isResumeEnd) {
     let mode: RunModeState
     try {
       mode = (await loadRunMode($, currentProject)).value
@@ -1998,9 +2154,10 @@ async function applyLifecycle(
     if (mode.mode === 'disabled') return
   }
 
-  /* A `/clear` is a write of this Run, so the Run's start is owed ahead of it.
-     An exit never starts a Run: a Run that archived nothing has nothing to end. */
-  if (isClearEnd && !await ensureRunStarted($, currentProject, input.sessionId)) {
+  /* A `/clear` is a write of this Run, so this process's attachment is opened
+     ahead of it. Leaving never opens one: a process that archived nothing has
+     nothing to leave. */
+  if (isClearEnd && !await ensureRunAttached($, currentProject, input.sessionId)) {
     await defer()
     return
   }
@@ -2031,10 +2188,18 @@ async function applyLifecycle(
       await defer()
       return
     }
-  } else if (isRunEnd && state.started && !state.ended) {
+  } else if ((isRunEnd || isResumeEnd)
+      && state.attachment
+      && !state.attachment.closed
+      && state.attachment.host === startup.hostGeneration) {
     try {
       end = {
-        eventId: await runBoundaryEventId('run-ended', currentProject.id, startup.runId),
+        eventId: await runBoundaryEventId(
+          'run-detached',
+          currentProject.id,
+          startup.runId,
+          state.attachment.id,
+        ),
         branchId: (await branchState($, currentProject, input.sessionId)).value.branchId,
         occurredAt: await $.clock.now(),
       }
@@ -2043,7 +2208,11 @@ async function applyLifecycle(
     }
   }
 
-  const decision = decideLifecycle(state, input, { runId: startup.runId, ...(end ? { end } : {}) })
+  const decision = decideLifecycle(state, input, {
+    runId: startup.runId,
+    ...(startup.hostGeneration ? { host: startup.hostGeneration } : {}),
+    ...(end ? { end } : {}),
+  })
   if (decision.note === 'clear-deferred') {
     await defer()
     return
@@ -2107,7 +2276,7 @@ async function writeBoundary(
         runId: write.runId,
       },
     )
-    recordBoundary(write.kind, appended, write.runId)
+    recordBoundary(write.kind, appended, write.runId, write.segmentId)
     lifecycleFailure = undefined
     $.ui.invalidate('ui.render')
   } catch (error) {
@@ -2131,7 +2300,7 @@ async function drainLifecycle(
   currentProject: ProjectState,
 ): Promise<'clear' | 'blocked'> {
   /* Every caller is about to write for this Run, so its start is owed first. */
-  if (!await ensureRunStarted($, currentProject)) return 'blocked'
+  if (!await ensureRunAttached($, currentProject)) return 'blocked'
 
   /* A `/clear` this Run saw but never managed to write down. Completing it now
      replays the instant it was seen, not the instant of the retry. */
@@ -2191,15 +2360,20 @@ function entryLine(entry: Extract<TimelineItem, { kind: 'prompt' }>): string {
 /* A disabled interval is drawn as an explicit break, never as continuous
    history: the stop marker says the prompts after it were not recorded and the
    resume marker says nothing from that interval is reconstructed. */
-function boundaryLine(kind: BoundaryKind | 'run-unclosed'): string {
+function boundaryLine(kind: BoundaryKind | 'run-unclosed', splitFrom?: string): string {
   if (kind === 'clear') {
     return '—— /clear：新的 Conversation Segment ——'
   }
-  if (kind === 'run-started') return '—— Run 开始 ——'
-  if (kind === 'run-ended') return '—— Run 结束 ——'
-  /* Drawn, never archived: the archive cannot tell a Run that crashed from one
-     still running in another process, and this claims only what it knows. */
-  if (kind === 'run-unclosed') return '—— Run 未记录结束 ——'
+  if (kind === 'run-started') {
+    /* A Run that began inside a session another Run already holds: a second
+       process resumed that session while the first was still in it. */
+    return splitFrom ? `—— Run 开始（从 Run ${splitFrom.slice(0, 8)} 分出）——` : '—— Run 开始 ——'
+  }
+  if (kind === 'run-attached') return '—— Run 续接 ——'
+  if (kind === 'run-detached') return '—— Run 离开 ——'
+  /* Drawn, never archived: the archive cannot tell a process that crashed from
+     one still running elsewhere, and this claims only what it knows. */
+  if (kind === 'run-unclosed') return '—— Run 未记录离开 ——'
   if (kind === 'collection-started') return '—— 采集已开始 ——'
   if (kind === 'collection-stopped') {
     return '—— 采集已停止（其后的 prompt 未记录）——'
@@ -2382,6 +2556,7 @@ function recordBoundary(
   kind: BoundaryKind,
   appended: { eventId: string; sequence: number },
   runId: string = startup.runId ?? '',
+  segmentId: string | undefined = startup.sessionId,
 ): void {
   if (timeline.some(item => item.eventId === appended.eventId)) return
   timeline = [
@@ -2391,6 +2566,7 @@ function recordBoundary(
       eventId: appended.eventId,
       sequence: appended.sequence,
       runId,
+      ...(segmentId ? { segmentId } : {}),
       boundary: kind,
     },
   ]
@@ -2575,7 +2751,7 @@ async function disableCollection($: EngineInterface): Promise<string> {
       /* The stop is a write of this Run, so the Run's start and whatever it
          already owes land first — after what other Runs owe, where that can
          land. Another Run's stuck debt does not stand in the way of stopping. */
-      if (!await ensureRunStarted($, currentProject)) throw new Error('lifecycle-owed')
+      if (!await ensureRunAttached($, currentProject)) throw new Error('lifecycle-owed')
       await flushForeignLifecycles($, currentProject)
       if (!await flushOwnLifecycle($, currentProject)) throw new Error('lifecycle-owed')
       const branch = await branchState($, currentProject)
@@ -2634,25 +2810,55 @@ async function saveExpanded($: EngineInterface): Promise<void> {
   }
 }
 
-/* Where the band marks a Run that never recorded its end: after that Run's
-   last row, for every Run other than this one whose start is in view. Without
-   its start in view there is nothing to say it was ever open. */
-function unclosedRuns(items: readonly TimelineItem[]): Map<string, string> {
-  const started = new Set<string>()
-  const ended = new Set<string>()
+/* Where the band marks a stretch of a Run whose leaving was never recorded:
+   after that Run's last row before it was taken up again, and after the last
+   row of any other Run still open at the end of the view. The current Run's
+   open stretch, once this process has opened it, is this process, which has
+   not left. Without an opening in view there is nothing to say the Run was
+   ever open. */
+function unrecordedLeavings(
+  items: readonly TimelineItem[],
+  ownStretchOpen: boolean,
+): Map<string, string> {
+  const open = new Map<string, boolean>()
   const last = new Map<string, string>()
+  const markers = new Map<string, string>()
   for (const item of items) {
-    if (item.kind === 'boundary' && item.boundary === 'run-started') started.add(item.runId)
-    if (item.kind === 'boundary' && item.boundary === 'run-ended') ended.add(item.runId)
+    if (item.kind === 'boundary'
+        && (item.boundary === 'run-started' || item.boundary === 'run-attached')) {
+      const previous = last.get(item.runId)
+      if (open.get(item.runId) && previous) markers.set(previous, item.runId)
+      open.set(item.runId, true)
+    }
+    if (item.kind === 'boundary' && item.boundary === 'run-detached') open.set(item.runId, false)
     last.set(item.runId, item.eventId)
   }
-  const markers = new Map<string, string>()
-  for (const runId of started) {
-    if (ended.has(runId) || runId === startup.runId) continue
+  for (const [runId, isOpen] of open) {
     const eventId = last.get(runId)
-    if (eventId) markers.set(eventId, runId)
+    /* The current Run left open by an earlier process — a crash this process
+       resumed — is marked too, until this process opens its own stretch. */
+    if (isOpen && eventId && (runId !== startup.runId || !ownStretchOpen)) {
+      markers.set(eventId, runId)
+    }
   }
   return markers
+}
+
+/* Which Run each Run start split off from: the Run that already held the
+   session the start was written in, as far as the view reaches back. */
+function splitOrigins(items: readonly TimelineItem[]): Map<string, string> {
+  const holder = new Map<string, string>()
+  const origins = new Map<string, string>()
+  for (const item of items) {
+    if (!item.segmentId) continue
+    const held = holder.get(item.segmentId)
+    if (item.kind === 'boundary' && item.boundary === 'run-started'
+        && held !== undefined && held !== item.runId) {
+      origins.set(item.eventId, held)
+    }
+    if (held === undefined) holder.set(item.segmentId, item.runId)
+  }
+  return origins
 }
 
 export const register: Register = on => {
@@ -2691,7 +2897,11 @@ export const register: Register = on => {
     }
     if (startup.support === 'supported') {
       try {
-        await loadTimeline($, await prepareProject($))
+        const currentProject = await prepareProject($)
+        await loadTimeline($, currentProject)
+        /* Whether this process already holds its stretch of the Run, so the
+           band can tell it from one an earlier process left open. */
+        if (currentProject.consent === 'enabled') await loadLifecycle($, currentProject)
       } catch {
         // The band shows what this module instance records from here on.
       }
@@ -2784,6 +2994,14 @@ export const register: Register = on => {
         return { drop: 'Prompt Trail 无法证明当前项目身份；为避免漏记，本次提交已阻止。' }
       }
       return next(e)
+    }
+    /* An in-process `/resume` may have moved this process to another Run. The
+       switch that decides this submission is that Run's, so the locator is
+       read again before it, never after. */
+    try {
+      if ((await $.session.id()) !== startup.sessionId) await refreshStartup($)
+    } catch {
+      // The switch is read below for the Run last proven; the target is re-checked after.
     }
     /* A disabled Run lets the submission through untouched: no Pending Capture,
        no Prompt Entry, and no archive block standing in its way. */
@@ -2955,6 +3173,7 @@ export const register: Register = on => {
           eventId,
           sequence,
           runId: startup.runId ?? '',
+          ...(startup.sessionId ? { segmentId: startup.sessionId } : {}),
           text: finalText,
           attachmentCount: attachmentKinds.length,
         },
@@ -3003,19 +3222,26 @@ export const register: Register = on => {
        between never consumes a position in the session-level numbering. */
     let position = 0
     const ordered = [...timeline].sort((left, right) => left.sequence - right.sequence)
-    const unclosed = unclosedRuns(ordered)
+    const attachment = lifecycle?.key.endsWith(`:${startup.runId}`)
+      ? lifecycle.value.attachment
+      : undefined
+    const unclosed = unrecordedLeavings(
+      ordered,
+      attachment !== undefined && !attachment.closed && attachment.host === startup.hostGeneration,
+    )
+    const origins = splitOrigins(ordered)
     const rows = ordered.flatMap(item => {
       const drawn = {
         key: `prompt-trail:${item.kind}:${item.eventId}`,
         text: item.kind === 'boundary'
-          ? boundaryLine(item.boundary)
+          ? boundaryLine(item.boundary, origins.get(item.eventId))
           : `${(position += 1)}. ${entryLine(item)}`,
         dim: item.kind === 'boundary',
       }
       const runId = unclosed.get(item.eventId)
       return runId === undefined
         ? [drawn]
-        : [drawn, { key: `prompt-trail:unclosed:${runId}`, text: boundaryLine('run-unclosed'), dim: true }]
+        : [drawn, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
     })
     return (
       <Box flexDirection="column">

@@ -9,8 +9,8 @@ The navigable timeline of human-entered prompts collected during the current run
 _Avoid_: Prompt history, input history
 
 **Run**:
-The lifetime of one interactive Claude Code process. A run may contain multiple conversation segments and survives Mod reloads.
-_Avoid_: Module instance, session
+The lineage of one conversation across Claude Code processes. An ordinary launch starts a run; it continues through clear boundaries and Mod reloads, and any resume of one of its sessions attaches a process to it again. At most one live process is attached to a run at a time; a fork, or a second concurrent resume, starts a new run.
+_Avoid_: Module instance, session, process
 
 **Conversation segment**:
 A contiguous portion of a run bounded by the start or a clear boundary.
@@ -25,7 +25,7 @@ The durable chronological history associated with one project root. Different wo
 _Avoid_: Global history, session history
 
 **Timeline event**:
-An immutable occurrence in a project timeline, such as a run starting, a prompt being entered, a clear boundary, or a run ending.
+An immutable occurrence in a project timeline, such as a run starting, a process attaching to or detaching from a run, a prompt being entered, or a clear boundary.
 _Avoid_: Mutable message
 
 **Prompt entry**:

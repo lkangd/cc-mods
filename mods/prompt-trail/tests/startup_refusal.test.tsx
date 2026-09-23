@@ -14,7 +14,8 @@ const pluginData = '/Users/tester/.claude/plugins/data/prompt-trail-inline'
 const helperPath = `${pluginRoot}/bin/prompt-trail-helper`
 const manifestPath = `${pluginRoot}/artifacts/helper-manifest.json`
 const databaseRoot = `${pluginData}/archives`
-const locatorPath = `${home}/.claude/plugins/data/.function-hook-locators/prompt-trail/${sessionId}.json`
+/* Named after the session and the host process generation that published it. */
+const locatorPath = `${home}/.claude/plugins/data/.function-hook-locators/prompt-trail/${sessionId}.4242-100-200.json`
 const locatorDirectory = locatorPath.slice(0, locatorPath.lastIndexOf('/'))
 
 function locator(overrides: Record<string, unknown> = {}) {
@@ -46,6 +47,8 @@ function installTarget(
   options: {
     locator?: Record<string, unknown>
     locatorReadFails?: boolean
+    /* No locator was ever published for this session. */
+    locatorAbsent?: boolean
     locatorMode?: string
     locatorAcl?: boolean
     locatorDirectoryAcl?: boolean
@@ -64,6 +67,11 @@ function installTarget(
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('session.id', () => ({ value: sessionId }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('fs.list', (_$, e) => ({
+    value: e.path === locatorDirectory && !options.locatorAbsent
+      ? [{ name: locatorPath.slice(locatorDirectory.length + 1), kind: 'file' as const, size: 1 }]
+      : [],
+  }))
   on('fs.read', () => {
     if (options.locatorReadFails) throw new Error('missing locator: PT-SECRET-MARKER')
     return { value: JSON.stringify(options.locator ?? locator()) }
@@ -269,7 +277,7 @@ test('rejects a non-macOS-15 host before reading a locator', async ($, on) => {
 })
 
 test('reports an unproven Claude Code version when the locator is absent', async ($, on) => {
-  const calls = installTarget(on, { locatorReadFails: true })
+  const calls = installTarget(on, { locatorAbsent: true, locatorReadFails: true })
 
   const result = await status($)
 

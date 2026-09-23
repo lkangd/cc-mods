@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -270,6 +271,37 @@ static bool process_generation_ended(
   return kill(pid, 0) != 0 && errno == ESRCH;
 }
 
+/* One locator per process that has a classic session open: two processes
+   resuming the same session each keep their own, instead of the later one
+   overwriting the earlier one's. The name repeats the identity the locator
+   holds, so it can be checked rather than trusted. A bare `<session>.json`
+   is the name every locator had before; it is still recognised, so one left
+   behind by an older build is cleaned up rather than stranded. */
+static bool locator_name_matches(
+  const char *name,
+  const char *session_id,
+  int64_t host_pid,
+  int64_t host_start_seconds,
+  int64_t host_start_microseconds
+) {
+  char expected[PATH_MAX];
+  if (pt_locator_file_name(
+        session_id,
+        host_pid,
+        host_start_seconds,
+        host_start_microseconds,
+        expected,
+        sizeof(expected)
+      )
+      && strcmp(expected, name) == 0) {
+    return true;
+  }
+  int length = snprintf(expected, sizeof(expected), "%s.json", session_id);
+  return length >= 0
+    && (size_t)length < sizeof(expected)
+    && strcmp(expected, name) == 0;
+}
+
 static void remove_proven_stale_locators(const char *directory) {
   DIR *stream = opendir(directory);
   if (!stream) return;
@@ -336,16 +368,13 @@ static void remove_proven_stale_locators(const char *directory) {
     }
     free(locator);
 
-    char expected_name[sizeof(session_id) + 6];
-    int expected_length = snprintf(
-      expected_name,
-      sizeof(expected_name),
-      "%s.json",
-      session_id
-    );
-    if (expected_length < 0
-        || (size_t)expected_length >= sizeof(expected_name)
-        || strcmp(expected_name, entry->d_name) != 0
+    if (!locator_name_matches(
+          entry->d_name,
+          session_id,
+          host_pid,
+          host_start_seconds,
+          host_start_microseconds
+        )
         || !process_generation_ended(
           (pid_t)host_pid,
           host_start_seconds,
@@ -447,16 +476,13 @@ static bool read_continuity_locator(
   free(locator);
   if (!valid) return false;
 
-  char expected_name[sizeof(output->session_id) + 6];
-  int expected_length = snprintf(
-    expected_name,
-    sizeof(expected_name),
-    "%s.json",
-    output->session_id
+  return locator_name_matches(
+    name,
+    output->session_id,
+    output->host_pid,
+    output->host_start_seconds,
+    output->host_start_microseconds
   );
-  return expected_length >= 0
-    && (size_t)expected_length < sizeof(expected_name)
-    && strcmp(expected_name, name) == 0;
 }
 
 static bool same_host_locator(
@@ -522,15 +548,48 @@ static bool load_predecessor_identity(
   return matches > 0;
 }
 
+/* Whether a live process other than this one is attached to the Run. One Run
+   has one Active Branch, so a second process resuming the same session is not
+   allowed to share it: it begins a Run of its own instead, as a fork would. A
+   holder whose process has gone no longer holds anything. */
+static bool run_held_elsewhere(
+  const char *directory,
+  const char *run_id,
+  pid_t host_pid,
+  int64_t host_start_seconds,
+  int64_t host_start_microseconds
+) {
+  DIR *stream = opendir(directory);
+  if (!stream) fail("locator-directory");
+
+  bool held = false;
+  struct dirent *entry = NULL;
+  while (!held && (entry = readdir(stream)) != NULL) {
+    ContinuityLocator locator;
+    if (!read_continuity_locator(directory, entry->d_name, &locator)
+        || strcmp(locator.run_id, run_id) != 0) {
+      continue;
+    }
+    bool same_process = locator.host_pid == host_pid
+      && locator.host_start_seconds == host_start_seconds
+      && locator.host_start_microseconds == host_start_microseconds;
+    held = !same_process && !process_generation_ended(
+      (pid_t)locator.host_pid,
+      locator.host_start_seconds,
+      locator.host_start_microseconds
+    );
+  }
+  closedir(stream);
+  return held;
+}
+
 static void remove_predecessors(
   const char *directory,
-  const char *session_id,
+  const char *current_name,
   const char *plugin_root,
   pid_t host_pid,
   int64_t host_start_seconds,
-  int64_t host_start_microseconds,
-  const char *run_id,
-  const char *archive_generation
+  int64_t host_start_microseconds
 ) {
   DIR *stream = opendir(directory);
   if (!stream) fail("locator-directory");
@@ -546,9 +605,7 @@ static void remove_predecessors(
           host_start_seconds,
           host_start_microseconds
         )
-        || strcmp(locator.run_id, run_id) != 0
-        || strcmp(locator.archive_generation, archive_generation) != 0
-        || strcmp(locator.session_id, session_id) == 0) {
+        || strcmp(entry->d_name, current_name) == 0) {
       continue;
     }
     if (unlink(locator.path) != 0) {
@@ -557,6 +614,137 @@ static void remove_predecessors(
     }
   }
   closedir(stream);
+}
+
+/* Which Run each classic session belongs to, so a resume — in this process or
+   a later one — finds the Run it continues. One private file per session under
+   plugin data, holding identity only: never a prompt, never a path. It is
+   written once, when a session is first seen, and read on every resume. */
+#define SESSION_INDEX_VERSION 1
+
+static void session_index_path(
+  const char *plugin_data,
+  const char *session_id,
+  bool create_directory,
+  char output[PATH_MAX]
+) {
+  char directory[PATH_MAX];
+  int length = snprintf(directory, sizeof(directory), "%s/sessions", plugin_data);
+  if (length < 0 || (size_t)length >= sizeof(directory)) fail("session-index-path");
+  if (create_directory) ensure_directory(directory, true);
+  length = snprintf(output, PATH_MAX, "%s/%s.json", directory, session_id);
+  if (length < 0 || length >= PATH_MAX) fail("session-index-path");
+}
+
+/* Answers whether the session is indexed. A record that exists but cannot be
+   trusted fails closed rather than quietly starting a new Run, which would
+   split the session's lineage without saying so. */
+static bool read_session_index(
+  const char *plugin_data,
+  const char *session_id,
+  char run_id[129],
+  char archive_generation[129]
+) {
+  char path[PATH_MAX];
+  session_index_path(plugin_data, session_id, false, path);
+  struct stat status;
+  if (lstat(path, &status) != 0) {
+    if (errno == ENOENT) return false;
+    fail("session-index-unavailable");
+  }
+  if (!pt_path_is_private_file(path)) fail("session-index-untrusted");
+
+  char *record = NULL;
+  char stored_session[129];
+  int64_t version = 0;
+  bool valid = pt_read_file(path, &record, NULL)
+    && pt_json_validate(record)
+    && pt_json_get_i64(record, "indexVersion", &version)
+    && pt_json_get_string(record, "sessionId", stored_session, sizeof(stored_session))
+    && pt_json_get_string(record, "runId", run_id, 129)
+    && pt_json_get_string(record, "archiveGeneration", archive_generation, 129)
+    && version == SESSION_INDEX_VERSION
+    && strcmp(stored_session, session_id) == 0
+    && pt_is_safe_identifier(run_id)
+    && pt_is_safe_identifier(archive_generation);
+  free(record);
+  if (!valid) fail("session-index-invalid");
+  return true;
+}
+
+static void write_session_index(
+  const char *plugin_data,
+  const char *session_id,
+  const char *run_id,
+  const char *archive_generation
+) {
+  char path[PATH_MAX];
+  session_index_path(plugin_data, session_id, true, path);
+  char temporary_id[37];
+  pt_random_uuid(temporary_id);
+  char temporary_path[PATH_MAX];
+  int length = snprintf(
+    temporary_path,
+    sizeof(temporary_path),
+    "%s.%s.tmp",
+    path,
+    temporary_id
+  );
+  if (length < 0 || (size_t)length >= sizeof(temporary_path)) fail("session-index-path");
+
+  int descriptor = open(
+    temporary_path,
+    O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW,
+    0600
+  );
+  if (descriptor < 0) fail("session-index-create");
+  dprintf(descriptor, "{\"indexVersion\":%d,", SESSION_INDEX_VERSION);
+  write_key_string(descriptor, "\"sessionId\":", session_id);
+  write_key_string(descriptor, ",\"runId\":", run_id);
+  write_key_string(descriptor, ",\"archiveGeneration\":", archive_generation);
+  write_literal(descriptor, "}\n");
+  if (fsync(descriptor) != 0 || close(descriptor) != 0) {
+    unlink(temporary_path);
+    fail("session-index-flush");
+  }
+  if (!pt_path_is_private_file(temporary_path) || rename(temporary_path, path) != 0) {
+    unlink(temporary_path);
+    fail("session-index-publish");
+  }
+  /* The entry itself has to survive a crash, or a later resume reads a session
+     it has never seen and splits the lineage. */
+  char *slash = strrchr(path, '/');
+  if (!slash) fail("session-index-path");
+  *slash = '\0';
+  int directory_descriptor = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  if (directory_descriptor < 0 || fsync(directory_descriptor) != 0) {
+    if (directory_descriptor >= 0) close(directory_descriptor);
+    fail("session-index-flush");
+  }
+  close(directory_descriptor);
+}
+
+/* Deciding a session's Run and publishing the locator that claims it is one
+   step, taken by one bridge at a time. Without it two processes resuming the
+   same session could both find its Run unheld and both take it up, or both
+   find the session unindexed and index it to two different Runs. The lock is
+   released when the bridge exits, however it exits. */
+static void lock_publication(const char *directory) {
+  char path[PATH_MAX];
+  int length = snprintf(path, sizeof(path), "%s/.publish.lock", directory);
+  if (length < 0 || (size_t)length >= sizeof(path)) fail("locator-path");
+  int descriptor = open(path, O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0600);
+  if (descriptor < 0) fail("locator-lock");
+  struct stat status;
+  if (fstat(descriptor, &status) != 0
+      || !S_ISREG(status.st_mode)
+      || status.st_uid != geteuid()
+      || (status.st_mode & 0077) != 0) {
+    fail("locator-lock");
+  }
+  while (flock(descriptor, LOCK_EX) != 0) {
+    if (errno != EINTR) fail("locator-lock");
+  }
 }
 
 static void publish_locator(
@@ -569,21 +757,13 @@ static void publish_locator(
 ) {
   char directory[PATH_MAX];
   locator_directory(directory);
+  lock_publication(directory);
   remove_proven_stale_locators(directory);
 
-  char locator_path[PATH_MAX];
   char temporary_path[PATH_MAX];
   char temporary_id[37];
   pt_random_uuid(temporary_id);
   int length = snprintf(
-    locator_path,
-    sizeof(locator_path),
-    "%s/%s.json",
-    directory,
-    session_id
-  );
-  if (length < 0 || (size_t)length >= sizeof(locator_path)) fail("locator-path");
-  length = snprintf(
     temporary_path,
     sizeof(temporary_path),
     "%s/.%s.tmp",
@@ -608,31 +788,66 @@ static void publish_locator(
   char host_version[64] = "unproven";
   (void)pt_executable_version(host_executable, host_version, sizeof(host_version));
 
-  /* A Run is one host process generation. A `/clear` or an in-process
-     `/resume` changes the classic session inside the same process, so it
-     inherits the identity a locator of this very generation already holds; a
-     `/clear` without one fails closed rather than inventing a Run. `startup`
-     and `fork` always begin a new process and so a new Run, and so does a
-     `resume` in a new process: nothing it inherited from its parent's
-     environment can prove the same generation. */
+  char locator_name[PATH_MAX];
+  char locator_path[PATH_MAX];
+  if (!pt_locator_file_name(
+        session_id,
+        host_pid,
+        host_start_seconds,
+        host_start_microseconds,
+        locator_name,
+        sizeof(locator_name)
+      )) {
+    fail("locator-path");
+  }
+  length = snprintf(locator_path, sizeof(locator_path), "%s/%s", directory, locator_name);
+  if (length < 0 || (size_t)length >= sizeof(locator_path)) fail("locator-path");
+
+  /* A Run is the lineage of one conversation, not one process. A `/clear`
+     changes the classic session inside the same process, so it inherits the
+     identity a locator of this very generation already holds; a `/clear`
+     without one fails closed rather than inventing a Run. A resume — an
+     in-process `/resume`, `--resume` or `--continue` — continues whichever Run
+     the session index says the session belongs to, and a session it has never
+     seen begins a new one. `startup` and `fork` always begin a new Run:
+     nothing inherited from a parent's environment stands in for a lineage. */
   char run_id[129];
   char archive_generation[129];
-  bool inherits = strcmp(source, "clear") == 0 || strcmp(source, "resume") == 0;
-  bool inherited = inherits && load_predecessor_identity(
-    directory,
-    plugin_root,
-    host_pid,
-    host_start_seconds,
-    host_start_microseconds,
+  bool indexed = read_session_index(
+    plugin_data,
+    session_id,
     run_id,
     archive_generation
   );
-  if (strcmp(source, "clear") == 0 && !inherited) {
-    fail("locator-predecessor-missing");
+  bool continues = false;
+  if (strcmp(source, "clear") == 0) {
+    if (!load_predecessor_identity(
+          directory,
+          plugin_root,
+          host_pid,
+          host_start_seconds,
+          host_start_microseconds,
+          run_id,
+          archive_generation
+        )) {
+      fail("locator-predecessor-missing");
+    }
+    continues = true;
+  } else if (strcmp(source, "resume") == 0 && indexed) {
+    continues = !run_held_elsewhere(
+      directory,
+      run_id,
+      host_pid,
+      host_start_seconds,
+      host_start_microseconds
+    );
   }
-  if (!inherited) {
+  if (!continues) {
     pt_random_uuid(run_id);
     pt_random_uuid(archive_generation);
+  }
+  if (!indexed) {
+    write_session_index(plugin_data, session_id, run_id, archive_generation);
   }
 
   char database_root[PATH_MAX];
@@ -700,16 +915,19 @@ static void publish_locator(
     unlink(locator_path);
     fail("locator-permissions");
   }
-  if (inherited) {
+  /* One process has one classic session open at a time: whatever this
+     process published for the session it just left — the same Run after a
+     `/clear`, possibly another after an in-process `/resume` — is done.
+     `startup` and `fork` open a process's first session: there is nothing of
+     its own to retire. */
+  if (strcmp(source, "clear") == 0 || strcmp(source, "resume") == 0) {
     remove_predecessors(
       directory,
-      session_id,
+      locator_name,
       plugin_root,
       host_pid,
       host_start_seconds,
-      host_start_microseconds,
-      run_id,
-      archive_generation
+      host_start_microseconds
     );
   }
   int directory_descriptor = open(directory, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
@@ -727,14 +945,34 @@ static void remove_locator(
 ) {
   char directory[PATH_MAX];
   locator_directory(directory);
+  /* Only this process's own locator for the session: another process that
+     resumed the same session keeps its locator. */
+  pid_t own_pid = getppid();
+  char own_executable[PROC_PIDPATHINFO_MAXSIZE];
+  int64_t own_start_seconds = 0;
+  int64_t own_start_microseconds = 0;
+  if (!pt_process_identity(
+        own_pid,
+        own_executable,
+        sizeof(own_executable),
+        &own_start_seconds,
+        &own_start_microseconds
+      )) {
+    fail("host-generation-unproven");
+  }
+  char locator_name[PATH_MAX];
   char locator_path[PATH_MAX];
-  int length = snprintf(
-    locator_path,
-    sizeof(locator_path),
-    "%s/%s.json",
-    directory,
-    session_id
-  );
+  if (!pt_locator_file_name(
+        session_id,
+        own_pid,
+        own_start_seconds,
+        own_start_microseconds,
+        locator_name,
+        sizeof(locator_name)
+      )) {
+    fail("locator-path");
+  }
+  int length = snprintf(locator_path, sizeof(locator_path), "%s/%s", directory, locator_name);
   if (length < 0 || (size_t)length >= sizeof(locator_path)) fail("locator-path");
   if (access(locator_path, F_OK) != 0 && errno == ENOENT) return;
   if (!pt_path_is_private_file(locator_path)) fail("locator-untrusted");

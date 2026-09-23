@@ -19,7 +19,12 @@ export const databaseRoot = `${pluginData}/archives`
 export const databasePath = `${databaseRoot}/${projectId}.sqlite3`
 export const locatorDirectory =
   `${home}/.claude/plugins/data/.function-hook-locators/prompt-trail`
-export const locatorPath = `${locatorDirectory}/${sessionId}.json`
+/* The bridge names a locator after the session and the host process generation
+   that published it. */
+export function locatorName(forSessionId: string, hostPid = 4242): string {
+  return `${forSessionId}.${hostPid}-100-200.json`
+}
+export const locatorPath = `${locatorDirectory}/${locatorName(sessionId)}`
 /* The classic session id the host reports, held in a box so a test can rotate
    it the way a `/clear` does and watch what the next submission does with the
    new Conversation Segment. */
@@ -45,9 +50,10 @@ export type ArchiveRow = {
   attachmentCount?: number
 }
 
-/* The Run the locator names, held in a box so a test can start a new process
-   generation's Run the way a restart does. */
-export type RunIdentity = { runId: string }
+/* The Run the locator names and the process generation that published it,
+   held in a box so a test can move to another Run the way an in-process
+   `/resume` does, or to another process the way a restart does. */
+export type RunIdentity = { runId: string; hostPid?: number }
 
 export type ProcessCall = {
   argv: string[]
@@ -127,10 +133,11 @@ export function installSupportedTarget(
 ): ProcessCall[] {
   const calls: ProcessCall[] = []
   const classic = options.classicSession ?? { id: sessionId }
-  const currentLocatorPath = () => `${locatorDirectory}/${classic.id}.json`
+  const identity = options.run ?? { runId }
+  const currentLocatorPath = () =>
+    `${locatorDirectory}/${locatorName(classic.id, identity.hostPid)}`
   const archive = options.archive ?? []
   const allocateSequence = sequenceAllocator(archive)
-  const identity = options.run ?? { runId }
   const staged = new Map<string, Omit<ArchiveRow, 'sequence'>>()
   let branchWrites = 0
   mock.env(on, { HOME: home })
@@ -181,6 +188,11 @@ export function installSupportedTarget(
       : { [`prompt-trail:consent:${projectId}`]: options.consent })
   }
   on('fs.exists', () => ({ value: options.hasGitDirectory ?? false }))
+  on('fs.list', (_$, e) => ({
+    value: e.path === locatorDirectory
+      ? [{ name: locatorName(classic.id, identity.hostPid), kind: 'file' as const, size: 1 }]
+      : [],
+  }))
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('session.id', () => ({ value: classic.id }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
@@ -190,7 +202,7 @@ export function installSupportedTarget(
       pluginProtocol: 1,
       helperProtocol: HELPER_PROTOCOL,
       sessionId: classic.id,
-      hostPid: 4242,
+      hostPid: identity.hostPid ?? 4242,
       hostStartSeconds: 100,
       hostStartMicroseconds: 200,
       hostExecutable: '/opt/claude/2.1.278',
@@ -463,6 +475,7 @@ export function installSupportedTarget(
               eventId: row.eventId,
               sequence: row.sequence,
               runId: row.runId,
+              segmentId: row.segmentId,
               kind: row.kind,
               ...(row.kind === 'prompt'
                 ? { text: row.text ?? '', attachmentCount: row.attachmentCount ?? 0 }
@@ -534,12 +547,14 @@ export function captureCalls(calls: readonly ProcessCall[], command: string) {
   return calls.filter(call => call.argv[1] === command)
 }
 
+const RUN_BOUNDARIES = new Set(['run-started', 'run-attached', 'run-detached'])
+
 /* The segment and collection boundaries a test is asking about. A Run's own
-   start and end are appended through the same subcommand; the tests that are
+   boundaries are appended through the same subcommand; the tests that are
    about them ask for them by kind. */
 export function boundaryCalls(calls: readonly ProcessCall[]) {
   return captureCalls(calls, 'boundary-append')
-    .filter(call => call.argv[7] !== 'run-started' && call.argv[7] !== 'run-ended')
+    .filter(call => !RUN_BOUNDARIES.has(call.argv[7] ?? ''))
 }
 
 export function composerPrompt(
