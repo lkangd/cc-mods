@@ -44,10 +44,13 @@ export function trustsStoredBranch(stored: BranchState | undefined): boolean {
   return stored?.explicitRoot === true && stored.parentEventId === null
 }
 
+/* `compacted` says compaction has cleared rows from this session's
+   transcript, so rows it lacks prove nothing about where it was rewound to. */
 export function settleBranch(
   stored: BranchState | undefined,
   found: BranchMatch,
   newBranchId: string,
+  compacted: boolean,
 ): BranchSettlement {
   if (trustsStoredBranch(stored)) return { kind: 'keep' }
   const parent = stored?.parentEventId ?? null
@@ -78,7 +81,12 @@ export function settleBranch(
   }
 
   /* A stored lineage: the transcript either confirms it, moves it to another
-     entry it proves, or leaves it for the person. */
+     entry it proves, or leaves it for the person. A rewind only shortens the
+     transcript, so one no compaction touched that reaches no archived entry
+     was rewound to its root. */
+  if (found.match === 'none' && !compacted) {
+    return { kind: 'set', state: { version: 1, branchId: newBranchId, parentEventId: null } }
+  }
   if (found.match === 'unique') {
     return found.eventId === parent
       ? { kind: 'keep' }
@@ -115,6 +123,11 @@ type TranscriptMessage = {
   toolResults?: readonly unknown[]
 }
 
+/* A `user` row the person wrote: a tool result is the engine's. */
+function isPersonRow(message: TranscriptMessage): boolean {
+  return message.role === 'user' && (message.toolResults?.length ?? 0) === 0
+}
+
 /* The `user` rows `branch-match` reads, oldest first, each as
    `<bytes>\n<text>`. A tool result is the engine's, not the person's; a row
    too long to have been archived could never match and is left out. When the
@@ -130,7 +143,7 @@ export function transcriptRows(
   let bytes = 0
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index]!
-    if (message.role !== 'user' || (message.toolResults?.length ?? 0) > 0) continue
+    if (!isPersonRow(message)) continue
     const length = encoder.encode(message.text).length
     if (length >= ARCHIVED_TEXT_LIMIT) continue
     const row = `${length}\n${message.text}`
@@ -144,6 +157,42 @@ export function transcriptRows(
     kept.push(row)
   }
   return { stdin: kept.reverse().join(''), truncated }
+}
+
+/* A person-side `user` row the transcript has to keep holding: its index
+   among those rows and its text, or -1 for a transcript that held none.
+   Held in memory only. */
+export type TranscriptMark = { row: number; text: string }
+
+function personRows(messages: readonly TranscriptMessage[]): TranscriptMessage[] {
+  return messages.filter(isPersonRow)
+}
+
+/* The mark a prompt captured on top of `messages` leaves: the next
+   person-side row is where it lands. Without one, the mark is the last row
+   the transcript was settled against. */
+export function markTranscript(
+  messages: readonly TranscriptMessage[],
+  text?: string,
+): TranscriptMark {
+  const rows = personRows(messages)
+  if (text !== undefined) return { row: rows.length, text }
+  const last = rows.at(-1)
+  return last ? { row: rows.length - 1, text: last.text } : { row: -1, text: '' }
+}
+
+/* Whether the transcript still holds the marked prompt where it landed, so
+   it can only have grown since and still ends on the same lineage. A rewind
+   always removes the row it restores to. Past the engine's row limit the
+   window slides and the index no longer holds. */
+export function transcriptKept(
+  messages: readonly TranscriptMessage[],
+  mark: TranscriptMark,
+): boolean {
+  if (messages.length >= TRANSCRIPT_ROW_LIMIT) return false
+  /* A transcript that held nothing cannot be rewound any further. */
+  if (mark.row < 0) return true
+  return personRows(messages)[mark.row]?.text === mark.text
 }
 
 /* One timeline row as the view folds it. */
@@ -230,4 +279,30 @@ export function forkSources(rows: readonly ViewRow[]): Map<string, string> {
     if (parent && parent.runId !== row.runId) sources.set(row.runId, parent.runId)
   }
   return sources
+}
+
+/* Entries that begin a new lineage part-way through their Run: a root it
+   was rewound to (`root`), or an entry of another Run it was rewound onto
+   (`cross-run`). A Run's first entry, and one drawn right after a boundary of
+   its own Run, already have a line saying why they begin where they do; a
+   parent in the same Run is a rewind the fold shows, and one outside the
+   loaded window proves nothing. `rows` come in sequence order. */
+export function branchStarts(rows: readonly ViewRow[]): Map<string, 'root' | 'cross-run'> {
+  const entries = new Map(
+    rows.filter(row => row.kind === 'prompt').map(row => [row.eventId, row]),
+  )
+  const starts = new Map<string, 'root' | 'cross-run'>()
+  const previous = new Map<string, ViewRow>()
+  for (const row of rows) {
+    const before = previous.get(row.runId)
+    previous.set(row.runId, row)
+    if (row.kind !== 'prompt' || before === undefined || before.kind === 'boundary') continue
+    if (row.parentEventId == null) {
+      starts.set(row.eventId, 'root')
+      continue
+    }
+    const parent = entries.get(row.parentEventId)
+    if (parent && parent.runId !== row.runId) starts.set(row.eventId, 'cross-run')
+  }
+  return starts
 }

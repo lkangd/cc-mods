@@ -1685,6 +1685,35 @@ static int match_chain(
   return length;
 }
 
+/* The one tied candidate the lineage ending at `prefer` passes through, or
+   -1 when it passes through none or several. Several happen when earlier rows
+   are missing: a transcript of two repeats may be the tail of three, and
+   either of the later two could be where it ends. */
+static int lineage_winner(
+  sqlite3 *database,
+  sqlite3_stmt *parent,
+  const char *prefer,
+  const match_candidate *winners,
+  int winner_count
+) {
+  char current[129];
+  snprintf(current, sizeof(current), "%s", prefer);
+  int found = -1;
+  for (;;) {
+    for (int index = 0; index < winner_count; index += 1) {
+      if (strcmp(winners[index].event_id, current) != 0) continue;
+      if (found >= 0) return -1;
+      found = index;
+    }
+    sqlite3_reset(parent);
+    archive_bind_text(database, parent, 1, current);
+    int step = sqlite3_step(parent);
+    if (step == SQLITE_DONE) return found;
+    if (step != SQLITE_ROW) archive_error("archive-sqlite");
+    snprintf(current, sizeof(current), "%s", (const char *)sqlite3_column_text(parent, 0));
+  }
+}
+
 static void write_match(
   const char *project_id,
   const match_candidate *winners,
@@ -1722,8 +1751,8 @@ static void branch_match(int argc, char **argv) {
   const char *run_id = argv[4];
   const char *segment_id = argv[5];
   const char *transcript = argv[6];
-  /* The stored parent, when there is one: tied, it is listed first, so the
-     fixed batch of candidates never leaves it out. */
+  /* The stored parent, when there is one: a tie its lineage passes through
+     once is settled on that candidate. */
   const char *prefer = argv[7];
   if (!lowercase_sha256(project_id)) archive_error("project-identity");
   if (strcmp(prefer, "-") != 0 && !pt_is_safe_identifier(prefer)) match_error();
@@ -1874,17 +1903,20 @@ static void branch_match(int argc, char **argv) {
   }
   if (step != SQLITE_ROW && step != SQLITE_DONE) archive_error("archive-sqlite");
   sqlite3_finalize(candidates);
+  /* A rewind only shortens the transcript, so it is a prefix of the lineage
+     the session was on: of tied candidates, the one that lineage passes
+     through is where it was rewound to. */
+  if (winner_count > 1 && strcmp(prefer, "-") != 0) {
+    int on_lineage = lineage_winner(database, parent, prefer, winners, winner_count);
+    if (on_lineage >= 0) {
+      winners[0] = winners[on_lineage];
+      winner_count = 1;
+    }
+  }
   sqlite3_finalize(parent);
   sqlite3_close(database);
 
   qsort(winners, (size_t)winner_count, sizeof(match_candidate), compare_newest_first);
-  for (int index = 1; index < winner_count; index += 1) {
-    if (strcmp(winners[index].event_id, prefer) != 0) continue;
-    match_candidate preferred = winners[index];
-    memmove(&winners[1], &winners[0], (size_t)index * sizeof(match_candidate));
-    winners[0] = preferred;
-    break;
-  }
   write_match(project_id, winners, winner_count);
   free(winners);
   free(rows);

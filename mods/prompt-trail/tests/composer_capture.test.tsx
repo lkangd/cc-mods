@@ -77,7 +77,7 @@ test('a slash command run archives nothing while slash text still does', async (
 })
 
 test('three identical prompts stay three distinct Prompt Entries', async ($, on) => {
-  const calls = installSupportedTarget(on, enabledConsent)
+  const calls = installSupportedTarget(on, { ...enabledConsent, transcript: [] })
   await $.session.start(session)
 
   for (let index = 0; index < 3; index += 1) {

@@ -1,11 +1,14 @@
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, SessionMessage } from 'claude-code'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from './artifact'
-import type { BranchMatch, BranchState } from './branch'
+import type { BranchMatch, BranchState, TranscriptMark } from './branch'
 import {
+  branchStarts,
   chooseBranch,
   foldTimeline,
   forkSources,
+  markTranscript,
   settleBranch,
+  transcriptKept,
   transcriptRows,
   trustsStoredBranch,
 } from './branch'
@@ -288,9 +291,20 @@ let deferredClear: { sessionId: string; occurredAt: number } | undefined
 /* What the project's other Runs still owe, as the last enumeration found it.
    Kept for the report only; the drain always re-enumerates. */
 /* The Run and classic session whose Active Branch this module instance has
-   already settled against the transcript. A reload settles it once more,
-   which is harmless: by then the transcript confirms what is stored. */
-let alignedBranch: string | undefined
+   already settled against the transcript, and where the last prompt captured
+   there landed (or the transcript stood when it was settled). While the
+   transcript still holds that row, nothing was rewound and the next
+   submission needs no match. A reload settles it once more, which is
+   harmless: by then the transcript confirms what is stored. Its text never
+   leaves this module instance. */
+let transcriptMark: { key: string; mark: TranscriptMark } | undefined
+/* Classic sessions this module instance saw compacted and could not yet
+   record: the store write failed, or there was no project to key it by. */
+const compactedSessions = new Set<string>()
+/* Sessions compacted since their last alignment. Compaction rewrites the
+   transcript but not the lineage, so the next submission takes the
+   compacted transcript as its baseline instead of reading it as a rewind. */
+const recompacted = new Set<string>()
 /* The project whose archived events this module instance has read back, and
    the session it already waited on for a late locator. */
 let timelineLoaded: string | undefined
@@ -870,6 +884,12 @@ function consentKey(projectId: string): string {
 
 function branchKey(projectId: string, runId: string, sessionId: string): string {
   return `prompt-trail:branch:${projectId}:${runId}:${sessionId}`
+}
+
+/* Whether compaction has cleared rows from a classic session's transcript. It
+   belongs to the session, not to a Run or a branch, and stays set for good. */
+function compactedKey(projectId: string, sessionId: string): string {
+  return `prompt-trail:compacted:${projectId}:${sessionId}`
 }
 
 function archiveStateKey(projectId: string): string {
@@ -1977,11 +1997,13 @@ async function matchBranch(
   $: EngineInterface,
   currentProject: ProjectState,
   stored: BranchState | undefined,
+  compacted: boolean,
+  messages: readonly SessionMessage[],
 ): Promise<BranchMatch> {
   if (!startup.helperPath || !startup.databaseRoot || !startup.runId || !startup.sessionId) {
     throw new Error('capture-identity')
   }
-  const rows = transcriptRows(await $.session.messages())
+  const rows = transcriptRows(messages)
   const scoped = stored?.parentEventId != null
   const result = await run(
     $,
@@ -1992,7 +2014,8 @@ async function matchBranch(
       currentProject.id,
       scoped ? startup.runId : '-',
       scoped ? startup.sessionId : '-',
-      rows.truncated ? 'truncated' : 'whole',
+      /* Compaction drops the earliest rows just as the engine's limit does. */
+      rows.truncated || compacted ? 'truncated' : 'whole',
       stored?.parentEventId ?? '-',
       EXPECTED_HELPER_SHA256,
       String(HELPER_PROTOCOL),
@@ -2025,21 +2048,42 @@ function parentLabel(eventId: string, found: BranchMatch): string {
 /* The engine's dialog offers at most four answers: three parents and a root. */
 const PARENT_OPTION_LIMIT = 3
 
-/* Settles this session's Active Branch against its transcript before the
-   first capture this module instance makes in it. Answers a result that drops
-   the submission, or nothing when it may go on. A stored lineage the
-   transcript cannot place is put to the person; the submission is dropped
-   either way, with the draft back in the prompt box, and never resubmitted. */
+/* Settles this session's Active Branch against its transcript before every
+   capture: in full the first time this module instance meets the session,
+   and after that whenever the transcript no longer holds the last captured
+   prompt where it landed, which is what a rewind leaves. Answers a result
+   that drops the submission, or the transcript it was settled against. A
+   stored lineage the transcript cannot place is put to the person; the
+   submission is dropped either way, with the draft back in the prompt box,
+   and never resubmitted. */
 async function alignBranch(
   $: EngineInterface,
   currentProject: ProjectState,
   draft: string,
-): Promise<{ drop: string } | undefined> {
+): Promise<{ drop: string } | { messages: readonly SessionMessage[] }> {
   if (!startup.runId || !startup.sessionId) {
     return { drop: 'Prompt Trail 无法证明当前 Run 身份；本次提交未进入会话。' }
   }
   const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
-  if (alignedBranch === key) return undefined
+  const blocked = async () => ({
+    drop: `Prompt Trail 无法重建 Conversation Branch，${draftNote(await restoreDraft($, draft))}；为避免挂错父节点，本次提交已阻止。`,
+  })
+  let messages: readonly SessionMessage[]
+  try {
+    messages = await $.session.messages()
+  } catch {
+    return blocked()
+  }
+  const settled = () => {
+    transcriptMark = { key, mark: markTranscript(messages) }
+  }
+  if (recompacted.delete(startup.sessionId) && transcriptMark?.key === key) {
+    settled()
+    return { messages }
+  }
+  if (transcriptMark?.key === key && transcriptKept(messages, transcriptMark.mark)) {
+    return { messages }
+  }
 
   let stored: BranchState | undefined
   let found: BranchMatch
@@ -2047,12 +2091,13 @@ async function alignBranch(
   try {
     stored = storedBranch(await $.store.get(key))
     if (trustsStoredBranch(stored)) {
-      alignedBranch = key
+      settled()
       if (stored) rememberBranch(key, stored)
-      return undefined
+      return { messages }
     }
-    found = await matchBranch($, currentProject, stored)
-    settlement = settleBranch(stored, found, crypto.randomUUID())
+    const compacted = await sessionCompacted($, currentProject.id, startup.sessionId)
+    found = await matchBranch($, currentProject, stored, compacted, messages)
+    settlement = settleBranch(stored, found, crypto.randomUUID(), compacted)
     if (settlement.kind === 'set') {
       await $.store.set(key, settlement.state)
       rememberBranch(key, settlement.state)
@@ -2060,14 +2105,11 @@ async function alignBranch(
       rememberBranch(key, stored)
     }
   } catch {
-    const restored = await restoreDraft($, draft)
-    return {
-      drop: `Prompt Trail 无法重建 Conversation Branch，${draftNote(restored)}；为避免挂错父节点，本次提交已阻止。`,
-    }
+    return blocked()
   }
   if (settlement.kind !== 'ask') {
-    alignedBranch = key
-    return undefined
+    settled()
+    return { messages }
   }
 
   const offered = settlement.options.slice(0, PARENT_OPTION_LIMIT)
@@ -2107,9 +2149,43 @@ async function alignBranch(
       drop: `Prompt Trail 无法保存所选父节点，${await restoredNote()}；本次提交未进入会话。`,
     }
   }
-  alignedBranch = key
+  settled()
   return {
     drop: `Prompt Trail 已确认 Conversation Branch 父节点，${await restoredNote()}；请重新提交。`,
+  }
+}
+
+async function sessionCompacted(
+  $: EngineInterface,
+  projectId: string,
+  sessionId: string,
+): Promise<boolean> {
+  const key = compactedKey(projectId, sessionId)
+  if ((await $.store.get(key)) === true) return true
+  if (!compactedSessions.has(sessionId)) return false
+  try {
+    await $.store.set(key, true)
+    compactedSessions.delete(sessionId)
+  } catch {
+    // This module instance still knows; the next one may not.
+  }
+  return true
+}
+
+/* Marks a classic session compacted: in memory before anything else is
+   awaited, so a submission that meets the compacted transcript already knows,
+   and kept there until the store holds it. */
+async function markCompacted($: EngineInterface, sessionId: string): Promise<void> {
+  compactedSessions.add(sessionId)
+  recompacted.add(sessionId)
+  try {
+    const projectId = project?.id
+      ?? (runtimeTarget ? await sha256(await canonicalProjectRoot($, runtimeTarget.cwd)) : undefined)
+    if (!projectId) return
+    await $.store.set(compactedKey(projectId, sessionId), true)
+    compactedSessions.delete(sessionId)
+  } catch {
+    // Written on the next alignment instead.
   }
 }
 
@@ -3232,6 +3308,26 @@ export const register: Register = on => {
     return next(e)
   })
 
+  /* Compaction replaces the transcript's earlier rows with a summary, so what
+     they proved about the session's lineage is gone for good. The main
+     conversation's is marked whatever the Run collects; a precomputed one
+     installs nothing yet, and a skipped one changed nothing. */
+  on('session.compact', async ($, e, next) => {
+    /* Named before the compaction runs, so the mark lands the moment it
+       returns rather than after another wait. */
+    let sessionId: string | undefined
+    if (e.agentId === undefined && e.trigger !== 'precompute') {
+      try {
+        sessionId = await $.session.id()
+      } catch {
+        sessionId = undefined
+      }
+    }
+    const result = await next(e)
+    if (sessionId !== undefined && result.messages) await markCompacted($, sessionId)
+    return result
+  })
+
   on('command.run', { command: 'prompt-history' }, async ($, e) => {
     const args = e.args.trim()
     if (args === '') {
@@ -3400,8 +3496,8 @@ export const register: Register = on => {
         // Candidates it cannot show are offered by event id.
       }
     }
-    const unaligned = await alignBranch($, currentProject, e.text)
-    if (unaligned) return unaligned
+    const aligned = await alignBranch($, currentProject, e.text)
+    if ('drop' in aligned) return aligned
 
     let branch: { key: string; value: BranchState }
     const eventId = crypto.randomUUID()
@@ -3476,6 +3572,7 @@ export const register: Register = on => {
       }
       await $.store.set(branch.key, nextBranch)
       rememberBranch(branch.key, nextBranch)
+      transcriptMark = { key: branch.key, mark: markTranscript(aligned.messages, finalText) }
       timeline = [
         ...timeline,
         {
@@ -3548,6 +3645,7 @@ export const register: Register = on => {
     )
     const origins = splitOrigins(ordered)
     const forks = forkSources(ordered)
+    const starts = branchStarts(ordered)
     const currentKey = project && startup.runId && startup.sessionId
       ? branchKey(project.id, startup.runId, startup.sessionId)
       : undefined
@@ -3579,10 +3677,17 @@ export const register: Register = on => {
             ? [...before, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
             : before
         }
+        const start = starts.get(item.eventId)
         if (item.parentEventId === null && item.branchId && ambiguousRoots.has(item.branchId)) {
           before.push({
             key: `prompt-trail:unlinked:${item.eventId}`,
             text: '—— 共享前缀无法唯一确定，未接续 ——',
+            dim: true,
+          })
+        } else if (start !== undefined) {
+          before.push({
+            key: `prompt-trail:branch-start:${item.eventId}`,
+            text: start === 'root' ? '—— 新根分支 ——' : '—— 新分支 ——',
             dim: true,
           })
         }

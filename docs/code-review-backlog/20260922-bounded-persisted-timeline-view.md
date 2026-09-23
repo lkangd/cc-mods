@@ -105,3 +105,13 @@ the next submission the path starts at that new entry, so the older off-path ent
 below the fold threshold. Nothing is hidden or lost; entries that should be folded are shown
 unfolded. Fix with the cursor reads: walk the path's ancestry past the window (or have the helper
 answer the path's first own sequence) before folding.
+
+## Update 2026-09-23 (Issue 19 review)
+
+Review finding #2 (minor, CONFIRMED) belongs here. `branchStarts()` in
+`mods/prompt-trail/hooks/branch.ts` marks an entry `—— 新分支 ——` only when its parent is in the
+loaded window and belongs to another Run. After a reload, a visible entry whose cross-Run parent
+has fallen out of the latest 128 events gets no marker. The entry is still drawn, just without
+the line saying it continues another Run. `—— 新根分支 ——` does not depend on the window, since it
+needs only `parentEventId === null`. Fix with the cursor reads: have the helper answer the parent's
+Run for visible entries, or read the parents past the window.

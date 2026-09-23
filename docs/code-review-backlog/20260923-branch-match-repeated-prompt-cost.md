@@ -49,3 +49,11 @@ a fixed time budget and the existing `branch_match` tests still pass.
 `python3 -m unittest -k branch_match mods/prompt-trail/tests/helper_protocol.py`. Build a large
 archive with a loop over `self.capture(...)` (slow, so prefer one SQLite transaction through a
 test-only fixture) and time `branch-match` with `time`.
+
+## Issue 19 addition: walking the preferred lineage
+
+Issue 19 made `branch-match` settle a tie on the candidate the `<prefer>` entry's lineage passes
+through (`lineage_winner()`). It walks from `<prefer>` to the root one `SELECT` at a time and, at
+each step, compares against every tied candidate. The cost is lineage depth times tie count, so it
+belongs to the same scale problem as above and should be solved with it. For example, a set of
+tied event ids makes each step constant-time.

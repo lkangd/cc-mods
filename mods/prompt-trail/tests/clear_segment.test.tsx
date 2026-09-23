@@ -1,5 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { LifecycleState, LifecycleWrite } from '../hooks/lifecycle'
+import type { TranscriptRow } from './support'
 import {
   LIFECYCLE_QUEUE_LIMIT,
   clearTransitionState,
@@ -372,13 +373,15 @@ test('a completed transition reports as completed and blocks nothing', async ($,
 test('the segment after a clear starts a new root branch', async ($, on) => {
   const classicSession = { id: endedSessionId }
   const store = consentedStore()
-  const calls = installSupportedTarget(on, { store, classicSession })
+  const transcript: TranscriptRow[] = []
+  const calls = installSupportedTarget(on, { store, classicSession, transcript })
 
   await $.session.start(session)
   await composerPrompt($, { text: 'PT-SECRET-BEFORE-CLEAR' })
   await composerPrompt($, { text: 'PT-SECRET-STILL-BEFORE' })
   /* What `/clear` does to the host: a new classic session, the same Run. */
   classicSession.id = resumedSessionId
+  transcript.splice(0)
   await composerPrompt($, { text: 'PT-SECRET-AFTER-CLEAR' })
 
   const staged = captureCalls(calls, 'capture-begin')

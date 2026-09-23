@@ -1903,22 +1903,67 @@ class HelperProtocolTests(unittest.TestCase):
             list(range(9, 1, -1)),
         )
 
-    def test_branch_match_lists_a_preferred_tied_candidate_first(self) -> None:
+    def test_branch_match_settles_a_tie_on_a_preferred_candidate_past_the_listed_eight(self) -> None:
         project_id = "b2" * 32
         roots = [
             self.capture("PT-SECRET-ROOT", identity=self.identity(project_id))
             for _ in range(9)
         ]
 
-        # The oldest would fall outside the eight newest; preferred, it leads.
+        # The oldest would fall outside the eight newest; preferred, it wins.
         payload = self.match(["PT-SECRET-ROOT"], project_id=project_id, prefer=roots[0])
         unrelated = self.match(["PT-SECRET-ROOT"], project_id=project_id, prefer=str(uuid.uuid4()))
 
-        self.assertEqual(payload["candidates"][0]["eventId"], roots[0])
-        self.assertEqual(len(payload["candidates"]), 8)
+        self.assertEqual((payload["match"], payload["eventId"]), ("unique", roots[0]))
+        self.assertEqual(unrelated["match"], "ambiguous")
         self.assertEqual(
             [row["eventId"] for row in unrelated["candidates"]],
             list(reversed(roots))[:8],
+        )
+
+    def test_branch_match_settles_a_tie_on_the_preferred_lineage(self) -> None:
+        project_id = "b3" * 32
+        identity = self.identity(project_id)
+        root = self.capture("PT-SECRET-A", identity=identity)
+        # Rewound to B and resubmitted with the same text, then carried on.
+        first = self.capture("PT-SECRET-B", identity=identity, parent=root)
+        again = self.capture("PT-SECRET-B", identity=identity, parent=root)
+        tip = self.capture("PT-SECRET-C", identity=identity, parent=again)
+        scope = {"run_id": identity["run_id"], "segment_id": identity["segment_id"]}
+        rows = ["PT-SECRET-A", "PT-SECRET-B"]
+
+        # A rewind only shortens the transcript, so it is a prefix of the
+        # lineage it was on: the tied entry that lineage passes through wins.
+        on_tip = self.match(rows, project_id=project_id, prefer=tip, **scope)
+        on_first = self.match(rows, project_id=project_id, prefer=first, **scope)
+        unpreferred = self.match(rows, project_id=project_id, **scope)
+        elsewhere = self.match(rows, project_id=project_id, prefer=str(uuid.uuid4()), **scope)
+
+        self.assertEqual((on_tip["match"], on_tip.get("eventId")), ("unique", again))
+        self.assertEqual((on_first["match"], on_first.get("eventId")), ("unique", first))
+        self.assertEqual(unpreferred["match"], "ambiguous")
+        self.assertEqual(elsewhere["match"], "ambiguous")
+
+    def test_branch_match_leaves_a_tie_the_preferred_lineage_passes_twice(self) -> None:
+        project_id = "b4" * 32
+        identity = self.identity(project_id)
+        first = self.capture("PT-SECRET-X", identity=identity)
+        second = self.capture("PT-SECRET-X", identity=identity, parent=first)
+        third = self.capture("PT-SECRET-X", identity=identity, parent=second)
+        tip = self.capture("PT-SECRET-Y", identity=identity, parent=third)
+        scope = {"run_id": identity["run_id"], "segment_id": identity["segment_id"]}
+        rows = ["PT-SECRET-X", "PT-SECRET-X"]
+
+        # A whole transcript proves where it ends; one missing its earliest rows
+        # could be the tail of either repeat, both on the preferred lineage.
+        whole = self.match(rows, project_id=project_id, prefer=tip, **scope)
+        truncated = self.match(rows, project_id=project_id, prefer=tip, transcript="truncated", **scope)
+
+        self.assertEqual((whole["match"], whole.get("eventId")), ("unique", second))
+        self.assertEqual(truncated["match"], "ambiguous")
+        self.assertEqual(
+            {row["eventId"] for row in truncated["candidates"]},
+            {second, third},
         )
 
     def test_branch_match_keeps_a_resume_inside_its_own_session(self) -> None:
