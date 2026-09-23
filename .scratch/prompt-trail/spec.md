@@ -93,7 +93,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 69. 作为删除范围为空的使用者，我希望命令返回 no-op 而不询问，以便无效操作不制造确认噪音。
 70. 作为删除后仍有 WAL、备份或残留文件的使用者，我希望看到“逻辑删除完成、物理清除未完成”并保持 Archive unavailable，以便部分成功不会被描述为彻底清除。
 71. 作为执行删除的使用者，我希望再次看到 Claude Code transcript、快照、备份和 SSD 介质边界，以便我不会误判删除保证。
-72. 作为隐私敏感的使用者，我希望 prompt 原文只经 stdin 进入 helper，且不进入 argv、locator、错误、stdout/stderr、debug log、trace 或报告，以便操作元数据不会泄露内容。
+72. 作为隐私敏感的使用者，我希望 prompt 原文只经 stdin 进入 helper、只经专用时间线读取响应回到 hook 用于显示，且不进入 argv、locator、错误、stderr、其他子命令的 stdout、debug log、trace 或报告，以便操作元数据不会泄露内容。
 73. 作为本机账户使用者，我希望数据目录为 `0700`、敏感文件为 `0600` 且异常 owner、symlink 或 ACL 被拒绝，以便其他 OS 用户和意外权限放宽不能直接暴露档案。
 74. 作为准备移除本地插件目录的使用者，我希望先被告知数据不会随 `--plugin-dir` 自动卸载，以便我能在失去命令入口前清理档案。
 75. 作为发布维护者，我希望每个需求都有稳定场景 ID 和可审计证据，以便所有 MUST 行为可以零缺失、零跳过地判定。
@@ -231,7 +231,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 
 16. **安全、诊断与隐私**
     - prompt 原文只经 stdin 进入 helper，只存于目标档案及迁移/隔离所需的受控敏感副本。
-    - argv、locator、stdout/stderr、错误、debug log、trace、发布报告和备份清单不得含原文或文本哈希。
+    - argv、locator、stderr、错误、debug log、trace、发布报告和备份清单不得含原文或文本哈希。helper stdout 只有专用时间线读取子命令（`timeline-read`）的响应可以携带原文：它由 `$.process.run` 捕获进 hook 内存、只用于当下显示，等同“当下允许显示的 UI”；其余子命令的 stdout 一律不含原文。
     - 诊断只使用随机 event ID、sequence、错误码、必要路径和不敏感计数。
     - 路径只在 owner、类型和来源可信时自动收紧权限；错误 owner、symlink、异常 ACL 或无法证明安全的路径直接拒绝。
     - 信任模型防止其他 OS 用户、意外权限放宽和陈旧/错误 locator；不承诺抵御当前账户、root 或能同时篡改 plugin/helper 的主体，也不提供加密或恶意数据库修改证明。
@@ -283,7 +283,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 
 8. **安全 fixture 与证据**
    - 每个场景使用不可猜测的合成 prompt 标记；不接触现有 Prompt Trail 或 Claude Code 用户数据。
-   - 扫描 argv、locator、stdout/stderr、Claude Code/plugin 日志、错误、trace、备份清单和发布报告；标记只能存在于目标 SQLite 原文字段和当下允许显示的 UI。
+   - 扫描 argv、locator、stdout/stderr、Claude Code/plugin 日志、错误、trace、备份清单和发布报告；标记只能存在于目标 SQLite 原文字段、`timeline-read` 响应和当下允许显示的 UI。
    - 终端 trace 必须在落盘前或生成报告时脱敏；报告只记录非敏感状态、ID、计数和证据链接。
    - 每个稳定场景 ID 记录版本、平台、helper 摘要、fixture、步骤、预期、实际与结果。
 

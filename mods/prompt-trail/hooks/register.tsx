@@ -7,6 +7,7 @@ import type {
 } from './lifecycle'
 import {
   LIFECYCLE_QUEUE_LIMIT,
+  beginRun,
   clearTransitionState,
   decideLifecycle,
   dequeueLifecycleWrite,
@@ -25,6 +26,10 @@ type StartupState = {
   sessionId?: string
   runId?: string
   archiveGeneration?: string
+  /* When the Run's host process began, in milliseconds. It is the instant the
+     Run's start boundary records, and it is the same on every reload and every
+     replay of that boundary, as its idempotency requires. */
+  hostStartedAt?: number
   helperTrusted?: true
 }
 
@@ -51,9 +56,10 @@ type CollectionBoundaryKind =
 
 /* Every non-prompt Timeline Event the plugin writes. A Clear Boundary is not a
    Collection Boundary: it records where a Conversation Segment ended, not
-   whether a Run was recording. They share the table, the project-level
-   sequence and the drawing of one dim row, and nothing else. */
-type BoundaryKind = CollectionBoundaryKind | 'clear'
+   whether a Run was recording; a Run boundary records where one process's Run
+   began or ended. They share the table, the project-level sequence and the
+   drawing of one dim row, and nothing else. */
+type BoundaryKind = CollectionBoundaryKind | 'clear' | 'run-started' | 'run-ended'
 
 /* The Run-level switch, persisted per project and Run so an explicit disable
    survives a module reload. A Run with no record collects by default; only
@@ -86,11 +92,15 @@ type ReconcileState = {
   attachmentCount: number
 }
 
+/* One row of the expanded band. Rows read back from the archive and rows this
+   module instance appended are the same shape; neither carries a Jump Target,
+   which only a live transcript position can give. */
 type TimelineItem =
   | {
     kind: 'prompt'
     eventId: string
     sequence: number
+    runId: string
     text: string
     attachmentCount: number
   }
@@ -98,6 +108,7 @@ type TimelineItem =
     kind: 'boundary'
     eventId: string
     sequence: number
+    runId: string
     boundary: BoundaryKind
   }
 
@@ -254,7 +265,7 @@ let lifecycleFailure: string | undefined
 let deferredClear: { sessionId: string; occurredAt: number } | undefined
 /* What the project's other Runs still owe, as the last enumeration found it.
    Kept for the report only; the drain always re-enumerates. */
-let lifecycleOthers: { queued: number; unfinished: number } | undefined
+let lifecycleOthers: { queue: LifecycleWrite[]; unfinished: number } | undefined
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -600,6 +611,8 @@ async function inspectTarget(
     sessionId,
     runId: locator.runId,
     archiveGeneration: locator.archiveGeneration,
+    hostStartedAt: locator.hostStartSeconds * 1000
+      + Math.floor(locator.hostStartMicroseconds / 1000),
     helperPath: locator.helperPath,
     databaseRoot: locator.databaseRoot,
   }
@@ -815,6 +828,13 @@ function runModeKey(projectId: string, runId: string): string {
   return `prompt-trail:run-mode:${projectId}:${runId}`
 }
 
+/* The band's state, kept per Run: a reload of the Run draws the band the way
+   the person left it, and a new process starts collapsed. Issue 21's selection
+   position belongs in the same record. */
+function uiKey(runId: string): string {
+  return `prompt-trail:ui:${runId}`
+}
+
 /* The identifier policy for everything read back out of `$.store`, in one
    place: every decoder below applies the same rule to every id it will later
    hand to the helper as argv. */
@@ -902,7 +922,7 @@ function storedReconcile(value: unknown): ReconcileState | undefined {
 function storedLifecycleWrite(value: unknown): LifecycleWrite | undefined {
   if (
     !isRecord(value) ||
-    value.kind !== 'clear' ||
+    (value.kind !== 'clear' && value.kind !== 'run-started' && value.kind !== 'run-ended') ||
     !isSafeId(value.eventId) ||
     !isSafeId(value.runId) ||
     !isSafeId(value.segmentId) ||
@@ -911,7 +931,7 @@ function storedLifecycleWrite(value: unknown): LifecycleWrite | undefined {
     (value.occurredAt as number) < 0
   ) return undefined
   return {
-    kind: 'clear',
+    kind: value.kind,
     eventId: value.eventId,
     runId: value.runId,
     segmentId: value.segmentId,
@@ -960,6 +980,8 @@ function storedLifecycle(value: unknown): LifecycleState | undefined {
     ...(value.unobservedClear === true ? { unobservedClear: true as const } : {}),
     ...(value.overflowed === true ? { overflowed: true as const } : {}),
     ...(damaged ? { damaged: true as const } : {}),
+    ...(value.started === true ? { started: true as const } : {}),
+    ...(value.ended === true ? { ended: true as const } : {}),
   }
 }
 
@@ -1055,7 +1077,7 @@ async function foreignLifecycles(
     if (value) found.push({ key, value })
   }
   lifecycleOthers = {
-    queued: found.reduce((total, record) => total + record.value.queue.length, 0),
+    queue: found.flatMap(record => record.value.queue),
     /* Another Run's transition can never complete: only the Run that cut the
        segment may claim it, and that Run is gone. */
     unfinished: found.filter(record => record.value.clear !== undefined
@@ -1218,6 +1240,9 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
      an empty queue. */
   lifecycle = undefined
   deferredClear = undefined
+  /* The band shows one Project Timeline: another project's rows, read back or
+     recorded here, are not this one's to draw. */
+  timeline = []
   project = {
     root,
     id,
@@ -1280,6 +1305,15 @@ async function requestConsent(
     if (decision === 'enabled') {
       currentProject.consent = undefined
       throw error
+    }
+  }
+  /* The archive has just become this plugin's to look into, and it may already
+     hold what an earlier consent recorded. */
+  if (decision === 'enabled') {
+    try {
+      await loadTimeline($, currentProject)
+    } catch {
+      // The band shows what this module instance records from here on.
     }
   }
   return decision
@@ -1456,6 +1490,89 @@ async function listPending(
   return parsePendingList(result.stdout, currentProject.id)
 }
 
+const TIMELINE_KINDS = new Set<string>([
+  'collection-started',
+  'collection-stopped',
+  'collection-resumed',
+  'clear',
+  'run-started',
+  'run-ended',
+])
+
+/* A response that is not exactly the shape the helper writes is refused
+   whole: a row that cannot be trusted is not drawn as history. */
+function parseTimeline(text: string, projectId: string): TimelineItem[] {
+  const value: unknown = JSON.parse(text)
+  if (
+    !isRecord(value) ||
+    value.projectId !== projectId ||
+    !Array.isArray(value.events) ||
+    typeof value.truncated !== 'boolean'
+  ) throw new Error('timeline-read')
+  return value.events.map((row: unknown): TimelineItem => {
+    if (
+      !isRecord(row) ||
+      !isSafeId(row.eventId) ||
+      !isSafeId(row.runId) ||
+      !Number.isSafeInteger(row.sequence) ||
+      (row.sequence as number) < 1
+    ) throw new Error('timeline-read')
+    const identity = {
+      eventId: row.eventId,
+      sequence: row.sequence as number,
+      runId: row.runId,
+    }
+    if (row.kind === 'prompt') {
+      if (
+        typeof row.text !== 'string' ||
+        !Number.isSafeInteger(row.attachmentCount) ||
+        (row.attachmentCount as number) < 0
+      ) throw new Error('timeline-read')
+      return {
+        kind: 'prompt',
+        ...identity,
+        text: row.text,
+        attachmentCount: row.attachmentCount as number,
+      }
+    }
+    if (typeof row.kind !== 'string' || !TIMELINE_KINDS.has(row.kind)) {
+      throw new Error('timeline-read')
+    }
+    return { kind: 'boundary', ...identity, boundary: row.kind as BoundaryKind }
+  })
+}
+
+/* The latest events of the Project Timeline, read back so a reload or a new
+   process shows what the archive already holds. The helper fixes the batch;
+   reading further back is Issue 21's. Rows this module instance already
+   appended are kept, and nothing is drawn twice. Read only with consent: before
+   it the archive is not this plugin's to look into. */
+async function loadTimeline(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<void> {
+  if (currentProject.consent !== 'enabled' || !startup.helperPath || !startup.databaseRoot) {
+    return
+  }
+  const result = await run(
+    $,
+    [
+      startup.helperPath,
+      'timeline-read',
+      startup.databaseRoot,
+      currentProject.id,
+      EXPECTED_HELPER_SHA256,
+      String(HELPER_PROTOCOL),
+    ],
+    10_000,
+  )
+  if (result.exitCode !== 0) throw new Error('timeline-read')
+  const persisted = parseTimeline(result.stdout, currentProject.id)
+  const known = new Set(persisted.map(item => item.eventId))
+  timeline = [...persisted, ...timeline.filter(item => !known.has(item.eventId))]
+    .sort((left, right) => left.sequence - right.sequence)
+}
+
 async function saveReconcile(
   $: EngineInterface,
   currentProject: ProjectState,
@@ -1566,6 +1683,7 @@ async function reconcilePending(
             kind: 'prompt',
             eventId: owed.state.eventId,
             sequence,
+            runId: owed.state.runId,
             text: owed.text,
             attachmentCount: owed.state.attachmentCount,
           },
@@ -1697,10 +1815,126 @@ async function clearEventId(projectId: string, sessionId: string): Promise<strin
   return sha256(`prompt-trail:clear-boundary:1:${projectId}:${sessionId}`)
 }
 
+/* A Run boundary's idempotency key, derived from the Run it opens or closes.
+   Every replay — a retry from the recovery queue, a reload asking again, a later
+   process draining what an exiting one could not write — names the same event,
+   so there is exactly one start and at most one end per Run. */
+async function runBoundaryEventId(
+  kind: 'run-started' | 'run-ended',
+  projectId: string,
+  runId: string,
+): Promise<string> {
+  return sha256(`prompt-trail:${kind}:1:${projectId}:${runId}`)
+}
+
+/* Owing this Run's start boundary before its first write of anything else. It
+   is only queued here, and persisted before anything is attempted; the writer
+   that runs next lands it ahead of whatever the Run was about to record.
+   `forSessionId` names the segment the Run is in when that is not the current
+   one — at `classic.SessionEnd` the segment is the one that is ending. */
+async function ensureRunStarted(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  forSessionId?: string,
+): Promise<boolean> {
+  const sessionId = forSessionId ?? startup.sessionId
+  if (!startup.runId || !sessionId || startup.hostStartedAt === undefined) return false
+  try {
+    const state = await loadLifecycle($, currentProject)
+    if (state.started) return true
+    const decision = beginRun(state, {
+      eventId: await runBoundaryEventId('run-started', currentProject.id, startup.runId),
+      runId: startup.runId,
+      segmentId: sessionId,
+      branchId: (await branchState($, currentProject, sessionId)).value.branchId,
+      occurredAt: startup.hostStartedAt,
+    })
+    await saveLifecycle($, currentProject, decision.state)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/* Writing what this Run owes, oldest first, and stopping at the first write
+   that does not land so nothing is ordered ahead of a fact it follows. Answers
+   whether the Run owes nothing more. */
+async function flushOwnLifecycle(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<boolean> {
+  let own: LifecycleState
+  try {
+    own = await loadLifecycle($, currentProject)
+  } catch {
+    return false
+  }
+  let settled = own
+  for (const write of own.queue) {
+    try {
+      await writeBoundary($, currentProject, write)
+    } catch {
+      break
+    }
+    settled = dequeueLifecycleWrite(settled, write.eventId)
+  }
+  if (settled === own) return own.queue.length === 0
+  try {
+    await saveLifecycle($, currentProject, settled)
+  } catch {
+    /* The boundaries landed and the record still names them. A replay answers
+       the stored sequence, but the queue is not provably empty. */
+    return false
+  }
+  return settled.queue.length === 0
+}
+
+/* Writing what the project's other Runs still owe, each record oldest first.
+   Their facts belong to processes that have already gone, so every write of
+   this Run — its start above all — is ordered after them where they can land.
+   Answers whether they owe nothing more. */
+async function flushForeignLifecycles(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<boolean> {
+  let foreign: { key: string; value: LifecycleState }[]
+  try {
+    foreign = await foreignLifecycles($, currentProject)
+  } catch {
+    return false
+  }
+  let settledAll = true
+  for (const record of foreign) {
+    if (record.value.queue.length === 0) continue
+    let settled = record.value
+    for (const write of record.value.queue) {
+      try {
+        await writeBoundary($, currentProject, write)
+      } catch {
+        break
+      }
+      settled = dequeueLifecycleWrite(settled, write.eventId)
+    }
+    if (settled !== record.value) {
+      try {
+        await $.store.set(record.key, settled)
+      } catch {
+        /* The boundaries landed; the record still names them. A replay answers
+           the stored sequence, but the queue is not provably empty. */
+        settledAll = false
+        continue
+      }
+    }
+    if (settled.queue.length > 0) settledAll = false
+  }
+  return settledAll
+}
+
 /* One classic lifecycle event, run through the state machine and then through
-   the archive. Nothing here can block the event: `/clear` happens whether or
-   not the boundary lands, so what cannot be written now is left owed and the
-   next composer submission pays for it.
+   the archive. Nothing here can block the event: `/clear` happens and the
+   process exits whether or not the boundary lands, so what cannot be written
+   now is left owed and the next composer submission — this Run's or, after an
+   exit, another Run's — pays for it.
 
    The order is deliberate. The write is persisted as owed *before* it is
    attempted, so every crash window is recoverable: die before the append and
@@ -1716,10 +1950,14 @@ async function applyLifecycle(
 ): Promise<void> {
   if (!runtimeTarget) return
   const isClearEnd = input.event === 'session-end' && input.reason === 'clear'
+  const isRunEnd = input.event === 'session-end'
+    && input.reason !== 'clear'
+    && input.reason !== 'resume'
   /* A `/clear` this Run cannot record at all is remembered in memory so the
      next submission is blocked and every drain retries it. The instant is
      taken now, because a boundary written later must still say when the
-     segment actually ended. */
+     segment actually ended. An exit has no next submission to block: a Run
+     end that cannot be recorded leaves the Run unclosed, which is what it is. */
   const defer = async () => {
     if (!isClearEnd || deferredClear) return
     try {
@@ -1747,15 +1985,25 @@ async function applyLifecycle(
   /* A Run whose collection is switched off records nothing between its stop and
      resume boundaries, and a Clear Boundary inside that interval would describe
      the shape of prompts that were never archived. The structural fact still
-     survives: resuming starts a new root Conversation Branch of its own. */
-  let mode: RunModeState
-  try {
-    mode = (await loadRunMode($, currentProject)).value
-  } catch {
+     survives: resuming starts a new root Conversation Branch of its own. A Run
+     end is not such a shape: a disabled Run that did start still closes. */
+  if (!isRunEnd) {
+    let mode: RunModeState
+    try {
+      mode = (await loadRunMode($, currentProject)).value
+    } catch {
+      await defer()
+      return
+    }
+    if (mode.mode === 'disabled') return
+  }
+
+  /* A `/clear` is a write of this Run, so the Run's start is owed ahead of it.
+     An exit never starts a Run: a Run that archived nothing has nothing to end. */
+  if (isClearEnd && !await ensureRunStarted($, currentProject, input.sessionId)) {
     await defer()
     return
   }
-  if (mode.mode === 'disabled') return
 
   let state: LifecycleState
   try {
@@ -1783,6 +2031,16 @@ async function applyLifecycle(
       await defer()
       return
     }
+  } else if (isRunEnd && state.started && !state.ended) {
+    try {
+      end = {
+        eventId: await runBoundaryEventId('run-ended', currentProject.id, startup.runId),
+        branchId: (await branchState($, currentProject, input.sessionId)).value.branchId,
+        occurredAt: await $.clock.now(),
+      }
+    } catch {
+      end = undefined
+    }
   }
 
   const decision = decideLifecycle(state, input, { runId: startup.runId, ...(end ? { end } : {}) })
@@ -1793,33 +2051,30 @@ async function applyLifecycle(
 
   if (decision.write) {
     /* Owed first, attempted second. */
+    const queued = queueLifecycleWrite(decision.state, decision.write)
     try {
-      await saveLifecycle($, currentProject, queueLifecycleWrite(decision.state, decision.write))
+      await saveLifecycle($, currentProject, queued)
     } catch {
       await defer()
       return
     }
-    deferredClear = undefined
-    /* A Pending Capture from before the `/clear` has not taken its sequence
-       yet. Appending now would put the segment break ahead of the prompt it
+    if (isClearEnd) deferredClear = undefined
+    /* A Pending Capture from before the `/clear` or the exit has not taken its
+       sequence yet. Appending now would put the boundary ahead of the prompt it
        follows, so the boundary waits in the queue: the drain runs after
        `settlePending()`, which is exactly the right order. */
     if (reconcile) return
-    try {
-      await writeBoundary($, currentProject, decision.write)
-    } catch {
-      /* It stays queued exactly as persisted a moment ago. */
-      return
-    }
-    try {
-      await saveLifecycle(
-        $,
-        currentProject,
-        dequeueLifecycleWrite(decision.state, decision.write.eventId),
-      )
-    } catch {
-      /* The queue still names a boundary the archive already holds. Replaying
-         it answers the stored sequence, so the only cost is one extra call. */
+    await flushForeignLifecycles($, currentProject)
+    if (!await flushOwnLifecycle($, currentProject)) return
+    /* A full queue refused this `/clear` and reported the loss. Once everything
+       it follows has landed it is still attempted, and only then is it lost. */
+    const write = decision.write
+    if (!queued.queue.some(owed => owed.eventId === write.eventId)) {
+      try {
+        await writeBoundary($, currentProject, write)
+      } catch {
+        // The overflow is already on record for status to report.
+      }
     }
     return
   }
@@ -1852,7 +2107,7 @@ async function writeBoundary(
         runId: write.runId,
       },
     )
-    recordBoundary(write.kind, appended)
+    recordBoundary(write.kind, appended, write.runId)
     lifecycleFailure = undefined
     $.ui.invalidate('ui.render')
   } catch (error) {
@@ -1875,6 +2130,9 @@ async function drainLifecycle(
   $: EngineInterface,
   currentProject: ProjectState,
 ): Promise<'clear' | 'blocked'> {
+  /* Every caller is about to write for this Run, so its start is owed first. */
+  if (!await ensureRunStarted($, currentProject)) return 'blocked'
+
   /* A `/clear` this Run saw but never managed to write down. Completing it now
      replays the instant it was seen, not the instant of the retry. */
   const owed = deferredClear
@@ -1896,47 +2154,11 @@ async function drainLifecycle(
     }
   }
 
-  let own: LifecycleState
-  let foreign: { key: string; value: LifecycleState }[]
-  try {
-    own = await loadLifecycle($, currentProject)
-    foreign = await foreignLifecycles($, currentProject)
-  } catch {
-    return 'blocked'
-  }
-
-  const records: { key: string | 'own'; value: LifecycleState }[] = [
-    { key: 'own', value: own },
-    ...foreign,
-  ]
-  let blocked = false
-  for (const record of records) {
-    if (record.value.queue.length === 0) continue
-    let settled = record.value
-    for (const write of record.value.queue) {
-      try {
-        await writeBoundary($, currentProject, write)
-      } catch {
-        break
-      }
-      settled = dequeueLifecycleWrite(settled, write.eventId)
-    }
-    if (settled === record.value) {
-      blocked = true
-      continue
-    }
-    try {
-      if (record.key === 'own') await saveLifecycle($, currentProject, settled)
-      else await $.store.set(record.key, settled)
-    } catch {
-      /* The boundaries landed; the record still names them. A replay answers
-         the stored sequence, so the retry is free of consequence — but the
-         queue is not provably empty, so the submission still waits. */
-      return 'blocked'
-    }
-    if (settled.queue.length > 0) blocked = true
-  }
-  return blocked ? 'blocked' : 'clear'
+  /* Another Run's debts first: they are facts of a process that has already
+     gone, and this Run's own start is not ordered ahead of them. */
+  const foreignSettled = await flushForeignLifecycles($, currentProject)
+  const ownSettled = await flushOwnLifecycle($, currentProject)
+  return foreignSettled && ownSettled ? 'clear' : 'blocked'
 }
 
 /* The draft belongs to the person, not to the submission Prompt Trail
@@ -1969,17 +2191,20 @@ function entryLine(entry: Extract<TimelineItem, { kind: 'prompt' }>): string {
 /* A disabled interval is drawn as an explicit break, never as continuous
    history: the stop marker says the prompts after it were not recorded and the
    resume marker says nothing from that interval is reconstructed. */
-function boundaryLine(kind: BoundaryKind): string {
+function boundaryLine(kind: BoundaryKind | 'run-unclosed'): string {
   if (kind === 'clear') {
     return '—— /clear：新的 Conversation Segment ——'
   }
+  if (kind === 'run-started') return '—— Run 开始 ——'
+  if (kind === 'run-ended') return '—— Run 结束 ——'
+  /* Drawn, never archived: the archive cannot tell a Run that crashed from one
+     still running in another process, and this claims only what it knows. */
+  if (kind === 'run-unclosed') return '—— Run 未记录结束 ——'
+  if (kind === 'collection-started') return '—— 采集已开始 ——'
   if (kind === 'collection-stopped') {
     return '—— 采集已停止（其后的 prompt 未记录）——'
   }
-  if (kind === 'collection-resumed') {
-    return '—— 采集已恢复（新根分支；停用期间的 prompt 不补录）——'
-  }
-  return '—— 采集已开始 ——'
+  return '—— 采集已恢复（新根分支；停用期间的 prompt 不补录）——'
 }
 
 function boundarySummary(mode: RunModeState | undefined): string {
@@ -1994,6 +2219,17 @@ function reconcileSummary(): string {
   if (reconcile) return `${reconcile.state.eventId.slice(0, 8)} · 待对账`
   if (pendingUnknown) return 'unknown · 未决 Pending Capture 不可读'
   return 'none'
+}
+
+/* What a recovery queue still owes, by kind, so an owed Run start never reads
+   as a Clear Boundary. */
+function owedText(queue: readonly LifecycleWrite[]): string {
+  const clears = queue.filter(write => write.kind === 'clear').length
+  const runs = queue.length - clears
+  return [
+    ...(clears ? [`${clears} 条 Clear Boundary 待补写`] : []),
+    ...(runs ? [`${runs} 条 Run 边界待补写`] : []),
+  ].join(' · ')
 }
 
 /* What the lifecycle record knows about the latest `/clear`, and what the
@@ -2024,13 +2260,13 @@ function clearSummary(): string {
   }
   if (state.unobservedClear) parts.push('观察到无对应 SessionEnd 的 source=clear')
   if (state.queue.length > 0) {
-    parts.push(`${state.queue.length} 条 Clear Boundary 待补写`)
+    parts.push(owedText(state.queue))
     if (lifecycleFailure) parts.push(`上次补写失败：${statusValue(lifecycleFailure)}`)
   }
   if (state.overflowed) parts.push('恢复队列已溢出，部分 Clear Boundary 未记录')
-  if (state.damaged) parts.push('恢复队列有无法重放的记录，其 Clear Boundary 已丢失')
-  if (lifecycleOthers?.queued) {
-    parts.push(`其他 Run 遗留 ${lifecycleOthers.queued} 条 Clear Boundary 待补写`)
+  if (state.damaged) parts.push('恢复队列有无法重放的记录，其 Clear Boundary 或 Run 边界已丢失')
+  if (lifecycleOthers?.queue.length) {
+    parts.push(`其他 Run 遗留 ${owedText(lifecycleOthers.queue)}`)
   }
   if (lifecycleOthers?.unfinished) {
     parts.push(`其他 Run 有 ${lifecycleOthers.unfinished} 次未完成转换`)
@@ -2047,8 +2283,11 @@ function collectionModeText(): string {
   if (pendingUnknown) return 'unknown · 未决 Pending Capture 不可读'
   if (!lifecycle) return 'unknown · lifecycle 记录不可读'
   if (deferredClear) return 'disabled · 已观察到 /clear 但尚未记录'
-  if (lifecycle.value.queue.length > 0 || lifecycleOthers?.queued) {
-    return 'disabled · Clear Boundary 待补写'
+  const owed = [...lifecycle.value.queue, ...lifecycleOthers?.queue ?? []]
+  if (owed.length > 0) {
+    return owed.some(write => write.kind === 'clear')
+      ? 'disabled · Clear Boundary 待补写'
+      : 'disabled · Run 边界待补写'
   }
   if (archiveUnavailable) return 'disabled · 档案不可用'
   if (startup.support !== 'supported') {
@@ -2105,6 +2344,7 @@ function statusText(): string {
     `database root: ${startup.databaseRoot ? statusValue(startup.databaseRoot) : 'unavailable'}`,
     `helper: ${helper}`,
     `locator: ${startup.locatorPath ? statusValue(startup.locatorPath) : 'unavailable'}`,
+    `run: ${startup.runId ?? 'unavailable'}`,
   ].join('\n')
 }
 
@@ -2141,6 +2381,7 @@ async function refreshStartup($: EngineInterface): Promise<void> {
 function recordBoundary(
   kind: BoundaryKind,
   appended: { eventId: string; sequence: number },
+  runId: string = startup.runId ?? '',
 ): void {
   if (timeline.some(item => item.eventId === appended.eventId)) return
   timeline = [
@@ -2149,6 +2390,7 @@ function recordBoundary(
       kind: 'boundary',
       eventId: appended.eventId,
       sequence: appended.sequence,
+      runId,
       boundary: kind,
     },
   ]
@@ -2208,7 +2450,7 @@ async function enableCollection($: EngineInterface): Promise<string> {
      would order the segment break after the interval it precedes, so the queue
      is emptied first and enable refuses while anything is left in it. */
   if (await drainLifecycle($, currentProject) === 'blocked') {
-    return 'Prompt Trail 仍有中断的 Clear Boundary 待补写，未启用采集。'
+    return 'Prompt Trail 仍有中断的 Clear Boundary 或 Run 边界待补写，未启用采集。'
   }
 
   if (archiveUnavailable) {
@@ -2330,6 +2572,12 @@ async function disableCollection($: EngineInterface): Promise<string> {
     currentProject.consent === 'enabled'
   ) {
     try {
+      /* The stop is a write of this Run, so the Run's start and whatever it
+         already owes land first — after what other Runs owe, where that can
+         land. Another Run's stuck debt does not stand in the way of stopping. */
+      if (!await ensureRunStarted($, currentProject)) throw new Error('lifecycle-owed')
+      await flushForeignLifecycles($, currentProject)
+      if (!await flushOwnLifecycle($, currentProject)) throw new Error('lifecycle-owed')
       const branch = await branchState($, currentProject)
       appended = await appendBoundary($, currentProject, branch.value.branchId, kind)
     } catch {
@@ -2375,6 +2623,38 @@ async function disableCollection($: EngineInterface): Promise<string> {
   return `当前 Run 已停用采集，${boundaryNote}${persistenceNote}。既有 Prompt Entries、Collection consent 和其他 Run 均未改变。`
 }
 
+/* Best effort: a band that reopens collapsed after a reload costs one click,
+   and is no reason to fail the toggle. */
+async function saveExpanded($: EngineInterface): Promise<void> {
+  if (!startup.runId) return
+  try {
+    await $.store.set(uiKey(startup.runId), { version: 1, expanded })
+  } catch {
+    // Kept in memory for this module instance.
+  }
+}
+
+/* Where the band marks a Run that never recorded its end: after that Run's
+   last row, for every Run other than this one whose start is in view. Without
+   its start in view there is nothing to say it was ever open. */
+function unclosedRuns(items: readonly TimelineItem[]): Map<string, string> {
+  const started = new Set<string>()
+  const ended = new Set<string>()
+  const last = new Map<string, string>()
+  for (const item of items) {
+    if (item.kind === 'boundary' && item.boundary === 'run-started') started.add(item.runId)
+    if (item.kind === 'boundary' && item.boundary === 'run-ended') ended.add(item.runId)
+    last.set(item.runId, item.eventId)
+  }
+  const markers = new Map<string, string>()
+  for (const runId of started) {
+    if (ended.has(runId) || runId === startup.runId) continue
+    const eventId = last.get(runId)
+    if (eventId) markers.set(eventId, runId)
+  }
+  return markers
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     runtimeTarget = {
@@ -2398,20 +2678,38 @@ export const register: Register = on => {
         projectPath: e.cwd,
       }
     }
+    /* A reload fires this again inside the same Run, and the module instance
+       it builds starts empty: the band's state and the archived events are
+       read back rather than lost. Neither can block the session. */
+    if (startup.runId) {
+      try {
+        const stored: unknown = await $.store.get(uiKey(startup.runId))
+        expanded = isRecord(stored) && stored.version === 1 && stored.expanded === true
+      } catch {
+        // The band starts collapsed, as a new Run's does.
+      }
+    }
+    if (startup.support === 'supported') {
+      try {
+        await loadTimeline($, await prepareProject($))
+      } catch {
+        // The band shows what this module instance records from here on.
+      }
+    }
     return next(e)
   })
 
-  /* Spec §9: only this event cuts a Conversation Segment. It cannot be
-     prevented and its result is not this plugin's to change, so the hook writes
-     what it can and hands the event on untouched. */
+  /* Spec §9: a `clear` end cuts a Conversation Segment and an exit ends the
+     Run; an in-process `resume` does neither. Every reason goes to the state
+     machine, which tells them apart. The event cannot be prevented and its
+     result is not this plugin's to change, so the hook writes what it can and
+     hands the event on untouched. */
   on('classic.SessionEnd', async ($, e, next) => {
-    if (e.reason === 'clear') {
-      await applyLifecycle($, {
-        event: 'session-end',
-        sessionId: e.session_id,
-        reason: e.reason,
-      })
-    }
+    await applyLifecycle($, {
+      event: 'session-end',
+      sessionId: e.session_id,
+      reason: e.reason,
+    })
     return next(e)
   })
 
@@ -2434,6 +2732,7 @@ export const register: Register = on => {
     const args = e.args.trim()
     if (args === '') {
       expanded = true
+      await saveExpanded($)
       $.ui.invalidate('ui.render')
       return { text: 'Prompt Trail 已展开。' }
     }
@@ -2569,7 +2868,7 @@ export const register: Register = on => {
     if (await drainLifecycle($, currentProject) === 'blocked') {
       const restored = await restoreDraft($, e.text)
       return {
-        drop: `Prompt Trail 无法补写中断的 Clear Boundary，${draftNote(restored)}；为避免漏记，本次提交已阻止。`,
+        drop: `Prompt Trail 无法补写中断的 Clear Boundary 或 Run 边界，${draftNote(restored)}；为避免漏记，本次提交已阻止。`,
       }
     }
 
@@ -2655,6 +2954,7 @@ export const register: Register = on => {
           kind: 'prompt',
           eventId,
           sequence,
+          runId: startup.runId ?? '',
           text: finalText,
           attachmentCount: attachmentKinds.length,
         },
@@ -2684,9 +2984,10 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'AbovePrompt', surface: 'terminal' }, ($, e) => {
     const { Box, Button, Text } = $.ui.resolve(e)
-    const toggle = () => {
+    const toggle = async () => {
       expanded = !expanded
       $.ui.invalidate('ui.render')
+      await saveExpanded($)
     }
     if (!expanded) {
       return (
@@ -2701,12 +3002,21 @@ export const register: Register = on => {
     /* The displayed number counts Prompt Entries only, so a boundary drawn in
        between never consumes a position in the session-level numbering. */
     let position = 0
-    const rows = [...timeline]
-      .sort((left, right) => left.sequence - right.sequence)
-      .map(item => ({
-        item,
-        position: item.kind === 'prompt' ? (position += 1) : 0,
-      }))
+    const ordered = [...timeline].sort((left, right) => left.sequence - right.sequence)
+    const unclosed = unclosedRuns(ordered)
+    const rows = ordered.flatMap(item => {
+      const drawn = {
+        key: `prompt-trail:${item.kind}:${item.eventId}`,
+        text: item.kind === 'boundary'
+          ? boundaryLine(item.boundary)
+          : `${(position += 1)}. ${entryLine(item)}`,
+        dim: item.kind === 'boundary',
+      }
+      const runId = unclosed.get(item.eventId)
+      return runId === undefined
+        ? [drawn]
+        : [drawn, { key: `prompt-trail:unclosed:${runId}`, text: boundaryLine('run-unclosed'), dim: true }]
+    })
     return (
       <Box flexDirection="column">
         <Button
@@ -2719,13 +3029,11 @@ export const register: Register = on => {
           <Text dimColor>尚无 Prompt Entry</Text>
         ) : rows.map(row => (
           <Text
-            key={`prompt-trail:${row.item.kind}:${row.item.eventId}`}
+            key={row.key}
             wrap="truncate-end"
-            {...(row.item.kind === 'boundary' ? { dimColor: true } : {})}
+            {...(row.dim ? { dimColor: true } : {})}
           >
-            {row.item.kind === 'boundary'
-              ? boundaryLine(row.item.boundary)
-              : `${row.position}. ${entryLine(row.item)}`}
+            {row.text}
           </Text>
         ))}
       </Box>

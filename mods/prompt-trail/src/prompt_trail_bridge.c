@@ -472,7 +472,7 @@ static bool same_host_locator(
     && strcmp(locator->plugin_root, plugin_root) == 0;
 }
 
-static bool load_clear_identity(
+static bool load_predecessor_identity(
   const char *directory,
   const char *plugin_root,
   pid_t host_pid,
@@ -522,7 +522,7 @@ static bool load_clear_identity(
   return matches > 0;
 }
 
-static void remove_clear_predecessors(
+static void remove_predecessors(
   const char *directory,
   const char *session_id,
   const char *plugin_root,
@@ -608,21 +608,29 @@ static void publish_locator(
   char host_version[64] = "unproven";
   (void)pt_executable_version(host_executable, host_version, sizeof(host_version));
 
+  /* A Run is one host process generation. A `/clear` or an in-process
+     `/resume` changes the classic session inside the same process, so it
+     inherits the identity a locator of this very generation already holds; a
+     `/clear` without one fails closed rather than inventing a Run. `startup`
+     and `fork` always begin a new process and so a new Run, and so does a
+     `resume` in a new process: nothing it inherited from its parent's
+     environment can prove the same generation. */
   char run_id[129];
   char archive_generation[129];
-  if (strcmp(source, "clear") == 0) {
-    if (!load_clear_identity(
-          directory,
-          plugin_root,
-          host_pid,
-          host_start_seconds,
-          host_start_microseconds,
-          run_id,
-          archive_generation
-        )) {
-      fail("locator-predecessor-missing");
-    }
-  } else {
+  bool inherits = strcmp(source, "clear") == 0 || strcmp(source, "resume") == 0;
+  bool inherited = inherits && load_predecessor_identity(
+    directory,
+    plugin_root,
+    host_pid,
+    host_start_seconds,
+    host_start_microseconds,
+    run_id,
+    archive_generation
+  );
+  if (strcmp(source, "clear") == 0 && !inherited) {
+    fail("locator-predecessor-missing");
+  }
+  if (!inherited) {
     pt_random_uuid(run_id);
     pt_random_uuid(archive_generation);
   }
@@ -692,8 +700,8 @@ static void publish_locator(
     unlink(locator_path);
     fail("locator-permissions");
   }
-  if (strcmp(source, "clear") == 0) {
-    remove_clear_predecessors(
+  if (inherited) {
+    remove_predecessors(
       directory,
       session_id,
       plugin_root,
@@ -840,7 +848,10 @@ int main(int argc, char **argv) {
       free(input);
       usage();
     }
-    if (strcmp(reason, "clear") != 0) {
+    /* A `/clear` or an in-process `/resume` hands the Run to the next
+       classic session of the same process, whose publish reads its identity
+       from this locator and then removes it. */
+    if (strcmp(reason, "clear") != 0 && strcmp(reason, "resume") != 0) {
       remove_locator(session_id, plugin_root);
     }
   } else {

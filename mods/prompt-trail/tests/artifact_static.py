@@ -115,6 +115,24 @@ class StaticArtifactTests(unittest.TestCase):
         safe_categories = set(re.findall(r"'([^']+)'", safe_block.group(1)))
         self.assertEqual(helper_categories - safe_categories, set())
 
+    def test_every_classic_session_end_reaches_the_lifecycle_state_machine(self) -> None:
+        # The test engine cannot raise classic events, so the plugin tests
+        # replay the state machine alone. This guards the one link they cannot
+        # see: a reason filter in the hook would silently drop Run ends, as the
+        # Issue 17 PTY acceptance found when only `clear` was forwarded.
+        register = REGISTER_TS.read_text()
+        handler = re.search(
+            r"on\('classic\.SessionEnd', async \(\$, e, next\) => \{(.*?)\n  \}\)",
+            register,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(handler)
+        body = handler.group(1)
+        self.assertIn("await applyLifecycle($, {", body)
+        self.assertIn("reason: e.reason,", body)
+        self.assertNotIn("e.reason ===", body)
+        self.assertNotIn("e.reason !==", body)
+
     def test_startup_runtime_has_no_forbidden_side_effect_surface(self) -> None:
         hook_executables = set(
             re.findall(r"'(/(?:usr|bin)/[^']+)'", REGISTER_TS.read_text())

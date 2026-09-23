@@ -47,7 +47,10 @@ test('no origin but the composer creates a Prompt Entry', async ($, on) => {
 
   expect(calls.some(call => call.argv[1]?.startsWith('capture-'))).toBe(false)
   await expand($)
-  expect(JSON.stringify(await renderBand($))).toContain('尚无 Prompt Entry')
+  /* The Run did start — its first capture was staged — but no entry exists. */
+  const band = JSON.stringify(await renderBand($))
+  expect(band).not.toContain('PT-SECRET')
+  expect(band).not.toContain('1. ')
 })
 
 test('a slash command run archives nothing while slash text still does', async ($, on) => {
@@ -178,7 +181,10 @@ test('a drop beneath leaves no Prompt Entry and discards the Pending Capture', a
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(1)
 
   await expand($)
-  expect(JSON.stringify(await renderBand($))).toContain('尚无 Prompt Entry')
+  /* The Run did start — its first capture was staged — but no entry exists. */
+  const band = JSON.stringify(await renderBand($))
+  expect(band).not.toContain('PT-SECRET')
+  expect(band).not.toContain('1. ')
 })
 
 test('a render replay never archives an entry again', async ($, on) => {

@@ -1323,18 +1323,19 @@ static void capture_list(int argc, char **argv) {
   printf("],\"truncated\":%s}\n", truncated ? "true" : "false");
 }
 
-/* The Collection Boundary kinds one Run can record: collection beginning,
-   stopping, and resuming. Other Timeline Event kinds arrive with their own
-   tickets; an unknown kind fails closed rather than entering the archive. */
 /* The kinds of non-prompt Timeline Event this protocol accepts. `clear` is the
-   Clear Boundary that ends a Conversation Segment; the other three record one
-   Run's collection starting, stopping and resuming. They differ only in this
-   list: the table, the sequence allocator and the idempotency rule are shared. */
+   Clear Boundary that ends a Conversation Segment; `run-started` and
+   `run-ended` open and close one Run; the other three record one Run's
+   collection starting, stopping and resuming. They differ only in this list:
+   the table, the sequence allocator and the idempotency rule are shared. An
+   unknown kind fails closed rather than entering the archive. */
 static bool boundary_kind_valid(const char *kind) {
   return strcmp(kind, "collection-started") == 0
     || strcmp(kind, "collection-stopped") == 0
     || strcmp(kind, "collection-resumed") == 0
-    || strcmp(kind, "clear") == 0;
+    || strcmp(kind, "clear") == 0
+    || strcmp(kind, "run-started") == 0
+    || strcmp(kind, "run-ended") == 0;
 }
 
 /* A repeat of the same boundary is idempotent only when every recorded field
@@ -1438,6 +1439,100 @@ static void boundary_append(int argc, char **argv) {
   printf(",\"sequence\":%lld}\n", sequence);
 }
 
+/* The latest Timeline Events of one Project Timeline, oldest first: Prompt
+   Entries and non-prompt boundaries interleaved by the project-level sequence
+   alone. The batch is fixed here, never chosen by the caller, so no request can
+   read the whole table; `truncated` says earlier events exist.
+
+   This is the one subcommand whose response carries prompt text. It goes to
+   the hook that asked, for display, and nowhere else: never argv, never
+   stderr, never an error. A staged Pending Capture is not a Prompt Entry and
+   is never read back. */
+#define TIMELINE_READ_LIMIT 128
+
+static void timeline_read(int argc, char **argv) {
+  if (argc != 6) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  bool root_present =
+    capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
+
+  bool archived = false;
+  if (root_present) {
+    char database_path[PATH_MAX];
+    int length = snprintf(
+      database_path,
+      sizeof(database_path),
+      "%s/%s.sqlite3",
+      database_root,
+      project_id
+    );
+    if (length < 0 || (size_t)length >= sizeof(database_path)) {
+      archive_error("database-path");
+    }
+    struct stat status;
+    if (lstat(database_path, &status) == 0) {
+      archived = true;
+    } else if (errno != ENOENT) {
+      archive_error("database-unavailable");
+    }
+  }
+
+  if (!archived) {
+    write_status_string("{\"projectId\":", project_id);
+    fputs(",\"events\":[],\"truncated\":false}\n", stdout);
+    return;
+  }
+
+  sqlite3 *database = open_archive(database_root, project_id, false);
+  /* One more than the batch is fetched newest-first; if it arrives, the
+     oldest of them only proves that earlier events exist and is not shown. */
+  sqlite3_stmt *rows = archive_prepare(
+    database,
+    "SELECT event_id, sequence, run_id, kind, prompt_text, attachment_count,"
+    " count(*) OVER () FROM ("
+    "  SELECT event_id, sequence, run_id, 'prompt' AS kind, prompt_text,"
+    "   attachment_count FROM prompt_entries"
+    "  UNION ALL"
+    "  SELECT event_id, sequence, run_id, kind, NULL, 0 FROM timeline_events"
+    "  ORDER BY sequence DESC LIMIT ?1"
+    ") ORDER BY sequence ASC"
+  );
+  sqlite3_bind_int(rows, 1, TIMELINE_READ_LIMIT + 1);
+
+  write_status_string("{\"projectId\":", project_id);
+  fputs(",\"events\":[", stdout);
+  bool truncated = false;
+  bool first_row = true;
+  int listed = 0;
+  int step;
+  while ((step = sqlite3_step(rows)) == SQLITE_ROW) {
+    if (first_row && sqlite3_column_int(rows, 6) > TIMELINE_READ_LIMIT) {
+      truncated = true;
+      first_row = false;
+      continue;
+    }
+    first_row = false;
+    if (listed > 0) fputs(",", stdout);
+    write_status_string("{\"eventId\":", (const char *)sqlite3_column_text(rows, 0));
+    printf(",\"sequence\":%lld", (long long)sqlite3_column_int64(rows, 1));
+    write_status_string(",\"runId\":", (const char *)sqlite3_column_text(rows, 2));
+    const char *kind = (const char *)sqlite3_column_text(rows, 3);
+    write_status_string(",\"kind\":", kind);
+    if (strcmp(kind, "prompt") == 0) {
+      write_status_string(",\"text\":", (const char *)sqlite3_column_text(rows, 4));
+      printf(",\"attachmentCount\":%lld", (long long)sqlite3_column_int64(rows, 5));
+    }
+    fputs("}", stdout);
+    listed++;
+  }
+  if (step != SQLITE_ROW && step != SQLITE_DONE) archive_error("archive-sqlite");
+  sqlite3_finalize(rows);
+  sqlite3_close(database);
+  printf("],\"truncated\":%s}\n", truncated ? "true" : "false");
+}
+
 static void usage(void) {
   fputs("{\"category\":\"invalid-command\"}\n", stderr);
   exit(2);
@@ -1478,6 +1573,10 @@ int main(int argc, char **argv) {
   }
   if (argc > 1 && strcmp(argv[1], "boundary-append") == 0) {
     boundary_append(argc, argv);
+    return 0;
+  }
+  if (argc > 1 && strcmp(argv[1], "timeline-read") == 0) {
+    timeline_read(argc, argv);
     return 0;
   }
   usage();

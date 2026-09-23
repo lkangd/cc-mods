@@ -79,3 +79,22 @@ Issue 16 只把它的 `kind` 参数类型从 `CollectionBoundaryKind` 放宽到 
 两个调用点各自传 `kind` 比对或不传。改完跑
 `mods/prompt-trail/scripts/verify-startup.sh`；现有的 `capture-response` 与
 `boundary-response` 两类失败测试应当原样通过。
+
+---
+
+## 5. `BoundaryKind` 类型与 `TIMELINE_KINDS` 白名单各写一份
+
+*来自 Issue 17 的 review（`/code-review` round 1，nit，PLAUSIBLE、未验证）。*
+
+`mods/prompt-trail/hooks/register.tsx` 顶部用联合类型声明 `CollectionBoundaryKind` 与
+`BoundaryKind`，`parseTimeline()` 前的 `TIMELINE_KINDS` 又把同样六个字符串写了一遍作为
+`timeline-read` 响应的运行期白名单。以后加一种边界要改两处，漏改运行期那份时，新种类的行
+会让整次 `timeline-read` 被拒。
+
+**为什么延后**：纯质量问题；Issue 21 会在同一协议上扩展时间线读取，届时一起收拢改动面更小。
+
+**修法草图**：`const BOUNDARY_KINDS = ['collection-started', 'collection-stopped',
+'collection-resumed', 'clear', 'run-started', 'run-ended'] as const`，
+`type BoundaryKind = typeof BOUNDARY_KINDS[number]`，`TIMELINE_KINDS = new Set<string>(BOUNDARY_KINDS)`；
+`CollectionBoundaryKind` 用 `Extract<BoundaryKind, \`collection-${string}\`>` 或保持显式。
+门禁原样通过即完成。

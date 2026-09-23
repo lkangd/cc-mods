@@ -103,7 +103,7 @@ Blocked by: 03, 04, 06, 10
 
 ### 10. 原文泄漏与安全门禁
 
-- **PT-SEC-001 唯一标记扫描**：每个 fixture 使用不可猜测的合成标记。标记只允许出现在目标 SQLite 原文字段和当下允许显示的 UI；不得出现在 argv、locator、stdout/stderr、Claude Code/plugin 日志、错误文本、trace、备份清单或发布报告。
+- **PT-SEC-001 唯一标记扫描**：每个 fixture 使用不可猜测的合成标记。标记只允许出现在目标 SQLite 原文字段、专用时间线读取子命令 `timeline-read` 的响应（经 `$.process.run` 捕获进 hook 内存，只用于显示）和当下允许显示的 UI；不得出现在 argv、locator、stderr、其他子命令的 stdout、Claude Code/plugin 日志、错误文本、trace、备份清单或发布报告。（2026-09-23 Issue 17 经使用者确认修订。）
 - **PT-SEC-002 stdin 与诊断**：验证 helper 只从 stdin 接收原文；所有诊断只含随机事件 ID、sequence、错误码和必要路径，不含原文或文本哈希。
 - **PT-SEC-003 私有权限**：目录始终为 `0700`，数据库、locator、备份和隔离文件始终为 `0600`，helper 使用 `umask 077`；创建、迁移、隔离、清除和异常恢复后都复核。
 - **PT-SEC-004 无隐式副作用**：所有失败路径都不得联网、现场编译、修改 xattr/系统安全策略、自动删除数据或创建伪完整的内存 fallback。

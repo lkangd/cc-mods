@@ -1611,5 +1611,141 @@ class HelperProtocolTests(unittest.TestCase):
         )
 
 
+    def read_argv(self, *, project_id: str) -> tuple[str, ...]:
+        return (
+            "timeline-read",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+    def test_run_boundaries_share_the_sequence_and_stay_idempotent(self) -> None:
+        project_id = "5" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        started, started_sequence = self.boundary(identity=identity, kind="run-started")
+        self.capture("PT-SECRET-RUN", identity=identity)
+        ended, ended_sequence = self.boundary(identity=identity, kind="run-ended")
+
+        self.assertEqual((started_sequence, ended_sequence), (1, 3))
+        repeated = self.run_helper(
+            *self.boundary_argv(started, kind="run-started", **identity)
+        )
+        self.assertEqual(repeated.returncode, 0, repeated.stderr)
+        self.assertEqual(json.loads(repeated.stdout)["sequence"], 1)
+        self.assertNotEqual(started, ended)
+
+    def test_timeline_read_returns_entries_and_boundaries_in_sequence_order(self) -> None:
+        project_id = "6" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        text = "PT-SECRET-READ\n\n中文 🙂 é \"quoted\" \\ tab\tend"
+        started, _ = self.boundary(identity=identity, kind="run-started")
+        first = self.capture(text, identity=identity, attachment_count="1", attachment_kinds="image")
+        clear, _ = self.boundary(identity=identity, kind="clear")
+        # A staged capture is not a Prompt Entry, and the read never shows it.
+        self.assertEqual(
+            self.run_helper(
+                *self.begin_argv(str(uuid.uuid4()), **identity),
+                input_text="PT-SECRET-STAGED",
+            ).returncode,
+            0,
+        )
+        ended, _ = self.boundary(identity=identity, kind="run-ended")
+
+        read = self.run_helper(*self.read_argv(project_id=project_id))
+
+        self.assertEqual(read.returncode, 0, read.stderr)
+        self.assertEqual(read.stderr, "")
+        self.assertNotIn("PT-SECRET-STAGED", read.stdout)
+        payload = json.loads(read.stdout)
+        self.assertEqual(payload["projectId"], project_id)
+        self.assertIs(payload["truncated"], False)
+        self.assertEqual(
+            [(row["eventId"], row["sequence"], row["kind"]) for row in payload["events"]],
+            [
+                (started, 1, "run-started"),
+                (first, 2, "prompt"),
+                (clear, 3, "clear"),
+                (ended, 4, "run-ended"),
+            ],
+        )
+        entry = payload["events"][1]
+        self.assertEqual(entry["text"], text)
+        self.assertEqual(entry["attachmentCount"], 1)
+        self.assertEqual(entry["runId"], identity["run_id"])
+        self.assertNotIn("text", payload["events"][0])
+        self.assertEqual(payload["events"][0]["runId"], identity["run_id"])
+
+    def test_timeline_read_answers_an_absent_archive_without_creating_one(self) -> None:
+        project_id = "7" * 64
+        database_root = self.plugin_data / "archives"
+
+        read = self.run_helper(*self.read_argv(project_id=project_id))
+
+        self.assertEqual(read.returncode, 0, read.stderr)
+        self.assertEqual(json.loads(read.stdout), {
+            "projectId": project_id,
+            "events": [],
+            "truncated": False,
+        })
+        self.assertFalse((database_root / f"{project_id}.sqlite3").exists())
+
+    def test_timeline_read_enforces_a_fixed_maximum_batch_of_the_latest_events(self) -> None:
+        project_id = "9" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        appended = [
+            self.boundary(identity=identity, kind="clear")[0]
+            for _ in range(129)
+        ]
+
+        payload = json.loads(
+            self.run_helper(*self.read_argv(project_id=project_id)).stdout
+        )
+
+        self.assertIs(payload["truncated"], True)
+        self.assertEqual([row["eventId"] for row in payload["events"]], appended[1:])
+        self.assertEqual(
+            [row["sequence"] for row in payload["events"]],
+            list(range(2, 130)),
+        )
+
+    def test_timeline_read_refuses_an_archive_root_it_cannot_vouch_for(self) -> None:
+        project_id = "4" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        self.capture("PT-SECRET-WIDENED", identity=identity)
+        database_root = self.plugin_data / "archives"
+        database_root.chmod(0o755)
+        self.addCleanup(database_root.chmod, 0o700)
+
+        read = self.run_helper(*self.read_argv(project_id=project_id))
+
+        self.assertEqual(read.returncode, 25)
+        self.assertEqual(read.stdout, "")
+        self.assertEqual(
+            json.loads(read.stderr)["category"],
+            "database-root-unavailable",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

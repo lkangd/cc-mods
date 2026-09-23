@@ -11,7 +11,7 @@
 - [ ] `PT-COMPAT`、`PT-CAPTURE`、`PT-LIFE`、`PT-BRANCH`、`PT-JUMP`、`PT-UI`、`PT-STORE`、`PT-FAIL`、`PT-CONTROL`、`PT-DELETE` 和 `PT-SEC` 的每个稳定场景 ID 都映射到步骤、预期、实际、结果和证据链接。
 - [ ] 每个场景使用隔离临时项目、plugin data、locator 和 HOME；不得读取、修改或删除现有 Prompt Trail/Claude Code 用户数据。
 - [ ] 每个 fixture 使用不可猜测的合成 prompt 标记；扫描 argv、locator、stdout/stderr、Claude Code/plugin 日志、错误、trace、备份清单和报告。
-- [ ] 合成标记只能出现在目标 SQLite 原文字段和当下允许显示的 UI；任何其他出现都阻断发布。
+- [ ] 合成标记只能出现在目标 SQLite 原文字段、`timeline-read` 响应和当下允许显示的 UI；任何其他出现（包括其他子命令的 stdout）都阻断发布。
 - [ ] 终端 trace 与报告在落盘前或汇总时完成脱敏，只保留非敏感 ID、sequence、错误码、计数、版本和路径。
 - [ ] 100,000-event fixture 的有界读取/渲染和三个 p95 目标均在报告中记录参考硬件、运行次数和测量结果。
 - [ ] README/status 明确列出不支持平台、Marketplace 边界、自动焦点/Esc/滚轮/槽位限制、删除边界及移除 `--plugin-dir` 前的数据清理说明。
