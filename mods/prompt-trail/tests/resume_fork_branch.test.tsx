@@ -50,53 +50,53 @@ function unique(eventId: string): BranchMatch {
    carries it out. */
 
 test('a resume whose transcript ends on the stored parent keeps its branch', () => {
-  expect(settleBranch(stored(storedParent), unique(storedParent), freshBranchId))
+  expect(settleBranch(stored(storedParent), unique(storedParent), freshBranchId, false))
     .toEqual({ kind: 'keep' })
 })
 
 test('a resume whose transcript ends elsewhere branches from where it ends', () => {
-  expect(settleBranch(stored(storedParent), unique(otherEntry), freshBranchId)).toEqual({
+  expect(settleBranch(stored(storedParent), unique(otherEntry), freshBranchId, false)).toEqual({
     kind: 'set',
     state: { version: 1, branchId: freshBranchId, parentEventId: otherEntry },
   })
 })
 
 test('a stored parent among tied lineages settles the tie', () => {
-  expect(settleBranch(stored(storedParent), ambiguous(otherEntry, storedParent), freshBranchId))
+  expect(settleBranch(stored(storedParent), ambiguous(otherEntry, storedParent), freshBranchId, false))
     .toEqual({ kind: 'keep' })
 })
 
-test('a stored lineage the transcript cannot place is put to the person, stored parent first', () => {
-  expect(settleBranch(stored(storedParent), none(), freshBranchId))
+test('a stored lineage a compacted transcript cannot place is put to the person, stored parent first', () => {
+  expect(settleBranch(stored(storedParent), none(), freshBranchId, true))
     .toEqual({ kind: 'ask', options: [storedParent] })
   const tied = Array.from({ length: 8 }, (_, index) => `e${index}e${index}-0000-4000-8000-00000000000${index}`)
-  const asked = settleBranch(stored(storedParent), ambiguous(...tied), freshBranchId)
+  const asked = settleBranch(stored(storedParent), ambiguous(...tied), freshBranchId, false)
   expect(asked).toEqual({ kind: 'ask', options: [storedParent, ...tied] })
 })
 
 test('a new session starts from the entry its shared history ends on', () => {
-  expect(settleBranch(undefined, unique(otherEntry), freshBranchId)).toEqual({
+  expect(settleBranch(undefined, unique(otherEntry), freshBranchId, false)).toEqual({
     kind: 'set',
     state: { version: 1, branchId: freshBranchId, parentEventId: otherEntry },
   })
   /* A boundary may have created the branch record before any prompt; it is
      still a session with no lineage, and keeps the branch id it was given. */
-  expect(settleBranch(stored(null), unique(otherEntry), freshBranchId)).toEqual({
+  expect(settleBranch(stored(null), unique(otherEntry), freshBranchId, false)).toEqual({
     kind: 'set',
     state: { version: 1, branchId, parentEventId: otherEntry },
   })
 })
 
 test('a new session with nothing archived behind it starts a root without asking', () => {
-  expect(settleBranch(undefined, none(), freshBranchId)).toEqual({
+  expect(settleBranch(undefined, none(), freshBranchId, false)).toEqual({
     kind: 'set',
     state: { version: 1, branchId: freshBranchId, parentEventId: null },
   })
-  expect(settleBranch(stored(null), none(), freshBranchId)).toEqual({ kind: 'keep' })
+  expect(settleBranch(stored(null), none(), freshBranchId, false)).toEqual({ kind: 'keep' })
 })
 
 test('a fork whose shared history matches several lineages starts a marked root', () => {
-  expect(settleBranch(undefined, ambiguous(storedParent, otherEntry), freshBranchId)).toEqual({
+  expect(settleBranch(undefined, ambiguous(storedParent, otherEntry), freshBranchId, false)).toEqual({
     kind: 'set',
     state: {
       version: 1,
@@ -110,12 +110,12 @@ test('a fork whose shared history matches several lineages starts a marked root'
 
 test('a root somebody chose is never overruled by the transcript', () => {
   const chosen = stored(null, { explicitRoot: true })
-  expect(settleBranch(chosen, unique(otherEntry), freshBranchId)).toEqual({ kind: 'keep' })
-  expect(settleBranch(chosen, ambiguous(storedParent, otherEntry), freshBranchId))
+  expect(settleBranch(chosen, unique(otherEntry), freshBranchId, false)).toEqual({ kind: 'keep' })
+  expect(settleBranch(chosen, ambiguous(storedParent, otherEntry), freshBranchId, false))
     .toEqual({ kind: 'keep' })
   /* Once a prompt has been chained onto it, it is an ordinary lineage. */
   const grown = stored(storedParent, { explicitRoot: true })
-  expect(settleBranch(grown, none(), freshBranchId))
+  expect(settleBranch(grown, none(), freshBranchId, true))
     .toEqual({ kind: 'ask', options: [storedParent] })
 })
 
@@ -170,6 +170,11 @@ function branchKey(forSessionId: string = sessionId): string {
   return `prompt-trail:branch:${projectId}:${runId}:${forSessionId}`
 }
 
+/* Compaction cleared the rows that proved this session's lineage. */
+function compactedKey(forSessionId: string = sessionId): string {
+  return `prompt-trail:compacted:${projectId}:${forSessionId}`
+}
+
 function matchCalls(calls: readonly ProcessCall[]): ProcessCall[] {
   return captureCalls(calls, 'branch-match')
 }
@@ -211,7 +216,7 @@ test('a resume continues the stored lineage, matched inside its own session', as
 
   expect(result).toMatchObject({ text: SECRET })
   const [match] = matchCalls(calls)
-  /* The stored parent is named, so a tie can never crowd it out. */
+  /* The stored parent is named, so a tie on its lineage settles on it. */
   expect(match?.argv.slice(4, 8)).toEqual([runId, sessionId, 'whole', earlier])
   expect(match?.argv.at(-1)).toBe('--stdin')
   expect(match?.stdin).toBe('17\nPT-SECRET-EARLIER')
@@ -241,9 +246,9 @@ test('a fork starts its branch from the entry its shared history ends on', async
   expect(store[branchKey()]).toMatchObject({ branchId: begin.branchId, parentEventId: expect.any(String) })
 })
 
-test('a session is aligned once, then again only when the session changes', async ($, on) => {
+test('a session is aligned in full once, then again only when the session changes', async ($, on) => {
   const classicSession = { id: sessionId }
-  const calls = installSupportedTarget(on, { store: consentedStore(), classicSession })
+  const calls = installSupportedTarget(on, { store: consentedStore(), classicSession, transcript: [] })
   await $.session.start(session)
 
   await composerPrompt($)
@@ -280,8 +285,8 @@ test('a fork whose shared history matches several lineages archives from a marke
   })
 })
 
-test('a stored lineage the transcript contradicts is put to the person, and the draft comes back', async ($, on) => {
-  const store = consentedStore({ [branchKey()]: stored(earlier) })
+test('a stored lineage a compacted transcript contradicts is put to the person, and the draft comes back', async ($, on) => {
+  const store = consentedStore({ [branchKey()]: stored(earlier), [compactedKey()]: true })
   const fills: string[] = []
   const parentQuestions: { question: string; labels: string[] }[] = []
   const calls = installSupportedTarget(on, {
@@ -297,6 +302,8 @@ test('a stored lineage the transcript contradicts is put to the person, and the 
   const asked = await composerPrompt($)
 
   expect(asked).toMatchObject({ drop: expect.stringContaining('请重新提交') })
+  /* Its earliest rows are gone, so a lineage may begin before them. */
+  expect(matchCalls(calls)[0]?.argv[6]).toBe('truncated')
   expect(fills).toEqual([SECRET])
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   /* The stored parent is offered first, by its sequence and its text. */
@@ -346,7 +353,7 @@ test('choosing another candidate branches from it', async ($, on) => {
 })
 
 test('a cancelled parent confirmation keeps the submission blocked', async ($, on) => {
-  const store = consentedStore({ [branchKey()]: stored(earlier) })
+  const store = consentedStore({ [branchKey()]: stored(earlier), [compactedKey()]: true })
   const parentQuestions: { question: string; labels: string[] }[] = []
   const calls = installSupportedTarget(on, {
     store,
@@ -364,6 +371,24 @@ test('a cancelled parent confirmation keeps the submission blocked', async ($, o
   expect(parentQuestions).toHaveLength(2)
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   expect(store[branchKey()]).toEqual(stored(earlier))
+})
+
+test('a resume whose uncompacted transcript reaches no archived entry starts a root without asking', async ($, on) => {
+  const store = consentedStore({ [branchKey()]: stored(earlier) })
+  const parentQuestions: { question: string; labels: string[] }[] = []
+  const calls = installSupportedTarget(on, { store, parentQuestions, branchMatch: none() })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result).toMatchObject({ text: SECRET })
+  expect(parentQuestions).toHaveLength(0)
+  expect(matchCalls(calls)[0]?.argv[6]).toBe('whole')
+  const begin = parentOf(captureCalls(calls, 'capture-begin')[0])
+  expect(begin.parent).toBe('-')
+  expect(begin.branchId).not.toBe(branchId)
+  /* Rewound, not chosen: a later transcript may still place it. */
+  expect(store[branchKey()]).not.toHaveProperty('explicitRoot')
 })
 
 for (const [name, failure] of [

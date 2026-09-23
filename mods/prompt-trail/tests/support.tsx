@@ -55,6 +55,13 @@ export type ArchiveRow = {
 /* The Run the locator names and the process generation that published it,
    held in a box so a test can move to another Run the way an in-process
    `/resume` does, or to another process the way a restart does. */
+/* One row of `$.session.messages()` as a test writes it. */
+export type TranscriptRow = {
+  role: 'user' | 'assistant'
+  text: string
+  toolResults?: ToolResultSummary[]
+}
+
 export type RunIdentity = { runId: string; hostPid?: number }
 
 export type ProcessCall = {
@@ -84,7 +91,11 @@ export type TargetOptions = {
   pendingList?: Record<string, unknown>[]
   /* What `$.session.messages()` answers: to reconciliation, and to the
      Active Branch alignment ahead of a session's first capture. */
-  messages?: readonly { role: 'user' | 'assistant'; text: string; toolResults?: ToolResultSummary[] }[]
+  messages?: readonly TranscriptRow[]
+  /* A live transcript in place of `messages`: every submission the engine
+     accepts lands on it as a `user` row, and a test may cut it short the way
+     a rewind does. */
+  transcript?: TranscriptRow[]
   messagesFail?: boolean
   /* What `branch-match` answers; a function sees the call. The default is the
      answer for a transcript nothing archived matches. */
@@ -280,7 +291,7 @@ export function installSupportedTarget(
   on('session.messages', () => {
     if (options.messagesFail) throw new Error('transcript unavailable: PT-SECRET-MESSAGES')
     return {
-      value: (options.messages ?? []).map(message => ({ ...message, toolUses: [] })),
+      value: (options.transcript ?? options.messages ?? []).map(message => ({ ...message, toolUses: [] })),
     }
   })
   on('process.run', (_$, e) => {
@@ -584,13 +595,10 @@ export function installSupportedTarget(
   })
   on('prompt.submit', async (_$, e) => {
     if (options.duringSubmit) await options.duringSubmit()
-    return options.dropBeneath === undefined
-      ? {
-          text: options.rewrite ? FINAL_SECRET : e.text,
-          context: e.context,
-          origin: e.origin,
-        }
-      : { drop: options.dropBeneath }
+    if (options.dropBeneath !== undefined) return { drop: options.dropBeneath }
+    const text = options.rewrite ? FINAL_SECRET : e.text
+    options.transcript?.push({ role: 'user', text })
+    return { text, context: e.context, origin: e.origin }
   })
   return calls
 }
