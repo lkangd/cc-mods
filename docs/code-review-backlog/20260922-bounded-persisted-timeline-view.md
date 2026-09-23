@@ -74,3 +74,14 @@ One new gap the Issue 17 review surfaced (minor, CONFIRMED) belongs here too:
 128 events the band shows the latest batch with no sign that older history exists. Issue 21
 should carry the flag into the render state and show an "earlier events" affordance (which is
 also where "load the previous batch when the earliest visible entry takes focus" hooks in).
+
+## Update 2026-09-23 (Issue 32 review)
+
+Issue 32 review findings #13/#14 (minor, CONFIRMED) belong here: the "从 Run X 分出" label on a
+`run-started` is derived by `splitOrigins()` (`mods/prompt-trail/hooks/register.tsx`) from the
+events in view — the Run that already holds the same `segmentId` earlier in the list. When the
+original Run's events in that session have fallen outside the latest 128-event batch, the new
+Run's start reads as a plain "Run 开始". This is a deliberate trade-off (no schema column, no
+extra query in Issue 32); when Issue 21 adds cursor reads, either walk back until the segment's
+first holder is found or add a bounded helper query "first Run seen in segment S", and keep
+`splitOrigins()` as the in-view fast path.

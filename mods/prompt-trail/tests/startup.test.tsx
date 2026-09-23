@@ -81,7 +81,7 @@ test('reports supported only after the trusted read-only preflight succeeds', as
   const manifestPath = `${pluginRoot}/artifacts/helper-manifest.json`
   const databaseRoot = `${pluginData}/archives`
   const locatorDirectory = `${home}/.claude/plugins/data/.function-hook-locators/prompt-trail`
-  const locatorPath = `${locatorDirectory}/${sessionId}.json`
+  const locatorPath = `${locatorDirectory}/${sessionId}.4242-100-200.json`
   const locatorReads: string[] = []
   const runId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
   const archiveGeneration = '99999999-8888-4777-8666-555555555555'
@@ -111,8 +111,13 @@ test('reports supported only after the trusted read-only preflight succeeds', as
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('session.id', () => ({ value: activeSessionId }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('fs.list', (_$, e) => ({
+    value: e.path === locatorDirectory
+      ? [{ name: `${activeSessionId}.4242-100-200.json`, kind: 'file' as const, size: 1 }]
+      : [],
+  }))
   on('fs.read', (_$, e) => {
-    const activeLocatorPath = `${locatorDirectory}/${activeSessionId}.json`
+    const activeLocatorPath = `${locatorDirectory}/${activeSessionId}.4242-100-200.json`
     if (e.path !== activeLocatorPath) throw new Error(`unexpected read: ${e.path}`)
     locatorReads.push(e.path)
     return { value: JSON.stringify({ ...locator, sessionId: activeSessionId }) }
@@ -140,7 +145,7 @@ test('reports supported only after the trusted read-only preflight succeeds', as
     }
     if (argv[0] === '/usr/bin/stat') {
       const path = argv[argv.length - 1]
-      const activeLocatorPath = `${locatorDirectory}/${activeSessionId}.json`
+      const activeLocatorPath = `${locatorDirectory}/${activeSessionId}.4242-100-200.json`
       const directory = path === locatorDirectory
         || path === pluginData
         || path === pluginRoot
@@ -215,5 +220,5 @@ test('reports supported only after the trusted read-only preflight succeeds', as
   })
 
   expect(afterClear.text).toContain('support: supported')
-  expect(locatorReads).toContain(`${locatorDirectory}/${activeSessionId}.json`)
+  expect(locatorReads).toContain(`${locatorDirectory}/${activeSessionId}.4242-100-200.json`)
 })

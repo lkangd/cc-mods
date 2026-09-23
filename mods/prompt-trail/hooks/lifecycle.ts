@@ -5,16 +5,19 @@
    replayed against it directly: every decision here is a pure function of the
    stored state and one event, and the archive write it asks for is described
    rather than performed. A `/clear` is the only segment transition it
-   recognises and an exit the only Run transition — compaction, reload, an
-   in-process `/resume` and UI replay reach it as events it deliberately
-   ignores rather than as cases the caller has to remember to filter out. */
+   recognises. A Run is the lineage of one conversation and outlives any
+   process, so the Run transitions are a process attaching to it and leaving
+   it: an exit leaves, and an in-process `/resume` leaves only once the next
+   session turns out to belong to another Run. Compaction, reload and UI replay
+   reach it as events it deliberately ignores rather than as cases the caller
+   has to remember to filter out. */
 
 /* A lifecycle write the archive still owes. It carries identity and timing
    only: the fields `boundary-append` needs to land the very same event later,
    so a retry is idempotent rather than a second boundary. No prompt text and
    no draft ever enters it, because it lives in `$.store`. */
 export type LifecycleWrite = {
-  kind: 'clear' | 'run-started' | 'run-ended'
+  kind: 'clear' | 'run-started' | 'run-attached' | 'run-detached'
   eventId: string
   runId: string
   segmentId: string
@@ -55,8 +58,27 @@ export type LifecycleState = {
      lands. A Run appears in the archive only once it archives something, and
      every later write of the Run is ordered after this one. */
   started?: true
-  /* This Run's end boundary has been formed. */
-  ended?: true
+  /* The latest process to take the Run up. Its opening boundary — the Run's
+     start, or an attach — has been formed; `closed` once its detach has. */
+  attachment?: Attachment
+}
+
+/* One process generation's stretch of a Run. `id` makes the attach and detach
+   boundaries of this stretch its own, so leaving and coming back in the same
+   process is a second stretch rather than a replay of the first; the caller
+   derives it from the host and the stretch before it, so two writers opening
+   the same stretch at once name the same boundary. `host` is the process
+   generation, so a reload of the same process is recognised as the same
+   stretch. */
+export type Attachment = {
+  id: string
+  host: string
+  /* The segment the stretch opened in. */
+  segmentId: string
+  closed?: true
+  /* An in-process `/resume` began leaving: the detach it would write, kept
+     until the next session shows whether the process really left the Run. */
+  leaving?: LifecycleWrite
 }
 
 export type LifecycleEvent =
@@ -78,9 +100,11 @@ export type LifecycleWriteFields = {
    supply a derived id, a branch and a clock reading would be inventing three
    facts it has no use for. An end whose fields could not be resolved arrives
    without them: a `/clear` is answered `clear-deferred`, an exit
-   `run-end-unrecorded`. */
+   `run-detach-unrecorded`. `host` is the process generation the event arrives
+   in, which is what tells this process's attachment from another's. */
 export type LifecycleContext = {
   runId: string
+  host?: string
   end?: LifecycleWriteFields
 }
 
@@ -89,17 +113,24 @@ export type LifecycleContext = {
    apart from one that correctly declined to. */
 export type LifecycleNote =
   | 'not-clear'
-  /* An exit of a Run that never archived anything: there is no start to
-     close, and an end is not invented for it. */
-  | 'run-not-started'
-  | 'run-ended'
-  | 'run-end-duplicate'
-  /* An exit whose end boundary could not be formed. The process is leaving,
-     so nothing can complete it later; the Run stays unclosed in the archive,
-     which is exactly what an interrupted Run looks like and what it is. */
-  | 'run-end-unrecorded'
+  /* An exit of a process that never took the Run up — nothing archived, or
+     another process's attachment: there is nothing of its own to close. */
+  | 'run-not-attached'
+  | 'run-detached'
+  | 'run-detach-duplicate'
+  /* An exit whose detach boundary could not be formed. The process is leaving,
+     so nothing can complete it later; the attachment stays unclosed in the
+     archive, which is exactly what an interrupted process looks like. */
+  | 'run-detach-unrecorded'
+  /* An in-process `/resume` began leaving; nothing is written until the next
+     session shows which Run it belongs to. */
+  | 'run-leaving'
   | 'run-started'
-  | 'run-already-started'
+  | 'run-attached'
+  | 'run-already-attached'
+  /* The recovery queue is at capacity: the stretch is not opened, and the
+     process writes nothing until the archive recovers. */
+  | 'run-attach-refused'
   | 'clear-boundary'
   | 'clear-duplicate'
   | 'clear-associated'
@@ -119,11 +150,19 @@ export type LifecycleDecision = {
 /* One unwritten Clear Boundary per `/clear`, and a person has to work at
    producing sixteen in a row without the archive ever recovering. Past that the
    archive is not coming back on its own, so the queue stops growing instead of
-   turning `$.store` into the unbounded index it must never become. A Run's own
-   start and end are outside the limit: there is at most one of each, so they
-   cannot grow the queue without bound, and refusing one would leave the Run
-   recorded as started or ended with no boundary ever owed for it. */
+   turning `$.store` into the unbounded index it must never become. A Run's
+   boundaries are outside the limit: each attachment opens and closes once, so
+   they cannot outgrow the processes that made them, and refusing one would
+   leave the attachment recorded as opened or closed with no boundary ever owed
+   for it. */
 export const LIFECYCLE_QUEUE_LIMIT = 16
+
+/* Every kind together. A Run's boundaries still cannot grow without bound:
+   when the archive never recovers, each process that takes the Run up adds an
+   opening and a detach, so the queue is capped as a whole too. Past it a
+   boundary is refused and the loss recorded, never queued past what a read
+   will take back. */
+export const LIFECYCLE_QUEUE_CAPACITY = 64
 
 export function emptyLifecycle(): LifecycleState {
   return { version: 1, queue: [] }
@@ -136,11 +175,12 @@ export function decideLifecycle(
 ): LifecycleDecision {
   if (event.event === 'session-end') {
     /* An in-process `/resume` swaps the classic session under the same host
-       process: neither the Run nor, until Issue 18 says otherwise, a segment
-       ends here. */
-    if (event.reason === 'resume') return { state, note: 'not-clear' }
-    /* `logout`, `prompt_input_exit` and `other` end the Run. */
-    if (event.reason !== 'clear') return endRun(state, event.sessionId, context)
+       process. Whether the process leaves the Run depends on the session it
+       resumes, which only the next start knows, so the detach is prepared and
+       held rather than written. */
+    if (event.reason === 'resume') return prepareLeaving(state, event.sessionId, context)
+    /* `logout`, `prompt_input_exit` and `other` leave the Run. */
+    if (event.reason !== 'clear') return detachRun(state, event.sessionId, context)
 
     /* The same end seen twice — a replayed event, or a retry after the caller
        could not record what it did — names the same boundary. It is already
@@ -212,43 +252,147 @@ export function decideLifecycle(
   }
 }
 
-function endRun(
+function ownsOpenAttachment(state: LifecycleState, host: string | undefined): boolean {
+  const attachment = state.attachment
+  return attachment !== undefined && !attachment.closed && attachment.host === host
+}
+
+function detachRun(
   state: LifecycleState,
   sessionId: string,
   context: LifecycleContext,
 ): LifecycleDecision {
-  if (!state.started) return { state, note: 'run-not-started' }
-  if (state.ended) return { state, note: 'run-end-duplicate' }
+  const attachment = state.attachment
+  if (!attachment || attachment.host !== context.host) return { state, note: 'run-not-attached' }
+  if (attachment.closed) return { state, note: 'run-detach-duplicate' }
   const end = context.end
-  if (!end) return { state, note: 'run-end-unrecorded' }
+  if (!end) return { state, note: 'run-detach-unrecorded' }
   return {
     write: {
-      kind: 'run-ended',
+      kind: 'run-detached',
       eventId: end.eventId,
       runId: context.runId,
       segmentId: sessionId,
       branchId: end.branchId,
       occurredAt: end.occurredAt,
     },
-    state: { ...state, ended: true },
-    note: 'run-ended',
+    state: { ...state, attachment: closeAttachment(attachment) },
+    note: 'run-detached',
   }
 }
 
-/* The Run's first appearance in the archive. It is formed lazily, just before
-   the Run's first write of anything else, so a Run that never collects leaves
-   no trace; and it is queued ahead of whatever the Run already owes, so the
-   start is never ordered after the Run's own events. */
-export function beginRun(
+function closeAttachment(attachment: Attachment): Attachment {
+  const { leaving: _leaving, ...rest } = attachment
+  return { ...rest, closed: true }
+}
+
+function prepareLeaving(
+  state: LifecycleState,
+  sessionId: string,
+  context: LifecycleContext,
+): LifecycleDecision {
+  const attachment = state.attachment
+  if (!attachment || !ownsOpenAttachment(state, context.host) || !context.end) {
+    return { state, note: 'not-clear' }
+  }
+  return {
+    state: {
+      ...state,
+      attachment: {
+        ...attachment,
+        leaving: {
+          kind: 'run-detached',
+          eventId: context.end.eventId,
+          runId: context.runId,
+          segmentId: sessionId,
+          branchId: context.end.branchId,
+          occurredAt: context.end.occurredAt,
+        },
+      },
+    },
+    note: 'run-leaving',
+  }
+}
+
+/* Which boundary this process owes before its first write to the Run, if any.
+   The Run's very first appearance is its start; any later process — or this
+   one coming back after leaving — attaches. An open attachment of this same
+   process generation is a reload, and owes nothing. */
+export function attachmentOpening(
+  state: LifecycleState,
+  host: string,
+): 'run-started' | 'run-attached' | undefined {
+  if (ownsOpenAttachment(state, host)) return undefined
+  return state.started ? 'run-attached' : 'run-started'
+}
+
+/* Opening this process's attachment, just before its first write of anything
+   else, so a process that never collects leaves no trace. The Run's start goes
+   ahead of whatever the Run already owes; an attach goes after it, because
+   what is owed then belongs to an earlier attachment it follows. A held detach
+   from an in-process `/resume` that stayed in the Run is simply dropped. */
+export function attachRun(
   state: LifecycleState,
   write: Omit<LifecycleWrite, 'kind'>,
+  attachment: { id: string; host: string },
 ): LifecycleDecision {
-  if (state.started) return { state, note: 'run-already-started' }
-  const start: LifecycleWrite = { kind: 'run-started', ...write }
+  const kind = attachmentOpening(state, attachment.host)
+  if (!kind) return { state: stayAttached(state), note: 'run-already-attached' }
+  const opening: LifecycleWrite = { kind, ...write }
+  const queued = queueLifecycleWrite(state, opening)
+  /* A queue at capacity refuses the opening. The stretch is not recorded as
+     opened, so nothing later closes a boundary that was never owed. */
+  if (!queued.queue.some(owed => owed.eventId === opening.eventId)) {
+    return { state: queued, note: 'run-attach-refused' }
+  }
   return {
-    write: start,
-    state: { ...queueLifecycleWrite(state, start), started: true },
-    note: 'run-started',
+    write: opening,
+    state: {
+      ...queued,
+      started: true,
+      attachment: { id: attachment.id, host: attachment.host, segmentId: write.segmentId },
+    },
+    note: kind,
+  }
+}
+
+/* The process is still in this Run: an in-process `/resume` that led back to
+   one of its sessions drops the detach it held. */
+export function stayAttached(state: LifecycleState): LifecycleState {
+  const current = state.attachment
+  if (!current?.leaving) return state
+  const { leaving: _leaving, ...stayed } = current
+  return { ...state, attachment: stayed }
+}
+
+/* Closing an attachment this process left behind by resuming into another
+   Run. The detach held at the resume is the one written, so it says where and
+   when the process really left; one that could not be held is formed from the
+   fields given and the segment the stretch opened in. */
+export function detachAbandoned(
+  state: LifecycleState,
+  owner: { runId: string; host: string },
+  fields: LifecycleWriteFields,
+): LifecycleDecision {
+  const attachment = state.attachment
+  if (!attachment || !ownsOpenAttachment(state, owner.host)) {
+    return { state, note: 'run-not-attached' }
+  }
+  const write: LifecycleWrite = attachment.leaving ?? {
+    kind: 'run-detached',
+    eventId: fields.eventId,
+    runId: owner.runId,
+    segmentId: attachment.segmentId,
+    branchId: fields.branchId,
+    occurredAt: fields.occurredAt,
+  }
+  return {
+    write,
+    state: {
+      ...queueLifecycleWrite(state, write),
+      attachment: closeAttachment(attachment),
+    },
+    note: 'run-detached',
   }
 }
 
@@ -260,6 +404,7 @@ export function queueLifecycleWrite(
   if (write.kind === 'clear' && state.queue.length >= LIFECYCLE_QUEUE_LIMIT) {
     return { ...state, overflowed: true }
   }
+  if (state.queue.length >= LIFECYCLE_QUEUE_CAPACITY) return { ...state, overflowed: true }
   return {
     ...state,
     queue: write.kind === 'run-started' ? [write, ...state.queue] : [...state.queue, write],

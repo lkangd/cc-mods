@@ -272,6 +272,10 @@ static void require_manifest(
   free(manifest);
 }
 
+/* The one locator this helper may read: the bridge names each after the
+   session and the host process generation that published it, so a locator
+   another process published for the same session is never mistaken for this
+   one. The helper's own parent is that host process. */
 static void expected_locator_path(
   const char *session_id,
   char output[PATH_MAX]
@@ -280,12 +284,36 @@ static void expected_locator_path(
   if (!home || home[0] != '/') {
     json_error(EXIT_LOCATOR_INVALID, "home-unavailable");
   }
+  pid_t host_pid = getppid();
+  char host_executable[PROC_PIDPATHINFO_MAXSIZE];
+  int64_t host_start_seconds = 0;
+  int64_t host_start_microseconds = 0;
+  if (!pt_process_identity(
+        host_pid,
+        host_executable,
+        sizeof(host_executable),
+        &host_start_seconds,
+        &host_start_microseconds
+      )) {
+    json_error(EXIT_LOCATOR_INVALID, "host-generation");
+  }
+  char name[PATH_MAX];
+  if (!pt_locator_file_name(
+        session_id,
+        host_pid,
+        host_start_seconds,
+        host_start_microseconds,
+        name,
+        sizeof(name)
+      )) {
+    json_error(EXIT_LOCATOR_INVALID, "locator-path");
+  }
   int length = snprintf(
     output,
     PATH_MAX,
-    "%s/.claude/plugins/data/.function-hook-locators/prompt-trail/%s.json",
+    "%s/.claude/plugins/data/.function-hook-locators/prompt-trail/%s",
     home,
-    session_id
+    name
   );
   if (length < 0 || length >= PATH_MAX) {
     json_error(EXIT_LOCATOR_INVALID, "locator-path");
@@ -1324,8 +1352,10 @@ static void capture_list(int argc, char **argv) {
 }
 
 /* The kinds of non-prompt Timeline Event this protocol accepts. `clear` is the
-   Clear Boundary that ends a Conversation Segment; `run-started` and
-   `run-ended` open and close one Run; the other three record one Run's
+   Clear Boundary that ends a Conversation Segment; `run-started` is a Run's
+   first appearance, and `run-attached` and `run-detached` a process taking the
+   Run up again and leaving it — a Run is a conversation's lineage, so it is
+   never ended, only left; the other three record one Run's
    collection starting, stopping and resuming. They differ only in this list:
    the table, the sequence allocator and the idempotency rule are shared. An
    unknown kind fails closed rather than entering the archive. */
@@ -1335,7 +1365,8 @@ static bool boundary_kind_valid(const char *kind) {
     || strcmp(kind, "collection-resumed") == 0
     || strcmp(kind, "clear") == 0
     || strcmp(kind, "run-started") == 0
-    || strcmp(kind, "run-ended") == 0;
+    || strcmp(kind, "run-attached") == 0
+    || strcmp(kind, "run-detached") == 0;
 }
 
 /* A repeat of the same boundary is idempotent only when every recorded field
@@ -1491,11 +1522,12 @@ static void timeline_read(int argc, char **argv) {
   sqlite3_stmt *rows = archive_prepare(
     database,
     "SELECT event_id, sequence, run_id, kind, prompt_text, attachment_count,"
-    " count(*) OVER () FROM ("
+    " count(*) OVER (), segment_id FROM ("
     "  SELECT event_id, sequence, run_id, 'prompt' AS kind, prompt_text,"
-    "   attachment_count FROM prompt_entries"
+    "   attachment_count, segment_id FROM prompt_entries"
     "  UNION ALL"
-    "  SELECT event_id, sequence, run_id, kind, NULL, 0 FROM timeline_events"
+    "  SELECT event_id, sequence, run_id, kind, NULL, 0, segment_id"
+    "   FROM timeline_events"
     "  ORDER BY sequence DESC LIMIT ?1"
     ") ORDER BY sequence ASC"
   );
@@ -1518,6 +1550,7 @@ static void timeline_read(int argc, char **argv) {
     write_status_string("{\"eventId\":", (const char *)sqlite3_column_text(rows, 0));
     printf(",\"sequence\":%lld", (long long)sqlite3_column_int64(rows, 1));
     write_status_string(",\"runId\":", (const char *)sqlite3_column_text(rows, 2));
+    write_status_string(",\"segmentId\":", (const char *)sqlite3_column_text(rows, 7));
     const char *kind = (const char *)sqlite3_column_text(rows, 3);
     write_status_string(",\"kind\":", kind);
     if (strcmp(kind, "prompt") == 0) {

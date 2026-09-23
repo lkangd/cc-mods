@@ -46,7 +46,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 22. 作为普通终端使用者，我希望 Prompt Trail 默认折叠为一行，以便它不抢占对话空间。
 23. 作为想查看历史的使用者，我希望点击标题或运行 `/prompt-history` 展开或折叠，以便不依赖宿主未提供的自动焦点。
 24. 作为浏览者，我希望 Timeline Events 按项目级 sequence 从旧到新显示，以便时间戳偏差不会改变发生顺序。
-25. 作为跨多个 Run 浏览的使用者，我希望 Run 开始、结束和异常中断可见，以便我能理解进程边界。
+25. 作为跨多个 Run 浏览的使用者，我希望 Run 开始、续接、离开和未记录的离开可见，以便我能理解进程何时接入与离开一条会话谱系。
 26. 作为执行 `/clear` 的使用者，我希望时间线显示恰好一个 Clear Boundary，以便清空前后的 Conversation Segment 明确分隔。
 27. 作为启用、禁用或恢复采集的使用者，我希望看到 Collection Boundary，以便禁用区间不会被误认为完整历史。
 28. 作为使用 rewind 或 fork 的使用者，我希望旧后续和新 Conversation Branch 都保留，以便回退不会删除历史。
@@ -68,8 +68,8 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 44. 作为执行 `/clear` 的使用者，我希望 Run 保持不变而新 Conversation Segment 切断父链，以便清空语义和进程语义不混淆。
 45. 作为执行 `/compact` 的使用者，我希望不创建 Clear Boundary、新 Run 或 Prompt Entry，以便压缩不会伪装成清空。
 46. 作为执行 `/reload-plugins` 的使用者，我希望 Run、档案、展开状态和选择位置延续且 render 重放不重复归档，以便开发期 reload 安全。
-47. 作为退出并重启 Claude Code 的使用者，我希望旧 Project Timeline 延续而新进程获得新 Run，以便历史持久且进程身份准确。
-48. 作为 resume 会话的使用者，我希望唯一共享前缀续接原 Conversation Branch 且不重复 Prompt Entry，以便恢复会话保持谱系。
+47. 作为退出并重启 Claude Code 的使用者，我希望旧 Project Timeline 延续，普通启动获得新 Run、resume 续接原 Run，以便历史持久且 Run 与会话谱系一致。
+48. 作为 resume 会话的使用者，我希望续接原 Run、以唯一共享前缀续接原 Conversation Branch 且不重复 Prompt Entry，并让 resume 节点之后不在活动路径上的条目折叠为可展开的另一分支，以便时间线与会话详情一致且不丢历史。
 49. 作为使用后台 `/fork` 或 `--fork-session` 的使用者，我希望新进程建立新 Run 和 Conversation Branch，以便共享前缀与新提交都被正确表示。
 50. 作为通过 `/rewind` 或 Esc Esc 恢复旧位置的使用者，我希望下一次提交建立新分支，以便旧分支仍可查看。
 51. 作为父节点无法唯一匹配的使用者，我希望本次提交被阻止并在聚焦 Pane 中选择候选或新根，以便插件不猜测分支。
@@ -116,7 +116,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
    - Project Timeline 是一个规范项目根对应的永久时间线；不同 worktree、移动后的项目路径和不同规范根彼此隔离。
    - Archive generation 是最近一次 `clear-all` 建立的档案世代；旧 generation 的 writer 不能向新 generation 写入或复活记录。
    - Timeline Event 是不可变事件，以随机 `event_id` 幂等，并在事务中取得项目级单调 `sequence`；时间戳只用于展示。
-   - Run 对应一个交互式 Claude Code 进程；module reload 不创建新 Run，resume 和 fork 的新进程创建新 Run。
+   - Run 是一条会话谱系：普通启动创建新 Run，经 `/clear` 与 module reload 延续；`claude --resume`、`--continue` 与会话内 `/resume` 按 classic session id 找回所属 Run 并续接（档案中无该会话时新建）；后台 `/fork` 与 `--fork-session` 创建新 Run。进程只是接入或离开 Run，同一 Run 同一时刻至多一个存活进程接入；并发 resume 同一会话的后到进程新建 Run 并记录来源 Run。（2026-09-23 Issue 32 修订。）
    - Conversation Segment 是一个 Run 内由启动或 Clear Boundary 划分的连续区间。
    - Conversation Branch 以 Prompt Entry 的逻辑父关系表达；每个并发 Run 独立维护 Active Branch。
    - Prompt Entry 保存完整最终文本、项目/Run/Segment/Branch 身份、sequence、event ID、逻辑父 Prompt Entry、提交时间、捕获来源，以及附件数量和宽泛类型。相同文本不得合并。
@@ -136,21 +136,22 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
    - 首次 composer submission 前先执行不建项目数据库的只读 preflight，再让使用者选择“启用”或“继续但不启用”。
    - consent 告知必须覆盖完整文本、明文、永久无应用配额、凭据风险、路径、同账户/root 信任边界，以及 Prompt Trail 删除不覆盖的副本。
    - Collection consent 按 Project Timeline 与 policy version 保存；普通升级不重复询问，实质政策变化暂停采集并重新授权。
-   - `enable`/`disable` 只改变当前 Run。disable 不删除、不影响其他 Run、不补录；重新 enable 前先解决 Pending Capture，再写 Collection Boundary 并从新根 Conversation Branch 开始。
+   - `enable`/`disable` 只改变当前 Run，并随 Run 谱系延续：resume 回来保持原 mode。disable 不删除、不影响其他 Run、不补录；重新 enable 前先解决 Pending Capture，再写 Collection Boundary 并从新根 Conversation Branch 开始。
    - `clear-all` 不撤销 Collection consent，也不改变当前 Run collection mode。
 
 5. **经典 command-hook locator 桥**
    - 只有经典 SessionStart command hook 使用官方插件 root/data 占位符；function hook 不依赖 `import.meta.url` 或未声明环境变量定位制品。
-   - bridge 在私有、session 隔离的位置原子发布 locator。locator 至少绑定 helper 规范路径、数据库根、helper SHA-256、plugin/helper protocol、session、宿主进程世代、Run 和 Archive generation，且不含 prompt。
+   - bridge 在私有、session 隔离的位置原子发布 locator，文件名同时带 session 与宿主进程世代（`<session>.<pid>-<启动秒>-<启动微秒>.json`），并发 resume 同一会话的两个进程各有自己的 locator；helper 只接受按自身宿主进程世代命名的那一个。bridge 另在 plugin data 下维护只含 session、Run 与 Archive generation 的私有会话索引，resume 据此找回 Run。（2026-09-23 Issue 32 修订。）locator 至少绑定 helper 规范路径、数据库根、helper SHA-256、plugin/helper protocol、session、宿主进程世代、Run 和 Archive generation，且不含 prompt。
    - 每次 helper 调用前校验 locator schema、session/世代、owner、权限、对象类型、规范路径、目录归属和摘要；任一不符均拒绝执行。
    - helper 只通过无 shell argv 启动，prompt 原文只放 stdin。路径与错误类别可进入诊断，原文及文本哈希不可进入诊断。
    - 正常结束删除当前 session locator；只在能证明格式、owner、世代和对应进程已终止时清理陈旧 locator。
 
-6. **Run 身份与 reload**
-   - Run 身份是随机 Run UUID 与实际宿主进程世代的组合，而不是 module instance、classic session id 或单独环境变量。
-   - 同进程 reload 只有在进程世代一致时复用 Run UUID；继承环境的 fork 子进程因实际世代不同而创建新 Run。
-   - 一个 Run 固定使用启动 locator 中的 helper 路径、摘要和 protocol。reload 只在这些值不变时延续；变化要求恢复原制品或启动新 Run。
-   - 异常退出允许 Run 保持未闭合；下次读取显示中断，不伪造 Run 结束。
+6. **Run 身份、进程接入与 reload**
+   - Run 以随机 Run UUID 标识；进程对 Run 的接入由实际宿主进程世代确定，而不是 module instance 或单独环境变量。resume 以 classic session id 找回 Run，session id 本身不充当 Run。
+   - 同进程 reload 只有在进程世代一致时延续当前接入；继承环境的 fork 子进程因实际世代不同而不能沿用父进程的接入。
+   - 一次进程接入固定使用启动 locator 中的 helper 路径、摘要和 protocol。reload 只在这些值不变时延续；变化要求恢复原制品或新的进程接入。同一 Run 的不同接入可以使用不同制品。
+   - Run 边界：`run-started` 只在 Run 首次创建时写；`run-attached` 在进程 resume 接入已有 Run 时写；`run-detached` 在进程退出或 `/resume` 去往别的 Run 时写。会话内 `/resume` 到另一 Run 的会话时，进程改绑到该 Run。
+   - 异常退出允许接入保持未闭合；下次读取显示「未记录离开」，不伪造离开。（2026-09-23 Issue 32 修订。）
 
 7. **composer 捕获协议**
    - 只有 `prompt.submit` 且 `origin.kind === "composer"` 有资格产生 Prompt Entry；classic `UserPromptSubmit`、transcript `user` row 和 `ui.render` 都不能决定成员资格。
@@ -173,7 +174,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
    - 仅 `classic.SessionEnd(reason=clear)` 原子写入一个 Clear Boundary、结束当前 Conversation Segment 并切断 Prompt Entry 父链；幂等键由旧 classic session id 派生。
    - `classic.SessionStart(source=clear)` 只把新 classic session id 关联到已存在的边界和新 Segment，不写第二个边界。
    - `source=compact`、Pre/PostCompact、function-hook `session.start`、plugin reload、`ui.render` 重放和非 clear SessionEnd 都不得创建 Clear Boundary。
-   - 正常 SessionEnd 写 Run 结束；无法阻止的 lifecycle 事件写入失败时，使用不含原文的小型 `$.store` 恢复队列和幂等 ID，在下一次 composer submission 前清空。
+   - 正常 SessionEnd 写进程离开 Run（`run-detached`）；进程内 `/resume` 只在新会话属于另一个 Run 时补写原 Run 的离开，回到同一 Run 则什么都不写（2026-09-23 Issue 32 修订。）。无法阻止的 lifecycle 事件写入失败时，使用不含原文的小型 `$.store` 恢复队列和幂等 ID，在下一次 composer submission 前清空。
    - 无法唯一恢复 lifecycle 事实时创建 Integrity gap，不猜测或静默忽略。
 
 10. **SQLite helper 与档案协议**
@@ -223,9 +224,9 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 
 15. **并发与删除**
     - `clear-all` 使用线性化切点和新 Archive generation：切点前记录全部删除，切点后的新提交只写新 generation，旧 writer 被拒绝。
-    - `clear-run` 删除当前 Run 的 Prompt Entries、Pending Captures、相关原文和可关联的敏感元数据；其他 Run 保持不变。
+    - `clear-run` 删除当前 Run（整条会话谱系，跨越其所有进程接入）的 Prompt Entries、Pending Captures、相关原文和可关联的敏感元数据；其他 Run 保持不变。
     - 存在无法安全打开的 Quarantined Archive 时，`clear-run` 不得声称完整按 Run 删除，必须拒绝并引导 `clear-all`。
-    - `clear-all` 删除活动数据库、WAL/SHM、迁移备份、Quarantined Archives 和 prompt 元数据；locator 生命周期独立，consent 与当前 Run mode 保留。
+    - `clear-all` 删除活动数据库、WAL/SHM、迁移备份、Quarantined Archives 和 prompt 元数据，并删除会话索引里指向该项目档案中出现过的 Run 的记录（索引不记项目，只能按 Run 找回），之后 resume 这些会话会新建 Run 而不是回到旧 generation 的 Run；locator 生命周期独立，consent 与当前 Run mode 保留。（2026-09-23 Issue 32 修订。）
     - 删除使用 `secure_delete`、WAL checkpoint/truncate 和必要空间回收。事务删除成功但残留清理失败时报告“逻辑删除完成、物理清除未完成”，列出残留并保持 Archive unavailable。
     - 所有删除确认都重申 Claude Code transcript/history、文件系统快照、备份和 SSD 物理介质不在保证内。
 

@@ -91,6 +91,10 @@
 - 最低兼容版本 `2.1.273` 也跑过了真实 PTY，review finding #12 视为已满足。
 - 提交前重跑门禁：`verify-startup.sh` 全绿，`2.1.273`/`2.1.278` 各 129 项 plugin tests、8 静态、16 bridge、42 helper、TypeScript 与确定性重建通过。
 
+### 2026-09-23 · Run 定义已由 Issue 32 修订
+
+本票解析后，使用者决定 Run 改为会话谱系：`claude --resume`、`--continue` 与会话内 `/resume` 都续接原 Run，只有普通启动与 fork 开新 Run；run-started/run-ended 改为 run-started/run-attached/run-detached；helper 制品按进程接入而非整个 Run 绑定。本票 Answer 保留为当时的实现记录，现行契约见 [Issue 32](32-run-lineage-across-resume.md)。
+
 ## Answer
 
 Run 身份现在跨 reload 保持、跨退出与重启更替。Run = 随机 Run UUID + 实际宿主进程世代，

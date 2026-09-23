@@ -29,11 +29,27 @@ class BridgeProtocolTests(unittest.TestCase):
         self.environment = {**os.environ, "HOME": str(self.home)}
 
     @property
+    def locator_directory(self) -> pathlib.Path:
+        return self.home / ".claude/plugins/data/.function-hook-locators/prompt-trail"
+
+    def locators_of(self, session_id: str) -> list[pathlib.Path]:
+        return sorted(self.locator_directory.glob(f"{session_id}.*.json"))
+
+    @property
     def locator(self) -> pathlib.Path:
+        # The newest locator of the current session: one per process that has
+        # it open, so a test that publishes twice for one session reads the
+        # one it published last.
+        found = self.locators_of(self.session_id)
+        if not found:
+            return self.locator_directory / f"{self.session_id}.missing.json"
+        return max(found, key=lambda path: path.stat().st_mtime_ns)
+
+    @staticmethod
+    def locator_name(payload: dict[str, object]) -> str:
         return (
-            self.home
-            / ".claude/plugins/data/.function-hook-locators/prompt-trail"
-            / f"{self.session_id}.json"
+            f"{payload['sessionId']}.{payload['hostPid']}"
+            f"-{payload['hostStartSeconds']}-{payload['hostStartMicroseconds']}.json"
         )
 
     def run_bridge(
@@ -105,6 +121,16 @@ class BridgeProtocolTests(unittest.TestCase):
         self.assertEqual(stat.S_IMODE(self.locator.stat().st_mode), 0o600)
         self.assertEqual(stat.S_IMODE(self.locator.parent.stat().st_mode), 0o700)
         self.assertFalse((self.plugin_data / "archives").exists())
+
+    def test_publish_names_the_locator_for_its_host_process_generation(self) -> None:
+        result = self.run_bridge("publish", self.session_input("SessionStart"))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        published = self.locators_of(self.session_id)
+        self.assertEqual(len(published), 1)
+        payload = json.loads(published[0].read_text())
+        self.assertEqual(published[0].name, self.locator_name(payload))
+        self.assertEqual(payload["hostPid"], os.getpid())
 
     def test_publish_records_a_missing_helper_without_executing_it(self) -> None:
         plugin_root = pathlib.Path(self.temporary.name) / "plugin"
@@ -378,7 +404,6 @@ class BridgeProtocolTests(unittest.TestCase):
         template = json.loads(active_locator.read_text())
 
         stale_session = str(uuid.uuid4())
-        stale_locator = active_locator.parent / f"{stale_session}.json"
         stale_payload = {
             **template,
             "sessionId": stale_session,
@@ -386,8 +411,14 @@ class BridgeProtocolTests(unittest.TestCase):
             "hostStartSeconds": 1,
             "hostStartMicroseconds": 1,
         }
+        stale_locator = active_locator.parent / self.locator_name(stale_payload)
         stale_locator.write_text(json.dumps(stale_payload) + "\n")
         stale_locator.chmod(0o600)
+        # The one name every locator had before they were named per process.
+        legacy_session = str(uuid.uuid4())
+        legacy_locator = active_locator.parent / f"{legacy_session}.json"
+        legacy_locator.write_text(json.dumps({**stale_payload, "sessionId": legacy_session}) + "\n")
+        legacy_locator.chmod(0o600)
 
         unsafe_session = str(uuid.uuid4())
         unsafe_locator = active_locator.parent / f"{unsafe_session}.json"
@@ -399,49 +430,153 @@ class BridgeProtocolTests(unittest.TestCase):
 
         self.assertEqual(next_run.returncode, 0, next_run.stderr)
         self.assertFalse(stale_locator.exists())
+        self.assertFalse(legacy_locator.exists())
         self.assertTrue(unsafe_locator.exists())
-        self.assertTrue((active_locator.parent / f"{active_session}.json").exists())
+        self.assertEqual(self.locators_of(active_session), [active_locator])
         self.assertTrue(self.locator.exists())
 
-
-    def test_in_process_resume_keeps_the_run_identity(self) -> None:
-        published = self.run_bridge("publish", self.session_input("SessionStart"))
-        self.assertEqual(published.returncode, 0, published.stderr)
-        previous_locator = self.locator
-        previous_payload = json.loads(previous_locator.read_text())
-
+    def in_process_resume(self, target_session: str) -> subprocess.CompletedProcess[str]:
         resume_end = self.session_input("SessionEnd")
         resume_end["reason"] = "resume"
         retained = self.run_bridge("remove", resume_end)
         self.assertEqual(retained.returncode, 0, retained.stderr)
-        self.assertTrue(previous_locator.exists())
-
-        self.session_id = str(uuid.uuid4())
+        self.session_id = target_session
         resume_start = self.session_input("SessionStart")
         resume_start["source"] = "resume"
-        resumed = self.run_bridge("publish", resume_start)
+        return self.run_bridge("publish", resume_start)
 
-        self.assertEqual(resumed.returncode, 0, resumed.stderr)
-        self.assertFalse(previous_locator.exists())
-        current_payload = json.loads(self.locator.read_text())
-        self.assertEqual(current_payload["sessionId"], self.session_id)
-        self.assertEqual(current_payload["runId"], previous_payload["runId"])
-        self.assertEqual(current_payload["hostPid"], previous_payload["hostPid"])
-
-    def test_resume_in_a_new_process_starts_a_new_run(self) -> None:
+    def test_in_process_resume_to_a_session_of_the_same_run_keeps_it(self) -> None:
+        first_session = self.session_id
         published = self.run_bridge("publish", self.session_input("SessionStart"))
         self.assertEqual(published.returncode, 0, published.stderr)
-        previous_payload = json.loads(self.locator.read_text())
+        original = json.loads(self.locator.read_text())
+        clear_end = self.session_input("SessionEnd")
+        clear_end["reason"] = "clear"
+        self.assertEqual(self.run_bridge("remove", clear_end).returncode, 0)
+        self.session_id = str(uuid.uuid4())
+        clear_start = self.session_input("SessionStart")
+        clear_start["source"] = "clear"
+        self.assertEqual(self.run_bridge("publish", clear_start).returncode, 0)
+        left_behind = self.locator
+
+        resumed = self.in_process_resume(first_session)
+
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        self.assertFalse(left_behind.exists())
+        current = json.loads(self.locator.read_text())
+        self.assertEqual(current["sessionId"], first_session)
+        self.assertEqual(current["runId"], original["runId"])
+        self.assertEqual(current["hostPid"], original["hostPid"])
+
+    def test_in_process_resume_to_another_runs_session_moves_the_process_to_it(self) -> None:
+        # A session that belongs to another Run: started in a process that has
+        # since exited.
+        other_session = self.session_id
+        other = self.run_bridge("publish", self.session_input("SessionStart"), via_child=True)
+        self.assertEqual(other.returncode, 0, other.stderr)
+        other_run = json.loads(self.locator.read_text())["runId"]
+
+        self.session_id = str(uuid.uuid4())
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        left_behind = self.locator
+        own_run = json.loads(left_behind.read_text())["runId"]
+        self.assertNotEqual(own_run, other_run)
+
+        resumed = self.in_process_resume(other_session)
+
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        self.assertFalse(left_behind.exists())
+        current = json.loads(self.locator.read_text())
+        self.assertEqual(current["runId"], other_run)
+        self.assertEqual(current["hostPid"], os.getpid())
+
+    def test_in_process_resume_to_an_unindexed_session_begins_a_new_run(self) -> None:
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        left_behind = self.locator
+        own_run = json.loads(left_behind.read_text())["runId"]
+
+        resumed = self.in_process_resume(str(uuid.uuid4()))
+
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        self.assertFalse(left_behind.exists())
+        current = json.loads(self.locator.read_text())
+        self.assertNotEqual(current["runId"], own_run)
+        self.assertEqual(current["hostPid"], os.getpid())
+
+    def test_resume_after_the_process_exited_continues_its_run(self) -> None:
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        original = json.loads(self.locator.read_text())
+        ended = self.run_bridge("remove", self.session_input("SessionEnd"))
+        self.assertEqual(ended.returncode, 0, ended.stderr)
+        self.assertEqual(self.locators_of(self.session_id), [])
 
         resume_start = self.session_input("SessionStart")
         resume_start["source"] = "resume"
         resumed = self.run_bridge("publish", resume_start, via_child=True)
 
         self.assertEqual(resumed.returncode, 0, resumed.stderr)
-        current_payload = json.loads(self.locator.read_text())
-        self.assertEqual(current_payload["sessionId"], self.session_id)
-        self.assertNotEqual(current_payload["hostPid"], previous_payload["hostPid"])
-        self.assertNotEqual(current_payload["runId"], previous_payload["runId"])
+        current = json.loads(self.locator.read_text())
+        self.assertNotEqual(current["hostPid"], original["hostPid"])
+        self.assertEqual(current["runId"], original["runId"])
+        self.assertEqual(current["archiveGeneration"], original["archiveGeneration"])
+
+    def test_the_session_index_holds_identity_only_in_a_private_file(self) -> None:
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        locator = json.loads(self.locator.read_text())
+
+        index = self.plugin_data / "sessions" / f"{self.session_id}.json"
+        self.assertEqual(
+            json.loads(index.read_text()),
+            {
+                "indexVersion": 1,
+                "sessionId": self.session_id,
+                "runId": locator["runId"],
+                "archiveGeneration": locator["archiveGeneration"],
+            },
+        )
+        self.assertEqual(stat.S_IMODE(index.stat().st_mode), 0o600)
+        self.assertEqual(stat.S_IMODE(index.parent.stat().st_mode), 0o700)
+
+    def test_resume_refuses_a_session_index_it_cannot_trust(self) -> None:
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        self.assertEqual(self.run_bridge("remove", self.session_input("SessionEnd")).returncode, 0)
+        index = self.plugin_data / "sessions" / f"{self.session_id}.json"
+        index.chmod(0o644)
+
+        resume_start = self.session_input("SessionStart")
+        resume_start["source"] = "resume"
+        refused = self.run_bridge("publish", resume_start, via_child=True)
+
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertEqual(json.loads(refused.stderr), {"category": "session-index-untrusted"})
+        self.assertEqual(self.locators_of(self.session_id), [])
+
+    def test_resume_while_a_live_process_holds_the_run_begins_a_new_run(self) -> None:
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        holder = self.locator
+        holder_payload = json.loads(holder.read_text())
+        index = self.plugin_data / "sessions" / f"{self.session_id}.json"
+        indexed = index.read_text()
+
+        resume_start = self.session_input("SessionStart")
+        resume_start["source"] = "resume"
+        resumed = self.run_bridge("publish", resume_start, via_child=True)
+
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        self.assertEqual(json.loads(holder.read_text()), holder_payload)
+        others = [path for path in self.locators_of(self.session_id) if path != holder]
+        self.assertEqual(len(others), 1)
+        current = json.loads(others[0].read_text())
+        self.assertNotEqual(current["hostPid"], holder_payload["hostPid"])
+        self.assertNotEqual(current["runId"], holder_payload["runId"])
+        # The session still belongs to the Run that holds it.
+        self.assertEqual(index.read_text(), indexed)
 
     def test_a_child_that_inherits_the_run_environment_gets_its_own_run(self) -> None:
         published = self.run_bridge("publish", self.session_input("SessionStart"))

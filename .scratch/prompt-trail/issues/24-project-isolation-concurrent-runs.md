@@ -12,6 +12,13 @@
 - [ ] 两个同项目 Run 同时提交时，各自保持独立 Active Branch，并通过短事务取得唯一、连续、项目级单调 sequence。
 - [ ] 至少 24 个并发 writer 全部提交；幂等重试不重复事件，相同 prompt 文本的不同事件保持独立。
 - [ ] disable 一个 Run 不改变另一个 Run 的 mode、pending、Active Branch 或写入能力。
+- [ ] 同一 Run 同一时刻至多一个存活进程接入；双终端并发 resume 同一会话时后到者成为新 Run（Issue 32），两个 Run 各自保持 Active Branch。
 - [ ] 一个项目的 locator、权限、I/O 或数据库故障不影响另一个项目的数据库和健康状态。
 - [ ] `status` 只显示当前运行时项目绝对路径和对应数据库路径，不泄漏其他 Project Timelines。
 - [ ] helper black-box concurrency/isolation tests 与双 PTY Run 场景验证顺序、分支、开关和物理隔离。
+
+## Comments
+
+### 2026-09-23 · Run 定义修订
+
+Issue 32 把 Run 从「一个进程」改为「一条会话谱系」。本票的「并发 Run」仍指同一项目中同时接入的不同 Run；同一 Run 不会被两个进程同时接入（见新增条目）。

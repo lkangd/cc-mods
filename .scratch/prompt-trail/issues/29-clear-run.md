@@ -7,7 +7,7 @@
 **Status:** ready-for-agent
 
 - [ ] 当前 Run 无目标记录时，`/prompt-history clear-run` 返回 no-op 且不询问确认。
-- [ ] 有数据时先显示当前 Run、待删记录数和副本边界，并要求一次明确确认；确认文本不包含 prompt。
+- [ ] 有数据时先显示当前 Run（整条会话谱系，跨越其所有进程接入）、待删记录数和副本边界，并要求一次明确确认；确认文本不包含 prompt。
 - [ ] 确认后删除当前 Run 的 Prompt Entries、Pending Captures、相关原文和可关联的敏感 prompt 元数据，其他 Run 数据保持不变。
 - [ ] Collection consent 和当前 Run collection mode 不因 `clear-run` 改变；后续采集遵循现有模式。
 - [ ] 存在无法安全打开的 Quarantined Archive 时拒绝声称完整按 Run 删除，并引导使用项目级清除。
@@ -16,3 +16,9 @@
 - [ ] 确认流程重申不会删除 Claude Code transcript/history、文件系统快照、系统/第三方备份，也不保证 SSD 物理不可恢复擦除。
 - [ ] 控制命令不创建 Prompt Entry；日志、错误和删除报告不泄漏被删原文或文本哈希。
 - [ ] helper black-box、plugin test 与真实 PTY 覆盖 no-op、取消、成功、其他 Run 保留、Quarantine 拒绝和部分物理失败。
+
+## Comments
+
+### 2026-09-23 · Run 定义修订
+
+Issue 32 把 Run 改为会话谱系：`clear-run` 的范围随之包括该 Run 在此前所有进程（含已退出后被 resume 的进程）中产生的记录，确认界面须写明这一点。

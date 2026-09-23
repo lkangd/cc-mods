@@ -35,6 +35,17 @@ bool pt_executable_version(const char *executable, char *output, size_t capacity
 bool pt_sha256_file(const char *path, char output[65]);
 bool pt_is_safe_identifier(const char *value);
 void pt_random_uuid(char output[37]);
+/* A locator's file name: the session and the host process generation that
+   published it, `<session>.<pid>-<start s>-<start µs>.json`. The bridge
+   publishes under it and the helper accepts only the one naming its own host. */
+bool pt_locator_file_name(
+  const char *session_id,
+  int64_t host_pid,
+  int64_t host_start_seconds,
+  int64_t host_start_microseconds,
+  char *output,
+  size_t capacity
+);
 bool pt_path_is_private_directory(const char *path);
 bool pt_path_is_private_file(const char *path);
 bool pt_ensure_private_directory(const char *path);

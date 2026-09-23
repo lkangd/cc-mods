@@ -638,3 +638,23 @@ bool pt_ensure_private_directory(const char *path) {
   if ((status.st_mode & 0777) != 0700 && chmod(path, 0700) != 0) return false;
   return pt_path_is_private_directory(path);
 }
+
+bool pt_locator_file_name(
+  const char *session_id,
+  int64_t host_pid,
+  int64_t host_start_seconds,
+  int64_t host_start_microseconds,
+  char *output,
+  size_t capacity
+) {
+  int length = snprintf(
+    output,
+    capacity,
+    "%s.%lld-%lld-%lld.json",
+    session_id,
+    (long long)host_pid,
+    (long long)host_start_seconds,
+    (long long)host_start_microseconds
+  );
+  return length >= 0 && (size_t)length < capacity;
+}

@@ -34,7 +34,7 @@ Blocked by: 03, 04, 06, 10
 - **PT-COMPAT-002 不受支持目标**：分别注入 OS、架构、macOS 主版本、Claude Code `<2.1.273` 或版本无法证明；不得请求 consent、创建档案或尝试联网/编译，`status` 显示 `unsupported target`。
 - **PT-COMPAT-003 Helper 不可用**：覆盖缺失、非普通文件、不可执行、摘要不符、错误 protocol、SQLite 能力不足、dyld/隔离/企业策略拒绝；不得静默换 binary、SQLite 或内存时间线。
 - **PT-COMPAT-004 制品检查**：发布制品必须与 manifest 完全一致；检查脚本的任一不一致均阻断发布。
-- **PT-COMPAT-005 Run 版本绑定**：helper 未变时 `/reload-plugins` 可继续；路径、内容、摘要或 protocol 改变时当前 Run 进入 Archive unavailable，只有恢复原制品或启动新 Run 才可继续。
+- **PT-COMPAT-005 进程接入版本绑定**：helper 未变时 `/reload-plugins` 可继续；路径、内容、摘要或 protocol 改变时当前进程接入进入 Archive unavailable，只有恢复原制品或新的进程接入才可继续。（2026-09-23 Issue 32 修订。）
 
 ### 4. 采集与内容场景
 
@@ -52,8 +52,8 @@ Blocked by: 03, 04, 06, 10
 - **PT-LIFE-001 `/clear`**：`SessionEnd(reason=clear)` 恰好写入一个 Clear Boundary 并结束当前 Conversation Segment；`SessionStart(source=clear)` 只关联新 classic session id。Run 不变，前后 prompt 分属不同 Segment；重复事件和两事件间崩溃均不得重复或丢失边界。
 - **PT-LIFE-002 Compaction**：`/compact`、`source=compact`、Pre/PostCompact 和延迟 `prompt.context` 均不得创建 Clear Boundary、Prompt Entry 或新 Run；compact 前后活动分支保持连续。
 - **PT-LIFE-003 Plugin reload**：同进程 reload 产生新 module instance 但沿用 Run；重放的 `ui.render` 不创建 Prompt Entry，已绑定项不重复，选中位置和展开状态恢复。
-- **PT-LIFE-004 正常退出与普通重启**：正常退出记录 Run 结束；新进程获得新 Run，沿用同一 Project Timeline 和 Archive generation。旧 Prompt Entry 仍可浏览，但未在当前 transcript 重放的项无 Jump Target。
-- **PT-BRANCH-001 Resume**：新 Run 依据 source、session id 和唯一共享前缀恢复 Active Branch；共享历史只重绑 Jump Target，不重复归档。
+- **PT-LIFE-004 正常退出与普通重启**：正常退出记录 Run 离开；普通启动的新进程获得新 Run，沿用同一 Project Timeline 和 Archive generation。旧 Prompt Entry 仍可浏览，但未在当前 transcript 重放的项无 Jump Target。
+- **PT-BRANCH-001 Resume**：`claude --resume`、`--continue` 与会话内 `/resume` 续接原 Run 并记录 Run 续接，依据 source、session id 和唯一共享前缀恢复 Active Branch；共享历史只重绑 Jump Target，不重复归档；resume 节点之后不在活动路径上的条目折叠为可展开的另一分支。双终端并发 resume 同一会话时后到者新建 Run 并记录来源。（2026-09-23 Issue 32 修订。）
 - **PT-BRANCH-002 Fork**：后台 `/fork` 与 `--fork-session` 均创建新 Run 和新 Conversation Branch；共享前缀不重复，fork 参数若以 composer submission 进入则产生新 Prompt Entry。
 - **PT-BRANCH-003 Rewind 与 Esc Esc**：恢复到旧位置后的首次 composer submission 创建新分支，原分支永久保留；不得依赖 `command.run(rewind)` 才识别分支。
 - **PT-BRANCH-004 父节点歧义**：首次歧义提交必须 drop，完整草稿只保存在内存，打开已聚焦候选 Pane；选择后关闭 Pane、用 `$.prompt.fill()` 恢复草稿且不自动重提，未选择前继续阻止提交。
@@ -73,7 +73,7 @@ Blocked by: 03, 04, 06, 10
 
 ### 7. 持久化、并发与恢复场景
 
-- **PT-STORE-001 重启延续**：关闭并重新启动 Claude Code 后，项目 sequence、所有历史事件、Archive generation 和 consent 延续；Run 身份更新且不复用旧进程世代。
+- **PT-STORE-001 重启延续**：关闭并重新启动 Claude Code 后，项目 sequence、所有历史事件、Archive generation 和 consent 延续；普通启动得到新 Run，resume 续接原 Run，都不复用旧进程世代。
 - **PT-STORE-002 双 Run 并发**：两个 Run 对同一项目交错提交，验证 WAL、短事务、单调唯一 sequence、幂等 event ID 和各自 Active Branch；禁用一个 Run 不影响另一个。
 - **PT-STORE-003 Busy**：注入锁竞争并验证有界退避，总等待不超过 10 秒；超时后进入 Archive unavailable，不后台无限重试。
 - **PT-STORE-004 空间不足**：低于 1 GiB 每个 Run 只警告一次；`ENOSPC` 完整回滚，不产生半事件、丢失 pending 或自动删减历史。
@@ -96,7 +96,7 @@ Blocked by: 03, 04, 06, 10
 
 - **PT-CONTROL-001 `status`**：只显示 consent、Run collection mode、当前健康、历史 Gap 提示、运行时项目路径、数据库路径与大小；不得显示 prompt。失败状态下仍可用。
 - **PT-CONTROL-002 Enable/disable**：首次 enable 先完成 preflight 和项目 consent；disable 只影响当前 Run且不删除；重新 enable 先解决 pending，再写 Collection Boundary 并从新根分支开始。
-- **PT-DELETE-001 `clear-run`**：有数据时显示 Run、记录数和副本边界并确认；删除当前 Run 的 Prompt Entries、pending 及相关原文，不影响其他 Run。存在无法安全打开的 Quarantined Archive 时拒绝声称完整删除。
+- **PT-DELETE-001 `clear-run`**：有数据时显示 Run（跨越其所有进程接入）、记录数和副本边界并确认；删除当前 Run 的 Prompt Entries、pending 及相关原文，不影响其他 Run。存在无法安全打开的 Quarantined Archive 时拒绝声称完整删除。
 - **PT-DELETE-002 `clear-all`**：有数据时显示项目范围、文件和记录数并要求固定短语；删除活动 DB、WAL/SHM、迁移备份、Quarantined Archive 和全部 prompt 元数据，保留 consent 与当前 Run mode，然后建立空 generation。
 - **PT-DELETE-003 无数据与残留**：无目标时 no-op 且不询问。逻辑删除完成但 WAL、备份或文件清理失败时，准确报告“逻辑删除完成、物理清除未完成”，列出残留并维持 Archive unavailable。
 - **PT-DELETE-004 删除边界告知**：所有删除流程重申不删除 Claude Code transcript/history、文件系统快照和外部备份，也不保证 SSD 介质不可恢复擦除。
