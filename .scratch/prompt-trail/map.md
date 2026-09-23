@@ -68,6 +68,12 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   「另一分支 · N 条」。2.1.280 上 `session.start` 可能早于 locator：提交时短暂等待，时间线未读时补读，门禁改为 2.1.280。
   `/compact` 会清掉 `messages()` 里的旧 user 行。`/fork` 接续出的 session 被新开 Run，拆为
   [Issue 33](issues/33-continued-session-keeps-run.md)。窗口外折叠与重复 prompt 的匹配开销进了 backlog。
+- [rewind 后建立新 Conversation Branch](issues/19-rewind-branch.md)：
+  对齐改为每次提交：内存里的预检（上次采集的 prompt 是否仍在原行）挡掉绝大多数 helper 调用；rewind 由 transcript
+  变化发现，不依赖任何信号。主对话 compact 写 per-session 的 `compacted` 标记：没有标记时 `none` 即 rewind 到根，
+  直接开根；有标记时 `truncated` 匹配，`none` 仍询问。`branch-match` 的并列候选按已存父节点的祖先链裁决。
+  视图从档案推导「新根分支 / 新分支」边界，不新增事件。**修正 Issue 18**：同一进程里 compact 后，`messages()`
+  仍保留旧 prompt 行，只有跨进程 resume 才会丢失。
 
 ## Not yet specified
 
