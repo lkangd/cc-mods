@@ -4,7 +4,7 @@
 
 **Blocked by:** 12「同意采集并显示首个 Prompt Entry」
 
-**Status:** claimed
+**Status:** resolved
 
 - [x] 只有 `classic.SessionEnd(reason=clear)` 原子写入一个 Clear Boundary，并结束当前 Conversation Segment。
 - [x] Clear Boundary 使用旧 classic session ID 派生幂等键；重复事件或重试不会产生第二个边界。
@@ -209,3 +209,44 @@ TypeScript 与确定性重建全部通过。
 **注意：修复改变了 `$.store` 的键形状与 `/clear` 的落盘时序，按 Issue 15 的先例需要复验 PTY。**
 真实 store 里那条旧的 project 级 `prompt-trail:lifecycle:<projectId>` 不再被匹配（前缀要求结尾冒号），
 成为孤儿；它的队列为空、转换已完成，没有事实因此丢失。
+
+
+## Answer
+
+`/clear` 现在准确划分 Conversation Segment。生命周期的判断是一个独立于 `$` 的纯状态机
+（`hooks/lifecycle.ts`）：给定存量状态和一个 classic 事件，决定是否欠一个边界并描述它，
+不负责写入。只有 `classic.SessionEnd(reason=clear)` 形成写入；`classic.SessionStart` 只关联
+已写入的边界，绝不补造第二个。`compact`、`resume`、`fork`、`startup`、reload 都作为状态机
+刻意忽略的事件传入，不是靠调用方过滤。
+
+**幂等键**从旧 classic session id 派生
+（`sha256("prompt-trail:clear-boundary:1:<projectId>:<旧session id>")`），
+`boundary_kind_valid()` 只多一个 `clear`，表与 schema 不变。**Segment 与分支的切换是既有
+键控方案的自然结果**：`segment_id` 本就是 classic session id，分支本就按
+`(project, run, session)` 分键，`/clear` 换 session id 即自动获得新根分支。
+
+**恢复队列**（spec §9 要求，此前不存在）落在 `$.store`，**按 Run 分键**而非按 project
+（并发 Run 不会互相覆盖对方的队列），只存身份和时刻。它在 `prompt.submit` 里排在
+`settlePending()` 之后、`archiveUnavailable` 短路之前清空——`/clear` 之前未结清的
+Pending Capture 尚未取得 sequence，边界要等在它后面而不能抢先。**欠账先落盘再尝试写入**，
+两个崩溃窗口（写入前/写入后）都可恢复。drain 也会代付项目里其他 Run 留下的欠账（通过
+`$.store.keys()` 枚举），并**始终重放那个 Run 自己的身份**而不是补写者的。
+
+**一轮 `/code-review` 找到 14 条已验证 finding（2 critical、7 major、4 minor、1 nit）**，
+**两条 critical 都是这次改动自己引入的**：project 级键让并发 Run 互相抹掉对方的队列；
+先 append 再落盘留下一个崩溃窗口会让事实凭空消失。10 条已修（含两条 critical、
+边界与 pending 的先后顺序、以及一处队列补写会用错 Run 身份导致 `boundary-conflict`
+永久卡死的洞——**这正是真人 PTY 验收时那次没能解释的失败的放大版**）。2 条归入
+`docs/code-review-backlog/`（spec §9 要求的 Integrity gap 从未真正写进档案，归 Issue 26；
+一处 Issue 14 遗留的响应解析器重复）。2 条部分驳回，理由见 Comments。
+
+真人 PTY 验收在 review 之前完成，覆盖 `/clear`、`/compact`、reload 与一次真实的中断恢复
+（档案权限 0400 → 0600）；review 改的是 `$.store` 键形状与落盘时序，用扩充后的 plugin test
+（110 项，新增 6 条直接针对这些 finding 的回归）复验，**没有第二次 PTY 验收**——理由是
+这类竞争与崩溃窗口本就是 PTY 测不出来的（需要两个真实并发进程或精确的崩溃时点），
+plugin test 才是能直接构造这些状态的验证手段。
+
+门禁：`2.1.273` 与 `2.1.278` 各 **110** 项 plugin tests、7 项静态制品、13 项 bridge protocol、
+**37** 项 helper protocol，TypeScript 与确定性重建全部通过。已提交
+`prompt-trail/issue-16-clear-conversation-segment`（`1b11fc4`），未合并进
+`prompt-trail/issue-15-reconcile-pending-capture` 或 `main`。

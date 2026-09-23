@@ -37,6 +37,15 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 - [严格匹配人类 composer 提交](issues/13-strict-composer-capture.md)：成员资格只取决于 `origin.kind === 'composer'` 且 `next(e)` 成功返回文本的 `prompt.submit`，不看 classic hook、transcript `user` row、`ui.render`，也不按 `/` 前缀过滤——slash 命令走 `command.run`，不经过 `prompt.submit`。重复文本按事件身份保持独立，宽字符与空行逐字保存，附件只留数量和宽泛类型，下游 drop 幂等丢弃 Pending Capture，render 重放不重复归档。宿主限制：`2.1.278` 把粘贴的附件替换成 `[Image #N]` 占位文本，故无文本 submission 不承诺出现。
 - [切换 Run collection mode](issues/14-run-collection-mode.md)：Run collection mode 是 `$.store` 里 `prompt-trail:run-mode:<projectId>:<runId>` 的 Run 级记录，无记录即默认 `enabled`；disable 只停当前 Run 的后续采集，不删旧 Prompt Entries、不撤销 consent、不影响其他 Run。真实的开始/停止/恢复落在新的 `timeline_events` 表（schema 升到 2，旧库在写锁内判定并执行 `1->2` 迁移），边界不含文本、与 Prompt Entry 共用同一项目级 sequence 分配器，事件身份跨三张表唯一。方向性是核心：停用永远生效、边界写入随后尝试且失败如实说明；恢复必须先补上缺失的停止边界，补不上就拒绝恢复，且重置为新的根分支、不补录禁用期间的 prompt。preflight 不健康、未 consent、档案不可用或开关读不到一律失败关闭而非假装成功。迁移前的完整性/空间检查与备份留给 Issue 27，Pending Capture 对账留给 Issue 15。
 - [对账中断的 Pending Capture](issues/15-reconcile-pending-capture.md)：未决 Pending Capture 成为独立的持久「待对账」状态（`$.store` 的 `prompt-trail:reconcile:<projectId>`，只存身份不存文本，按 project 键以跨重启），`archiveUnavailable` 退回「档案真的不可用」的本义。档案侧新增 `capture-list`（只回身份、固定最大批次 64、只有 ENOENT 才算空、不可信的根失败关闭）与 `capture-confirm --pending`（用预写文本确认，重启后唯一可用的形式，原文不出 helper）。自动对账只认两种无歧义形态：暂存文本在 `user` row 恰好出现一次，或一次未现且 transcript 完整；其余交给使用者三选一，`已进入` 归档、`未进入` 丢弃、`新根分支` 同样不归档只重置为新根——不确定时绝不猜成 Prompt Entry。取消不是答案、被阻止的提交不代为重发、草稿退不回时文案如实说明。时序不可调换：对账跑在 `archiveUnavailable` 短路之前，`新根分支` 先写新根再 abort，发现的 pending 立即落盘，结清一条后重新问档案直到报空。
+- [以 Clear Boundary 划分 Conversation Segment](issues/16-clear-conversation-segment.md)：
+  生命周期判断是独立于 `$` 的纯状态机（`hooks/lifecycle.ts`），只有
+  `classic.SessionEnd(reason=clear)` 形成写入，幂等键从旧 classic session id 派生；
+  Segment 与分支切换是既有 `(project, run, session)` 键控方案的自然结果，不需要新机制。
+  新增的生命周期恢复队列按 **Run** 分键（不是按 project，避免并发 Run 互相覆盖），
+  排在 `settlePending()` 之后、`archiveUnavailable` 之前清空，欠账先落盘再尝试写入。
+  一轮 code review 抓到两条 critical（都是本票据引入的：project 级键的并发覆盖、
+  先写后存的崩溃窗口）与一处队列补写会用错 Run 身份导致永久 `boundary-conflict` 的洞；
+  10 条修复、2 条归 backlog（Integrity gap 归 Issue 26）、2 条部分驳回。
 
 ## Not yet specified
 
