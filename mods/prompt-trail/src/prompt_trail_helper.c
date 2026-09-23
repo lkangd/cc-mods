@@ -1326,10 +1326,15 @@ static void capture_list(int argc, char **argv) {
 /* The Collection Boundary kinds one Run can record: collection beginning,
    stopping, and resuming. Other Timeline Event kinds arrive with their own
    tickets; an unknown kind fails closed rather than entering the archive. */
+/* The kinds of non-prompt Timeline Event this protocol accepts. `clear` is the
+   Clear Boundary that ends a Conversation Segment; the other three record one
+   Run's collection starting, stopping and resuming. They differ only in this
+   list: the table, the sequence allocator and the idempotency rule are shared. */
 static bool boundary_kind_valid(const char *kind) {
   return strcmp(kind, "collection-started") == 0
     || strcmp(kind, "collection-stopped") == 0
-    || strcmp(kind, "collection-resumed") == 0;
+    || strcmp(kind, "collection-resumed") == 0
+    || strcmp(kind, "clear") == 0;
 }
 
 /* A repeat of the same boundary is idempotent only when every recorded field

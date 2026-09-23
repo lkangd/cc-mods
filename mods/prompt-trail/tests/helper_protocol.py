@@ -988,7 +988,7 @@ class HelperProtocolTests(unittest.TestCase):
                 run_id=str(uuid.uuid4()),
                 segment_id=str(uuid.uuid4()),
                 branch_id=str(uuid.uuid4()),
-                kind="clear",
+                kind="integrity-recovery",
             )
         )
 
@@ -996,6 +996,147 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(result.stdout, "")
         self.assertEqual(json.loads(result.stderr)["category"], "boundary-input")
         self.assertFalse((database_root / f"{project_id}.sqlite3").exists())
+
+    def test_a_clear_boundary_separates_two_conversation_segments(self) -> None:
+        """A Clear Boundary takes the sequence between the segments it parts."""
+        project_id = "4" * 64
+        run_id = str(uuid.uuid4())
+        before = {
+            "project_id": project_id,
+            "run_id": run_id,
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        after = {
+            "project_id": project_id,
+            "run_id": run_id,
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+
+        first = self.capture("PT-SECRET-BEFORE-CLEAR", identity=before)
+        cleared, cleared_sequence = self.boundary(identity=before, kind="clear")
+        second = self.capture("PT-SECRET-AFTER-CLEAR", identity=after)
+
+        self.assertEqual(cleared_sequence, 2)
+        semantics = self.verify_archive({
+            "database": str(self.plugin_data / "archives" / f"{project_id}.sqlite3"),
+            "projectId": project_id,
+            "state": "set",
+            "pending": [],
+            "boundaries": [
+                {
+                    "eventId": cleared,
+                    "sequence": 2,
+                    "kind": "clear",
+                    "runId": run_id,
+                    "segmentId": before["segment_id"],
+                    "branchId": before["branch_id"],
+                    "occurredAtMs": 1_795_000_000_000,
+                },
+            ],
+            "entries": [
+                {
+                    "eventId": first,
+                    "sequence": 1,
+                    "runId": run_id,
+                    "segmentId": before["segment_id"],
+                    "branchId": before["branch_id"],
+                    "parentEventId": None,
+                    "occurredAtMs": 1_795_000_000_000,
+                    "attachmentCount": 0,
+                    "attachmentKinds": "-",
+                    "promptText": "PT-SECRET-BEFORE-CLEAR",
+                },
+                {
+                    "eventId": second,
+                    "sequence": 3,
+                    "runId": run_id,
+                    "segmentId": after["segment_id"],
+                    "branchId": after["branch_id"],
+                    "parentEventId": None,
+                    "occurredAtMs": 1_795_000_000_000,
+                    "attachmentCount": 0,
+                    "attachmentKinds": "-",
+                    "promptText": "PT-SECRET-AFTER-CLEAR",
+                },
+            ],
+        })
+
+        self.assertEqual(semantics["status"], "verified")
+        self.assertEqual(semantics["checks"]["boundaryCount"], 1)
+        self.assertTrue(semantics["checks"]["sequencesDistinct"])
+
+    def test_a_repeated_clear_boundary_stays_one_boundary(self) -> None:
+        """The derived idempotency key makes a replayed `/clear` a no-op."""
+        project_id = "5" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        event_id = "a" * 64
+        argv = self.boundary_argv(event_id, kind="clear", **identity)
+
+        first = self.run_helper(*argv)
+        repeat = self.run_helper(*argv)
+
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(repeat.returncode, 0, repeat.stderr)
+        self.assertEqual(
+            json.loads(first.stdout)["sequence"],
+            json.loads(repeat.stdout)["sequence"],
+        )
+        semantics = self.verify_archive({
+            "database": str(self.plugin_data / "archives" / f"{project_id}.sqlite3"),
+            "projectId": project_id,
+            "state": "set",
+            "pending": [],
+            "entries": [],
+            "boundaries": [
+                {
+                    "eventId": event_id,
+                    "sequence": 1,
+                    "kind": "clear",
+                    "runId": identity["run_id"],
+                    "segmentId": identity["segment_id"],
+                    "branchId": identity["branch_id"],
+                    "occurredAtMs": 1_795_000_000_000,
+                },
+            ],
+        })
+        self.assertEqual(semantics["status"], "verified")
+        self.assertEqual(semantics["checks"]["boundaryCount"], 1)
+
+    def test_a_clear_boundary_retry_with_a_changed_instant_fails_closed(self) -> None:
+        """A replay that drifted is a different fact, so it is refused."""
+        project_id = "6" * 64
+        identity = {
+            "project_id": project_id,
+            "run_id": str(uuid.uuid4()),
+            "segment_id": str(uuid.uuid4()),
+            "branch_id": str(uuid.uuid4()),
+        }
+        event_id = "b" * 64
+
+        first = self.run_helper(
+            *self.boundary_argv(event_id, kind="clear", **identity)
+        )
+        drifted = self.run_helper(
+            *self.boundary_argv(
+                event_id,
+                kind="clear",
+                occurred_at="1795000000001",
+                **identity,
+            )
+        )
+
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(drifted.returncode, 25)
+        self.assertEqual(
+            json.loads(drifted.stderr)["category"], "boundary-conflict"
+        )
 
     def test_a_schema_1_archive_migrates_without_losing_its_entries(self) -> None:
         project_id = "4" * 64

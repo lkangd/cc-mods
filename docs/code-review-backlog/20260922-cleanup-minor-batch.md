@@ -4,10 +4,10 @@ status: open
 severity: minor
 found: 2026-09-22
 source: /code-review, round 1
-target: Prompt Trail uncommitted working tree, Issue 14 Run collection mode
+target: Prompt Trail uncommitted working tree, Issue 14 Run collection mode; Issue 16 Clear Boundary
 ---
 
-# Three small cleanups deferred from the Issue 14 review
+# Small cleanups deferred from the Issue 14 and Issue 16 reviews
 
 Batched because each is real but none is worth interrupting Issue 14 for. All three are
 `PLAUSIBLE`, reviewer-only cost claims (the cleanup angle skips verification by policy), so
@@ -57,3 +57,25 @@ judge that with the code in front of you.
 - `grep -n 'segment_id.*str(uuid.uuid4())' mods/prompt-trail/tests/helper_protocol.py`
 - Full gate: `mods/prompt-trail/scripts/verify-startup.sh` (rebuilds artifacts — a helper edit
   requires it, or the gate fails as "stale artifacts").
+
+
+---
+
+## 4. `parseConfirmedResponse` 与 `parseBoundaryResponse` 各有一份 sequence 校验
+
+*来自 Issue 16 的 review（`/code-review` round 1，minor，PLAUSIBLE、未验证）。*
+
+`mods/prompt-trail/hooks/register.tsx` 里这两个函数都在校验
+`eventId` 与 `projectId` 回显、`Number.isSafeInteger(sequence)` 和 `sequence >= 1`；
+`parseBoundaryResponse` 只多一个 `kind` 比对。对协议响应校验或 sequence 下界的改动
+必须同步改两处，否则会悄悄分叉。
+
+**为什么延后**：这份重复是 Issue 14 引入 `parseBoundaryResponse` 时就存在的，
+Issue 16 只把它的 `kind` 参数类型从 `CollectionBoundaryKind` 放宽到 `BoundaryKind`，
+没有加深重复。属于审查目标之外的既有代码。
+
+**修法草图**：抽一个
+`function parseSequenceResponse(text, eventId, projectId, extra?: (value: Record<string, unknown>) => boolean): number`，
+两个调用点各自传 `kind` 比对或不传。改完跑
+`mods/prompt-trail/scripts/verify-startup.sh`；现有的 `capture-response` 与
+`boundary-response` 两类失败测试应当原样通过。

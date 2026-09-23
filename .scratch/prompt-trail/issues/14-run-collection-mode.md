@@ -31,8 +31,9 @@ protocol tests、**23** 项 helper protocol tests（原 19）、TypeScript 与�
 不含任何文本）与 `boundary-append` 子命令。边界与 Prompt Entry 共用
 `metadata.next_sequence` 这一个项目级分配器，因此边界与 prompt 之间的先后只由
 sequence 决定。相同 `event_id` 的重复调用幂等返回同一 sequence；未知 kind 以
-`boundary-input` 失败关闭且不建库。kind 限定为 `collection-started`、
-`collection-stopped`、`collection-resumed`。
+`boundary-input` 失败关闭且不建库。本票据交付时 kind 限定为 `collection-started`、
+`collection-stopped`、`collection-resumed`；**[Issue 16](16-clear-conversation-segment.md)
+之后 `clear` 也是合法 kind**（`boundary_kind_valid()` 是唯一改动点，表与 schema 未变）。
 
 **schema 到 2。** 新建库直接是 2；已存在的 1 号库在打开时执行 manifest 声明的
 `1->2` 单向迁移，事务内只新增上述表，原有 entry、sequence 与 Run/Segment/Branch
