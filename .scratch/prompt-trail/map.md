@@ -62,6 +62,12 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   新开 Run，「从 Run X 分出」由 `segmentId` 推导。边界是 `run-started/attached/detached`，且仍然惰性：
   不归档的进程（含已停用采集的）不留痕迹。恢复队列总上限 64。`clear-all` 必须一并删除会话索引记录（Issue 30）。
   Issue 18 现在只剩分支重建和视图折叠（离开活动路径的条目折叠成「另一分支 · N 条」）。
+- [在 resume 与 fork 中重建 Conversation Branch](issues/18-resume-fork-branches.md)：
+  session 首次采集前用 transcript 的 `user` 行经 helper `branch-match` 对齐 Active Branch（只回 event id）；
+  被否定的已存分支链由使用者确认，fork 多候选时开带标注的根，从不猜测。离开活动路径的条目在分叉点折叠成
+  「另一分支 · N 条」。2.1.280 上 `session.start` 可能早于 locator：提交时短暂等待，时间线未读时补读，门禁改为 2.1.280。
+  `/compact` 会清掉 `messages()` 里的旧 user 行。`/fork` 接续出的 session 被新开 Run，拆为
+  [Issue 33](issues/33-continued-session-keeps-run.md)。窗口外折叠与重复 prompt 的匹配开销进了 backlog。
 
 ## Not yet specified
 
