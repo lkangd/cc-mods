@@ -1,5 +1,18 @@
 import type { EngineInterface, Register } from 'claude-code'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from './artifact'
+import type {
+  LifecycleEvent,
+  LifecycleState,
+  LifecycleWrite,
+} from './lifecycle'
+import {
+  LIFECYCLE_QUEUE_LIMIT,
+  clearTransitionState,
+  decideLifecycle,
+  dequeueLifecycleWrite,
+  emptyLifecycle,
+  queueLifecycleWrite,
+} from './lifecycle'
 
 type StartupState = {
   support: 'checking' | 'supported' | 'unsupported target' | 'helper unavailable'
@@ -35,6 +48,12 @@ type CollectionBoundaryKind =
   | 'collection-started'
   | 'collection-stopped'
   | 'collection-resumed'
+
+/* Every non-prompt Timeline Event the plugin writes. A Clear Boundary is not a
+   Collection Boundary: it records where a Conversation Segment ended, not
+   whether a Run was recording. They share the table, the project-level
+   sequence and the drawing of one dim row, and nothing else. */
+type BoundaryKind = CollectionBoundaryKind | 'clear'
 
 /* The Run-level switch, persisted per project and Run so an explicit disable
    survives a module reload. A Run with no record collects by default; only
@@ -79,7 +98,7 @@ type TimelineItem =
     kind: 'boundary'
     eventId: string
     sequence: number
-    boundary: CollectionBoundaryKind
+    boundary: BoundaryKind
   }
 
 type RuntimeTarget = {
@@ -218,6 +237,24 @@ let pendingDiscovered = false
 /* Set when the archive could not say whether anything is owed. Not knowing is
    not the same as nothing being owed, and status says so. */
 let pendingUnknown = false
+/* The Conversation Segment lifecycle for the current project: the latest
+   `/clear` transition and the Clear Boundaries the archive still owes. Kept per
+   project rather than per Run, because a lifecycle write that never landed is
+   still owed by the next process. */
+let lifecycle: { key: string; value: LifecycleState } | undefined
+/* Why the last Clear Boundary write did not land, as the helper categorised it.
+   Run-local and never persisted: it explains a queue that will not drain, and
+   `$.store` is for facts the next process still owes, not for diagnostics. */
+let lifecycleFailure: string | undefined
+/* A `/clear` that was seen but could not be turned into a durable write — the
+   branch it cuts was unreadable, or the queue could not be saved. The instant
+   is taken once and kept, so completing it later replays the same boundary
+   rather than a drifted one. It blocks this Run's next composer submission,
+   and every drain tries to finish it. */
+let deferredClear: { sessionId: string; occurredAt: number } | undefined
+/* What the project's other Runs still owe, as the last enumeration found it.
+   Kept for the report only; the drain always re-enumerates. */
+let lifecycleOthers: { queued: number; unfinished: number } | undefined
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -758,10 +795,31 @@ function reconcileKey(projectId: string): string {
   return `prompt-trail:reconcile:${projectId}`
 }
 
+/* Keyed by Run, not by project. The record is a read-modify-write of a whole
+   value, and `$.store` offers no compare-and-swap, so a project-level key lets
+   two concurrent Runs derive their queues from the same snapshot and have the
+   later write erase the earlier one's Clear Boundary. Each Run owning its own
+   record removes the race outright; what a Run still owes on behalf of another
+   is found by enumerating the prefix. */
+function lifecyclePrefix(projectId: string): string {
+  return `prompt-trail:lifecycle:${projectId}:`
+}
+
+function lifecycleKey(projectId: string, runId: string): string {
+  return `${lifecyclePrefix(projectId)}${runId}`
+}
+
 /* Keyed by Run rather than by classic session, so a module reload inside the
    same Run keeps the switch while a new process starts from the default. */
 function runModeKey(projectId: string, runId: string): string {
   return `prompt-trail:run-mode:${projectId}:${runId}`
+}
+
+/* The identifier policy for everything read back out of `$.store`, in one
+   place: every decoder below applies the same rule to every id it will later
+   hand to the helper as argv. */
+function isSafeId(value: unknown): value is string {
+  return typeof value === 'string' && SAFE_IDENTIFIER.test(value)
 }
 
 function storedConsent(value: unknown): ConsentDecision | undefined {
@@ -777,12 +835,8 @@ function storedBranch(value: unknown): BranchState | undefined {
   if (
     !isRecord(value) ||
     value.version !== 1 ||
-    typeof value.branchId !== 'string' ||
-    !SAFE_IDENTIFIER.test(value.branchId) ||
-    (value.parentEventId !== null && (
-      typeof value.parentEventId !== 'string' ||
-      !SAFE_IDENTIFIER.test(value.parentEventId)
-    ))
+    !isSafeId(value.branchId) ||
+    (value.parentEventId !== null && !isSafeId(value.parentEventId))
   ) return undefined
   return value as BranchState
 }
@@ -801,8 +855,7 @@ function storedRunMode(value: unknown): RunModeState | undefined {
   if (
     !isRecord(boundary) ||
     !isCollectionBoundaryKind(boundary.kind) ||
-    typeof boundary.eventId !== 'string' ||
-    !SAFE_IDENTIFIER.test(boundary.eventId) ||
+    !isSafeId(boundary.eventId) ||
     !Number.isSafeInteger(boundary.sequence) ||
     (boundary.sequence as number) < 1
   ) return { version: 1, mode: value.mode, ...missing }
@@ -822,17 +875,12 @@ function storedReconcile(value: unknown): ReconcileState | undefined {
   if (
     !isRecord(value) ||
     value.version !== 1 ||
-    typeof value.eventId !== 'string' ||
-    !SAFE_IDENTIFIER.test(value.eventId) ||
-    typeof value.runId !== 'string' ||
-    !SAFE_IDENTIFIER.test(value.runId) ||
-    typeof value.branchId !== 'string' ||
-    !SAFE_IDENTIFIER.test(value.branchId)
+    !isSafeId(value.eventId) ||
+    !isSafeId(value.runId) ||
+    !isSafeId(value.branchId)
   ) return undefined
   const parent = value.parentEventId
-  if (parent !== null && (typeof parent !== 'string' || !SAFE_IDENTIFIER.test(parent))) {
-    return undefined
-  }
+  if (parent !== null && !isSafeId(parent)) return undefined
   const attachmentCount = Number.isSafeInteger(value.attachmentCount)
     && (value.attachmentCount as number) >= 0
     ? value.attachmentCount as number
@@ -844,6 +892,74 @@ function storedReconcile(value: unknown): ReconcileState | undefined {
     branchId: value.branchId,
     parentEventId: parent,
     attachmentCount,
+  }
+}
+
+/* A queued lifecycle write is replayed verbatim into `boundary-append`, where
+   a single changed field fails the whole retry as `boundary-conflict`. So the
+   record is accepted only when every field it will replay is intact; a damaged
+   one is dropped rather than retried into a permanent refusal. */
+function storedLifecycleWrite(value: unknown): LifecycleWrite | undefined {
+  if (
+    !isRecord(value) ||
+    value.kind !== 'clear' ||
+    !isSafeId(value.eventId) ||
+    !isSafeId(value.runId) ||
+    !isSafeId(value.segmentId) ||
+    !isSafeId(value.branchId) ||
+    !Number.isSafeInteger(value.occurredAt) ||
+    (value.occurredAt as number) < 0
+  ) return undefined
+  return {
+    kind: 'clear',
+    eventId: value.eventId,
+    runId: value.runId,
+    segmentId: value.segmentId,
+    branchId: value.branchId,
+    occurredAt: value.occurredAt as number,
+  }
+}
+
+function storedClearTransition(value: unknown): LifecycleState['clear'] {
+  if (
+    !isRecord(value) ||
+    !isSafeId(value.eventId) ||
+    !isSafeId(value.endedSessionId) ||
+    !isSafeId(value.runId)
+  ) return undefined
+  const resumed = value.resumedSessionId
+  return {
+    eventId: value.eventId,
+    endedSessionId: value.endedSessionId,
+    runId: value.runId,
+    ...(isSafeId(resumed) ? { resumedSessionId: resumed } : {}),
+    ...(value.priorUnfinished === true ? { priorUnfinished: true as const } : {}),
+  }
+}
+
+function storedLifecycle(value: unknown): LifecycleState | undefined {
+  if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.queue)) {
+    return undefined
+  }
+  const queue: LifecycleWrite[] = []
+  let damaged = value.damaged === true
+  for (const row of value.queue.slice(0, LIFECYCLE_QUEUE_LIMIT)) {
+    const write = storedLifecycleWrite(row)
+    if (write) queue.push(write)
+    /* Replaying a row whose fields no longer hold would fail as a
+       `boundary-conflict` forever, so it is dropped — and the loss recorded,
+       because a lifecycle fact that cannot be written is a gap, not a no-op. */
+    else damaged = true
+  }
+  if (value.queue.length > LIFECYCLE_QUEUE_LIMIT) damaged = true
+  const clear = storedClearTransition(value.clear)
+  return {
+    version: 1,
+    queue,
+    ...(clear ? { clear } : {}),
+    ...(value.unobservedClear === true ? { unobservedClear: true as const } : {}),
+    ...(value.overflowed === true ? { overflowed: true as const } : {}),
+    ...(damaged ? { damaged: true as const } : {}),
   }
 }
 
@@ -887,11 +1003,72 @@ async function saveRunMode(
   await $.store.set(key, value)
 }
 
+/* An unreadable lifecycle record is not an empty one: it may be hiding a Clear
+   Boundary the archive still owes, so the failure propagates and the caller
+   fails closed exactly as an unreadable Pending Capture does.
+
+   It is re-read rather than cached. The record is keyed by project, so a
+   concurrent Run may have queued a Clear Boundary this one has never seen, and
+   writing back a stale copy would drop it. */
+async function loadLifecycle(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<LifecycleState> {
+  if (!startup.runId) throw new Error('capture-identity')
+  const key = lifecycleKey(currentProject.id, startup.runId)
+  let value: LifecycleState
+  try {
+    value = storedLifecycle(await $.store.get(key)) ?? emptyLifecycle()
+  } catch (error) {
+    /* Not knowing is reported as not knowing, never as an empty queue. */
+    lifecycle = undefined
+    throw error
+  }
+  lifecycle = { key, value }
+  return value
+}
+
+async function saveLifecycle(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  value: LifecycleState,
+): Promise<void> {
+  if (!startup.runId) throw new Error('capture-identity')
+  const key = lifecycleKey(currentProject.id, startup.runId)
+  lifecycle = { key, value }
+  await $.store.set(key, value)
+}
+
+/* What the project's other Runs left behind. A Run that crashed mid-`/clear`
+   cannot come back to finish it, so whoever archives next in this project owes
+   its boundary — and, for the report, its interrupted transition. */
+async function foreignLifecycles(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<{ key: string; value: LifecycleState }[]> {
+  const prefix = lifecyclePrefix(currentProject.id)
+  const own = startup.runId ? lifecycleKey(currentProject.id, startup.runId) : undefined
+  const found: { key: string; value: LifecycleState }[] = []
+  for (const key of await $.store.keys()) {
+    if (!key.startsWith(prefix) || key === own) continue
+    const value = storedLifecycle(await $.store.get(key))
+    if (value) found.push({ key, value })
+  }
+  lifecycleOthers = {
+    queued: found.reduce((total, record) => total + record.value.queue.length, 0),
+    /* Another Run's transition can never complete: only the Run that cut the
+       segment may claim it, and that Run is gone. */
+    unfinished: found.filter(record => record.value.clear !== undefined
+      && record.value.clear.resumedSessionId === undefined).length,
+  }
+  return found
+}
+
 function parseBoundaryResponse(
   text: string,
   eventId: string,
   projectId: string,
-  kind: CollectionBoundaryKind,
+  kind: BoundaryKind,
 ): number {
   const value: unknown = JSON.parse(text)
   if (
@@ -905,18 +1082,36 @@ function parseBoundaryResponse(
   return value.sequence as number
 }
 
-/* A Collection Boundary is a non-prompt Timeline Event: it carries no text and
-   takes the next project-level sequence, so it orders against Prompt Entries. */
+/* A boundary is a non-prompt Timeline Event: it carries no text and takes the
+   next project-level sequence, so it orders against Prompt Entries.
+
+   The overrides exist for the Clear Boundary, which is not free to invent its
+   own identity: its event id is derived from the classic session that ended, it
+   belongs to that ending segment rather than to whichever session is current
+   by the time it is written, and a retry must replay the original instant or
+   the helper refuses it as a conflict. */
 async function appendBoundary(
   $: EngineInterface,
   currentProject: ProjectState,
   branchId: string,
-  kind: CollectionBoundaryKind,
+  kind: BoundaryKind,
+  overrides: {
+    eventId?: string
+    segmentId?: string
+    occurredAt?: number
+    runId?: string
+  } = {},
 ): Promise<{ eventId: string; sequence: number }> {
-  if (!startup.helperPath || !startup.databaseRoot || !startup.runId || !startup.sessionId) {
+  const segmentId = overrides.segmentId ?? startup.sessionId
+  /* A replay must name the Run that owns the boundary, not the Run replaying
+     it: the helper compares `run_id` on a repeated event id and refuses a
+     changed one as `boundary-conflict`, so a queue drained by a later process
+     would either be misattributed or blocked for good. */
+  const runId = overrides.runId ?? startup.runId
+  if (!startup.helperPath || !startup.databaseRoot || !runId || !segmentId) {
     throw new Error('capture-identity')
   }
-  const eventId = crypto.randomUUID()
+  const eventId = overrides.eventId ?? crypto.randomUUID()
   const result = await run(
     $,
     [
@@ -924,18 +1119,23 @@ async function appendBoundary(
       'boundary-append',
       startup.databaseRoot,
       currentProject.id,
-      startup.runId,
-      startup.sessionId,
+      runId,
+      segmentId,
       branchId,
       kind,
       eventId,
-      String(await $.clock.now()),
+      String(overrides.occurredAt ?? await $.clock.now()),
       EXPECTED_HELPER_SHA256,
       String(HELPER_PROTOCOL),
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error('boundary-append')
+  /* The helper's own category rather than one flat label: a lifecycle write
+     that fails leaves nothing behind but this, and a boundary the archive
+     never took is exactly the kind of failure that has to stay identifiable. */
+  if (result.exitCode !== 0) {
+    throw new Error(safeCategory(result.stderr, 'boundary-append'))
+  }
   const sequence = parseBoundaryResponse(
     result.stdout,
     eventId,
@@ -1013,6 +1213,11 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
   pendingDiscovered = false
   pendingUnknown = false
   runMode = undefined
+  /* The lifecycle record is keyed by Run, so it is read once the Run is proven
+     rather than here. Left unset, status reports it as unknown rather than as
+     an empty queue. */
+  lifecycle = undefined
+  deferredClear = undefined
   project = {
     root,
     id,
@@ -1080,14 +1285,24 @@ async function requestConsent(
   return decision
 }
 
+/* The Active Branch is keyed by classic session, which is what makes a
+   Conversation Segment its own lineage: the session id changes across a
+   `/clear`, so the next segment asks for a branch that does not exist yet and
+   is given a fresh root. Nothing has to cut the parent chain by hand.
+
+   `forSessionId` names a segment other than the current one, which the
+   lifecycle hooks need: at `classic.SessionEnd` the boundary belongs to the
+   session that is ending. */
 async function branchState(
   $: EngineInterface,
   currentProject: ProjectState,
+  forSessionId?: string,
 ): Promise<{ key: string; value: BranchState }> {
-  if (!startup.runId || !startup.sessionId) {
+  const sessionId = forSessionId ?? startup.sessionId
+  if (!startup.runId || !sessionId) {
     throw new Error('capture-identity')
   }
-  const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
+  const key = branchKey(currentProject.id, startup.runId, sessionId)
   const existing = storedBranch(await $.store.get(key))
   if (existing) return { key, value: existing }
   const value: BranchState = {
@@ -1473,6 +1688,257 @@ async function settlePending(
   return 'blocked'
 }
 
+/* The Clear Boundary's idempotency key, derived from the classic session that
+   is ending. Every replay of the same `/clear` — a repeated event, a retry from
+   the recovery queue, a later process draining what this one could not write —
+   names the same event id, so `boundary-append` answers the stored sequence
+   instead of cutting the segment twice. */
+async function clearEventId(projectId: string, sessionId: string): Promise<string> {
+  return sha256(`prompt-trail:clear-boundary:1:${projectId}:${sessionId}`)
+}
+
+/* One classic lifecycle event, run through the state machine and then through
+   the archive. Nothing here can block the event: `/clear` happens whether or
+   not the boundary lands, so what cannot be written now is left owed and the
+   next composer submission pays for it.
+
+   The order is deliberate. The write is persisted as owed *before* it is
+   attempted, so every crash window is recoverable: die before the append and
+   the queue still names it; die after, and the replay is idempotent on the
+   derived event id. Attempting first and recording afterwards leaves a window
+   where a boundary is neither in the archive nor owed by anyone.
+
+   It reports nothing to the person. A lifecycle event has no reply surface, and
+   `/prompt-history status` is where an owed boundary becomes visible. */
+async function applyLifecycle(
+  $: EngineInterface,
+  input: LifecycleEvent,
+): Promise<void> {
+  if (!runtimeTarget) return
+  const isClearEnd = input.event === 'session-end' && input.reason === 'clear'
+  /* A `/clear` this Run cannot record at all is remembered in memory so the
+     next submission is blocked and every drain retries it. The instant is
+     taken now, because a boundary written later must still say when the
+     segment actually ended. */
+  const defer = async () => {
+    if (!isClearEnd || deferredClear) return
+    try {
+      deferredClear = { sessionId: input.sessionId, occurredAt: await $.clock.now() }
+    } catch {
+      deferredClear = { sessionId: input.sessionId, occurredAt: 0 }
+    }
+  }
+
+  let currentProject: ProjectState
+  try {
+    currentProject = await prepareProject($)
+  } catch {
+    if (project?.consent === 'enabled') await defer()
+    return
+  }
+  /* Before consent there is no archive at all, so there is no segment to cut
+     and nothing to owe. */
+  if (currentProject.consent !== 'enabled') return
+  if (!startup.runId) {
+    await defer()
+    return
+  }
+
+  /* A Run whose collection is switched off records nothing between its stop and
+     resume boundaries, and a Clear Boundary inside that interval would describe
+     the shape of prompts that were never archived. The structural fact still
+     survives: resuming starts a new root Conversation Branch of its own. */
+  let mode: RunModeState
+  try {
+    mode = (await loadRunMode($, currentProject)).value
+  } catch {
+    await defer()
+    return
+  }
+  if (mode.mode === 'disabled') return
+
+  let state: LifecycleState
+  try {
+    state = await loadLifecycle($, currentProject)
+  } catch {
+    await defer()
+    return
+  }
+
+  let end: { eventId: string; branchId: string; occurredAt: number } | undefined
+  if (isClearEnd) {
+    try {
+      end = {
+        eventId: await clearEventId(currentProject.id, input.sessionId),
+        /* The branch being cut, read for the session the event names rather
+           than for whichever session is current by now. A start writes no
+           boundary, so it never asks — and never creates a branch record as a
+           side effect. */
+        branchId: (await branchState($, currentProject, input.sessionId)).value.branchId,
+        occurredAt: deferredClear?.sessionId === input.sessionId
+          ? deferredClear.occurredAt
+          : await $.clock.now(),
+      }
+    } catch {
+      await defer()
+      return
+    }
+  }
+
+  const decision = decideLifecycle(state, input, { runId: startup.runId, ...(end ? { end } : {}) })
+  if (decision.note === 'clear-deferred') {
+    await defer()
+    return
+  }
+
+  if (decision.write) {
+    /* Owed first, attempted second. */
+    try {
+      await saveLifecycle($, currentProject, queueLifecycleWrite(decision.state, decision.write))
+    } catch {
+      await defer()
+      return
+    }
+    deferredClear = undefined
+    /* A Pending Capture from before the `/clear` has not taken its sequence
+       yet. Appending now would put the segment break ahead of the prompt it
+       follows, so the boundary waits in the queue: the drain runs after
+       `settlePending()`, which is exactly the right order. */
+    if (reconcile) return
+    try {
+      await writeBoundary($, currentProject, decision.write)
+    } catch {
+      /* It stays queued exactly as persisted a moment ago. */
+      return
+    }
+    try {
+      await saveLifecycle(
+        $,
+        currentProject,
+        dequeueLifecycleWrite(decision.state, decision.write.eventId),
+      )
+    } catch {
+      /* The queue still names a boundary the archive already holds. Replaying
+         it answers the stored sequence, so the only cost is one extra call. */
+    }
+    return
+  }
+
+  try {
+    await saveLifecycle($, currentProject, decision.state)
+  } catch {
+    /* Nothing was owed, so nothing is lost by failing to record the note. */
+  }
+}
+
+/* The one place a lifecycle boundary reaches the archive. Both the live
+   `/clear` and the recovery queue go through it, so the argument projection,
+   the failure category and the timeline row cannot drift apart. */
+async function writeBoundary(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  write: LifecycleWrite,
+): Promise<void> {
+  try {
+    const appended = await appendBoundary(
+      $,
+      currentProject,
+      write.branchId,
+      write.kind,
+      {
+        eventId: write.eventId,
+        segmentId: write.segmentId,
+        occurredAt: write.occurredAt,
+        runId: write.runId,
+      },
+    )
+    recordBoundary(write.kind, appended)
+    lifecycleFailure = undefined
+    $.ui.invalidate('ui.render')
+  } catch (error) {
+    lifecycleFailure = error instanceof Error && SAFE_ERROR_CATEGORIES.has(error.message)
+      ? error.message
+      : 'boundary-append'
+    throw error
+  }
+}
+
+/* Emptying the lifecycle recovery queue, which spec §9 requires before the next
+   composer submission: a prompt archived ahead of the Clear Boundary that
+   precedes it would put the segment break in the wrong place, so a queue that
+   will not drain blocks the submission instead.
+
+   It also finishes what a `/clear` could not record at the time, and drains
+   what the project's other Runs left behind — a Run that died mid-transition
+   cannot come back to pay its own debt. */
+async function drainLifecycle(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<'clear' | 'blocked'> {
+  /* A `/clear` this Run saw but never managed to write down. Completing it now
+     replays the instant it was seen, not the instant of the retry. */
+  const owed = deferredClear
+  if (owed) {
+    try {
+      const write: LifecycleWrite = {
+        kind: 'clear',
+        eventId: await clearEventId(currentProject.id, owed.sessionId),
+        runId: startup.runId ?? '',
+        segmentId: owed.sessionId,
+        branchId: (await branchState($, currentProject, owed.sessionId)).value.branchId,
+        occurredAt: owed.occurredAt,
+      }
+      const state = await loadLifecycle($, currentProject)
+      await saveLifecycle($, currentProject, queueLifecycleWrite(state, write))
+      deferredClear = undefined
+    } catch {
+      return 'blocked'
+    }
+  }
+
+  let own: LifecycleState
+  let foreign: { key: string; value: LifecycleState }[]
+  try {
+    own = await loadLifecycle($, currentProject)
+    foreign = await foreignLifecycles($, currentProject)
+  } catch {
+    return 'blocked'
+  }
+
+  const records: { key: string | 'own'; value: LifecycleState }[] = [
+    { key: 'own', value: own },
+    ...foreign,
+  ]
+  let blocked = false
+  for (const record of records) {
+    if (record.value.queue.length === 0) continue
+    let settled = record.value
+    for (const write of record.value.queue) {
+      try {
+        await writeBoundary($, currentProject, write)
+      } catch {
+        break
+      }
+      settled = dequeueLifecycleWrite(settled, write.eventId)
+    }
+    if (settled === record.value) {
+      blocked = true
+      continue
+    }
+    try {
+      if (record.key === 'own') await saveLifecycle($, currentProject, settled)
+      else await $.store.set(record.key, settled)
+    } catch {
+      /* The boundaries landed; the record still names them. A replay answers
+         the stored sequence, so the retry is free of consequence — but the
+         queue is not provably empty, so the submission still waits. */
+      return 'blocked'
+    }
+    if (settled.queue.length > 0) blocked = true
+  }
+  return blocked ? 'blocked' : 'clear'
+}
+
 /* The draft belongs to the person, not to the submission Prompt Trail
    refused: it goes back into the composer, and they decide whether to send
    it again. */
@@ -1503,7 +1969,10 @@ function entryLine(entry: Extract<TimelineItem, { kind: 'prompt' }>): string {
 /* A disabled interval is drawn as an explicit break, never as continuous
    history: the stop marker says the prompts after it were not recorded and the
    resume marker says nothing from that interval is reconstructed. */
-function boundaryLine(kind: CollectionBoundaryKind): string {
+function boundaryLine(kind: BoundaryKind): string {
+  if (kind === 'clear') {
+    return '—— /clear：新的 Conversation Segment ——'
+  }
   if (kind === 'collection-stopped') {
     return '—— 采集已停止（其后的 prompt 未记录）——'
   }
@@ -1527,6 +1996,48 @@ function reconcileSummary(): string {
   return 'none'
 }
 
+/* What the lifecycle record knows about the latest `/clear`, and what the
+   archive still owes because of one. This is where an interrupted transition
+   becomes visible: the boundary was written, but no `source=clear` start ever
+   claimed it, and the Run that would have is gone. */
+function clearSummary(): string {
+  const state = lifecycle?.value
+  if (!state) return 'unknown · lifecycle 记录不可读'
+  const parts: string[] = []
+  if (deferredClear) {
+    parts.push(`${deferredClear.sessionId.slice(0, 8)} · 已观察到 /clear 但尚未记录，待下次提交前补写`)
+  }
+  const clear = state.clear
+  const phase = clearTransitionState(state, startup.runId)
+  if (!clear || phase === 'none') {
+    parts.push('none')
+  } else {
+    const identity = clear.eventId.slice(0, 8)
+    parts.push(
+      phase === 'complete'
+        ? `${identity} · 已完成`
+        : phase === 'open'
+          ? `${identity} · 等待 source=clear 的 SessionStart`
+          : `${identity} · 未完成转换（进程在 SessionEnd 与 SessionStart 之间退出）`,
+    )
+    if (clear.priorUnfinished) parts.push('上一次转换未完成')
+  }
+  if (state.unobservedClear) parts.push('观察到无对应 SessionEnd 的 source=clear')
+  if (state.queue.length > 0) {
+    parts.push(`${state.queue.length} 条 Clear Boundary 待补写`)
+    if (lifecycleFailure) parts.push(`上次补写失败：${statusValue(lifecycleFailure)}`)
+  }
+  if (state.overflowed) parts.push('恢复队列已溢出，部分 Clear Boundary 未记录')
+  if (state.damaged) parts.push('恢复队列有无法重放的记录，其 Clear Boundary 已丢失')
+  if (lifecycleOthers?.queued) {
+    parts.push(`其他 Run 遗留 ${lifecycleOthers.queued} 条 Clear Boundary 待补写`)
+  }
+  if (lifecycleOthers?.unfinished) {
+    parts.push(`其他 Run 有 ${lifecycleOthers.unfinished} 次未完成转换`)
+  }
+  return parts.join(' · ')
+}
+
 /* Why this Run is or is not collecting, most specific reason first. */
 function collectionModeText(): string {
   if (!runMode) return 'unknown · Run collection mode 不可读'
@@ -1534,6 +2045,11 @@ function collectionModeText(): string {
   if (project?.consent !== 'enabled') return 'disabled · 未授予 Collection consent'
   if (reconcile) return 'disabled · 未决 Pending Capture 待对账'
   if (pendingUnknown) return 'unknown · 未决 Pending Capture 不可读'
+  if (!lifecycle) return 'unknown · lifecycle 记录不可读'
+  if (deferredClear) return 'disabled · 已观察到 /clear 但尚未记录'
+  if (lifecycle.value.queue.length > 0 || lifecycleOthers?.queued) {
+    return 'disabled · Clear Boundary 待补写'
+  }
   if (archiveUnavailable) return 'disabled · 档案不可用'
   if (startup.support !== 'supported') {
     return `disabled · ${statusValue(startup.reason)}`
@@ -1583,6 +2099,7 @@ function statusText(): string {
     `Run collection mode: ${collectionMode}`,
     `latest collection boundary: ${boundarySummary(runMode?.value)}`,
     `pending reconciliation: ${reconcileSummary()}`,
+    `clear transition: ${clearSummary()}`,
     `archive: ${archive}`,
     `project: ${startup.projectPath ? statusValue(startup.projectPath) : 'unavailable'}`,
     `database root: ${startup.databaseRoot ? statusValue(startup.databaseRoot) : 'unavailable'}`,
@@ -1618,10 +2135,14 @@ async function refreshStartup($: EngineInterface): Promise<void> {
   }
 }
 
+/* Idempotent by event id: a boundary can be appended more than once — the
+   helper answers the stored sequence rather than cutting twice — and the
+   timeline must still show exactly one row for it. */
 function recordBoundary(
-  kind: CollectionBoundaryKind,
+  kind: BoundaryKind,
   appended: { eventId: string; sequence: number },
 ): void {
+  if (timeline.some(item => item.eventId === appended.eventId)) return
   timeline = [
     ...timeline,
     {
@@ -1681,6 +2202,13 @@ async function enableCollection($: EngineInterface): Promise<string> {
     }
   } catch {
     return 'Prompt Trail 无法读取未决的 Pending Capture，未启用采集。'
+  }
+
+  /* A resume boundary written ahead of a Clear Boundary that is still owed
+     would order the segment break after the interval it precedes, so the queue
+     is emptied first and enable refuses while anything is left in it. */
+  if (await drainLifecycle($, currentProject) === 'blocked') {
+    return 'Prompt Trail 仍有中断的 Clear Boundary 待补写，未启用采集。'
   }
 
   if (archiveUnavailable) {
@@ -1785,6 +2313,12 @@ async function disableCollection($: EngineInterface): Promise<string> {
     return '当前 Run 已停用采集，未写入新的 Collection Boundary。'
   }
 
+  /* Refreshed before the boundary and never before the switch: stopping has to
+     take effect whatever the target says, but a boundary must name the
+     Conversation Segment that is current now. After a `/clear` the cached
+     startup still names the segment that ended. */
+  await refreshStartup($)
+
   /* The boundary is attempted even when the archive is already flagged
      unavailable: the flag can be stale, and a stop that lands is what keeps
      the disabled interval from reading as continuous history. */
@@ -1867,6 +2401,35 @@ export const register: Register = on => {
     return next(e)
   })
 
+  /* Spec §9: only this event cuts a Conversation Segment. It cannot be
+     prevented and its result is not this plugin's to change, so the hook writes
+     what it can and hands the event on untouched. */
+  on('classic.SessionEnd', async ($, e, next) => {
+    if (e.reason === 'clear') {
+      await applyLifecycle($, {
+        event: 'session-end',
+        sessionId: e.session_id,
+        reason: e.reason,
+      })
+    }
+    return next(e)
+  })
+
+  /* The other half of the same transition: it names the new classic session and
+     therefore the new Conversation Segment, and never writes a second boundary.
+     `source=compact`, `resume`, `fork` and `startup` reach the state machine as
+     events it ignores. */
+  on('classic.SessionStart', async ($, e, next) => {
+    if (e.source === 'clear') {
+      await applyLifecycle($, {
+        event: 'session-start',
+        sessionId: e.session_id,
+        source: e.source,
+      })
+    }
+    return next(e)
+  })
+
   on('command.run', { command: 'prompt-history' }, async ($, e) => {
     const args = e.args.trim()
     if (args === '') {
@@ -1884,6 +2447,8 @@ export const register: Register = on => {
         try {
           const currentProject = await prepareProject($)
           await loadRunMode($, currentProject)
+          await loadLifecycle($, currentProject)
+          await foreignLifecycles($, currentProject)
           /* Best effort: a pending this Run has not met yet still blocks it,
              so status says so rather than reading as healthy. A failure here
              never costs the rest of the report. */
@@ -1994,6 +2559,17 @@ export const register: Register = on => {
         drop: settled === 'settled'
           ? `Prompt Trail 已完成对账，${draftNote(restored)}；请重新提交。`
           : `Prompt Trail 仍有未决的 Pending Capture 待对账，${draftNote(restored)}；本次提交未进入会话。`,
+      }
+    }
+
+    /* After the pending is settled and before anything new is staged: the
+       Pending Capture belongs to the segment before the `/clear`, so it is
+       archived first, and the Clear Boundary then takes the sequence that
+       separates it from this submission. */
+    if (await drainLifecycle($, currentProject) === 'blocked') {
+      const restored = await restoreDraft($, e.text)
+      return {
+        drop: `Prompt Trail 无法补写中断的 Clear Boundary，${draftNote(restored)}；为避免漏记，本次提交已阻止。`,
       }
     }
 

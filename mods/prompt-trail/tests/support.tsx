@@ -20,6 +20,10 @@ export const databasePath = `${databaseRoot}/${projectId}.sqlite3`
 export const locatorDirectory =
   `${home}/.claude/plugins/data/.function-hook-locators/prompt-trail`
 export const locatorPath = `${locatorDirectory}/${sessionId}.json`
+/* The classic session id the host reports, held in a box so a test can rotate
+   it the way a `/clear` does and watch what the next submission does with the
+   new Conversation Segment. */
+export type ClassicSession = { id: string }
 export const session = {
   cwd: projectRoot,
   surface: 'terminal' as const,
@@ -62,21 +66,30 @@ export type TargetOptions = {
   reconcileAnswer?: '已进入' | '未进入' | '新根分支' 
   /* Any store key containing this substring throws on read. */
   storeGetFailsFor?: string
+  /* Any store key containing this substring throws on write. */
+  storeSetFailsFor?: string
   /* Conversation Branch writes throw once this many have succeeded. */
   branchSetFailsAfter?: number
   /* Runs while a composer submission is inside the downstream hook. */
   duringSubmit?: () => Promise<void>
+  /* The classic session the host reports; rotating `id` moves the target onto
+     the locator a `/clear` would have published. */
+  classicSession?: ClassicSession
 }
 
-/* Prompt Entries and Collection Boundaries share one project-level sequence,
-   so the mock allocates from a single counter the way the helper does. */
-function nextSequence(
-  calls: readonly ProcessCall[],
-  failedConfirms: number,
-): number {
-  return calls.filter(call => (
-    call.argv[1] === 'capture-confirm' || call.argv[1] === 'boundary-append'
-  )).length - failedConfirms
+/* Prompt Entries and every kind of boundary share one project-level sequence,
+   and the helper allocates it once per event id: a repeat answers the stored
+   sequence rather than a second one, and a rolled-back write allocates none. */
+function sequenceAllocator(): (eventId: string) => number {
+  const allocated = new Map<string, number>()
+  let next = 0
+  return eventId => {
+    const existing = allocated.get(eventId)
+    if (existing !== undefined) return existing
+    next += 1
+    allocated.set(eventId, next)
+    return next
+  }
 }
 
 export function installSupportedTarget(
@@ -84,13 +97,15 @@ export function installSupportedTarget(
   options: TargetOptions = {},
 ): ProcessCall[] {
   const calls: ProcessCall[] = []
-  /* A rolled-back confirmation allocates no sequence in the real helper. */
-  let failedConfirms = 0
+  const classic = options.classicSession ?? { id: sessionId }
+  const currentLocatorPath = () => `${locatorDirectory}/${classic.id}.json`
+  const allocateSequence = sequenceAllocator()
   let branchWrites = 0
   mock.env(on, { HOME: home })
   mock.clock(on, { now: 1_795_000_000_000 })
   if (options.storeSetFails) {
     on('store.get', () => ({ value: undefined }))
+    on('store.keys', () => ({ value: [] }))
     on('store.set', () => {
       throw new Error('store unavailable: PT-SECRET-STORE')
     })
@@ -103,6 +118,9 @@ export function installSupportedTarget(
       return { value: store[e.key] }
     })
     on('store.set', (_$, e) => {
+      if (options.storeSetFailsFor && e.key.includes(options.storeSetFailsFor)) {
+        throw new Error('store unavailable: PT-SECRET-STORE-SET')
+      }
       if (e.key.startsWith('prompt-trail:branch:')
           && options.branchSetFailsAfter !== undefined) {
         if (branchWrites >= options.branchSetFailsAfter) {
@@ -117,6 +135,14 @@ export function installSupportedTarget(
       delete store[e.key]
       return { value: undefined }
     })
+    /* The engine's own store answers `keys`; a double that did not would make
+       every enumeration of another Run's lifecycle debt throw. */
+    on('store.keys', () => {
+      if (options.storeGetFailsFor === '*') {
+        throw new Error('store unavailable: PT-SECRET-STORE-KEYS')
+      }
+      return { value: Object.keys(store) }
+    })
   } else {
     mock.store(on, options.consent === undefined
       ? undefined
@@ -124,14 +150,14 @@ export function installSupportedTarget(
   }
   on('fs.exists', () => ({ value: options.hasGitDirectory ?? false }))
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
-  on('session.id', () => ({ value: sessionId }))
+  on('session.id', () => ({ value: classic.id }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('fs.read', () => ({
     value: JSON.stringify({
       locatorVersion: 1,
       pluginProtocol: 1,
       helperProtocol: HELPER_PROTOCOL,
-      sessionId,
+      sessionId: classic.id,
       hostPid: 4242,
       hostStartSeconds: 100,
       hostStartMicroseconds: 200,
@@ -216,7 +242,7 @@ export function installSupportedTarget(
       return {
         value: {
           exitCode: 0,
-          stdout: `${directory ? 'Directory' : 'Regular File'}|501|${directory ? '700' : path === locatorPath ? '600' : '755'}\n`,
+          stdout: `${directory ? 'Directory' : 'Regular File'}|501|${directory ? '700' : path === currentLocatorPath() ? '600' : '755'}\n`,
           stderr: '',
         },
       }
@@ -250,7 +276,7 @@ export function installSupportedTarget(
           stdout: JSON.stringify({
             status: 'supported',
             artifactStatus: 'trusted',
-            sessionId,
+            sessionId: classic.id,
             runId,
             archiveGeneration,
             databaseRoot,
@@ -288,7 +314,6 @@ export function installSupportedTarget(
       const isFirstConfirm =
         calls.filter(call => call.argv[1] === 'capture-confirm').length === 1
       if (options.confirmFails || (options.confirmFailsOnce && isFirstConfirm)) {
-        failedConfirms += 1
         return {
           value: {
             exitCode: 25,
@@ -310,7 +335,7 @@ export function installSupportedTarget(
           stdout: JSON.stringify({
             eventId,
             projectId,
-            sequence: nextSequence(calls, failedConfirms),
+            sequence: allocateSequence(eventId ?? ''),
           }),
           stderr: '',
         },
@@ -333,7 +358,7 @@ export function installSupportedTarget(
             eventId: argv[8],
             projectId,
             kind: argv[7],
-            sequence: nextSequence(calls, failedConfirms),
+            sequence: allocateSequence(argv[8] ?? ''),
           }),
           stderr: '',
         },
