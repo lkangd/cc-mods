@@ -9,6 +9,12 @@
 #define PT_TEXT_LIMIT (1024 * 1024)
 
 bool pt_read_fd(int descriptor, char **output, size_t *length);
+bool pt_read_fd_limited(
+  int descriptor,
+  char **output,
+  size_t *length,
+  size_t limit
+);
 bool pt_read_file(const char *path, char **output, size_t *length);
 bool pt_json_validate(const char *json);
 bool pt_json_get_string(

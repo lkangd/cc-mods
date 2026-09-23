@@ -1,5 +1,14 @@
 import type { EngineInterface, Register } from 'claude-code'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from './artifact'
+import type { BranchMatch, BranchState } from './branch'
+import {
+  chooseBranch,
+  foldTimeline,
+  forkSources,
+  settleBranch,
+  transcriptRows,
+  trustsStoredBranch,
+} from './branch'
 import type {
   Attachment,
   LifecycleEvent,
@@ -48,12 +57,6 @@ type ProjectState = {
   databasePath?: string
   consent?: ConsentDecision
   archiveReady: boolean
-}
-
-type BranchState = {
-  version: 1
-  branchId: string
-  parentEventId: string | null
 }
 
 type CollectionBoundaryKind =
@@ -115,6 +118,8 @@ type TimelineItem =
     sequence: number
     runId: string
     segmentId?: string
+    branchId?: string
+    parentEventId?: string | null
     text: string
     attachmentCount: number
   }
@@ -187,6 +192,8 @@ const SAFE_ERROR_CATEGORIES = new Set([
   'boundary-input',
   'capture-conflict',
   'capture-input',
+  'match-input',
+  'archive-memory',
   'capture-not-found',
   'capture-parent-unknown',
   'claude-code-version',
@@ -280,6 +287,21 @@ let lifecycleFailure: string | undefined
 let deferredClear: { sessionId: string; occurredAt: number } | undefined
 /* What the project's other Runs still owe, as the last enumeration found it.
    Kept for the report only; the drain always re-enumerates. */
+/* The Run and classic session whose Active Branch this module instance has
+   already settled against the transcript. A reload settles it once more,
+   which is harmless: by then the transcript confirms what is stored. */
+let alignedBranch: string | undefined
+/* The project whose archived events this module instance has read back, and
+   the session it already waited on for a late locator. */
+let timelineLoaded: string | undefined
+let locatorAwaited: string | undefined
+/* The current session's Active Branch as last read or written, which is what
+   the band folds against; and the branches that began from a root because a
+   fork's shared history matched several lineages. Both only shape the view. */
+let activeBranch: { key: string; value: BranchState } | undefined
+const ambiguousRoots = new Set<string>()
+/* The folds the person opened, by the entry each is drawn at. */
+const openFolds = new Set<string>()
 let lifecycleOthers: { queue: LifecycleWrite[]; unfinished: number } | undefined
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -908,7 +930,13 @@ function storedBranch(value: unknown): BranchState | undefined {
     !isSafeId(value.branchId) ||
     (value.parentEventId !== null && !isSafeId(value.parentEventId))
   ) return undefined
-  return value as BranchState
+  return {
+    version: 1,
+    branchId: value.branchId,
+    parentEventId: value.parentEventId,
+    ...(value.explicitRoot === true ? { explicitRoot: true as const } : {}),
+    ...(value.rootReason === 'ambiguous-prefix' ? { rootReason: 'ambiguous-prefix' as const } : {}),
+  }
 }
 
 function storedRunMode(value: unknown): RunModeState | undefined {
@@ -1320,6 +1348,7 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
   /* The band shows one Project Timeline: another project's rows, read back or
      recorded here, are not this one's to draw. */
   timeline = []
+  timelineLoaded = undefined
   project = {
     root,
     id,
@@ -1602,6 +1631,9 @@ function parseTimeline(text: string, projectId: string): TimelineItem[] {
     if (row.segmentId !== undefined && !isSafeId(row.segmentId)) {
       throw new Error('timeline-read')
     }
+    if (row.branchId !== undefined && !isSafeId(row.branchId)) {
+      throw new Error('timeline-read')
+    }
     const identity = {
       eventId: row.eventId,
       sequence: row.sequence as number,
@@ -1614,9 +1646,15 @@ function parseTimeline(text: string, projectId: string): TimelineItem[] {
         !Number.isSafeInteger(row.attachmentCount) ||
         (row.attachmentCount as number) < 0
       ) throw new Error('timeline-read')
+      const parent = row.parentEventId
+      if (parent !== undefined && parent !== null && !isSafeId(parent)) {
+        throw new Error('timeline-read')
+      }
       return {
         kind: 'prompt',
         ...identity,
+        ...(row.branchId === undefined ? {} : { branchId: row.branchId }),
+        ...(parent === undefined ? {} : { parentEventId: parent }),
         text: row.text,
         attachmentCount: row.attachmentCount as number,
       }
@@ -1656,6 +1694,12 @@ async function loadTimeline(
   const known = new Set(persisted.map(item => item.eventId))
   timeline = [...persisted, ...timeline.filter(item => !known.has(item.eventId))]
     .sort((left, right) => left.sequence - right.sequence)
+  timelineLoaded = currentProject.id
+  try {
+    await loadBranchView($, currentProject)
+  } catch {
+    // Without it the band draws every entry unfolded, which hides nothing.
+  }
 }
 
 async function saveReconcile(
@@ -1752,14 +1796,14 @@ async function reconcilePending(
       /* Only the Run that staged it may chain its own Active Branch onto the
          entry; another Run's branch is not this reconciliation's to move. */
       if (startup.runId === owed.state.runId && startup.sessionId) {
-        await $.store.set(
-          branchKey(currentProject.id, startup.runId, startup.sessionId),
-          {
-            version: 1,
-            branchId: owed.state.branchId,
-            parentEventId: owed.state.eventId,
-          } satisfies BranchState,
-        )
+        const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
+        const confirmed: BranchState = {
+          version: 1,
+          branchId: owed.state.branchId,
+          parentEventId: owed.state.eventId,
+        }
+        await $.store.set(key, confirmed)
+        rememberBranch(key, confirmed)
       }
       if (owed.text !== undefined) {
         timeline = [
@@ -1769,6 +1813,8 @@ async function reconcilePending(
             eventId: owed.state.eventId,
             sequence,
             runId: owed.state.runId,
+            branchId: owed.state.branchId,
+            parentEventId: owed.state.parentEventId,
             text: owed.text,
             attachmentCount: owed.state.attachmentCount,
           },
@@ -1836,6 +1882,7 @@ async function reconcilePending(
             version: 1,
             branchId: crypto.randomUUID(),
             parentEventId: null,
+            explicitRoot: true,
           } satisfies BranchState,
         )
       } catch {
@@ -1889,6 +1936,208 @@ async function settlePending(
     settledAny = true
   }
   return 'blocked'
+}
+
+function parseBranchMatch(text: string, projectId: string): BranchMatch {
+  const value: unknown = JSON.parse(text)
+  if (
+    !isRecord(value) ||
+    value.projectId !== projectId ||
+    !Array.isArray(value.candidates) ||
+    !Number.isSafeInteger(value.candidateCount)
+  ) throw new Error('branch-match')
+  const candidates = value.candidates.map(candidate => {
+    if (
+      !isRecord(candidate) ||
+      !isSafeId(candidate.eventId) ||
+      !isSafeId(candidate.runId) ||
+      !Number.isSafeInteger(candidate.sequence)
+    ) throw new Error('branch-match')
+    return {
+      eventId: candidate.eventId,
+      runId: candidate.runId,
+      sequence: candidate.sequence as number,
+    }
+  })
+  const candidateCount = value.candidateCount as number
+  if (value.match === 'unique' && isSafeId(value.eventId)) {
+    return { match: 'unique', eventId: value.eventId, candidates, candidateCount }
+  }
+  if (value.match === 'none' || value.match === 'ambiguous') {
+    return { match: value.match, candidates, candidateCount }
+  }
+  throw new Error('branch-match')
+}
+
+/* Which archived Prompt Entry the transcript ends on. A session with a lineage
+   of its own is matched inside its own stretch of the Run first; one without
+   (a fork, or a session that never archived) across the project. The rows
+   travel on stdin only. */
+async function matchBranch(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  stored: BranchState | undefined,
+): Promise<BranchMatch> {
+  if (!startup.helperPath || !startup.databaseRoot || !startup.runId || !startup.sessionId) {
+    throw new Error('capture-identity')
+  }
+  const rows = transcriptRows(await $.session.messages())
+  const scoped = stored?.parentEventId != null
+  const result = await run(
+    $,
+    [
+      startup.helperPath,
+      'branch-match',
+      startup.databaseRoot,
+      currentProject.id,
+      scoped ? startup.runId : '-',
+      scoped ? startup.sessionId : '-',
+      rows.truncated ? 'truncated' : 'whole',
+      stored?.parentEventId ?? '-',
+      EXPECTED_HELPER_SHA256,
+      String(HELPER_PROTOCOL),
+      '--stdin',
+    ],
+    10_000,
+    rows.stdin,
+  )
+  if (result.exitCode !== 0) throw new Error('branch-match')
+  return parseBranchMatch(result.stdout, currentProject.id)
+}
+
+/* How a candidate parent is offered: by its sequence and a single line of its
+   text while the loaded window holds it, by its event id otherwise. */
+const PARENT_LABEL_WIDTH = 40
+
+function parentLabel(eventId: string, found: BranchMatch): string {
+  const entry = timeline.find(item => item.kind === 'prompt' && item.eventId === eventId)
+  if (entry?.kind === 'prompt') {
+    const line = entryLine(entry)
+    const text = line.length > PARENT_LABEL_WIDTH ? `${line.slice(0, PARENT_LABEL_WIDTH - 1)}…` : line
+    return `#${entry.sequence} ${text}`
+  }
+  const candidate = found.candidates.find(item => item.eventId === eventId)
+  return candidate
+    ? `#${candidate.sequence} 事件 ${eventId.slice(0, 8)}`
+    : `事件 ${eventId.slice(0, 8)}`
+}
+
+/* The engine's dialog offers at most four answers: three parents and a root. */
+const PARENT_OPTION_LIMIT = 3
+
+/* Settles this session's Active Branch against its transcript before the
+   first capture this module instance makes in it. Answers a result that drops
+   the submission, or nothing when it may go on. A stored lineage the
+   transcript cannot place is put to the person; the submission is dropped
+   either way, with the draft back in the prompt box, and never resubmitted. */
+async function alignBranch(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  draft: string,
+): Promise<{ drop: string } | undefined> {
+  if (!startup.runId || !startup.sessionId) {
+    return { drop: 'Prompt Trail 无法证明当前 Run 身份；本次提交未进入会话。' }
+  }
+  const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
+  if (alignedBranch === key) return undefined
+
+  let stored: BranchState | undefined
+  let found: BranchMatch
+  let settlement: ReturnType<typeof settleBranch>
+  try {
+    stored = storedBranch(await $.store.get(key))
+    if (trustsStoredBranch(stored)) {
+      alignedBranch = key
+      if (stored) rememberBranch(key, stored)
+      return undefined
+    }
+    found = await matchBranch($, currentProject, stored)
+    settlement = settleBranch(stored, found, crypto.randomUUID())
+    if (settlement.kind === 'set') {
+      await $.store.set(key, settlement.state)
+      rememberBranch(key, settlement.state)
+    } else if (settlement.kind === 'keep' && stored) {
+      rememberBranch(key, stored)
+    }
+  } catch {
+    const restored = await restoreDraft($, draft)
+    return {
+      drop: `Prompt Trail 无法重建 Conversation Branch，${draftNote(restored)}；为避免挂错父节点，本次提交已阻止。`,
+    }
+  }
+  if (settlement.kind !== 'ask') {
+    alignedBranch = key
+    return undefined
+  }
+
+  const offered = settlement.options.slice(0, PARENT_OPTION_LIMIT)
+  const labels = offered.map(eventId => parentLabel(eventId, found))
+  /* What the dialog leaves out, plus what the helper counted but never named. */
+  const unlisted = settlement.options.length - offered.length
+    + Math.max(0, found.candidateCount - found.candidates.length)
+  let answer: string | undefined
+  try {
+    answer = await $.ui.ask(
+      [
+        '这个会话的 transcript 与 Prompt Trail 记录的 Active Branch 对不上，无法唯一确定下一条 prompt 的父节点。',
+        '请选择它接在哪条 Prompt Entry 之后，或从新的根 Conversation Branch 开始。',
+        ...(unlisted > 0 ? [`另有 ${unlisted} 个候选未列出；它们都不对时请选“新根分支”。`] : []),
+        '选择后本次提交不会自动重发。',
+      ].join('\n'),
+      { header: '确认父节点', options: [...labels, '新根分支'] },
+    )
+  } catch {
+    answer = undefined
+  }
+  const chosen = answer === '新根分支'
+    ? 'root'
+    : offered[labels.indexOf(answer ?? '')]
+  const restoredNote = async () => draftNote(await restoreDraft($, draft))
+  if (answer === undefined || chosen === undefined) {
+    return {
+      drop: `Prompt Trail 仍待确认 Conversation Branch 父节点，${await restoredNote()}；本次提交未进入会话。`,
+    }
+  }
+  try {
+    const chosenBranch = chooseBranch(stored, chosen, crypto.randomUUID())
+    await $.store.set(key, chosenBranch)
+    rememberBranch(key, chosenBranch)
+  } catch {
+    return {
+      drop: `Prompt Trail 无法保存所选父节点，${await restoredNote()}；本次提交未进入会话。`,
+    }
+  }
+  alignedBranch = key
+  return {
+    drop: `Prompt Trail 已确认 Conversation Branch 父节点，${await restoredNote()}；请重新提交。`,
+  }
+}
+
+function rememberBranch(key: string, value: BranchState): void {
+  /* The marker is read from the branch a session is on, so a session that
+     moves off an unlinked root stops marking it, as a reload would. */
+  const previous = activeBranch?.key === key ? activeBranch.value : undefined
+  if (previous?.rootReason === 'ambiguous-prefix' && previous.branchId !== value.branchId) {
+    ambiguousRoots.delete(previous.branchId)
+  }
+  activeBranch = { key, value }
+  if (value.rootReason === 'ambiguous-prefix') ambiguousRoots.add(value.branchId)
+}
+
+/* Reads back what the band folds against after a reload or a restart: this
+   session's branch, and every branch recorded as an unlinked fork root. */
+async function loadBranchView($: EngineInterface, currentProject: ProjectState): Promise<void> {
+  const prefix = `prompt-trail:branch:${currentProject.id}:`
+  for (const key of await $.store.keys()) {
+    if (!key.startsWith(prefix)) continue
+    const value = storedBranch(await $.store.get(key))
+    if (value?.rootReason === 'ambiguous-prefix') ambiguousRoots.add(value.branchId)
+  }
+  if (startup.runId && startup.sessionId) {
+    const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
+    const value = storedBranch(await $.store.get(key))
+    if (value) rememberBranch(key, value)
+  }
 }
 
 /* The Clear Boundary's idempotency key, derived from the classic session that
@@ -2549,6 +2798,51 @@ async function refreshStartup($: EngineInterface): Promise<void> {
   }
 }
 
+/* A session the host started a moment ago can run its hooks before the bridge
+   has published its locator: a background `/fork` submits its argument about
+   a second before, and the conversation `/fork` continues elsewhere gets its
+   locator only once it is taken up. The first submission that meets such a
+   session waits for it, briefly and once, rather than refusing; a host whose
+   bridge never runs costs that wait a single time. */
+const LOCATOR_WAIT_MS = 2_000
+const LOCATOR_POLL_MS = 200
+
+async function awaitStartup($: EngineInterface): Promise<void> {
+  let sessionId: string
+  try {
+    sessionId = await $.session.id()
+  } catch {
+    return
+  }
+  /* The proven Run must be this session's: an in-process `/resume` moves the
+     process to a session whose locator may not be published yet either. */
+  if (startup.support === 'supported' && startup.runId && startup.sessionId === sessionId) return
+  await refreshStartup($)
+  if (locatorAwaited === sessionId) return
+  locatorAwaited = sessionId
+  for (
+    let waited = 0;
+    waited < LOCATOR_WAIT_MS && !startup.runId && RETRYABLE_LOCATOR_REASONS.has(startup.reason);
+    waited += LOCATOR_POLL_MS
+  ) {
+    await $.clock.sleep(LOCATOR_POLL_MS)
+    await refreshStartup($)
+  }
+}
+
+/* The archived events are read back once per project, whenever the target is
+   first proven: at start when the locator is already there, or later when it
+   arrives. The band never stays empty only because it was drawn too early. */
+async function ensureTimeline($: EngineInterface): Promise<void> {
+  if (startup.support !== 'supported') return
+  try {
+    const currentProject = await prepareProject($)
+    if (timelineLoaded !== currentProject.id) await loadTimeline($, currentProject)
+  } catch {
+    // The band shows what this module instance records from here on.
+  }
+}
+
 /* Idempotent by event id: a boundary can be appended more than once — the
    helper answers the stored sequence rather than cutting twice — and the
    timeline must still show exactly one row for it. */
@@ -2687,10 +2981,10 @@ async function enableCollection($: EngineInterface): Promise<string> {
 
   try {
     if (startup.runId && startup.sessionId) {
-      await $.store.set(
-        branchKey(currentProject.id, startup.runId, startup.sessionId),
-        { version: 1, branchId, parentEventId: null } satisfies BranchState,
-      )
+      const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
+      const root: BranchState = { version: 1, branchId, parentEventId: null, explicitRoot: true }
+      await $.store.set(key, root)
+      rememberBranch(key, root)
     }
     await saveRunMode($, current.key, {
       version: 1,
@@ -2941,6 +3235,8 @@ export const register: Register = on => {
   on('command.run', { command: 'prompt-history' }, async ($, e) => {
     const args = e.args.trim()
     if (args === '') {
+      await refreshStartup($)
+      await ensureTimeline($)
       expanded = true
       await saveExpanded($)
       $.ui.invalidate('ui.render')
@@ -2982,6 +3278,7 @@ export const register: Register = on => {
   on('prompt.submit', async ($, e, next) => {
     if (e.origin.kind !== 'composer') return next(e)
     if (!runtimeTarget) return next(e)
+    await awaitStartup($)
 
     let currentProject: ProjectState
     try {
@@ -3094,6 +3391,18 @@ export const register: Register = on => {
       return { drop: 'Prompt Trail 档案当前不可用；为避免漏记，本次提交已阻止。' }
     }
 
+    /* A resumed or forked session may already hold history this Run's branch
+       has to continue from; it is settled before anything is staged. */
+    if (timelineLoaded !== currentProject.id) {
+      try {
+        await loadTimeline($, currentProject)
+      } catch {
+        // Candidates it cannot show are offered by event id.
+      }
+    }
+    const unaligned = await alignBranch($, currentProject, e.text)
+    if (unaligned) return unaligned
+
     let branch: { key: string; value: BranchState }
     const eventId = crypto.randomUUID()
     const attachmentKinds = e.attachments?.map(attachment => attachment.type) ?? []
@@ -3166,6 +3475,7 @@ export const register: Register = on => {
         parentEventId: eventId,
       }
       await $.store.set(branch.key, nextBranch)
+      rememberBranch(branch.key, nextBranch)
       timeline = [
         ...timeline,
         {
@@ -3174,6 +3484,8 @@ export const register: Register = on => {
           sequence,
           runId: startup.runId ?? '',
           ...(startup.sessionId ? { segmentId: startup.sessionId } : {}),
+          branchId: branch.value.branchId,
+          parentEventId: branch.value.parentEventId,
           text: finalText,
           attachmentCount: attachmentKinds.length,
         },
@@ -3207,6 +3519,11 @@ export const register: Register = on => {
       expanded = !expanded
       $.ui.invalidate('ui.render')
       await saveExpanded($)
+      if (expanded && (startup.support !== 'supported' || timelineLoaded === undefined)) {
+        await refreshStartup($)
+        await ensureTimeline($)
+        $.ui.invalidate('ui.render')
+      }
     }
     if (!expanded) {
       return (
@@ -3230,18 +3547,62 @@ export const register: Register = on => {
       attachment !== undefined && !attachment.closed && attachment.host === startup.hostGeneration,
     )
     const origins = splitOrigins(ordered)
-    const rows = ordered.flatMap(item => {
+    const forks = forkSources(ordered)
+    const currentKey = project && startup.runId && startup.sessionId
+      ? branchKey(project.id, startup.runId, startup.sessionId)
+      : undefined
+    const folds = foldTimeline(
+      ordered,
+      startup.runId ?? '',
+      activeBranch && activeBranch.key === currentKey ? activeBranch.value.parentEventId : null,
+    )
+    type Row = { key: string; text: string; dim: boolean; fold?: string }
+    const rows = ordered.flatMap((item): Row[] => {
+      const before: Row[] = []
+      if (item.kind === 'prompt') {
+        const fold = folds.folded.get(item.eventId)
+        /* Numbered whether or not it is drawn, so opening a fold never
+           renumbers the entries around it. */
+        position += 1
+        if (fold === item.eventId) {
+          const open = openFolds.has(fold)
+          before.push({
+            key: `prompt-trail:fold:${fold}`,
+            text: `${open ? '▾' : '▸'} 另一分支 · ${folds.counts.get(fold) ?? 0} 条`,
+            dim: true,
+            fold,
+          })
+        }
+        if (fold !== undefined && !openFolds.has(fold)) {
+          /* A Run left unrecorded is never hidden inside a fold. */
+          return unclosed.has(item.eventId)
+            ? [...before, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
+            : before
+        }
+        if (item.parentEventId === null && item.branchId && ambiguousRoots.has(item.branchId)) {
+          before.push({
+            key: `prompt-trail:unlinked:${item.eventId}`,
+            text: '—— 共享前缀无法唯一确定，未接续 ——',
+            dim: true,
+          })
+        }
+      }
       const drawn = {
         key: `prompt-trail:${item.kind}:${item.eventId}`,
         text: item.kind === 'boundary'
-          ? boundaryLine(item.boundary, origins.get(item.eventId))
-          : `${(position += 1)}. ${entryLine(item)}`,
+          ? boundaryLine(
+              item.boundary,
+              item.boundary === 'run-started'
+                ? forks.get(item.runId) ?? origins.get(item.eventId)
+                : origins.get(item.eventId),
+            )
+          : `${position}. ${entryLine(item)}`,
         dim: item.kind === 'boundary',
       }
       const runId = unclosed.get(item.eventId)
       return runId === undefined
-        ? [drawn]
-        : [drawn, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
+        ? [...before, drawn]
+        : [...before, drawn, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
     })
     return (
       <Box flexDirection="column">
@@ -3253,7 +3614,19 @@ export const register: Register = on => {
         />
         {rows.length === 0 ? (
           <Text dimColor>尚无 Prompt Entry</Text>
-        ) : rows.map(row => (
+        ) : rows.map(row => row.fold !== undefined ? (
+          <Button
+            key={row.key}
+            plain
+            label={row.text}
+            onPress={() => {
+              const fold = row.fold as string
+              if (openFolds.has(fold)) openFolds.delete(fold)
+              else openFolds.add(fold)
+              $.ui.invalidate('ui.render')
+            }}
+          />
+        ) : (
           <Text
             key={row.key}
             wrap="truncate-end"

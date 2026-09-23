@@ -852,6 +852,9 @@ static sqlite3 *open_archive(
   archive_sql(database, "PRAGMA synchronous=FULL");
   archive_sql(database, "PRAGMA foreign_keys=ON");
   archive_sql(database, "PRAGMA secure_delete=ON");
+  /* Sorts, indexes and `branch-match`'s transcript rows never spill prompt
+     text into SQLite temporary files outside the private archive. */
+  archive_sql(database, "PRAGMA temp_store=MEMORY");
 
   /* An already-current archive needs no write lock. Anything older takes one
      and re-reads the version under it, so two Runs opening the same schema-1
@@ -1522,12 +1525,13 @@ static void timeline_read(int argc, char **argv) {
   sqlite3_stmt *rows = archive_prepare(
     database,
     "SELECT event_id, sequence, run_id, kind, prompt_text, attachment_count,"
-    " count(*) OVER (), segment_id FROM ("
+    " count(*) OVER (), segment_id, branch_id, parent_event_id FROM ("
     "  SELECT event_id, sequence, run_id, 'prompt' AS kind, prompt_text,"
-    "   attachment_count, segment_id FROM prompt_entries"
+    "   attachment_count, segment_id, branch_id, parent_event_id"
+    "   FROM prompt_entries"
     "  UNION ALL"
-    "  SELECT event_id, sequence, run_id, kind, NULL, 0, segment_id"
-    "   FROM timeline_events"
+    "  SELECT event_id, sequence, run_id, kind, NULL, 0, segment_id, branch_id,"
+    "   NULL FROM timeline_events"
     "  ORDER BY sequence DESC LIMIT ?1"
     ") ORDER BY sequence ASC"
   );
@@ -1551,9 +1555,15 @@ static void timeline_read(int argc, char **argv) {
     printf(",\"sequence\":%lld", (long long)sqlite3_column_int64(rows, 1));
     write_status_string(",\"runId\":", (const char *)sqlite3_column_text(rows, 2));
     write_status_string(",\"segmentId\":", (const char *)sqlite3_column_text(rows, 7));
+    write_status_string(",\"branchId\":", (const char *)sqlite3_column_text(rows, 8));
     const char *kind = (const char *)sqlite3_column_text(rows, 3);
     write_status_string(",\"kind\":", kind);
     if (strcmp(kind, "prompt") == 0) {
+      if (sqlite3_column_type(rows, 9) == SQLITE_NULL) {
+        fputs(",\"parentEventId\":null", stdout);
+      } else {
+        write_status_string(",\"parentEventId\":", (const char *)sqlite3_column_text(rows, 9));
+      }
       write_status_string(",\"text\":", (const char *)sqlite3_column_text(rows, 4));
       printf(",\"attachmentCount\":%lld", (long long)sqlite3_column_int64(rows, 5));
     }
@@ -1564,6 +1574,321 @@ static void timeline_read(int argc, char **argv) {
   sqlite3_finalize(rows);
   sqlite3_close(database);
   printf("],\"truncated\":%s}\n", truncated ? "true" : "false");
+}
+
+/* `branch-match` answers which archived Prompt Entry a transcript ends on, so
+   a resumed or forked Run can continue its Active Branch without guessing. The
+   transcript's `user` rows arrive on stdin in order, each as `<bytes>\n<text>`;
+   the answer names event ids only, never text.
+
+   An entry matches when its whole chain, root first, is an ordered subsequence
+   of those rows: the rows in between are the engine's own (a task
+   notification) or prompts no Run archived. Of the matches, the one whose own
+   row comes latest wins, then the longer chain; a tie is ambiguous and left to
+   the caller. A transcript cut to its newest rows (`truncated`) may hold only
+   the tail of a chain, so there a chain whose head lies beyond the first row
+   still matches. */
+#define MATCH_ROW_LIMIT 4096
+#define MATCH_INPUT_LIMIT ((size_t)64 * 1024 * 1024)
+#define MATCH_CANDIDATE_LIMIT 8
+
+typedef struct {
+  const char *text;
+  size_t length;
+} match_row;
+
+typedef struct {
+  char event_id[129];
+  char run_id[129];
+  long long sequence;
+  int chain_length;
+} match_candidate;
+
+static void match_error(void) {
+  archive_error("match-input");
+}
+
+static size_t parse_match_rows(
+  const char *input,
+  size_t input_length,
+  match_row *rows
+) {
+  size_t count = 0;
+  size_t cursor = 0;
+  while (cursor < input_length) {
+    if (count == MATCH_ROW_LIMIT) match_error();
+    size_t length = 0;
+    size_t digits = 0;
+    while (cursor < input_length && isdigit((unsigned char)input[cursor])) {
+      if (digits == 9) match_error();
+      length = length * 10 + (size_t)(input[cursor] - '0');
+      cursor += 1;
+      digits += 1;
+    }
+    if (digits == 0 || cursor >= input_length || input[cursor] != '\n') {
+      match_error();
+    }
+    cursor += 1;
+    if (length > input_length - cursor) match_error();
+    rows[count].text = input + cursor;
+    rows[count].length = length;
+    count += 1;
+    cursor += length;
+  }
+  return count;
+}
+
+static bool row_equals(
+  const match_row *row,
+  const unsigned char *text,
+  int text_bytes
+) {
+  return text_bytes >= 0
+    && row->length == (size_t)text_bytes
+    && (row->length == 0 || memcmp(row->text, text, row->length) == 0);
+}
+
+/* Walks the chain above one candidate whose own row is `position`, finding
+   each ancestor at the latest row before the one its child took. Answers the
+   chain's length, or 0 when an ancestor is missing from a whole transcript. */
+static int match_chain(
+  sqlite3 *database,
+  sqlite3_stmt *parent,
+  const match_row *rows,
+  long long position,
+  const char *event_id,
+  bool truncated
+) {
+  char current[129];
+  snprintf(current, sizeof(current), "%s", event_id);
+  int length = 1;
+  long long cursor = position - 1;
+  for (;;) {
+    sqlite3_reset(parent);
+    archive_bind_text(database, parent, 1, current);
+    int step = sqlite3_step(parent);
+    if (step == SQLITE_DONE) break;
+    if (step != SQLITE_ROW) archive_error("archive-sqlite");
+    const unsigned char *text = sqlite3_column_text(parent, 1);
+    int text_bytes = sqlite3_column_bytes(parent, 1);
+    while (cursor >= 0 && !row_equals(&rows[cursor], text, text_bytes)) {
+      cursor -= 1;
+    }
+    if (cursor < 0) {
+      if (!truncated) length = 0;
+      break;
+    }
+    snprintf(current, sizeof(current), "%s", (const char *)sqlite3_column_text(parent, 0));
+    length += 1;
+    cursor -= 1;
+  }
+  return length;
+}
+
+static void write_match(
+  const char *project_id,
+  const match_candidate *winners,
+  int winner_count
+) {
+  write_status_string("{\"projectId\":", project_id);
+  const char *match = winner_count == 0
+    ? "none"
+    : winner_count == 1 ? "unique" : "ambiguous";
+  printf(",\"match\":\"%s\"", match);
+  if (winner_count == 1) {
+    write_status_string(",\"eventId\":", winners[0].event_id);
+  }
+  fputs(",\"candidates\":[", stdout);
+  for (int index = 0; index < winner_count && index < MATCH_CANDIDATE_LIMIT; index += 1) {
+    if (index > 0) fputs(",", stdout);
+    write_status_string("{\"eventId\":", winners[index].event_id);
+    printf(",\"sequence\":%lld", winners[index].sequence);
+    write_status_string(",\"runId\":", winners[index].run_id);
+    fputs("}", stdout);
+  }
+  printf("],\"candidateCount\":%d}\n", winner_count);
+}
+
+static int compare_newest_first(const void *left, const void *right) {
+  long long a = ((const match_candidate *)left)->sequence;
+  long long b = ((const match_candidate *)right)->sequence;
+  return a < b ? 1 : a > b ? -1 : 0;
+}
+
+static void branch_match(int argc, char **argv) {
+  if (argc != 11 || strcmp(argv[10], "--stdin") != 0) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  const char *run_id = argv[4];
+  const char *segment_id = argv[5];
+  const char *transcript = argv[6];
+  /* The stored parent, when there is one: tied, it is listed first, so the
+     fixed batch of candidates never leaves it out. */
+  const char *prefer = argv[7];
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  if (strcmp(prefer, "-") != 0 && !pt_is_safe_identifier(prefer)) match_error();
+  bool scoped = strcmp(run_id, "-") != 0;
+  if (scoped != (strcmp(segment_id, "-") != 0)
+      || (scoped && (!pt_is_safe_identifier(run_id)
+                     || !pt_is_safe_identifier(segment_id)))) {
+    match_error();
+  }
+  bool truncated;
+  if (strcmp(transcript, "whole") == 0) {
+    truncated = false;
+  } else if (strcmp(transcript, "truncated") == 0) {
+    truncated = true;
+  } else {
+    match_error();
+  }
+  bool root_present =
+    capture_runtime(database_root, argv[8], argv[9], PT_ROOT_OPTIONAL);
+
+  char *input = NULL;
+  size_t input_length = 0;
+  if (!pt_read_fd_limited(STDIN_FILENO, &input, &input_length, MATCH_INPUT_LIMIT)) {
+    match_error();
+  }
+  match_row *rows = calloc(MATCH_ROW_LIMIT, sizeof(match_row));
+  if (!rows) archive_error("archive-memory");
+  size_t row_count = parse_match_rows(input, input_length, rows);
+
+  bool archived = false;
+  if (root_present) {
+    char database_path[PATH_MAX];
+    int length = snprintf(
+      database_path,
+      sizeof(database_path),
+      "%s/%s.sqlite3",
+      database_root,
+      project_id
+    );
+    if (length < 0 || (size_t)length >= sizeof(database_path)) {
+      archive_error("database-path");
+    }
+    struct stat status;
+    if (lstat(database_path, &status) == 0) {
+      archived = true;
+    } else if (errno != ENOENT) {
+      archive_error("database-unavailable");
+    }
+  }
+  if (!archived || row_count == 0) {
+    write_match(project_id, NULL, 0);
+    free(rows);
+    free(input);
+    return;
+  }
+
+  sqlite3 *database = open_archive(database_root, project_id, false);
+  archive_sql(
+    database,
+    "CREATE TEMP TABLE transcript_rows(position INTEGER PRIMARY KEY, text TEXT);"
+  );
+  sqlite3_stmt *insert = archive_prepare(
+    database,
+    "INSERT INTO temp.transcript_rows(position, text) VALUES(?1, ?2)"
+  );
+  for (size_t index = 0; index < row_count; index += 1) {
+    sqlite3_reset(insert);
+    sqlite3_bind_int64(insert, 1, (sqlite3_int64)index);
+    archive_bind_prompt(insert, 2, rows[index].text, rows[index].length);
+    if (sqlite3_step(insert) != SQLITE_DONE) archive_error("archive-sqlite");
+  }
+  sqlite3_finalize(insert);
+  archive_sql(
+    database,
+    "CREATE INDEX temp.transcript_rows_text ON transcript_rows(text);"
+  );
+
+  /* A resume looks in its own session's stretch of the Run first; a session
+     that archived nothing there (a fork that never submitted, say) is matched
+     against the whole project, as a fork is. */
+  if (scoped) {
+    sqlite3_stmt *present = archive_prepare(
+      database,
+      "SELECT 1 FROM prompt_entries WHERE run_id=?1 AND segment_id=?2 LIMIT 1"
+    );
+    archive_bind_text(database, present, 1, run_id);
+    archive_bind_text(database, present, 2, segment_id);
+    int step = sqlite3_step(present);
+    if (step != SQLITE_ROW && step != SQLITE_DONE) archive_error("archive-sqlite");
+    scoped = step == SQLITE_ROW;
+    sqlite3_finalize(present);
+  }
+
+  sqlite3_stmt *candidates = archive_prepare(
+    database,
+    "SELECT entry.event_id, entry.run_id, entry.sequence, max(row.position)"
+    " FROM prompt_entries entry"
+    " JOIN temp.transcript_rows row ON row.text = entry.prompt_text"
+    " WHERE ?1 IS NULL OR (entry.run_id = ?1 AND entry.segment_id = ?2)"
+    " GROUP BY entry.event_id ORDER BY 4 DESC"
+  );
+  archive_bind_text(database, candidates, 1, scoped ? run_id : NULL);
+  archive_bind_text(database, candidates, 2, scoped ? segment_id : NULL);
+
+  sqlite3_stmt *parent = archive_prepare(
+    database,
+    "SELECT parent.event_id, parent.prompt_text FROM prompt_entries child"
+    " JOIN prompt_entries parent ON parent.event_id = child.parent_event_id"
+    " WHERE child.event_id = ?1"
+  );
+  size_t capacity = 16;
+  match_candidate *winners = calloc(capacity, sizeof(match_candidate));
+  if (!winners) archive_error("archive-memory");
+  int winner_count = 0;
+  int best_length = 0;
+  long long settled_position = -1;
+  int step;
+  while ((step = sqlite3_step(candidates)) == SQLITE_ROW) {
+    long long position = sqlite3_column_int64(candidates, 3);
+    /* Every candidate on the latest row that holds a match has been weighed;
+       an earlier row can only lose to it. */
+    if (winner_count > 0 && position < settled_position) break;
+    const char *event_id = (const char *)sqlite3_column_text(candidates, 0);
+    int length = match_chain(database, parent, rows, position, event_id, truncated);
+    if (length == 0 || length < best_length) continue;
+    if (length > best_length) {
+      best_length = length;
+      winner_count = 0;
+    }
+    if ((size_t)winner_count == capacity) {
+      capacity *= 2;
+      match_candidate *larger = realloc(winners, capacity * sizeof(match_candidate));
+      if (!larger) archive_error("archive-memory");
+      winners = larger;
+    }
+    match_candidate *winner = &winners[winner_count];
+    snprintf(winner->event_id, sizeof(winner->event_id), "%s", event_id);
+    snprintf(
+      winner->run_id,
+      sizeof(winner->run_id),
+      "%s",
+      (const char *)sqlite3_column_text(candidates, 1)
+    );
+    winner->sequence = sqlite3_column_int64(candidates, 2);
+    winner->chain_length = length;
+    winner_count += 1;
+    settled_position = position;
+  }
+  if (step != SQLITE_ROW && step != SQLITE_DONE) archive_error("archive-sqlite");
+  sqlite3_finalize(candidates);
+  sqlite3_finalize(parent);
+  sqlite3_close(database);
+
+  qsort(winners, (size_t)winner_count, sizeof(match_candidate), compare_newest_first);
+  for (int index = 1; index < winner_count; index += 1) {
+    if (strcmp(winners[index].event_id, prefer) != 0) continue;
+    match_candidate preferred = winners[index];
+    memmove(&winners[1], &winners[0], (size_t)index * sizeof(match_candidate));
+    winners[0] = preferred;
+    break;
+  }
+  write_match(project_id, winners, winner_count);
+  free(winners);
+  free(rows);
+  free(input);
 }
 
 static void usage(void) {
@@ -1610,6 +1935,10 @@ int main(int argc, char **argv) {
   }
   if (argc > 1 && strcmp(argv[1], "timeline-read") == 0) {
     timeline_read(argc, argv);
+    return 0;
+  }
+  if (argc > 1 && strcmp(argv[1], "branch-match") == 0) {
+    branch_match(argc, argv);
     return 0;
   }
   usage();

@@ -85,3 +85,23 @@ Run's start reads as a plain "Run 开始". This is a deliberate trade-off (no sc
 extra query in Issue 32); when Issue 21 adds cursor reads, either walk back until the segment's
 first holder is found or add a bounded helper query "first Run seen in segment S", and keep
 `splitOrigins()` as the in-view fast path.
+
+## Update 2026-09-23 (Issue 18 design)
+
+Issue 18 folds this Run's entries that left the active path into one "另一分支 · N 条" row per
+fork point. N counts only entries inside the loaded 128-row window; off-path entries outside the
+window are neither counted nor expandable. The same "from Run X" window limit above applies to the
+fork label, whose source Run is read from the first Prompt Entry's parent. When Issue 21 adds cursor
+reads, count and expand folds across the full range.
+
+## Update 2026-09-23 (Issue 18 review)
+
+Review finding #2 (major, CONFIRMED) belongs here. `foldTimeline()` in
+`mods/prompt-trail/hooks/branch.ts` walks the active path from the current session's branch tip
+through the loaded window only. When the tip lies outside the latest 128 events (a resumed
+session whose last entry is old, while a later segment and other Runs filled the window), the
+path is empty and nothing folds: this Run's off-path entries in the window are drawn inline. After
+the next submission the path starts at that new entry, so the older off-path entries still fall
+below the fold threshold. Nothing is hidden or lost; entries that should be folded are shown
+unfolded. Fix with the cursor reads: walk the path's ancestry past the window (or have the helper
+answer the path's first own sequence) before folding.
