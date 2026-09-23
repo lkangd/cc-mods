@@ -46,6 +46,15 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   一轮 code review 抓到两条 critical（都是本票据引入的：project 级键的并发覆盖、
   先写后存的崩溃窗口）与一处队列补写会用错 Run 身份导致永久 `boundary-conflict` 的洞；
   10 条修复、2 条归 backlog（Integrity gap 归 Issue 26）、2 条部分驳回。
+- [跨 reload 与重启维护 Run 身份](issues/17-run-identity-reload-restart.md)：
+  Run = 随机 Run UUID + 宿主进程世代；reload 复用 Run，退出/重启/`startup`/`fork` 开新 Run，
+  进程内 `/resume` 只在同一进程世代有前驱 locator 时继承 Run——**但 `/resume` 后的新 session
+  仍拿到新根分支，分支重建归 Issue 18**。`archiveGeneration` 仍是占位，每个新 Run 随机生成，
+  档案侧没有 generation（归 Issue 30）。Run 边界是惰性的，event id 由 `sha256(kind:project:run)`
+  派生；恢复队列的 16 条上限只约束 `clear`。`timeline-read` 是唯一可在 stdout 返回原文的子命令，
+  固定只回最新 128 条、带 `truncated`；游标、窗口和 `truncated` 的 UI 归 Issue 21（backlog
+  `20260922-bounded-persisted-timeline-view.md`）。只经 classic 事件到达的逻辑，`2.1.273` 的
+  plugin test 触发不到，必须补静态检查或 PTY 验收。
 
 ## Not yet specified
 
