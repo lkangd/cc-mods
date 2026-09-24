@@ -127,3 +127,36 @@ prefix still tells it apart, but the person has less to recognise it by. This fa
 Issue 20 (Issue 18's dialog had it too). Fix with the cursor reads: have the helper answer the
 sequence of a named event id, or keep the stored parent's sequence in `BranchState` when it is
 written.
+
+## Update 2026-09-24 (Issue 21)
+
+Issue 21 delivered the rest of this entry except one part:
+
+- Cursor reads, the bounded window (two batches plus one overscan row, 257 events), loads at
+  either edge, and the "earlier events" signal (`earlier`/`later` replace `truncated`): done in
+  `1396e5f` and `51c8420`.
+- (b) Issue 18 review #2, a tip outside the window: the helper answers `path`, the tip's ancestor
+  chain where it crosses the batch plus the path's first own sequence, and `foldTimeline()` takes
+  it. Resolved.
+- (c) Issue 19 review #2, a cross-Run parent outside the window: the helper answers `parents`, and
+  `branchStarts()`/`forkSources()` read the parent's Run from it. Resolved.
+- (d) Issue 32 review #13/#14, "从 Run X 分出" past the window: the helper answers `origins`, the
+  first Run holding each `run-started`'s segment. Resolved.
+- (e) Issue 20 review #2, the stored parent's number: candidates and the `<prefer>` entry carry
+  their project ordinal (`e55ccda`), and the Pane labels them `#N`. Resolved.
+
+Still open, (a): fold counts and expansion stay within the loaded window. An off-path stretch that
+crosses the window's edge is counted only for its part inside, and entries beyond the window
+cannot be expanded. It needs a helper query that counts (and pages) a fork point's off-path
+entries across the whole range.
+
+## Update 2026-09-24 (Issue 21 review)
+
+Review finding #4 (minor, CONFIRMED) belongs here. `branchStarts()` in
+`mods/prompt-trail/hooks/branch.ts` skips a Prompt Entry with no earlier row of its Run in the
+window, treating it as the Run's first entry, which its Run boundary explains. At the window's
+first rows that is not always so: the Run's earlier rows may lie before the window. Such an entry
+whose parent is in another Run (known through `parents`) then gets no `—— 新分支 ——` line. Fix
+with window context: have the helper say, for each Run in the batch, whether its row just before
+the batch is a boundary of its own, and skip only then.
+

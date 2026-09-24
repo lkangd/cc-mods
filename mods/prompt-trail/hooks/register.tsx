@@ -1714,8 +1714,7 @@ const LEGACY_KINDS = new Map<string, BoundaryKind>([['run-ended', 'run-detached'
 
 /* A response that is not exactly the shape the helper writes is refused
    whole: a row that cannot be trusted is not drawn as history. */
-function parseTimeline(text: string, projectId: string): TimelineItem[] {
-  const value: unknown = JSON.parse(text)
+function parseTimeline(value: unknown, projectId: string): TimelineItem[] {
   if (
     !isRecord(value) ||
     value.projectId !== projectId ||
@@ -1799,7 +1798,7 @@ function parseBatch(text: string, projectId: string, tip: string | undefined): T
   const value: unknown = JSON.parse(text)
   if (!isRecord(value)) throw new Error('timeline-read')
   const batch: TimelineBatch = {
-    items: parseTimeline(text, projectId),
+    items: parseTimeline(value, projectId),
     earlier: value.earlier as boolean,
     later: value.later as boolean,
     parents: parseContext(value.parents),
@@ -1930,13 +1929,14 @@ async function loadTimeline(
   if (currentProject.consent !== 'enabled' || !startup.helperPath || !startup.databaseRoot) {
     return
   }
-  mergeBatch(await readBatch($, currentProject), 'latest')
-  timelineLoaded = currentProject.id
+  /* The branch first, so the read places its tip and path. */
   try {
     await loadBranchView($, currentProject)
   } catch {
     // Without it the band draws every entry unfolded, which hides nothing.
   }
+  mergeBatch(await readBatch($, currentProject), 'latest')
+  timelineLoaded = currentProject.id
 }
 
 /* The batch beyond one end of the window, when the person's view or focus
@@ -2026,15 +2026,17 @@ async function stepRing($: EngineInterface, by: 1 | -1): Promise<void> {
 
 /* Back to the latest events, the band's bottom. */
 async function returnToLatest($: EngineInterface): Promise<void> {
-  unread = 0
-  bandBottom = true
   if (timelineEdges.later && project && timelineLoaded === project.id) {
     try {
       mergeBatch(await readBatch($, project), 'latest')
     } catch {
-      // The window stays where it was.
+      // The window and its count stay as they were, for another try.
+      $.ui.invalidate('ui.render')
+      return
     }
   }
+  unread = 0
+  bandBottom = true
   $.ui.invalidate('ui.render')
 }
 
@@ -2044,11 +2046,20 @@ async function returnToLatest($: EngineInterface): Promise<void> {
    batch; elsewhere it leaves the window where it is. A Prompt Entry that
    arrives while the band is looking elsewhere is counted. */
 function appendToWindow($: EngineInterface, item: TimelineItem): void {
+  if (timeline.some(held => held.eventId === item.eventId)) return
   /* A repeated boundary answers the sequence it was stored under: already
-     archived, and drawn wherever a read places it. */
+     archived, and drawn wherever a read places it. A write that finished
+     after a later one is placed by its sequence among the events the window
+     holds around it. */
   const newest = timeline.at(-1)
-  if (timeline.some(held => held.eventId === item.eventId)
-      || (newest && item.sequence <= newest.sequence)) return
+  if (newest && item.sequence <= newest.sequence) {
+    if (item.sequence > timeline[0]!.sequence) {
+      timeline = [...timeline, item].sort((left, right) => left.sequence - right.sequence)
+      boundWindow(!expanded || bandBottom ? 'later' : 'earlier')
+      $.ui.invalidate('ui.render')
+    }
+    return
+  }
   const following = expanded && bandBottom
   if (item.kind === 'prompt') {
     if (expanded && !following) unread += 1
@@ -2065,8 +2076,10 @@ function appendToWindow($: EngineInterface, item: TimelineItem): void {
   const continues = !timelineEdges.later
     && (!loaded || (last ? last.sequence + 1 === item.sequence : item.sequence === 1))
   if (continues) {
+    /* Away from the bottom a full window keeps the rows in view and lets the
+       newest go instead: the count and the band's bottom reach it. */
     timeline = [...timeline, item]
-    boundWindow('later')
+    boundWindow(!expanded || following ? 'later' : 'earlier')
   } else if (following && project) {
     const currentProject = project
     $.clock.after(0, () => {

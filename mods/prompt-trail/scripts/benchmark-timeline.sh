@@ -1,7 +1,9 @@
 #!/bin/sh
 # Release evidence for Issue 21: on a 100,000-event Project Timeline, the p95
-# of opening the band (the latest batch), loading the next batch back, and
-# showing a new entry (capture then re-read). One warm-up, then ten runs each.
+# of the helper calls behind opening the band (the latest batch), loading the
+# next batch back, and showing a new entry (capture then re-read). The band's
+# own parsing and drawing (at most 129 events per read) are not timed here.
+# One warm-up, then ten runs each.
 # Not part of verify-startup.sh: it builds a large archive and measures this
 # machine. Works in a throwaway directory; prints identity, counts and timings
 # only, never prompt text.
@@ -66,7 +68,9 @@ with tempfile.TemporaryDirectory() as temporary:
         pathlib.Path(archives) / f"{project}.sqlite3", project, count - 1
     )
     built = time.perf_counter() - built
-    tip = next(e for e in reversed(events) if e["kind"] == "prompt")
+    tip = next((e for e in reversed(events) if e["kind"] == "prompt"), None)
+    if tip is None:
+        sys.exit("benchmark-timeline: the fixture holds no Prompt Entry; use a larger count")
     total = events[-1]["sequence"]
     cursors = [total // 2, 200]
     state = {"loads": 0, "parent": tip["eventId"]}

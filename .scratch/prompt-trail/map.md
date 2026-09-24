@@ -86,6 +86,13 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   选定后先关 Pane 再 `$.prompt.fill()` 回填，从不自动重提。列出全部候选（取代 `$.ui.ask` 的 3 个上限）；关闭 Pane
   即取消并回填；等待中再次提交会重新对齐，最新文本取代草稿。对账（Issue 15）仍用 `$.ui.ask`。测试套件无法模拟
   使用者关闭 Pane，取消路径由真人 PTY 覆盖。窗口外已存父节点缺序号进了 backlog。
+- [连续浏览 100,000 个 Timeline Events](issues/21-browse-long-timeline.md)：
+  helper `timeline-read` 按 `before|after` 游标读固定 128 条批次，另附一条 overscan 和只含 id 的窗口上下文；插件只持有
+  两批加一条（257 条），只画放得下的行，标题固定，方向键和触控板都能走到项目起点再回来；响应以 `earlier`/`later`
+  **取代 Issue 17 的 `truncated`**。100,000 条时三项 helper 调用的 p95 为 73/260/155 ms。**修正 Issue 12**：显示序号改为项目级 Prompt Entry 序数。**修正 Issue 03**：Ghostty 的触控板会送
+  `ui.scroll`，但只在 band 的树高于 `maxRows` 时送，且此时宿主必画 `n more`；插件用空白行占位让计数等于视图下方的
+  真实行数，到底时树不超高、收不到触控板，由标题行提示点击上翻。`branch-match` 改为内存里自顶向下匹配。Gap 边界等
+  Issue 26，跨窗口折叠计数和宿主 `n more` 限制进了 backlog。
 
 ## Not yet specified
 

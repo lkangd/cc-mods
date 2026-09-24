@@ -10,6 +10,7 @@ import {
   projectId,
   promptHistory,
   renderBand,
+  runId,
   session,
   sessionId,
 } from './support'
@@ -431,6 +432,44 @@ test('away from the bottom a new entry keeps the view and is counted until the b
   expect(drawn.keys).not.toContain('prompt-trail:latest')
 })
 
+test('away from the bottom a new entry never pushes the row the view starts on out of a full window', async ($, on) => {
+  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(WINDOW_LIMIT) })
+  await $.session.start(session)
+  await promptHistory($)
+  await renderBand($)
+  /* Up to the project's first entry: the window then holds every event. */
+  for (let step = 0; step < 4; step += 1) {
+    await scrollBand($, -200)
+    await renderBand($)
+  }
+  expect(band(await renderBand($)).labels[1]).toBe('1. PT-SECRET-OLD-1')
+
+  await composerPrompt($, { text: 'PT-SECRET-NEW' })
+  const drawn = band(await renderBand($))
+
+  expect(drawn.labels[1]).toBe('1. PT-SECRET-OLD-1')
+  expect(drawn.labels[0]).toBe('▾ Prompt Trail · 1 条新条目')
+})
+
+test('a failed read back to the latest batch keeps the count', async ($, on) => {
+  const target = { store: consentedStore(), archive: archiveOf(1_000), readFails: false }
+  installSupportedTarget(on, target)
+  await $.session.start(session)
+  await promptHistory($)
+  await renderBand($)
+  for (let step = 0; step < 4; step += 1) {
+    await scrollBand($, -200)
+    await renderBand($)
+  }
+  await composerPrompt($, { text: 'PT-SECRET-NEW' })
+  expect(band(await renderBand($)).labels).toContain('↓ 1 条新条目')
+
+  target.readFails = true
+  await $.ui.press({ plugin: 'prompt-trail', key: 'prompt-trail:latest' })
+
+  expect(band(await renderBand($)).labels).toContain('↓ 1 条新条目')
+})
+
 test('scrolling back to the bottom clears the count', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
   await $.session.start(session)
@@ -514,6 +553,44 @@ test('away from the bottom, a gap leaves the window and counts the entry', async
     '41. PT-SECRET-CONCURRENT',
     '42. PT-SECRET-MINE',
   ]))
+})
+
+test('the first read of a session already on a branch places that branch', async ($, on) => {
+  const archive = archiveOf(600)
+  const tip = archive[9]!
+  const calls = installSupportedTarget(on, {
+    store: {
+      ...consentedStore(),
+      [`prompt-trail:branch:${projectId}:${runId}:${sessionId}`]: {
+        version: 1,
+        branchId,
+        parentEventId: tip.eventId,
+      },
+    },
+    archive,
+  })
+
+  await $.session.start(session)
+
+  expect(reads(calls)[0]?.slice(-2)).toEqual([runId, tip.eventId])
+})
+
+test('100,000 events are browsed through a window that never holds or draws more than two batches', async ($, on) => {
+  const calls = installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(100_000) })
+  await $.session.start(session)
+  await promptHistory($)
+
+  let drawn = band(await renderBand($, { maxRows: 12 }))
+  for (let step = 0; step < 6; step += 1) {
+    expect(band(await renderBand($, WHOLE)).prompts.length).toBeLessThanOrEqual(WINDOW_LIMIT)
+    await renderBand($, { maxRows: 12 })
+    await scrollBand($, -200)
+    drawn = band(await renderBand($, { maxRows: 12 }))
+    expect(drawn.rows).toBeLessThanOrEqual(WINDOW_LIMIT + 2)
+  }
+
+  expect(drawn.labels.at(-1)).not.toBe('100000. PT-SECRET-OLD-100000')
+  expect(reads(calls).length).toBeLessThanOrEqual(8)
 })
 
 test('a Run start names the Run that held its session before the window', async ($, on) => {
