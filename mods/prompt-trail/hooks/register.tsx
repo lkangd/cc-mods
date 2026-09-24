@@ -245,6 +245,7 @@ const SAFE_ERROR_CATEGORIES = new Set([
   'plugin-data-permissions',
   'plugin-root-untrusted',
   'project-identity',
+  'read-input',
   'protocol-mismatch',
   'schema-version',
   'sqlite-capability',
@@ -1672,7 +1673,8 @@ function parseTimeline(text: string, projectId: string): TimelineItem[] {
     !isRecord(value) ||
     value.projectId !== projectId ||
     !Array.isArray(value.events) ||
-    typeof value.truncated !== 'boolean'
+    typeof value.earlier !== 'boolean' ||
+    typeof value.later !== 'boolean'
   ) throw new Error('timeline-read')
   return value.events.map((row: unknown): TimelineItem => {
     if (
@@ -1740,6 +1742,8 @@ async function loadTimeline(
       currentProject.id,
       EXPECTED_HELPER_SHA256,
       String(HELPER_PROTOCOL),
+      '-',
+      '-',
     ],
     10_000,
   )

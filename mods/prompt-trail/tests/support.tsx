@@ -536,7 +536,10 @@ export function installSupportedTarget(
                   }
                 : {}),
             })),
-            truncated: ordered.length > latest.length,
+            earlier: ordered.length > latest.length,
+            later: false,
+            parents: [],
+            origins: [],
           }),
           stderr: '',
         },
