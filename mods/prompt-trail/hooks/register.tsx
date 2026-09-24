@@ -1,6 +1,7 @@
 import type { EngineInterface, Register, SessionMessage } from 'claude-code'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from './artifact'
 import type { BranchMatch, BranchState, TranscriptMark } from './branch'
+import { TITLE_KEY, arrowStep } from './band'
 import {
   branchStarts,
   chooseBranch,
@@ -128,6 +129,9 @@ type TimelineItem =
     parentEventId?: string | null
     text: string
     attachmentCount: number
+    /* Its place among the project's Prompt Entries: the number the band
+       shows, the same whichever batch holds it. */
+    ordinal: number
   }
   | {
     kind: 'boundary'
@@ -264,7 +268,37 @@ let startup: StartupState = {
 let runtimeTarget: RuntimeTarget | undefined
 let project: ProjectState | undefined
 let expanded = false
+/* The band's window over the Project Timeline, in sequence order: at most
+   WINDOW_LIMIT events, never the whole archive. `earlier` and `later` say
+   events lie beyond it; a window without the latest events has `later`. */
 let timeline: TimelineItem[] = []
+let timelineEdges = { earlier: false, later: false }
+/* What the view derives from events outside the window, as the helper
+   answered it: the Run of each parent the window lacks, the Run that held a
+   Run start's segment first, and the Active Branch where it crosses the
+   window and where it began in this Run. */
+let parentRuns = new Map<string, string>()
+let segmentOrigins = new Map<string, string>()
+let activePath: { tip: string; eventIds: Set<string>; start: number | null } | undefined
+/* Prompt Entries this process added while the person was looking elsewhere
+   in the band, cleared once the band is back at its bottom. */
+let unread = 0
+let windowLoading = false
+/* What the last drawing of the band showed: its instance, whether its window
+   sat at the bottom, and the rows the focus can stop on, in order. */
+let bandView: {
+  requestId?: string
+  atBottom: boolean
+  firstKey?: string
+  lastKey?: string
+  stops: string[]
+} = { atBottom: true, stops: [] }
+/* The band element holding its focus ring, as the last move left it. */
+let ringKey: string | undefined
+/* Where the next drawing should move the band's window: to its end, or to
+   one row, placed at the window's top (`start`), bottom (`end`) or wherever
+   moves it least. */
+let pendingReveal: 'end' | { key: string; block: 'start' | 'end' | 'nearest' } | undefined
 let archiveUnavailable = false
 let runMode: { key: string; value: RunModeState } | undefined
 /* `text` is present only while the module instance that staged the capture is
@@ -1395,7 +1429,7 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
   deferredClear = undefined
   /* The band shows one Project Timeline: another project's rows, read back or
      recorded here, are not this one's to draw. */
-  timeline = []
+  resetWindow()
   timelineLoaded = undefined
   project = {
     root,
@@ -1523,20 +1557,24 @@ function parsePendingResponse(
   ) throw new Error('capture-response')
 }
 
+type Confirmed = { sequence: number; ordinal: number }
+
 function parseConfirmedResponse(
   text: string,
   eventId: string,
   projectId: string,
-): number {
+): Confirmed {
   const value: unknown = JSON.parse(text)
   if (
     !isRecord(value) ||
     value.eventId !== eventId ||
     value.projectId !== projectId ||
     !Number.isSafeInteger(value.sequence) ||
-    (value.sequence as number) < 1
+    (value.sequence as number) < 1 ||
+    !Number.isSafeInteger(value.ordinal) ||
+    (value.ordinal as number) < 1
   ) throw new Error('capture-response')
-  return value.sequence as number
+  return { sequence: value.sequence as number, ordinal: value.ordinal as number }
 }
 
 async function beginCapture(
@@ -1586,7 +1624,7 @@ async function confirmCapture(
   currentProject: ProjectState,
   eventId: string,
   text: string | undefined,
-): Promise<number> {
+): Promise<Confirmed> {
   if (!startup.helperPath || !startup.databaseRoot) {
     throw new Error('capture-identity')
   }
@@ -1700,7 +1738,9 @@ function parseTimeline(text: string, projectId: string): TimelineItem[] {
       if (
         typeof row.text !== 'string' ||
         !Number.isSafeInteger(row.attachmentCount) ||
-        (row.attachmentCount as number) < 0
+        (row.attachmentCount as number) < 0 ||
+        !Number.isSafeInteger(row.ordinal) ||
+        (row.ordinal as number) < 1
       ) throw new Error('timeline-read')
       const parent = row.parentEventId
       if (parent !== undefined && parent !== null && !isSafeId(parent)) {
@@ -1713,6 +1753,7 @@ function parseTimeline(text: string, projectId: string): TimelineItem[] {
         ...(parent === undefined ? {} : { parentEventId: parent }),
         text: row.text,
         attachmentCount: row.attachmentCount as number,
+        ordinal: row.ordinal as number,
       }
     }
     const kind = typeof row.kind === 'string' ? LEGACY_KINDS.get(row.kind) ?? row.kind : undefined
@@ -1721,18 +1762,68 @@ function parseTimeline(text: string, projectId: string): TimelineItem[] {
   })
 }
 
-/* The latest events of the Project Timeline, read back so a reload or a new
-   process shows what the archive already holds. The helper fixes the batch;
-   reading further back is Issue 21's. Rows this module instance already
-   appended are kept, and nothing is drawn twice. Read only with consent: before
-   it the archive is not this plugin's to look into. */
-async function loadTimeline(
+/* One batch the helper holds fixed: 128 events and one more on the side read
+   towards. The band keeps two batches and that one row. */
+const TIMELINE_BATCH = 128
+const WINDOW_LIMIT = 2 * TIMELINE_BATCH + 1
+
+type TimelineBatch = {
+  items: TimelineItem[]
+  earlier: boolean
+  later: boolean
+  path?: { tip: string; eventIds: string[]; start: number | null }
+  parents: Map<string, string>
+  origins: Map<string, string>
+}
+
+function parseContext(value: unknown): Map<string, string> {
+  if (!Array.isArray(value)) throw new Error('timeline-read')
+  return new Map(value.map((row: unknown) => {
+    if (!isRecord(row) || !isSafeId(row.eventId) || !isSafeId(row.runId)) {
+      throw new Error('timeline-read')
+    }
+    return [row.eventId, row.runId] as const
+  }))
+}
+
+function parseBatch(text: string, projectId: string, tip: string | undefined): TimelineBatch {
+  const value: unknown = JSON.parse(text)
+  if (!isRecord(value)) throw new Error('timeline-read')
+  const batch: TimelineBatch = {
+    items: parseTimeline(text, projectId),
+    earlier: value.earlier as boolean,
+    later: value.later as boolean,
+    parents: parseContext(value.parents),
+    origins: parseContext(value.origins),
+  }
+  if (tip !== undefined) {
+    const path = value.path
+    if (
+      !isRecord(path) ||
+      !Array.isArray(path.eventIds) ||
+      !path.eventIds.every(isSafeId) ||
+      !(path.start === null || (Number.isSafeInteger(path.start) && (path.start as number) >= 1))
+    ) throw new Error('timeline-read')
+    batch.path = { tip, eventIds: path.eventIds, start: path.start as number | null }
+  }
+  return batch
+}
+
+/* Where this session's Active Branch ends, for the helper to place it. */
+function currentTip(currentProject: ProjectState): string | undefined {
+  if (!startup.runId || !startup.sessionId) return undefined
+  const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
+  return activeBranch?.key === key ? activeBranch.value.parentEventId ?? undefined : undefined
+}
+
+/* One fixed batch: the latest, or the one next to an event the window holds. */
+async function readBatch(
   $: EngineInterface,
   currentProject: ProjectState,
-): Promise<void> {
-  if (currentProject.consent !== 'enabled' || !startup.helperPath || !startup.databaseRoot) {
-    return
-  }
+  cursor?: readonly ['before' | 'after', number],
+): Promise<TimelineBatch> {
+  if (!startup.helperPath || !startup.databaseRoot) throw new Error('timeline-read')
+  const tip = currentTip(currentProject)
   const result = await run(
     $,
     [
@@ -1742,22 +1833,196 @@ async function loadTimeline(
       currentProject.id,
       EXPECTED_HELPER_SHA256,
       String(HELPER_PROTOCOL),
-      '-',
-      '-',
+      ...(cursor ? [cursor[0], String(cursor[1])] : []),
+      tip === undefined ? '-' : startup.runId ?? '-',
+      tip ?? '-',
     ],
     10_000,
   )
   if (result.exitCode !== 0) throw new Error('timeline-read')
-  const persisted = parseTimeline(result.stdout, currentProject.id)
-  const known = new Set(persisted.map(item => item.eventId))
-  timeline = [...persisted, ...timeline.filter(item => !known.has(item.eventId))]
-    .sort((left, right) => left.sequence - right.sequence)
+  return parseBatch(result.stdout, currentProject.id, tip)
+}
+
+function resetWindow(): void {
+  timeline = []
+  timelineEdges = { earlier: false, later: false }
+  parentRuns = new Map()
+  segmentOrigins = new Map()
+  activePath = undefined
+  unread = 0
+}
+
+/* Keeps the window within its limit by dropping from the end away from where
+   it grew, and the context to what the window still draws. */
+function boundWindow(grew: 'earlier' | 'later'): void {
+  if (timeline.length > WINDOW_LIMIT) {
+    if (grew === 'earlier') {
+      timeline = timeline.slice(0, WINDOW_LIMIT)
+      timelineEdges.later = true
+    } else {
+      timeline = timeline.slice(-WINDOW_LIMIT)
+      timelineEdges.earlier = true
+    }
+  }
+  const held = new Set(timeline.map(item => item.eventId))
+  const parents = new Set(timeline.flatMap(item =>
+    item.kind === 'prompt' && item.parentEventId ? [item.parentEventId] : []))
+  parentRuns = new Map([...parentRuns].filter(([eventId]) => parents.has(eventId)))
+  segmentOrigins = new Map([...segmentOrigins].filter(([eventId]) => held.has(eventId)))
+  if (activePath) {
+    activePath.eventIds = new Set([...activePath.eventIds].filter(eventId => held.has(eventId)))
+  }
+}
+
+function mergeBatch(batch: TimelineBatch, at: 'latest' | 'earlier' | 'later'): void {
+  const known = new Set(batch.items.map(item => item.eventId))
+  if (at === 'latest') {
+    /* What this module instance appended while the read was in flight is
+       newer than the batch and stays. */
+    const newest = batch.items.at(-1)?.sequence ?? 0
+    timeline = [
+      ...batch.items,
+      ...timeline.filter(item => !known.has(item.eventId) && item.sequence > newest),
+    ]
+    timelineEdges = { earlier: batch.earlier, later: false }
+    parentRuns = new Map()
+    segmentOrigins = new Map()
+  } else if (at === 'earlier') {
+    timeline = [...batch.items, ...timeline.filter(item => !known.has(item.eventId))]
+    timelineEdges.earlier = batch.earlier
+  } else {
+    timeline = [...timeline.filter(item => !known.has(item.eventId)), ...batch.items]
+    timelineEdges.later = batch.later
+  }
+  timeline.sort((left, right) => left.sequence - right.sequence)
+  for (const [eventId, runId] of batch.parents) parentRuns.set(eventId, runId)
+  for (const [eventId, runId] of batch.origins) segmentOrigins.set(eventId, runId)
+  if (batch.path) {
+    const same = at !== 'latest' && activePath?.tip === batch.path.tip
+    activePath = {
+      tip: batch.path.tip,
+      eventIds: new Set([...(same ? activePath!.eventIds : []), ...batch.path.eventIds]),
+      start: batch.path.start,
+    }
+  } else {
+    activePath = undefined
+  }
+  boundWindow(at === 'earlier' ? 'earlier' : 'later')
+}
+
+/* The latest batch of the Project Timeline, read back so a reload or a new
+   process shows what the archive already holds, and so the band returns to
+   its bottom. Read only with consent: before it the archive is not this
+   plugin's to look into. */
+async function loadTimeline(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<void> {
+  if (currentProject.consent !== 'enabled' || !startup.helperPath || !startup.databaseRoot) {
+    return
+  }
+  mergeBatch(await readBatch($, currentProject), 'latest')
   timelineLoaded = currentProject.id
   try {
     await loadBranchView($, currentProject)
   } catch {
     // Without it the band draws every entry unfolded, which hides nothing.
   }
+}
+
+/* The batch beyond one end of the window, when the person reached that end:
+   scrolled the band's window to its edge, or took the focus onto the row
+   drawn there. Afterwards the row that stood at that end is put back where
+   it was seen (`block`), so what arrived lies beyond it and the next step
+   continues into it. One load at a time. */
+async function extendWindow(
+  $: EngineInterface,
+  edge: 'earlier' | 'later',
+  key: string,
+  block: 'start' | 'end' | 'nearest' = 'nearest',
+): Promise<void> {
+  if (windowLoading || !project || timelineLoaded !== project.id) return
+  const edgeItem = edge === 'earlier' ? timeline[0] : timeline.at(-1)
+  if (!edgeItem) return
+  windowLoading = true
+  try {
+    const batch = await readBatch(
+      $,
+      project,
+      edge === 'earlier' ? ['before', edgeItem.sequence] : ['after', edgeItem.sequence],
+    )
+    mergeBatch(batch, edge)
+    pendingReveal = { key, block }
+    $.ui.invalidate('ui.render')
+  } catch {
+    // The window stays as it was; the next focus at the edge tries again.
+  } finally {
+    windowLoading = false
+  }
+}
+
+/* Back to the latest events, the band's bottom. */
+async function returnToLatest($: EngineInterface): Promise<void> {
+  unread = 0
+  pendingReveal = 'end'
+  bandView.atBottom = true
+  if (timelineEdges.later && project && timelineLoaded === project.id) {
+    try {
+      mergeBatch(await readBatch($, project), 'latest')
+    } catch {
+      // The window stays where it was.
+    }
+  }
+  $.ui.invalidate('ui.render')
+}
+
+/* An event this process just archived. The window takes it only when it
+   continues the window's last event: anything another Run wrote in between
+   would otherwise go missing unseen. At the bottom, a gap re-reads the latest
+   batch; elsewhere it leaves the window where it is. A Prompt Entry that
+   arrives while the band is looking elsewhere is counted. */
+function appendToWindow($: EngineInterface, item: TimelineItem): void {
+  /* A repeated boundary answers the sequence it was stored under: already
+     archived, and drawn wherever a read places it. */
+  const newest = timeline.at(-1)
+  if (timeline.some(held => held.eventId === item.eventId)
+      || (newest && item.sequence <= newest.sequence)) return
+  const following = expanded && bandView.atBottom
+  if (item.kind === 'prompt') {
+    if (expanded && !following) unread += 1
+    if (activePath && item.parentEventId === activePath.tip) {
+      activePath.tip = item.eventId
+      activePath.eventIds.add(item.eventId)
+      if (activePath.start === null && item.runId === startup.runId) activePath.start = item.sequence
+    } else {
+      activePath = undefined
+    }
+  }
+  const last = timeline.at(-1)
+  const loaded = project !== undefined && timelineLoaded === project.id
+  const continues = !timelineEdges.later
+    && (!loaded || (last ? last.sequence + 1 === item.sequence : item.sequence === 1))
+  if (continues) {
+    timeline = [...timeline, item]
+    boundWindow('later')
+    if (following) pendingReveal = 'end'
+  } else if (following && project) {
+    const currentProject = project
+    $.clock.after(0, () => {
+      void (async () => {
+        try {
+          mergeBatch(await readBatch($, currentProject), 'latest')
+          pendingReveal = 'end'
+          $.ui.invalidate('ui.render')
+        } catch {
+          // The window keeps what it had; the band's bottom row reaches the rest.
+        }
+      })()
+    })
+  } else {
+    timelineEdges.later = true
+  }
+  $.ui.invalidate('ui.render')
 }
 
 async function saveReconcile(
@@ -1845,7 +2110,7 @@ async function reconcilePending(
 
   const confirmPending = async (): Promise<'resolved' | 'blocked'> => {
     try {
-      const sequence = await confirmCapture(
+      const confirmed = await confirmCapture(
         $,
         currentProject,
         owed.state.eventId,
@@ -1855,29 +2120,26 @@ async function reconcilePending(
          entry; another Run's branch is not this reconciliation's to move. */
       if (startup.runId === owed.state.runId && startup.sessionId) {
         const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
-        const confirmed: BranchState = {
+        const settled: BranchState = {
           version: 1,
           branchId: owed.state.branchId,
           parentEventId: owed.state.eventId,
         }
-        await $.store.set(key, confirmed)
-        rememberBranch(key, confirmed)
+        await $.store.set(key, settled)
+        rememberBranch(key, settled)
       }
       if (owed.text !== undefined) {
-        timeline = [
-          ...timeline,
-          {
-            kind: 'prompt',
-            eventId: owed.state.eventId,
-            sequence,
-            runId: owed.state.runId,
-            branchId: owed.state.branchId,
-            parentEventId: owed.state.parentEventId,
-            text: owed.text,
-            attachmentCount: owed.state.attachmentCount,
-          },
-        ]
-        $.ui.invalidate('ui.render')
+        appendToWindow($, {
+          kind: 'prompt',
+          eventId: owed.state.eventId,
+          sequence: confirmed.sequence,
+          ordinal: confirmed.ordinal,
+          runId: owed.state.runId,
+          branchId: owed.state.branchId,
+          parentEventId: owed.state.parentEventId,
+          text: owed.text,
+          attachmentCount: owed.state.attachmentCount,
+        })
       }
       await clearReconcile($, currentProject)
       return 'resolved'
@@ -2009,20 +2271,38 @@ function parseBranchMatch(text: string, projectId: string): BranchMatch {
       !isRecord(candidate) ||
       !isSafeId(candidate.eventId) ||
       !isSafeId(candidate.runId) ||
-      !Number.isSafeInteger(candidate.sequence)
+      !Number.isSafeInteger(candidate.sequence) ||
+      !Number.isSafeInteger(candidate.ordinal)
     ) throw new Error('branch-match')
     return {
       eventId: candidate.eventId,
       runId: candidate.runId,
       sequence: candidate.sequence as number,
+      ordinal: candidate.ordinal as number,
     }
   })
   const candidateCount = value.candidateCount as number
+  const preferred = value.prefer
+  if (preferred !== undefined && (
+    !isRecord(preferred) ||
+    !isSafeId(preferred.eventId) ||
+    !Number.isSafeInteger(preferred.sequence) ||
+    !Number.isSafeInteger(preferred.ordinal)
+  )) throw new Error('branch-match')
+  const prefer = preferred === undefined
+    ? {}
+    : {
+        prefer: {
+          eventId: preferred.eventId as string,
+          sequence: preferred.sequence as number,
+          ordinal: preferred.ordinal as number,
+        },
+      }
   if (value.match === 'unique' && isSafeId(value.eventId)) {
-    return { match: 'unique', eventId: value.eventId, candidates, candidateCount }
+    return { match: 'unique', eventId: value.eventId, candidates, candidateCount, ...prefer }
   }
   if (value.match === 'none' || value.match === 'ambiguous') {
-    return { match: value.match, candidates, candidateCount }
+    return { match: value.match, candidates, candidateCount, ...prefer }
   }
   throw new Error('branch-match')
 }
@@ -2070,16 +2350,19 @@ async function matchBranch(
    text while the loaded window holds it, by its event id otherwise. */
 const PARENT_LABEL_WIDTH = 40
 
+/* A candidate by its number in the band and its text while the window holds
+   it; otherwise by the number the helper answered and its event id. */
 function parentLabel(eventId: string, found: BranchMatch): string {
   const entry = timeline.find(item => item.kind === 'prompt' && item.eventId === eventId)
   if (entry?.kind === 'prompt') {
     const line = entryLine(entry)
     const text = line.length > PARENT_LABEL_WIDTH ? `${line.slice(0, PARENT_LABEL_WIDTH - 1)}…` : line
-    return `#${entry.sequence} ${text}`
+    return `#${entry.ordinal} ${text}`
   }
-  const candidate = found.candidates.find(item => item.eventId === eventId)
-  return candidate
-    ? `#${candidate.sequence} 事件 ${eventId.slice(0, 8)}`
+  const ordinal = found.candidates.find(item => item.eventId === eventId)?.ordinal
+    ?? (found.prefer?.eventId === eventId ? found.prefer.ordinal : undefined)
+  return ordinal !== undefined
+    ? `#${ordinal} 事件 ${eventId.slice(0, 8)}`
     : `事件 ${eventId.slice(0, 8)}`
 }
 
@@ -2706,7 +2989,7 @@ async function writeBoundary(
         runId: write.runId,
       },
     )
-    recordBoundary(write.kind, appended, write.runId, write.segmentId)
+    recordBoundary($, write.kind, appended, write.runId, write.segmentId)
     lifecycleFailure = undefined
     $.ui.invalidate('ui.render')
   } catch (error) {
@@ -3087,23 +3370,20 @@ async function ensureTimeline($: EngineInterface): Promise<void> {
    helper answers the stored sequence rather than cutting twice — and the
    timeline must still show exactly one row for it. */
 function recordBoundary(
+  $: EngineInterface,
   kind: BoundaryKind,
   appended: { eventId: string; sequence: number },
   runId: string = startup.runId ?? '',
   segmentId: string | undefined = startup.sessionId,
 ): void {
-  if (timeline.some(item => item.eventId === appended.eventId)) return
-  timeline = [
-    ...timeline,
-    {
-      kind: 'boundary',
-      eventId: appended.eventId,
-      sequence: appended.sequence,
-      runId,
-      ...(segmentId ? { segmentId } : {}),
-      boundary: kind,
-    },
-  ]
+  appendToWindow($, {
+    kind: 'boundary',
+    eventId: appended.eventId,
+    sequence: appended.sequence,
+    runId,
+    ...(segmentId ? { segmentId } : {}),
+    boundary: kind,
+  })
 }
 
 /* Turning the current Run's collection on. It never reports success from an
@@ -3195,7 +3475,7 @@ async function enableCollection($: EngineInterface): Promise<string> {
     } catch {
       return '上一次停用的 Collection Boundary 仍未写入档案；在它写入前不恢复采集，否则禁用区间会被显示为完整历史。'
     }
-    recordBoundary('collection-stopped', stop)
+    recordBoundary($, 'collection-stopped', stop)
     current = {
       key: current.key,
       value: {
@@ -3235,7 +3515,7 @@ async function enableCollection($: EngineInterface): Promise<string> {
     return '已写入 Collection Boundary，但无法保存 Run collection mode；reload 后状态可能回到默认值。'
   }
 
-  recordBoundary(kind, appended)
+  recordBoundary($, kind, appended)
   $.ui.invalidate('ui.render')
   return kind === 'collection-resumed'
     ? '当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。'
@@ -3319,7 +3599,7 @@ async function disableCollection($: EngineInterface): Promise<string> {
   }
 
   if (appended) {
-    recordBoundary(kind, appended)
+    recordBoundary($, kind, appended)
     $.ui.invalidate('ui.render')
   }
   const boundaryNote = !boundaryRequired
@@ -3499,7 +3779,8 @@ export const register: Register = on => {
       await ensureTimeline($)
       expanded = true
       await saveExpanded($)
-      $.ui.invalidate('ui.render')
+      /* Opening always shows the latest events. */
+      await returnToLatest($)
       return { text: 'Prompt Trail 已展开。' }
     }
     if (args === 'status') {
@@ -3729,7 +4010,7 @@ export const register: Register = on => {
     }
 
     try {
-      const sequence = await confirmCapture($, currentProject, eventId, finalText)
+      const confirmed = await confirmCapture($, currentProject, eventId, finalText)
       const nextBranch: BranchState = {
         ...branch.value,
         parentEventId: eventId,
@@ -3737,21 +4018,18 @@ export const register: Register = on => {
       await $.store.set(branch.key, nextBranch)
       rememberBranch(branch.key, nextBranch)
       transcriptMark = { key: branch.key, mark: markTranscript(aligned.messages, finalText) }
-      timeline = [
-        ...timeline,
-        {
-          kind: 'prompt',
-          eventId,
-          sequence,
-          runId: startup.runId ?? '',
-          ...(startup.sessionId ? { segmentId: startup.sessionId } : {}),
-          branchId: branch.value.branchId,
-          parentEventId: branch.value.parentEventId,
-          text: finalText,
-          attachmentCount: attachmentKinds.length,
-        },
-      ]
-      $.ui.invalidate('ui.render')
+      appendToWindow($, {
+        kind: 'prompt',
+        eventId,
+        sequence: confirmed.sequence,
+        ordinal: confirmed.ordinal,
+        runId: startup.runId ?? '',
+        ...(startup.sessionId ? { segmentId: startup.sessionId } : {}),
+        branchId: branch.value.branchId,
+        parentEventId: branch.value.parentEventId,
+        text: finalText,
+        attachmentCount: attachmentKinds.length,
+      })
     } catch {
       /* The prompt did enter the session, so the pending is kept rather than
          dropped, and this Run collects nothing further until the outcome is
@@ -3839,17 +4117,82 @@ export const register: Register = on => {
     )
   })
 
+  /* The person's arrows, wheel or trackpad moving the band's window onto one
+     of its edges loads the batch beyond it: on the terminal the arrows scroll
+     a band taller than its rows rather than walk its Buttons. */
+  on('ui.scroll', { component: 'AbovePrompt' }, async ($, e, next) => {
+    /* An arrow key (a step of one row, no pointer) while the ring is on one
+       of the band's entries walks the ring instead, and the window follows
+       it. From the first entry of the project it leaves for the title. */
+    const arrow = e.origin.kind === 'person' && e.pointer === undefined && Math.abs(e.by) === 1
+    if (expanded && arrow && ringKey !== undefined
+        && (ringKey === TITLE_KEY || bandView.stops.includes(ringKey))) {
+      const target = arrowStep(bandView.stops, ringKey, e.by as 1 | -1, timelineEdges.earlier)
+      if (target === undefined) return {}
+      let moved: { deny?: string }
+      try {
+        moved = await $.ui.focus({ requestId: e.requestId, key: target })
+      } catch {
+        moved = { deny: 'focus' }
+      }
+      /* A ring the engine will not move is left to the engine's own scroll. */
+      if (moved.deny) return next(e)
+      ringKey = target
+      if (target !== TITLE_KEY) {
+        pendingReveal = { key: target, block: 'nearest' }
+        $.ui.invalidate('ui.render')
+      }
+      /* Reaching an end of the window fetches what lies beyond it, so the
+         next press has somewhere to go. */
+      if (target === bandView.firstKey && timelineEdges.earlier) {
+        await extendWindow($, 'earlier', target, 'nearest')
+      } else if (target === bandView.lastKey && timelineEdges.later) {
+        await extendWindow($, 'later', target, 'nearest')
+      }
+      return {}
+    }
+    const result = await next(e)
+    if (result.deny || e.origin.kind !== 'person' || !expanded) return result
+    if (e.by < 0 && e.offset <= 0 && timelineEdges.earlier && bandView.firstKey) {
+      await extendWindow($, 'earlier', bandView.firstKey, 'start')
+    } else if (
+      e.by > 0 && e.offset >= e.contentRows - e.bodyRows
+      && timelineEdges.later && bandView.lastKey
+    ) {
+      await extendWindow($, 'later', bandView.lastKey, 'end')
+    }
+    return result
+  })
+
+  /* Where the ring stands, for the arrows above. The person's focus reaching
+     the row drawn at either end of the window loads the batch beyond it. The
+     ring has landed before the read starts, and keeps its key through it. */
+  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const result = await next(e)
+    if (!result.deny) ringKey = e.element
+    if (result.deny || e.origin.kind !== 'person' || e.element === undefined) return result
+    if (e.element === bandView.firstKey && timelineEdges.earlier) {
+      await extendWindow($, 'earlier', e.element)
+    } else if (e.element === bandView.lastKey && timelineEdges.later) {
+      await extendWindow($, 'later', e.element)
+    }
+    return result
+  })
+
   on('ui.render', { component: 'AbovePrompt', surface: 'terminal' }, ($, e) => {
     const { Box, Button, Text } = $.ui.resolve(e)
+    bandView.requestId = e.requestId
     const toggle = async () => {
       expanded = !expanded
       $.ui.invalidate('ui.render')
       await saveExpanded($)
-      if (expanded && (startup.support !== 'supported' || timelineLoaded === undefined)) {
+      if (!expanded) return
+      if (startup.support !== 'supported' || timelineLoaded === undefined) {
         await refreshStartup($)
         await ensureTimeline($)
-        $.ui.invalidate('ui.render')
       }
+      /* Opening always shows the latest events. */
+      await returnToLatest($)
     }
     if (!expanded) {
       return (
@@ -3861,10 +4204,7 @@ export const register: Register = on => {
         />
       )
     }
-    /* The displayed number counts Prompt Entries only, so a boundary drawn in
-       between never consumes a position in the session-level numbering. */
-    let position = 0
-    const ordered = [...timeline].sort((left, right) => left.sequence - right.sequence)
+    const ordered = timeline
     const attachment = lifecycle?.key.endsWith(`:${startup.runId}`)
       ? lifecycle.value.attachment
       : undefined
@@ -3873,24 +4213,24 @@ export const register: Register = on => {
       attachment !== undefined && !attachment.closed && attachment.host === startup.hostGeneration,
     )
     const origins = splitOrigins(ordered)
-    const forks = forkSources(ordered)
-    const starts = branchStarts(ordered)
+    const forks = forkSources(ordered, parentRuns)
+    const starts = branchStarts(ordered, parentRuns)
     const currentKey = project && startup.runId && startup.sessionId
       ? branchKey(project.id, startup.runId, startup.sessionId)
       : undefined
+    const tip = activeBranch && activeBranch.key === currentKey ? activeBranch.value.parentEventId : null
     const folds = foldTimeline(
       ordered,
       startup.runId ?? '',
-      activeBranch && activeBranch.key === currentKey ? activeBranch.value.parentEventId : null,
+      tip,
+      activePath && activePath.tip === tip ? activePath : undefined,
     )
-    type Row = { key: string; text: string; dim: boolean; fold?: string }
+    const width = Math.max(1, e.props.bodyColumns)
+    type Row = { key: string; text: string; dim: boolean; fold?: string; entry?: true }
     const rows = ordered.flatMap((item): Row[] => {
       const before: Row[] = []
       if (item.kind === 'prompt') {
         const fold = folds.folded.get(item.eventId)
-        /* Numbered whether or not it is drawn, so opening a fold never
-           renumbers the entries around it. */
-        position += 1
         if (fold === item.eventId) {
           const open = openFolds.has(fold)
           before.push({
@@ -3921,29 +4261,68 @@ export const register: Register = on => {
           })
         }
       }
-      const drawn = {
-        key: `prompt-trail:${item.kind}:${item.eventId}`,
-        text: item.kind === 'boundary'
-          ? boundaryLine(
+      const drawn: Row = item.kind === 'boundary'
+        ? {
+            key: `prompt-trail:boundary:${item.eventId}`,
+            text: boundaryLine(
               item.boundary,
               item.boundary === 'run-started'
-                ? forks.get(item.runId) ?? origins.get(item.eventId)
+                ? forks.get(item.runId) ?? segmentOrigins.get(item.eventId) ?? origins.get(item.eventId)
                 : origins.get(item.eventId),
-            )
-          : `${position}. ${entryLine(item)}`,
-        dim: item.kind === 'boundary',
-      }
+            ),
+            dim: true,
+          }
+        : {
+            key: `prompt-trail:prompt:${item.eventId}`,
+            text: `${item.ordinal}. ${entryLine(item)}`,
+            dim: false,
+            entry: true,
+          }
       const runId = unclosed.get(item.eventId)
       return runId === undefined
         ? [...before, drawn]
         : [...before, drawn, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
     })
+    /* A window holding nothing the arrows can stop on still needs a way past
+       its ends. */
+    const focusable = rows.filter(row => row.entry || row.fold !== undefined)
+    if (focusable.length === 0 && timelineEdges.earlier) {
+      rows.unshift({ key: 'prompt-trail:earlier', text: '↑ 更早的事件', dim: true, entry: true })
+    }
+    if (focusable.length === 0 && timelineEdges.later) {
+      rows.push({ key: 'prompt-trail:later', text: '↓ 更晚的事件', dim: true, entry: true })
+    }
+    const stops = rows.filter(row => row.entry || row.fold !== undefined)
+    const contentRows = 1 + Math.max(rows.length, 1) + (unread > 0 ? 1 : 0)
+    const atBottom = pendingReveal === 'end' || (!timelineEdges.later && (
+      contentRows <= e.props.maxRows
+      || e.props.scroll.offset + e.props.scroll.bodyRows >= contentRows
+    ))
+    if (atBottom && pendingReveal !== 'end') unread = 0
+    bandView = {
+      requestId: e.requestId,
+      atBottom,
+      ...(stops[0] ? { firstKey: stops[0].key } : {}),
+      ...(stops.at(-1) ? { lastKey: stops.at(-1)!.key } : {}),
+      stops: stops.map(row => row.key),
+    }
+    const reveal = pendingReveal
+    if (reveal !== undefined) {
+      pendingReveal = undefined
+      $.clock.after(0, () => {
+        void $.ui.scroll(
+          reveal === 'end'
+            ? { in: e.requestId, to: 'end' }
+            : { in: e.requestId, to: { key: reveal.key }, block: reveal.block },
+        ).catch(() => undefined)
+      })
+    }
     return (
       <Box flexDirection="column">
         <Button
           key="prompt-trail:toggle"
           plain
-          label="▾ Prompt Trail"
+          label={unread > 0 ? `▾ Prompt Trail · ${unread} 条新条目` : '▾ Prompt Trail'}
           onPress={toggle}
         />
         {rows.length === 0 ? (
@@ -3952,12 +4331,27 @@ export const register: Register = on => {
           <Button
             key={row.key}
             plain
-            label={row.text}
+            label={clipCells(row.text, width)}
             onPress={() => {
               const fold = row.fold as string
               if (openFolds.has(fold)) openFolds.delete(fold)
               else openFolds.add(fold)
               $.ui.invalidate('ui.render')
+            }}
+          />
+        ) : row.entry ? (
+          /* A Prompt Entry is a stop for the arrows; activating it is Issue 22's.
+             Taking the band's keyboard starts on the latest one, so the arrows
+             walk the rows rather than scroll past the title. */
+          <Button
+            key={row.key}
+            plain
+            label={clipCells(row.text, width)}
+            {...(row.dim ? { dimColor: true } : {})}
+            {...(row.key === bandView.lastKey ? { autoFocus: true as const } : {})}
+            onPress={() => {
+              if (row.key === 'prompt-trail:earlier') void extendWindow($, 'earlier', row.key)
+              if (row.key === 'prompt-trail:later') void extendWindow($, 'later', row.key)
             }}
           />
         ) : (
@@ -3969,6 +4363,14 @@ export const register: Register = on => {
             {row.text}
           </Text>
         ))}
+        {unread > 0 ? (
+          <Button
+            key="prompt-trail:latest"
+            plain
+            label={`↓ ${unread} 条新条目`}
+            onPress={() => returnToLatest($)}
+          />
+        ) : null}
       </Box>
     )
   })

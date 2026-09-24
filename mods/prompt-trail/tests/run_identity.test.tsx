@@ -479,10 +479,11 @@ test('the read is bounded to the latest fixed batch', async ($, on) => {
   await promptHistory($)
   const band = JSON.stringify(await renderBand($))
 
-  /* The oldest five fall outside the batch: the list opens on the sixth. */
-  expect(band).toContain('"1. PT-SECRET-EARLIER-6"')
-  expect(band).toContain(`"${TIMELINE_READ_LIMIT}. PT-SECRET-EARLIER-${TIMELINE_READ_LIMIT + 5}"`)
-  expect(band).not.toContain('PT-SECRET-EARLIER-5"')
+  /* The batch and one earlier entry above it; the four before that stay in
+     the archive. Each keeps its place among the project's Prompt Entries. */
+  expect(band).toContain('"5. PT-SECRET-EARLIER-5"')
+  expect(band).toContain(`"${TIMELINE_READ_LIMIT + 5}. PT-SECRET-EARLIER-${TIMELINE_READ_LIMIT + 5}"`)
+  expect(band).not.toContain('PT-SECRET-EARLIER-4"')
 })
 
 test('a timeline that cannot be read still lets the Run collect', async ($, on) => {

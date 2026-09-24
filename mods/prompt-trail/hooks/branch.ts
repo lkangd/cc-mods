@@ -25,12 +25,16 @@ export type BranchCandidate = {
   eventId: string
   sequence: number
   runId: string
+  /* Its number among the project's Prompt Entries, as the band shows it. */
+  ordinal?: number
 }
 
-/* The helper's answer, as `branch-match` prints it. */
+/* The helper's answer, as `branch-match` prints it. `prefer` places the stored
+   parent it was given, so it can be named even outside the band's window. */
+type BranchMatchPlace = { prefer?: { eventId: string; sequence: number; ordinal: number } }
 export type BranchMatch =
-  | { match: 'unique'; eventId: string; candidates: BranchCandidate[]; candidateCount: number }
-  | { match: 'none' | 'ambiguous'; candidates: BranchCandidate[]; candidateCount: number }
+  | ({ match: 'unique'; eventId: string; candidates: BranchCandidate[]; candidateCount: number } & BranchMatchPlace)
+  | ({ match: 'none' | 'ambiguous'; candidates: BranchCandidate[]; candidateCount: number } & BranchMatchPlace)
 
 export type BranchSettlement =
   | { kind: 'keep' }
@@ -218,23 +222,35 @@ export type TimelineFolds = {
    session never saw. Entries before the path, and every other Run's, stay as
    they are. Each fold gathers the entries that leave the path at the same
    point, or that grow from the same root when they never touched it. The
-   archive is untouched; this only decides what is drawn folded. */
+   archive is untouched; this only decides what is drawn folded.
+
+   `rows` are a window over the timeline. `beyond`, when the archive placed
+   the same tip, says which rows of the window the path crosses and where it
+   began in this Run, which a tip or a start outside the window needs. Only
+   entries inside the window are folded and counted. */
 export function foldTimeline(
   rows: readonly ViewRow[],
   runId: string,
   tip: string | null,
+  beyond?: { eventIds: ReadonlySet<string>; start: number | null },
 ): TimelineFolds {
   const folds: TimelineFolds = { folded: new Map(), counts: new Map() }
   const entries = new Map(
     rows.filter(row => row.kind === 'prompt').map(row => [row.eventId, row]),
   )
-  const path = new Set<string>()
+  const path = new Set<string>(
+    [...beyond?.eventIds ?? []].filter(eventId => entries.has(eventId)),
+  )
   for (let at = tip === null ? undefined : entries.get(tip); at; at = entries.get(at.parentEventId ?? '')) {
     path.add(at.eventId)
   }
   const own = [...path].map(eventId => entries.get(eventId)!).filter(row => row.runId === runId)
-  if (own.length === 0) return folds
-  const start = Math.min(...own.map(row => row.sequence))
+  const starts = [
+    ...own.map(row => row.sequence),
+    ...(beyond?.start != null ? [beyond.start] : []),
+  ]
+  if (starts.length === 0) return folds
+  const start = Math.min(...starts)
 
   const anchors = new Map<string, ViewRow[]>()
   for (const row of entries.values()) {
@@ -265,8 +281,12 @@ export function foldTimeline(
 
 /* The Run each forked Run continues: its earliest entry in view hangs off an
    entry of another Run. `rows` come in sequence order, as the band draws them;
-   a parent outside the loaded window names nothing. */
-export function forkSources(rows: readonly ViewRow[]): Map<string, string> {
+   a parent outside the window is placed by `beyond`, its Run by event id, or
+   names nothing. */
+export function forkSources(
+  rows: readonly ViewRow[],
+  beyond: ReadonlyMap<string, string> = new Map(),
+): Map<string, string> {
   const entries = new Map(
     rows.filter(row => row.kind === 'prompt').map(row => [row.eventId, row]),
   )
@@ -275,8 +295,8 @@ export function forkSources(rows: readonly ViewRow[]): Map<string, string> {
   for (const row of entries.values()) {
     if (seen.has(row.runId)) continue
     seen.add(row.runId)
-    const parent = entries.get(row.parentEventId ?? '')
-    if (parent && parent.runId !== row.runId) sources.set(row.runId, parent.runId)
+    const parentRun = entries.get(row.parentEventId ?? '')?.runId ?? beyond.get(row.parentEventId ?? '')
+    if (parentRun !== undefined && parentRun !== row.runId) sources.set(row.runId, parentRun)
   }
   return sources
 }
@@ -285,9 +305,13 @@ export function forkSources(rows: readonly ViewRow[]): Map<string, string> {
    was rewound to (`root`), or an entry of another Run it was rewound onto
    (`cross-run`). A Run's first entry, and one drawn right after a boundary of
    its own Run, already have a line saying why they begin where they do; a
-   parent in the same Run is a rewind the fold shows, and one outside the
-   loaded window proves nothing. `rows` come in sequence order. */
-export function branchStarts(rows: readonly ViewRow[]): Map<string, 'root' | 'cross-run'> {
+   parent in the same Run is a rewind the fold shows. A parent outside the
+   window is placed by `beyond`, its Run by event id, or proves nothing.
+   `rows` come in sequence order. */
+export function branchStarts(
+  rows: readonly ViewRow[],
+  beyond: ReadonlyMap<string, string> = new Map(),
+): Map<string, 'root' | 'cross-run'> {
   const entries = new Map(
     rows.filter(row => row.kind === 'prompt').map(row => [row.eventId, row]),
   )
@@ -301,8 +325,8 @@ export function branchStarts(rows: readonly ViewRow[]): Map<string, 'root' | 'cr
       starts.set(row.eventId, 'root')
       continue
     }
-    const parent = entries.get(row.parentEventId)
-    if (parent && parent.runId !== row.runId) starts.set(row.eventId, 'cross-run')
+    const parentRun = entries.get(row.parentEventId)?.runId ?? beyond.get(row.parentEventId)
+    if (parentRun !== undefined && parentRun !== row.runId) starts.set(row.eventId, 'cross-run')
   }
   return starts
 }

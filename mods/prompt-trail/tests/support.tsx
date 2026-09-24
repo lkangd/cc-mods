@@ -134,6 +134,8 @@ export type TargetOptions = {
   locatorPublished?: { value: boolean }
   /* Hands the test the mocked clock, to move it past a wait. */
   onClock?: (clock: import('claude-code/testing').MockClock) => void
+  /* Every move of a focus ring that reached the engine. */
+  focuses?: { element?: string; origin: { kind: string } }[]
   /* The digest `shasum` reports for the helper file right now. */
   helperDigest?: { value: string }
 }
@@ -143,16 +145,79 @@ export const TIMELINE_READ_LIMIT = 128
 
 /* Prompt Entries and every kind of boundary share one project-level sequence,
    and the helper allocates it once per event id: a repeat answers the stored
-   sequence rather than a second one, and a rolled-back write allocates none. */
+   sequence rather than a second one, and a rolled-back write allocates none.
+   A row a test adds to the archive itself (another Run writing meanwhile)
+   takes its sequence first. */
 function sequenceAllocator(archive: readonly ArchiveRow[]): (eventId: string) => number {
   const allocated = new Map<string, number>(archive.map(row => [row.eventId, row.sequence]))
-  let next = archive.reduce((highest, row) => Math.max(highest, row.sequence), 0)
+  let next = 0
   return eventId => {
-    const existing = allocated.get(eventId)
+    const existing = allocated.get(eventId) ?? archive.find(row => row.eventId === eventId)?.sequence
     if (existing !== undefined) return existing
-    next += 1
+    next = Math.max(next, ...archive.map(row => row.sequence)) + 1
     allocated.set(eventId, next)
     return next
+  }
+}
+
+/* One `timeline-read` batch as the helper answers it: 128 events and one more
+   on the side read towards, each Prompt Entry's ordinal, and the context the
+   view derives from events outside the batch. `rest` is the argv after the
+   protocol: an optional `before|after <sequence>`, then `<run|-> <tip|->`. */
+export function timelineBatch(archive: readonly ArchiveRow[], rest: readonly string[]) {
+  const [direction, cursor] = rest.length === 4 ? [rest[0], Number(rest[1])] : [undefined, 0]
+  const [run, tip] = rest.slice(-2)
+  const ordered = [...archive].sort((left, right) => left.sequence - right.sequence)
+  const rows = TIMELINE_READ_LIMIT + 1
+  const events = direction === 'after'
+    ? ordered.filter(row => row.sequence > cursor).slice(0, rows)
+    : (direction === 'before' ? ordered.filter(row => row.sequence < cursor) : ordered).slice(-rows)
+  const low = events[0]?.sequence ?? (direction === 'after' ? cursor + 1 : direction === 'before' ? cursor : 1)
+  const high = events.at(-1)?.sequence ?? (direction === 'after' ? cursor : direction === 'before' ? cursor - 1 : 0)
+  const prompts = ordered.filter(row => row.kind === 'prompt')
+  const byId = new Map(ordered.map(row => [row.eventId, row]))
+  const inBatch = new Set(events.map(row => row.eventId))
+  const parents = new Map<string, string>()
+  for (const row of events) {
+    const parent = row.kind === 'prompt' && row.parentEventId ? byId.get(row.parentEventId) : undefined
+    if (parent && !inBatch.has(parent.eventId)) parents.set(parent.eventId, parent.runId)
+  }
+  const origins = events.flatMap(row => {
+    if (row.kind !== 'run-started') return []
+    const holder = ordered.find(other => other.segmentId === row.segmentId)
+    return holder && holder.runId !== row.runId ? [{ eventId: row.eventId, runId: holder.runId }] : []
+  })
+  let path: { eventIds: string[]; start: number | null } | undefined
+  if (tip !== undefined && tip !== '-') {
+    path = { eventIds: [], start: null }
+    for (let at = byId.get(tip); at; at = byId.get(at.parentEventId ?? '')) {
+      if (at.sequence >= low && at.sequence <= high) path.eventIds.push(at.eventId)
+      if (at.runId === run) path.start = at.sequence
+    }
+  }
+  return {
+    projectId,
+    events: events.map(row => ({
+      eventId: row.eventId,
+      sequence: row.sequence,
+      runId: row.runId,
+      segmentId: row.segmentId,
+      branchId: row.branchId,
+      kind: row.kind,
+      ...(row.kind === 'prompt'
+        ? {
+            parentEventId: row.parentEventId ?? null,
+            text: row.text ?? '',
+            attachmentCount: row.attachmentCount ?? 0,
+            ordinal: prompts.indexOf(row) + 1,
+          }
+        : {}),
+    })),
+    earlier: ordered.some(row => row.sequence < low),
+    later: ordered.some(row => row.sequence > high),
+    ...(path ? { path } : {}),
+    parents: [...parents].map(([eventId, runId]) => ({ eventId, runId })),
+    origins,
   }
 }
 
@@ -274,6 +339,14 @@ export function installSupportedTarget(
   })
   const pane = options.parentPane
   if (pane) pane.clock = clock
+  /* The engine moving the band's focus ring: it moves. A plugin's own
+     `$.ui.scroll` never reaches a hook here (the test engine lays nothing
+     out), so where the window lands is left to the terminal acceptance. */
+  on('ui.focus', (_$, e) => {
+    options.focuses?.push({ ...(e.element === undefined ? {} : { element: e.element }), origin: e.origin })
+    return {}
+  })
+  on('ui.scroll', () => ({}))
   on('ui.open', (_$, e) => {
     if (pane && e.id === PARENT_PANE_ID) {
       if (pane.refused) return { deny: 'pane refused: PT-SECRET-REFUSED' }
@@ -450,6 +523,8 @@ export function installSupportedTarget(
             eventId,
             projectId,
             sequence: allocateSequence(eventId ?? ''),
+            ordinal: archive.filter(row =>
+              row.kind === 'prompt' && row.sequence < allocateSequence(eventId ?? '')).length + 1,
           }),
           stderr: '',
         },
@@ -514,33 +589,10 @@ export function installSupportedTarget(
           },
         }
       }
-      const ordered = [...archive].sort((left, right) => left.sequence - right.sequence)
-      const latest = ordered.slice(-TIMELINE_READ_LIMIT)
       return {
         value: {
           exitCode: 0,
-          stdout: JSON.stringify({
-            projectId,
-            events: latest.map(row => ({
-              eventId: row.eventId,
-              sequence: row.sequence,
-              runId: row.runId,
-              segmentId: row.segmentId,
-              branchId: row.branchId,
-              kind: row.kind,
-              ...(row.kind === 'prompt'
-                ? {
-                    parentEventId: row.parentEventId ?? null,
-                    text: row.text ?? '',
-                    attachmentCount: row.attachmentCount ?? 0,
-                  }
-                : {}),
-            })),
-            earlier: ordered.length > latest.length,
-            later: false,
-            parents: [],
-            origins: [],
-          }),
+          stdout: JSON.stringify(timelineBatch(archive, argv.slice(6))),
           stderr: '',
         },
       }
@@ -559,8 +611,18 @@ export function installSupportedTarget(
       const answer = typeof options.branchMatch === 'function'
         ? options.branchMatch(call)
         : options.branchMatch ?? { match: 'none', candidates: [], candidateCount: 0 }
+      /* As the helper numbers them: each candidate's place among the archived
+         Prompt Entries, unless the test gave one. */
+      const ordinal = (sequence: number) =>
+        archive.filter(row => row.kind === 'prompt' && row.sequence < sequence).length + 1
+      const candidates = (answer.candidates as Record<string, unknown>[] | undefined ?? [])
+        .map(candidate => ({ ordinal: ordinal(candidate.sequence as number), ...candidate }))
       return {
-        value: { exitCode: 0, stdout: JSON.stringify({ projectId, ...answer }), stderr: '' },
+        value: {
+          exitCode: 0,
+          stdout: JSON.stringify({ projectId, ...answer, candidates }),
+          stderr: '',
+        },
       }
     }
     if (argv[0] === helperPath && argv[1] === 'capture-list') {
@@ -658,18 +720,26 @@ export async function promptHistory(
   })
 }
 
-export async function renderBand($: import('claude-code/testing').Engine) {
+export const BAND_ID = 'prompt-trail-band'
+
+/* Draws the band. `scroll` places the engine's window over a tree taller than
+   `maxRows`; by default it sits at the top. */
+export async function renderBand(
+  $: import('claude-code/testing').Engine,
+  view: { maxRows?: number; offset?: number } = {},
+) {
+  const maxRows = view.maxRows ?? 12
   return $.ui.render({
     component: 'AbovePrompt',
     surface: 'terminal',
-    requestId: 'prompt-trail-band',
+    requestId: BAND_ID,
     viewport: { columns: 80, rows: 24 },
     props: {
       hasSurvey: false,
       isWorking: false,
-      maxRows: 12,
+      maxRows,
       bodyColumns: 80,
-      scroll: { offset: 0, bodyRows: 12 },
+      scroll: { offset: view.offset ?? 0, bodyRows: maxRows - 1 },
       view: {},
     },
   })
