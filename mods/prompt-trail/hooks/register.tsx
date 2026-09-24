@@ -1,7 +1,7 @@
 import type { EngineInterface, Register, SessionMessage } from 'claude-code'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from './artifact'
 import type { BranchMatch, BranchState, TranscriptMark } from './branch'
-import { TITLE_KEY, arrowStep } from './band'
+import { EARLIER_HINT_KEY, TITLE_KEY, arrowStep } from './band'
 import {
   branchStarts,
   chooseBranch,
@@ -284,21 +284,30 @@ let activePath: { tip: string; eventIds: Set<string>; start: number | null } | u
    in the band, cleared once the band is back at its bottom. */
 let unread = 0
 let windowLoading = false
-/* What the last drawing of the band showed: its instance, whether its window
-   sat at the bottom, and the rows the focus can stop on, in order. */
+/* The band draws its own window over its rows, under a title that stays put:
+   the row shown first, kept by key so a batch arriving above or below leaves
+   the view where it was (its index is the fallback when that row is gone),
+   and whether the view rests on the last row, where new entries are
+   followed. */
+let bandTop = 0
+let bandAnchor: string | undefined
+let bandBottom = true
+/* What the last drawing showed: its instance, every row's key, the rows the
+   focus can stop on, how many rows a scrolling view shows under the title,
+   those shown, and whether the tree fitted the band (nothing below the view,
+   so the engine scrolls nothing and walks the ring itself). */
 let bandView: {
   requestId?: string
-  atBottom: boolean
-  firstKey?: string
-  lastKey?: string
+  rowKeys: string[]
   stops: string[]
-} = { atBottom: true, stops: [] }
-/* The band element holding its focus ring, as the last move left it. */
+  capacity: number
+  shown: string[]
+  fits: boolean
+} = { rowKeys: [], stops: [], capacity: 1, shown: [], fits: true }
+/* The band element holding its focus ring, as the last move left it, and a
+   row the ring moves to once the next drawing shows it. */
 let ringKey: string | undefined
-/* Where the next drawing should move the band's window: to its end, or to
-   one row, placed at the window's top (`start`), bottom (`end`) or wherever
-   moves it least. */
-let pendingReveal: 'end' | { key: string; block: 'start' | 'end' | 'nearest' } | undefined
+let pendingFocus: string | undefined
 let archiveUnavailable = false
 let runMode: { key: string; value: RunModeState } | undefined
 /* `text` is present only while the module instance that staged the capture is
@@ -1930,20 +1939,14 @@ async function loadTimeline(
   }
 }
 
-/* The batch beyond one end of the window, when the person reached that end:
-   scrolled the band's window to its edge, or took the focus onto the row
-   drawn there. Afterwards the row that stood at that end is put back where
-   it was seen (`block`), so what arrived lies beyond it and the next step
-   continues into it. One load at a time. */
-async function extendWindow(
-  $: EngineInterface,
-  edge: 'earlier' | 'later',
-  key: string,
-  block: 'start' | 'end' | 'nearest' = 'nearest',
-): Promise<void> {
-  if (windowLoading || !project || timelineLoaded !== project.id) return
+/* The batch beyond one end of the window, when the person's view or focus
+   reached that end. The view is kept by its first row's key, so what arrives
+   lands out of sight beyond the rows on screen and the next step continues
+   into it. One load at a time; answers whether the window grew. */
+async function extendWindow($: EngineInterface, edge: 'earlier' | 'later'): Promise<boolean> {
+  if (windowLoading || !project || timelineLoaded !== project.id) return false
   const edgeItem = edge === 'earlier' ? timeline[0] : timeline.at(-1)
-  if (!edgeItem) return
+  if (!edgeItem) return false
   windowLoading = true
   try {
     const batch = await readBatch(
@@ -1952,20 +1955,79 @@ async function extendWindow(
       edge === 'earlier' ? ['before', edgeItem.sequence] : ['after', edgeItem.sequence],
     )
     mergeBatch(batch, edge)
-    pendingReveal = { key, block }
     $.ui.invalidate('ui.render')
+    return true
   } catch {
-    // The window stays as it was; the next focus at the edge tries again.
+    // The window stays as it was; the next step at the edge tries again.
+    return false
   } finally {
     windowLoading = false
   }
 }
 
+/* Moves the band's own view by `by` rows, as the wheel, the trackpad or the
+   engine's scroll keys ask, and fetches the batch beyond an end it reaches. */
+async function scrollView($: EngineInterface, by: number): Promise<void> {
+  const last = Math.max(0, bandView.rowKeys.length - bandView.capacity)
+  bandTop = Math.min(Math.max(bandTop + by, 0), last)
+  bandAnchor = bandView.rowKeys[bandTop]
+  bandBottom = false
+  $.ui.invalidate('ui.render')
+  if (bandTop === 0 && timelineEdges.earlier) await extendWindow($, 'earlier')
+  else if (bandTop === last && timelineEdges.later) await extendWindow($, 'later')
+}
+
+/* The title row's way up from the band's bottom, where no scrolling reaches
+   it: a page up, the ring on the title so the arrows walk from there. */
+async function pageUp($: EngineInterface): Promise<void> {
+  await scrollView($, -bandView.capacity)
+  try {
+    if (!(await $.ui.focus({ requestId: bandView.requestId ?? '', key: TITLE_KEY })).deny) {
+      ringKey = TITLE_KEY
+    }
+  } catch {
+    // The ring stays where the press left it.
+  }
+}
+
+/* One arrow press walking the ring: to the neighbouring stop, fetching the
+   batch beyond first when the ring stands on the window's last stop that way.
+   The view follows the ring, and reaching the window's end stop fetches
+   ahead, so the walk does not pause there. With no stop left that way, the
+   press scrolls the view a row instead, onto the rows past the last stop. */
+async function stepRing($: EngineInterface, by: 1 | -1): Promise<void> {
+  let stops = stopKeys(bandRows())
+  let target = arrowStep(stops, ringKey, by, timelineEdges.earlier)
+  const edge = by < 0 ? 'earlier' : 'later'
+  if (target === undefined && ringKey !== undefined && stops.includes(ringKey)
+      && timelineEdges[edge] && await extendWindow($, edge)) {
+    stops = stopKeys(bandRows())
+    target = arrowStep(stops, ringKey, by, timelineEdges.earlier)
+  }
+  if (target === undefined) {
+    await scrollView($, by)
+    return
+  }
+  if (target === TITLE_KEY || bandView.shown.includes(target)) {
+    try {
+      if (!(await $.ui.focus({ requestId: bandView.requestId ?? '', key: target })).deny) {
+        ringKey = target
+      }
+    } catch {
+      // The ring stays where it was.
+    }
+  } else {
+    pendingFocus = target
+    $.ui.invalidate('ui.render')
+  }
+  if (target === stops[0] && timelineEdges.earlier) await extendWindow($, 'earlier')
+  else if (target === stops.at(-1) && timelineEdges.later) await extendWindow($, 'later')
+}
+
 /* Back to the latest events, the band's bottom. */
 async function returnToLatest($: EngineInterface): Promise<void> {
   unread = 0
-  pendingReveal = 'end'
-  bandView.atBottom = true
+  bandBottom = true
   if (timelineEdges.later && project && timelineLoaded === project.id) {
     try {
       mergeBatch(await readBatch($, project), 'latest')
@@ -1987,7 +2049,7 @@ function appendToWindow($: EngineInterface, item: TimelineItem): void {
   const newest = timeline.at(-1)
   if (timeline.some(held => held.eventId === item.eventId)
       || (newest && item.sequence <= newest.sequence)) return
-  const following = expanded && bandView.atBottom
+  const following = expanded && bandBottom
   if (item.kind === 'prompt') {
     if (expanded && !following) unread += 1
     if (activePath && item.parentEventId === activePath.tip) {
@@ -2005,14 +2067,13 @@ function appendToWindow($: EngineInterface, item: TimelineItem): void {
   if (continues) {
     timeline = [...timeline, item]
     boundWindow('later')
-    if (following) pendingReveal = 'end'
   } else if (following && project) {
     const currentProject = project
     $.clock.after(0, () => {
       void (async () => {
         try {
           mergeBatch(await readBatch($, currentProject), 'latest')
-          pendingReveal = 'end'
+          bandBottom = true
           $.ui.invalidate('ui.render')
         } catch {
           // The window keeps what it had; the band's bottom row reaches the rest.
@@ -3624,6 +3685,106 @@ async function saveExpanded($: EngineInterface): Promise<void> {
   }
 }
 
+/* One row of the expanded band, a line each: a Prompt Entry (a stop for the
+   focus ring), a fold, or a line of text. */
+type BandRow = { key: string; text: string; dim: boolean; fold?: string; entry?: true }
+
+/* Every row the band's window holds, in order; the view shows a stretch of
+   them under the title. */
+function bandRows(): BandRow[] {
+  const ordered = timeline
+  const attachment = lifecycle?.key.endsWith(`:${startup.runId}`)
+    ? lifecycle.value.attachment
+    : undefined
+  const unclosed = unrecordedLeavings(
+    ordered,
+    attachment !== undefined && !attachment.closed && attachment.host === startup.hostGeneration,
+  )
+  const origins = splitOrigins(ordered)
+  const forks = forkSources(ordered, parentRuns)
+  const starts = branchStarts(ordered, parentRuns)
+  const currentKey = project && startup.runId && startup.sessionId
+    ? branchKey(project.id, startup.runId, startup.sessionId)
+    : undefined
+  const tip = activeBranch && activeBranch.key === currentKey ? activeBranch.value.parentEventId : null
+  const folds = foldTimeline(
+    ordered,
+    startup.runId ?? '',
+    tip,
+    activePath && activePath.tip === tip ? activePath : undefined,
+  )
+  const rows = ordered.flatMap((item): BandRow[] => {
+    const before: BandRow[] = []
+    if (item.kind === 'prompt') {
+      const fold = folds.folded.get(item.eventId)
+      if (fold === item.eventId) {
+        const open = openFolds.has(fold)
+        before.push({
+          key: `prompt-trail:fold:${fold}`,
+          text: `${open ? '▾' : '▸'} 另一分支 · ${folds.counts.get(fold) ?? 0} 条`,
+          dim: true,
+          fold,
+        })
+      }
+      if (fold !== undefined && !openFolds.has(fold)) {
+        /* A Run left unrecorded is never hidden inside a fold. */
+        return unclosed.has(item.eventId)
+          ? [...before, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
+          : before
+      }
+      const start = starts.get(item.eventId)
+      if (item.parentEventId === null && item.branchId && ambiguousRoots.has(item.branchId)) {
+        before.push({
+          key: `prompt-trail:unlinked:${item.eventId}`,
+          text: '—— 共享前缀无法唯一确定，未接续 ——',
+          dim: true,
+        })
+      } else if (start !== undefined) {
+        before.push({
+          key: `prompt-trail:branch-start:${item.eventId}`,
+          text: start === 'root' ? '—— 新根分支 ——' : '—— 新分支 ——',
+          dim: true,
+        })
+      }
+    }
+    const drawn: BandRow = item.kind === 'boundary'
+      ? {
+          key: `prompt-trail:boundary:${item.eventId}`,
+          text: boundaryLine(
+            item.boundary,
+            item.boundary === 'run-started'
+              ? forks.get(item.runId) ?? segmentOrigins.get(item.eventId) ?? origins.get(item.eventId)
+              : origins.get(item.eventId),
+          ),
+          dim: true,
+        }
+      : {
+          key: `prompt-trail:prompt:${item.eventId}`,
+          text: `${item.ordinal}. ${entryLine(item)}`,
+          dim: false,
+          entry: true,
+        }
+    const runId = unclosed.get(item.eventId)
+    return runId === undefined
+      ? [...before, drawn]
+      : [...before, drawn, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
+  })
+  /* A window holding nothing the arrows can stop on still needs a way past
+     its ends. */
+  const focusable = rows.filter(row => row.entry || row.fold !== undefined)
+  if (focusable.length === 0 && timelineEdges.earlier) {
+    rows.unshift({ key: 'prompt-trail:earlier', text: '↑ 更早的事件', dim: true, entry: true })
+  }
+  if (focusable.length === 0 && timelineEdges.later) {
+    rows.push({ key: 'prompt-trail:later', text: '↓ 更晚的事件', dim: true, entry: true })
+  }
+  return rows
+}
+
+function stopKeys(rows: readonly BandRow[]): string[] {
+  return rows.filter(row => row.entry || row.fold !== undefined).map(row => row.key)
+}
+
 /* Where the band marks a stretch of a Run whose leaving was never recorded:
    after that Run's last row before it was taken up again, and after the last
    row of any other Run still open at the end of the view. The current Run's
@@ -4117,64 +4278,56 @@ export const register: Register = on => {
     )
   })
 
-  /* The person's arrows, wheel or trackpad moving the band's window onto one
-     of its edges loads the batch beyond it: on the terminal the arrows scroll
-     a band taller than its rows rather than walk its Buttons. */
+  /* While rows lie below the view, the band's tree is taller than the
+     engine's window, so the engine hands the person's wheel, trackpad and
+     scroll keys here, arrows included, instead of moving the ring itself.
+     The window is never passed on and stays at offset 0 under the title; the
+     band's own view moves instead, and an arrow key (a step of one row, no
+     pointer) while the ring is on the band walks the ring. */
   on('ui.scroll', { component: 'AbovePrompt' }, async ($, e, next) => {
-    /* An arrow key (a step of one row, no pointer) while the ring is on one
-       of the band's entries walks the ring instead, and the window follows
-       it. From the first entry of the project it leaves for the title. */
-    const arrow = e.origin.kind === 'person' && e.pointer === undefined && Math.abs(e.by) === 1
-    if (expanded && arrow && ringKey !== undefined
+    if (e.origin.kind !== 'person' || !expanded) return next(e)
+    const arrow = e.pointer === undefined && Math.abs(e.by) === 1
+    if (arrow && ringKey !== undefined
         && (ringKey === TITLE_KEY || bandView.stops.includes(ringKey))) {
-      const target = arrowStep(bandView.stops, ringKey, e.by as 1 | -1, timelineEdges.earlier)
-      if (target === undefined) return {}
-      let moved: { deny?: string }
-      try {
-        moved = await $.ui.focus({ requestId: e.requestId, key: target })
-      } catch {
-        moved = { deny: 'focus' }
-      }
-      /* A ring the engine will not move is left to the engine's own scroll. */
-      if (moved.deny) return next(e)
-      ringKey = target
-      if (target !== TITLE_KEY) {
-        pendingReveal = { key: target, block: 'nearest' }
-        $.ui.invalidate('ui.render')
-      }
-      /* Reaching an end of the window fetches what lies beyond it, so the
-         next press has somewhere to go. */
-      if (target === bandView.firstKey && timelineEdges.earlier) {
-        await extendWindow($, 'earlier', target, 'nearest')
-      } else if (target === bandView.lastKey && timelineEdges.later) {
-        await extendWindow($, 'later', target, 'nearest')
-      }
-      return {}
+      await stepRing($, e.by as 1 | -1)
+    } else {
+      await scrollView($, e.by)
     }
-    const result = await next(e)
-    if (result.deny || e.origin.kind !== 'person' || !expanded) return result
-    if (e.by < 0 && e.offset <= 0 && timelineEdges.earlier && bandView.firstKey) {
-      await extendWindow($, 'earlier', bandView.firstKey, 'start')
-    } else if (
-      e.by > 0 && e.offset >= e.contentRows - e.bodyRows
-      && timelineEdges.later && bandView.lastKey
-    ) {
-      await extendWindow($, 'later', bandView.lastKey, 'end')
-    }
-    return result
+    return {}
   })
 
-  /* Where the ring stands, for the arrows above. The person's focus reaching
-     the row drawn at either end of the window loads the batch beyond it. The
-     ring has landed before the read starts, and keeps its key through it. */
+  /* While the tree fits (the band resting at the window's end), the engine
+     walks the ring itself and wraps it at both ends. The band takes the
+     moves that leave the rows shown: up off the first row, or from the title
+     round to the last row, moves the view up; down from the last row round
+     to the title goes on only to a later batch. A click or Tab can still
+     land the ring on the window's end row, which fetches ahead. */
   on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.origin.kind === 'person' && expanded && bandView.fits && ringKey !== undefined) {
+      const showing = bandView.stops.filter(key => bandView.shown.includes(key))
+      const hiddenAbove = bandView.shown[0] !== bandView.rowKeys[0] || timelineEdges.earlier
+      const onTitle = e.element === TITLE_KEY || e.element === EARLIER_HINT_KEY
+      if (hiddenAbove && onTitle && ringKey === showing[0]) {
+        await stepRing($, -1)
+        return {}
+      }
+      if (ringKey === TITLE_KEY && e.element === showing.at(-1)) {
+        if (!hiddenAbove) return { deny: 'the band does not wrap' }
+        await scrollView($, -1)
+        return {}
+      }
+      if (ringKey === showing.at(-1) && e.element === TITLE_KEY) {
+        if (!timelineEdges.later) return { deny: 'the band does not wrap' }
+        await stepRing($, 1)
+        return {}
+      }
+    }
     const result = await next(e)
-    if (!result.deny) ringKey = e.element
-    if (result.deny || e.origin.kind !== 'person' || e.element === undefined) return result
-    if (e.element === bandView.firstKey && timelineEdges.earlier) {
-      await extendWindow($, 'earlier', e.element)
-    } else if (e.element === bandView.lastKey && timelineEdges.later) {
-      await extendWindow($, 'later', e.element)
+    if (result.deny) return result
+    ringKey = e.element
+    if (e.origin.kind === 'person' && e.element !== undefined) {
+      if (e.element === bandView.stops[0] && timelineEdges.earlier) await extendWindow($, 'earlier')
+      else if (e.element === bandView.stops.at(-1) && timelineEdges.later) await extendWindow($, 'later')
     }
     return result
   })
@@ -4204,130 +4357,98 @@ export const register: Register = on => {
         />
       )
     }
-    const ordered = timeline
-    const attachment = lifecycle?.key.endsWith(`:${startup.runId}`)
-      ? lifecycle.value.attachment
-      : undefined
-    const unclosed = unrecordedLeavings(
-      ordered,
-      attachment !== undefined && !attachment.closed && attachment.host === startup.hostGeneration,
-    )
-    const origins = splitOrigins(ordered)
-    const forks = forkSources(ordered, parentRuns)
-    const starts = branchStarts(ordered, parentRuns)
-    const currentKey = project && startup.runId && startup.sessionId
-      ? branchKey(project.id, startup.runId, startup.sessionId)
-      : undefined
-    const tip = activeBranch && activeBranch.key === currentKey ? activeBranch.value.parentEventId : null
-    const folds = foldTimeline(
-      ordered,
-      startup.runId ?? '',
-      tip,
-      activePath && activePath.tip === tip ? activePath : undefined,
-    )
+    const rows = bandRows()
+    const stops = stopKeys(rows)
     const width = Math.max(1, e.props.bodyColumns)
-    type Row = { key: string; text: string; dim: boolean; fold?: string; entry?: true }
-    const rows = ordered.flatMap((item): Row[] => {
-      const before: Row[] = []
-      if (item.kind === 'prompt') {
-        const fold = folds.folded.get(item.eventId)
-        if (fold === item.eventId) {
-          const open = openFolds.has(fold)
-          before.push({
-            key: `prompt-trail:fold:${fold}`,
-            text: `${open ? '▾' : '▸'} 另一分支 · ${folds.counts.get(fold) ?? 0} 条`,
-            dim: true,
-            fold,
-          })
-        }
-        if (fold !== undefined && !openFolds.has(fold)) {
-          /* A Run left unrecorded is never hidden inside a fold. */
-          return unclosed.has(item.eventId)
-            ? [...before, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
-            : before
-        }
-        const start = starts.get(item.eventId)
-        if (item.parentEventId === null && item.branchId && ambiguousRoots.has(item.branchId)) {
-          before.push({
-            key: `prompt-trail:unlinked:${item.eventId}`,
-            text: '—— 共享前缀无法唯一确定，未接续 ——',
-            dim: true,
-          })
-        } else if (start !== undefined) {
-          before.push({
-            key: `prompt-trail:branch-start:${item.eventId}`,
-            text: start === 'root' ? '—— 新根分支 ——' : '—— 新分支 ——',
-            dim: true,
-          })
-        }
+    /* The view: as many rows as fit under the title (and the new-entry row),
+       resting on the last row while it follows, else where its first row
+       was, moved just enough to show a row the ring is headed for. A view
+       with rows below it draws a blank row for each, so the tree is taller
+       than the band and the engine hands the person's scrolling here, the
+       blanks under the engine's `n more` row. One reaching the window's end
+       draws none: the tree fits, with a row more than a scrolling view has
+       room for, and the engine counts nothing below it. */
+    const layout = (hint: boolean) => {
+      const capacity = Math.max(1, e.props.maxRows - 2 - (hint ? 1 : 0))
+      const last = Math.max(0, rows.length - capacity)
+      const anchored = bandAnchor === undefined ? -1 : rows.findIndex(row => row.key === bandAnchor)
+      let top = bandBottom ? last : Math.min(Math.max(anchored >= 0 ? anchored : bandTop, 0), last)
+      const heading = pendingFocus === undefined ? -1 : rows.findIndex(row => row.key === pendingFocus)
+      if (heading >= 0 && heading < top) top = heading
+      if (heading >= top + capacity) top = heading - capacity + 1
+      const fits = rows.length - top <= capacity + 1
+      if (fits) top = Math.max(0, rows.length - capacity - 1)
+      return {
+        capacity,
+        top,
+        size: fits ? capacity + 1 : capacity,
+        fits,
+        bottom: !timelineEdges.later && fits,
       }
-      const drawn: Row = item.kind === 'boundary'
-        ? {
-            key: `prompt-trail:boundary:${item.eventId}`,
-            text: boundaryLine(
-              item.boundary,
-              item.boundary === 'run-started'
-                ? forks.get(item.runId) ?? segmentOrigins.get(item.eventId) ?? origins.get(item.eventId)
-                : origins.get(item.eventId),
-            ),
-            dim: true,
-          }
-        : {
-            key: `prompt-trail:prompt:${item.eventId}`,
-            text: `${item.ordinal}. ${entryLine(item)}`,
-            dim: false,
-            entry: true,
-          }
-      const runId = unclosed.get(item.eventId)
-      return runId === undefined
-        ? [...before, drawn]
-        : [...before, drawn, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
-    })
-    /* A window holding nothing the arrows can stop on still needs a way past
-       its ends. */
-    const focusable = rows.filter(row => row.entry || row.fold !== undefined)
-    if (focusable.length === 0 && timelineEdges.earlier) {
-      rows.unshift({ key: 'prompt-trail:earlier', text: '↑ 更早的事件', dim: true, entry: true })
     }
-    if (focusable.length === 0 && timelineEdges.later) {
-      rows.push({ key: 'prompt-trail:later', text: '↓ 更晚的事件', dim: true, entry: true })
+    let view = layout(unread > 0)
+    if (view.bottom && unread > 0) {
+      unread = 0
+      view = layout(false)
     }
-    const stops = rows.filter(row => row.entry || row.fold !== undefined)
-    const contentRows = 1 + Math.max(rows.length, 1) + (unread > 0 ? 1 : 0)
-    const atBottom = pendingReveal === 'end' || (!timelineEdges.later && (
-      contentRows <= e.props.maxRows
-      || e.props.scroll.offset + e.props.scroll.bodyRows >= contentRows
-    ))
-    if (atBottom && pendingReveal !== 'end') unread = 0
+    bandTop = view.top
+    bandAnchor = rows[view.top]?.key
+    bandBottom = view.bottom
+    const shown = rows.slice(view.top, view.top + view.size)
+    const shownKeys = shown.map(row => row.key)
     bandView = {
       requestId: e.requestId,
-      atBottom,
-      ...(stops[0] ? { firstKey: stops[0].key } : {}),
-      ...(stops.at(-1) ? { lastKey: stops.at(-1)!.key } : {}),
-      stops: stops.map(row => row.key),
+      rowKeys: rows.map(row => row.key),
+      stops,
+      capacity: view.capacity,
+      shown: shownKeys,
+      fits: view.fits,
     }
-    const reveal = pendingReveal
-    if (reveal !== undefined) {
-      pendingReveal = undefined
+    /* A ring whose row the view scrolled away follows it onto the nearest
+       row still shown. */
+    if (pendingFocus === undefined && ringKey !== undefined && stops.includes(ringKey)
+        && !shownKeys.includes(ringKey)) {
+      const above = rows.findIndex(row => row.key === ringKey) < view.top
+      const showing = stops.filter(key => shownKeys.includes(key))
+      pendingFocus = above ? showing[0] : showing.at(-1)
+    }
+    const focusTo = pendingFocus !== undefined && shownKeys.includes(pendingFocus) ? pendingFocus : undefined
+    if (focusTo !== undefined) {
+      pendingFocus = undefined
       $.clock.after(0, () => {
-        void $.ui.scroll(
-          reveal === 'end'
-            ? { in: e.requestId, to: 'end' }
-            : { in: e.requestId, to: { key: reveal.key }, block: reveal.block },
-        ).catch(() => undefined)
+        void $.ui.focus({ requestId: e.requestId, key: focusTo }).then(
+          moved => { if (!moved.deny) ringKey = focusTo },
+          () => undefined,
+        )
       })
     }
+    const lastShownStop = stops.filter(key => shownKeys.includes(key)).at(-1)
+    const below = rows.length - view.top - shown.length
+    /* Resting at the window's end, the engine sends the band no scrolling at
+       all: the title row says so while rows lie above, and takes the view up
+       a page, after which the trackpad reaches it. */
+    const earlierHint = view.fits && (view.top > 0 || timelineEdges.earlier)
+    const title = unread > 0 ? `▾ Prompt Trail · ${unread} 条新条目` : '▾ Prompt Trail'
+    const titleCells = Array.from(title).reduce((cells, character) => cells + cellWidth(character), 0)
     return (
       <Box flexDirection="column">
-        <Button
-          key="prompt-trail:toggle"
-          plain
-          label={unread > 0 ? `▾ Prompt Trail · ${unread} 条新条目` : '▾ Prompt Trail'}
-          onPress={toggle}
-        />
+        {earlierHint ? (
+          <Box flexDirection="row" gap={2}>
+            <Button key="prompt-trail:toggle" plain label={title} onPress={toggle} />
+            <Button
+              key={EARLIER_HINT_KEY}
+              plain
+              dimColor
+              label={clipCells('↑ 点此向上浏览 · 底部不响应触控板', Math.max(1, width - titleCells - 2))}
+              onPress={() => pageUp($)}
+            />
+          </Box>
+        ) : (
+          <Button key="prompt-trail:toggle" plain label={title} onPress={toggle} />
+        )}
         {rows.length === 0 ? (
           <Text dimColor>尚无 Prompt Entry</Text>
-        ) : rows.map(row => row.fold !== undefined ? (
+        ) : shown.map(row => row.fold !== undefined ? (
           <Button
             key={row.key}
             plain
@@ -4340,18 +4461,17 @@ export const register: Register = on => {
             }}
           />
         ) : row.entry ? (
-          /* A Prompt Entry is a stop for the arrows; activating it is Issue 22's.
-             Taking the band's keyboard starts on the latest one, so the arrows
-             walk the rows rather than scroll past the title. */
+          /* A Prompt Entry is a stop for the ring; activating it is Issue 22's.
+             Taking the band's keyboard starts on the latest one shown. */
           <Button
             key={row.key}
             plain
             label={clipCells(row.text, width)}
             {...(row.dim ? { dimColor: true } : {})}
-            {...(row.key === bandView.lastKey ? { autoFocus: true as const } : {})}
+            {...(row.key === lastShownStop ? { autoFocus: true as const } : {})}
             onPress={() => {
-              if (row.key === 'prompt-trail:earlier') void extendWindow($, 'earlier', row.key)
-              if (row.key === 'prompt-trail:later') void extendWindow($, 'later', row.key)
+              if (row.key === 'prompt-trail:earlier') void extendWindow($, 'earlier')
+              if (row.key === 'prompt-trail:later') void extendWindow($, 'later')
             }}
           />
         ) : (
@@ -4371,6 +4491,9 @@ export const register: Register = on => {
             onPress={() => returnToLatest($)}
           />
         ) : null}
+        {Array.from({ length: below }, (_, index) => (
+          <Text key={`prompt-trail:below:${index}`}> </Text>
+        ))}
       </Box>
     )
   })
