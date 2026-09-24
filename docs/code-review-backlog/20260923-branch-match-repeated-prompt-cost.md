@@ -1,6 +1,6 @@
 ---
 id: branch-match-repeated-prompt-cost
-status: open
+status: resolved
 severity: major
 found: 2026-09-23
 source: /code-review, round 1
@@ -57,3 +57,14 @@ through (`lineage_winner()`). It walks from `<prefer>` to the root one `SELECT` 
 each step, compares against every tied candidate. The cost is lineage depth times tie count, so it
 belongs to the same scale problem as above and should be solved with it. For example, a set of
 tied event ids makes each step constant-time.
+
+## Resolved 2026-09-24 (Issue 21, `e55ccda`)
+
+Implemented the top-down approach above. Entries whose text some row holds are read once and kept
+in memory with parent links; each distinct row text gets a sorted position list. A whole transcript
+is settled top-down once per entry. A cut transcript walks each candidate back with binary
+searches under a 4M-step budget and answers `ambiguous`, naming nobody, past it.
+`lineage_winner()` reads the preferred lineage in one recursive query and checks each step against
+the tied set in constant time. A helper test with 20,000 identical entries and 4,096 identical rows
+answers both modes well under three seconds; the existing `branch_match` tests pass unchanged.
+
