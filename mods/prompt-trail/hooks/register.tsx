@@ -49,6 +49,9 @@ type StartupState = {
   /* This host process generation, `<pid>-<start seconds>-<start µs>`: what
      tells this process's attachment to a Run from another process's. */
   hostGeneration?: string
+  /* The session this one continues: the conversation was moved here from it,
+     and this session took up its Run and the branch it was on. */
+  continuedFrom?: string
   helperTrusted?: true
 }
 
@@ -160,6 +163,7 @@ type Locator = {
   artifactStatus: string
   runId: string
   archiveGeneration: string
+  continuedFrom?: string
 }
 
 type FileIdentity = {
@@ -377,6 +381,9 @@ function parseLocator(text: string): Locator {
     artifactStatus: requiredString(value, 'artifactStatus'),
     runId: requiredString(value, 'runId'),
     archiveGeneration: requiredString(value, 'archiveGeneration'),
+    ...('continuedFrom' in value
+      ? { continuedFrom: requiredString(value, 'continuedFrom') }
+      : {}),
   }
   if (locator.locatorVersion !== 1 || locator.pluginProtocol !== 1) {
     throw new Error('locator-schema')
@@ -700,6 +707,7 @@ async function inspectTarget(
         `${locator.hostPid}-${locator.hostStartSeconds}-${locator.hostStartMicroseconds}`,
       helperPath: locator.helperPath,
       databaseRoot: locator.databaseRoot,
+      ...(locator.continuedFrom === undefined ? {} : { continuedFrom: locator.continuedFrom }),
     }
     if (!supportsClaudeVersion(locator.hostVersion)) {
       const reason = /^\d+\.\d+\.\d+$/.test(locator.hostVersion)
@@ -717,7 +725,10 @@ async function inspectTarget(
       return unavailable('locator-session', detected, cwd, commonFields)
     }
     if (!SAFE_IDENTIFIER.test(locator.runId)
-        || !SAFE_IDENTIFIER.test(locator.archiveGeneration)) {
+        || !SAFE_IDENTIFIER.test(locator.archiveGeneration)
+        || (locator.continuedFrom !== undefined
+          && (!SAFE_IDENTIFIER.test(locator.continuedFrom)
+            || locator.continuedFrom === sessionId))) {
       return unavailable('locator-identifiers', detected, cwd, commonFields)
     }
     if (locator.helperProtocol !== HELPER_PROTOCOL) {
@@ -1465,7 +1476,14 @@ async function branchState(
   const key = branchKey(currentProject.id, startup.runId, sessionId)
   const existing = storedBranch(await $.store.get(key))
   if (existing) return { key, value: existing }
-  const value: BranchState = {
+  /* A session the conversation was moved to takes up the branch the session
+     it came from was on, until it has one of its own. */
+  const continued = sessionId === startup.sessionId && startup.continuedFrom
+    ? storedBranch(
+      await $.store.get(branchKey(currentProject.id, startup.runId, startup.continuedFrom)),
+    )
+    : undefined
+  const value: BranchState = continued ?? {
     version: 1,
     branchId: crypto.randomUUID(),
     parentEventId: null,
@@ -2162,7 +2180,12 @@ async function sessionCompacted(
 ): Promise<boolean> {
   const key = compactedKey(projectId, sessionId)
   if ((await $.store.get(key)) === true) return true
-  if (!compactedSessions.has(sessionId)) return false
+  /* A session the conversation was moved to carries the transcript of the one
+     it came from, compaction and all. */
+  const inherited = sessionId === startup.sessionId
+    && startup.continuedFrom !== undefined
+    && (await $.store.get(compactedKey(projectId, startup.continuedFrom))) === true
+  if (!inherited && !compactedSessions.has(sessionId)) return false
   try {
     await $.store.set(key, true)
     compactedSessions.delete(sessionId)
@@ -2876,8 +2899,8 @@ async function refreshStartup($: EngineInterface): Promise<void> {
 
 /* A session the host started a moment ago can run its hooks before the bridge
    has published its locator: a background `/fork` submits its argument about
-   a second before, and the conversation `/fork` continues elsewhere gets its
-   locator only once it is taken up. The first submission that meets such a
+   a second before, and a conversation moved to a background session gets its
+   locator there only once it is taken up. The first submission that meets such a
    session waits for it, briefly and once, rather than refusing; a host whose
    bridge never runs costs that wait a single time. */
 const LOCATOR_WAIT_MS = 2_000

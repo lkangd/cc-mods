@@ -129,6 +129,9 @@ export type TargetOptions = {
   archive?: ArchiveRow[]
   readFails?: boolean
   run?: RunIdentity
+  /* The session the locator says this one continues: the conversation was
+     moved here from it, and this session took up its Run. */
+  continuedFrom?: string
   /* Whether the bridge has published this session's locator yet; a session
      the host started a moment ago may run its hooks before it has. */
   locatorPublished?: { value: boolean }
@@ -246,6 +249,7 @@ export function installSupportedTarget(
       artifactStatus: 'trusted',
       runId: identity.runId,
       archiveGeneration,
+      ...(options.continuedFrom === undefined ? {} : { continuedFrom: options.continuedFrom }),
     }),
   }))
   on('tool.call', { tool: 'AskUserQuestion' }, (_$, e) => {

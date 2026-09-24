@@ -17,6 +17,7 @@
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #define LOCATOR_VERSION 1
@@ -551,10 +552,14 @@ static bool load_predecessor_identity(
 /* Whether a live process other than this one is attached to the Run. One Run
    has one Active Branch, so a second process resuming the same session is not
    allowed to share it: it begins a Run of its own instead, as a fork would. A
-   holder whose process has gone no longer holds anything. */
+   holder whose process has gone no longer holds anything, and neither does
+   one still showing a session of `handed_off`, whose conversation has since
+   moved on to the one now taking the Run up. */
 static bool run_held_elsewhere(
   const char *directory,
   const char *run_id,
+  const char (*handed_off)[129],
+  size_t handed_off_count,
   pid_t host_pid,
   int64_t host_start_seconds,
   int64_t host_start_microseconds
@@ -570,6 +575,11 @@ static bool run_held_elsewhere(
         || strcmp(locator.run_id, run_id) != 0) {
       continue;
     }
+    bool moved_on = false;
+    for (size_t index = 0; !moved_on && index < handed_off_count; index += 1) {
+      moved_on = strcmp(locator.session_id, handed_off[index]) == 0;
+    }
+    if (moved_on) continue;
     bool same_process = locator.host_pid == host_pid
       && locator.host_start_seconds == host_start_seconds
       && locator.host_start_microseconds == host_start_microseconds;
@@ -619,7 +629,9 @@ static void remove_predecessors(
 /* Which Run each classic session belongs to, so a resume — in this process or
    a later one — finds the Run it continues. One private file per session under
    plugin data, holding identity only: never a prompt, never a path. It is
-   written once, when a session is first seen, and read on every resume. */
+   written once, when a session is first seen, and read on every resume. A
+   session the conversation continued in from another also names that source
+   session, so each process it is opened in can take up the source's branch. */
 #define SESSION_INDEX_VERSION 1
 
 static void session_index_path(
@@ -643,8 +655,10 @@ static bool read_session_index(
   const char *plugin_data,
   const char *session_id,
   char run_id[129],
-  char archive_generation[129]
+  char archive_generation[129],
+  char continued_from[129]
 ) {
+  continued_from[0] = '\0';
   char path[PATH_MAX];
   session_index_path(plugin_data, session_id, false, path);
   struct stat status;
@@ -667,6 +681,14 @@ static bool read_session_index(
     && strcmp(stored_session, session_id) == 0
     && pt_is_safe_identifier(run_id)
     && pt_is_safe_identifier(archive_generation);
+  /* The field is optional, but one that is present must hold a session:
+     the record's other values are identifiers, so its quoted name appears
+     only as a key. */
+  if (valid && strstr(record, "\"continuedFrom\"") != NULL) {
+    valid = pt_json_get_string(record, "continuedFrom", continued_from, 129)
+      && pt_is_safe_identifier(continued_from)
+      && strcmp(continued_from, session_id) != 0;
+  }
   free(record);
   if (!valid) fail("session-index-invalid");
   return true;
@@ -676,7 +698,8 @@ static void write_session_index(
   const char *plugin_data,
   const char *session_id,
   const char *run_id,
-  const char *archive_generation
+  const char *archive_generation,
+  const char *continued_from
 ) {
   char path[PATH_MAX];
   session_index_path(plugin_data, session_id, true, path);
@@ -702,6 +725,9 @@ static void write_session_index(
   write_key_string(descriptor, "\"sessionId\":", session_id);
   write_key_string(descriptor, ",\"runId\":", run_id);
   write_key_string(descriptor, ",\"archiveGeneration\":", archive_generation);
+  if (continued_from[0] != '\0') {
+    write_key_string(descriptor, ",\"continuedFrom\":", continued_from);
+  }
   write_literal(descriptor, "}\n");
   if (fsync(descriptor) != 0 || close(descriptor) != 0) {
     unlink(temporary_path);
@@ -722,6 +748,164 @@ static void write_session_index(
     fail("session-index-flush");
   }
   close(directory_descriptor);
+}
+
+/* The sessions a conversation has been handed off from on its way to this
+   one, nearest first, as far as the index records. A process still showing
+   one of them no longer holds the conversation. */
+#define HANDOFF_CHAIN_LIMIT 32
+
+static size_t handed_off_chain(
+  const char *plugin_data,
+  const char *continued_from,
+  char chain[HANDOFF_CHAIN_LIMIT][129]
+) {
+  size_t count = 0;
+  char next[129];
+  snprintf(next, sizeof(next), "%s", continued_from);
+  while (next[0] != '\0' && count < HANDOFF_CHAIN_LIMIT) {
+    snprintf(chain[count], 129, "%s", next);
+    char run_id[129];
+    char archive_generation[129];
+    if (!read_session_index(plugin_data, chain[count], run_id, archive_generation, next)) {
+      next[0] = '\0';
+    }
+    count += 1;
+  }
+  return count;
+}
+
+/* A conversation moved to a background session goes on in a new classic
+   session, started as a fork of the old transcript. What ties the two is the
+   `continued-in` record the host then appends to the old transcript, naming
+   the new session; the new session's own start says nothing of where it came
+   from. The record is looked for the way the host reads it: in the tail of
+   the transcripts beside the new one, newest row first. The host appends it
+   just before the new session starts, so only a transcript written in the
+   last moments can hold it; the rest are not read at all. */
+#define CONTINUATION_TAIL_BYTES (64 * 1024)
+#define CONTINUATION_WINDOW_SECONDS 120
+
+/* A turn after the record means the conversation went on in the source
+   after all, so the record no longer says where it continues. */
+typedef enum { ROW_OTHER, ROW_TURN, ROW_CONTINUES_HERE } TranscriptRow;
+
+static TranscriptRow read_transcript_row(const char *row, const char *session_id) {
+  char type[64];
+  if (!pt_json_get_string(row, "type", type, sizeof(type))) return ROW_OTHER;
+  if (strcmp(type, "user") == 0 || strcmp(type, "assistant") == 0) return ROW_TURN;
+  char continued_in[129];
+  return strcmp(type, "continued-in") == 0
+      && pt_json_get_string(
+        row,
+        "continuedInSessionId",
+        continued_in,
+        sizeof(continued_in)
+      )
+      && strcmp(continued_in, session_id) == 0
+    ? ROW_CONTINUES_HERE
+    : ROW_OTHER;
+}
+
+static bool transcript_continues_in(
+  const char *path,
+  const char *session_id,
+  time_t now
+) {
+  struct stat status;
+  if (lstat(path, &status) != 0
+      || !S_ISREG(status.st_mode)
+      || status.st_mtime < now - CONTINUATION_WINDOW_SECONDS
+      || status.st_mtime > now) {
+    return false;
+  }
+  int descriptor = open(path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+  if (descriptor < 0) return false;
+  if (fstat(descriptor, &status) != 0
+      || !S_ISREG(status.st_mode)
+      || status.st_uid != geteuid()) {
+    close(descriptor);
+    return false;
+  }
+  off_t start = status.st_size > CONTINUATION_TAIL_BYTES
+    ? status.st_size - CONTINUATION_TAIL_BYTES
+    : 0;
+  size_t wanted = (size_t)(status.st_size - start);
+  char *tail = malloc(wanted + 1);
+  if (!tail) {
+    close(descriptor);
+    return false;
+  }
+  ssize_t length = pread(descriptor, tail, wanted, start);
+  close(descriptor);
+  if (length < 0) {
+    free(tail);
+    return false;
+  }
+  tail[length] = '\0';
+
+  TranscriptRow found = ROW_OTHER;
+  char *end = tail + length;
+  while (found == ROW_OTHER && end > tail) {
+    *end = '\0';
+    char *row = end;
+    while (row > tail && row[-1] != '\n') row -= 1;
+    /* A row cut by the start of the tail is not a row. */
+    if (row == tail && start > 0) break;
+    found = read_transcript_row(row, session_id);
+    end = row > tail ? row - 1 : tail;
+  }
+  free(tail);
+  return found == ROW_CONTINUES_HERE;
+}
+
+/* Answers the one session whose transcript says the conversation continued
+   in this one. None, or more than one, is no continuation: the session then
+   begins a Run of its own rather than guessing whose it takes up. */
+static bool find_continued_source(
+  const char *transcript_path,
+  const char *session_id,
+  char source[129]
+) {
+  source[0] = '\0';
+  if (transcript_path[0] != '/') return false;
+  char directory[PATH_MAX];
+  int length = snprintf(directory, sizeof(directory), "%s", transcript_path);
+  if (length < 0 || (size_t)length >= sizeof(directory)) return false;
+  char *slash = strrchr(directory, '/');
+  *(slash == directory ? slash + 1 : slash) = '\0';
+
+  DIR *stream = opendir(directory);
+  if (!stream) return false;
+  time_t now = time(NULL);
+  unsigned matches = 0;
+  struct dirent *entry = NULL;
+  while ((entry = readdir(stream)) != NULL) {
+    size_t name_length = strlen(entry->d_name);
+    if (name_length <= 6
+        || strcmp(entry->d_name + name_length - 6, ".jsonl") != 0
+        || name_length - 6 >= 129) {
+      continue;
+    }
+    char candidate[129];
+    memcpy(candidate, entry->d_name, name_length - 6);
+    candidate[name_length - 6] = '\0';
+    if (!pt_is_safe_identifier(candidate) || strcmp(candidate, session_id) == 0) {
+      continue;
+    }
+    char path[PATH_MAX];
+    length = snprintf(path, sizeof(path), "%s/%s", directory, entry->d_name);
+    if (length < 0 || (size_t)length >= sizeof(path)) continue;
+    if (transcript_continues_in(path, session_id, now)) {
+      matches += 1;
+      snprintf(source, 129, "%s", candidate);
+      /* Two sources already make it no continuation. */
+      if (matches > 1) break;
+    }
+  }
+  closedir(stream);
+  if (matches != 1) source[0] = '\0';
+  return matches == 1;
 }
 
 /* Deciding a session's Run and publishing the locator that claims it is one
@@ -750,6 +934,7 @@ static void lock_publication(const char *directory) {
 static void publish_locator(
   const char *session_id,
   const char *source,
+  const char *transcript_path,
   const char *plugin_root,
   const char *plugin_data,
   const char *helper_path,
@@ -809,15 +994,19 @@ static void publish_locator(
      without one fails closed rather than inventing a Run. A resume — an
      in-process `/resume`, `--resume` or `--continue` — continues whichever Run
      the session index says the session belongs to, and a session it has never
-     seen begins a new one. `startup` and `fork` always begin a new Run:
-     nothing inherited from a parent's environment stands in for a lineage. */
+     seen begins a new one. `startup` and `fork` begin a new Run: nothing
+     inherited from a parent's environment stands in for a lineage. The one
+     exception is a fork the conversation itself moved into, which its source
+     transcript records; that session goes on in the source's Run. */
   char run_id[129];
   char archive_generation[129];
+  char continued_from[129];
   bool indexed = read_session_index(
     plugin_data,
     session_id,
     run_id,
-    archive_generation
+    archive_generation,
+    continued_from
   );
   bool continues = false;
   if (strcmp(source, "clear") == 0) {
@@ -834,20 +1023,55 @@ static void publish_locator(
     }
     continues = true;
   } else if (strcmp(source, "resume") == 0 && indexed) {
+    char chain[HANDOFF_CHAIN_LIMIT][129];
+    size_t chain_length = handed_off_chain(plugin_data, continued_from, chain);
     continues = !run_held_elsewhere(
       directory,
       run_id,
+      (const char (*)[129])chain,
+      chain_length,
       host_pid,
       host_start_seconds,
       host_start_microseconds
     );
+  } else if (strcmp(source, "fork") == 0 && !indexed) {
+    char handed_from[129];
+    char earlier[129];
+    if (find_continued_source(transcript_path, session_id, handed_from)
+        && read_session_index(
+          plugin_data,
+          handed_from,
+          run_id,
+          archive_generation,
+          earlier
+        )) {
+      char chain[HANDOFF_CHAIN_LIMIT][129];
+      size_t chain_length = handed_off_chain(plugin_data, handed_from, chain);
+      continues = !run_held_elsewhere(
+        directory,
+        run_id,
+        (const char (*)[129])chain,
+        chain_length,
+        host_pid,
+        host_start_seconds,
+        host_start_microseconds
+      );
+    }
+    if (continues) snprintf(continued_from, sizeof(continued_from), "%s", handed_from);
   }
   if (!continues) {
     pt_random_uuid(run_id);
     pt_random_uuid(archive_generation);
+    continued_from[0] = '\0';
   }
   if (!indexed) {
-    write_session_index(plugin_data, session_id, run_id, archive_generation);
+    write_session_index(
+      plugin_data,
+      session_id,
+      run_id,
+      archive_generation,
+      continued_from
+    );
   }
 
   char database_root[PATH_MAX];
@@ -897,6 +1121,9 @@ static void publish_locator(
     ",\"archiveGeneration\":",
     archive_generation
   );
+  if (continued_from[0] != '\0') {
+    write_key_string(descriptor, ",\"continuedFrom\":", continued_from);
+  }
   write_literal(descriptor, "}\n");
 
   if (fsync(descriptor) != 0 || close(descriptor) != 0) {
@@ -1071,9 +1298,20 @@ int main(int argc, char **argv) {
       free(input);
       usage();
     }
+    /* Only where a continuation is looked for; any other start may omit it. */
+    char transcript_path[PATH_MAX];
+    if (!pt_json_get_string(
+          input,
+          "transcript_path",
+          transcript_path,
+          sizeof(transcript_path)
+        )) {
+      transcript_path[0] = '\0';
+    }
     publish_locator(
       session_id,
       source,
+      transcript_path,
       plugin_root,
       plugin_data,
       helper_path,
