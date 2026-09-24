@@ -81,6 +81,11 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   转到后台而非 `/fork`，`/fork` 与 `--fork-session` 仍新开 Run。门禁当前版本改为 2.1.281。fork 一个 compact
   过的 session 挂不上父节点，拆为 [Issue 34](issues/34-fork-of-compacted-session.md)；连续接续中间 session
   未提交时的继承缺口进了 backlog。
+- [人工确认歧义父节点](issues/20-confirm-ambiguous-parent.md)：
+  transcript 无法唯一确定父节点时，提交被 drop，草稿只留在内存，使用者在聚焦的「确认父节点」Pane 里选候选或新根；
+  选定后先关 Pane 再 `$.prompt.fill()` 回填，从不自动重提。列出全部候选（取代 `$.ui.ask` 的 3 个上限）；关闭 Pane
+  即取消并回填；等待中再次提交会重新对齐，最新文本取代草稿。对账（Issue 15）仍用 `$.ui.ask`。测试套件无法模拟
+  使用者关闭 Pane，取消路径由真人 PTY 覆盖。窗口外已存父节点缺序号进了 backlog。
 
 ## Not yet specified
 
