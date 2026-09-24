@@ -130,3 +130,30 @@ Issue 16 只把它的 `kind` 参数类型从 `CollectionBoundaryKind` 放宽到 
 `inspectLocator()`，函数里只保留对候选文件本身的检查；`startup_refusal.test.tsx` 的目录
 ACL 用例原样通过即完成。
 
+
+## 8. 会话索引读取器靠一串位置输出参数
+
+*来自 Issue 33 的 review（`/code-review` round 1，minor，PLAUSIBLE、未验证）。*
+
+`mods/prompt-trail/src/prompt_trail_bridge.c` 的 `read_session_index()` 按位置写出 `run_id`、
+`archive_generation`、`continued_from`。有的调用方只要其中一个字段，也得准备其余的临时缓冲区：
+`handed_off_chain()` 只要 `continued_from`，fork 分支（`find_continued_source` 之后）的
+`earlier` 也用不上。
+
+**为什么延后**：纯接口整理，当前行为正确；改动会碰到 resume、fork 与交接链三处调用，不值得在
+Issue 33 里顺手做。
+
+**修法草图**：定义 `SessionIndex { run_id[129]; archive_generation[129]; continued_from[129]; }`，
+由 `read_session_index()` 填写；调用方各取所需。bridge 协议测试原样通过即完成。
+
+## 9. bridge 接续测试里重复的「先发布来源 session」
+
+*来自 Issue 33 的 review（`/code-review` round 1，nit，PLAUSIBLE、未验证）。*
+
+`mods/prompt-trail/tests/bridge_protocol.py` 里的接续用例几乎都以同一段开头：记下
+`source_session = self.session_id`，发布 `SessionStart`，断言返回码，再读 locator。
+
+**为什么延后**：只是测试里的重复，不影响行为。
+
+**修法草图**：加一个 `publish_source()` 辅助方法，返回来源 session id 和 locator 内容，把接续
+用例改为调用它。测试原样通过即完成。

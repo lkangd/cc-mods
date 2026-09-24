@@ -614,6 +614,262 @@ class BridgeProtocolTests(unittest.TestCase):
             self.assertNotEqual(child_payload["hostPid"], parent_payload["hostPid"], source)
         self.assertTrue(parent_locator.exists())
 
+    def hand_off(
+        self,
+        source_session: str,
+        *,
+        rows_after: list[dict[str, object]] | None = None,
+        continued_in: str | None = None,
+    ) -> pathlib.Path:
+        # What the host leaves in the source transcript when it moves the
+        # conversation to a background session: the record goes after the
+        # last turn, and bookkeeping rows may follow it.
+        transcript = self.home / f"{source_session}.jsonl"
+        rows: list[dict[str, object]] = [
+            {
+                "type": "user",
+                "sessionId": source_session,
+                "uuid": str(uuid.uuid4()),
+                "message": {"role": "user", "content": "R2"},
+            },
+            {
+                "type": "assistant",
+                "sessionId": source_session,
+                "uuid": str(uuid.uuid4()),
+                "message": {"content": [{"type": "text", "text": "ok"}], "stop_reason": "end_turn"},
+            },
+            {
+                "type": "continued-in",
+                "timestamp": "2026-09-23T07:52:21.039Z",
+                "sessionId": source_session,
+                "continuedInSessionId": continued_in or self.session_id,
+            },
+            {"type": "last-prompt", "lastPrompt": "R2", "leafUuid": str(uuid.uuid4()), "sessionId": source_session},
+            {
+                "type": "cost-state",
+                "modelUsage": {"claude": {"inputTokens": 1, "costUSD": 0.5}},
+                "totalCostUSD": 0.5,
+                "sessionId": source_session,
+            },
+            *(rows_after or []),
+        ]
+        transcript.write_text("".join(json.dumps(row) + "\n" for row in rows))
+        return transcript
+
+    def continuation_input(self) -> dict[str, object]:
+        start = self.session_input("SessionStart")
+        start["source"] = "fork"
+        start["transcript_path"] = str(self.home / f"{self.session_id}.jsonl")
+        return start
+
+    def test_a_session_the_conversation_continued_in_keeps_its_run(self) -> None:
+        source_session = self.session_id
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        source = json.loads(self.locator.read_text())
+
+        self.session_id = str(uuid.uuid4())
+        self.hand_off(source_session)
+        continued = self.run_bridge("publish", self.continuation_input(), via_child=True)
+
+        self.assertEqual(continued.returncode, 0, continued.stderr)
+        current = json.loads(self.locator.read_text())
+        self.assertNotEqual(current["hostPid"], source["hostPid"])
+        self.assertEqual(current["runId"], source["runId"])
+        self.assertEqual(current["archiveGeneration"], source["archiveGeneration"])
+        self.assertEqual(current["continuedFrom"], source_session)
+        index = self.plugin_data / "sessions" / f"{self.session_id}.json"
+        self.assertEqual(
+            json.loads(index.read_text()),
+            {
+                "indexVersion": 1,
+                "sessionId": self.session_id,
+                "runId": source["runId"],
+                "archiveGeneration": source["archiveGeneration"],
+                "continuedFrom": source_session,
+            },
+        )
+
+    def test_a_continuation_whose_run_another_session_holds_begins_its_own(self) -> None:
+        source_session = self.session_id
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        source = json.loads(self.locator.read_text())
+        # The live process moved on to another session of the same Run, so it
+        # still holds the Run, but not as the session that was handed off.
+        clear_end = self.session_input("SessionEnd")
+        clear_end["reason"] = "clear"
+        self.assertEqual(self.run_bridge("remove", clear_end).returncode, 0)
+        self.session_id = str(uuid.uuid4())
+        clear_start = self.session_input("SessionStart")
+        clear_start["source"] = "clear"
+        self.assertEqual(self.run_bridge("publish", clear_start).returncode, 0)
+
+        self.session_id = str(uuid.uuid4())
+        self.hand_off(source_session)
+        continued = self.run_bridge("publish", self.continuation_input(), via_child=True)
+
+        self.assertEqual(continued.returncode, 0, continued.stderr)
+        current = json.loads(self.locator.read_text())
+        self.assertNotEqual(current["runId"], source["runId"])
+        self.assertNotIn("continuedFrom", current)
+        index = self.plugin_data / "sessions" / f"{self.session_id}.json"
+        self.assertNotIn("continuedFrom", json.loads(index.read_text()))
+
+    def test_a_handoff_recorded_long_before_the_start_is_not_a_continuation(self) -> None:
+        source_session = self.session_id
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        source = json.loads(self.locator.read_text())
+
+        self.session_id = str(uuid.uuid4())
+        transcript = self.hand_off(source_session)
+        # The host appends the record just before the new session starts; one
+        # left untouched for minutes cannot be the handoff to this start.
+        stale = transcript.stat().st_mtime - 121
+        os.utime(transcript, (stale, stale))
+        continued = self.run_bridge("publish", self.continuation_input(), via_child=True)
+
+        self.assertEqual(continued.returncode, 0, continued.stderr)
+        current = json.loads(self.locator.read_text())
+        self.assertNotEqual(current["runId"], source["runId"])
+        self.assertNotIn("continuedFrom", current)
+
+    def test_a_handoff_stamped_after_the_start_is_not_a_continuation(self) -> None:
+        source_session = self.session_id
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        source = json.loads(self.locator.read_text())
+
+        self.session_id = str(uuid.uuid4())
+        transcript = self.hand_off(source_session)
+        # A record from the future is no evidence of this start either.
+        ahead = transcript.stat().st_mtime + 3600
+        os.utime(transcript, (ahead, ahead))
+        continued = self.run_bridge("publish", self.continuation_input(), via_child=True)
+
+        self.assertEqual(continued.returncode, 0, continued.stderr)
+        current = json.loads(self.locator.read_text())
+        self.assertNotEqual(current["runId"], source["runId"])
+        self.assertNotIn("continuedFrom", current)
+
+    def test_resume_refuses_an_index_whose_continuation_is_not_a_string(self) -> None:
+        source_session = self.session_id
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        self.session_id = str(uuid.uuid4())
+        self.hand_off(source_session)
+        continued = self.run_bridge("publish", self.continuation_input(), via_child=True)
+        self.assertEqual(continued.returncode, 0, continued.stderr)
+        index = self.plugin_data / "sessions" / f"{self.session_id}.json"
+        record = json.loads(index.read_text())
+        self.assertEqual(record["continuedFrom"], source_session)
+
+        for damaged in (None, 7, ["x"]):
+            record["continuedFrom"] = damaged
+            index.write_text(json.dumps(record))
+            resume_start = self.session_input("SessionStart")
+            resume_start["source"] = "resume"
+            refused = self.run_bridge("publish", resume_start, via_child=True)
+
+            self.assertNotEqual(refused.returncode, 0, damaged)
+            self.assertEqual(json.loads(refused.stderr), {"category": "session-index-invalid"})
+
+    def test_a_handoff_the_source_went_on_past_is_not_a_continuation(self) -> None:
+        source_session = self.session_id
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        source = json.loads(self.locator.read_text())
+
+        self.session_id = str(uuid.uuid4())
+        # A turn after the record: the source conversation carried on itself,
+        # so the record no longer says where it went.
+        self.hand_off(
+            source_session,
+            rows_after=[{"type": "user", "sessionId": source_session, "uuid": str(uuid.uuid4())}],
+        )
+        continued = self.run_bridge("publish", self.continuation_input(), via_child=True)
+
+        self.assertEqual(continued.returncode, 0, continued.stderr)
+        current = json.loads(self.locator.read_text())
+        self.assertNotEqual(current["runId"], source["runId"])
+        self.assertNotIn("continuedFrom", current)
+
+    def test_only_a_fork_the_source_names_is_a_continuation(self) -> None:
+        source_session = self.session_id
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        source_run = json.loads(self.locator.read_text())["runId"]
+
+        self.session_id = str(uuid.uuid4())
+        self.hand_off(source_session, continued_in=str(uuid.uuid4()))
+        elsewhere = self.run_bridge("publish", self.continuation_input(), via_child=True)
+        self.assertEqual(elsewhere.returncode, 0, elsewhere.stderr)
+        self.assertNotEqual(json.loads(self.locator.read_text())["runId"], source_run)
+
+        for source in ("startup", "resume"):
+            self.session_id = str(uuid.uuid4())
+            self.hand_off(source_session)
+            start = self.continuation_input()
+            start["source"] = source
+            other = self.run_bridge("publish", start, via_child=True)
+            self.assertEqual(other.returncode, 0, other.stderr)
+            current = json.loads(self.locator.read_text())
+            self.assertNotEqual(current["runId"], source_run, source)
+            self.assertNotIn("continuedFrom", current, source)
+
+    def test_a_continuation_of_an_unindexed_session_begins_its_own_run(self) -> None:
+        source_session = str(uuid.uuid4())
+        self.hand_off(source_session)
+        continued = self.run_bridge("publish", self.continuation_input(), via_child=True)
+
+        self.assertEqual(continued.returncode, 0, continued.stderr)
+        self.assertNotIn("continuedFrom", json.loads(self.locator.read_text()))
+        self.assertEqual(
+            sorted(path.name for path in (self.plugin_data / "sessions").iterdir()),
+            [f"{self.session_id}.json"],
+        )
+
+    def test_a_resumed_continuation_still_names_its_source(self) -> None:
+        source_session = self.session_id
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        source_run = json.loads(self.locator.read_text())["runId"]
+        self.session_id = str(uuid.uuid4())
+        self.hand_off(source_session)
+        continued = self.run_bridge("publish", self.continuation_input(), via_child=True)
+        self.assertEqual(continued.returncode, 0, continued.stderr)
+
+        resume_start = self.session_input("SessionStart")
+        resume_start["source"] = "resume"
+        resumed = self.run_bridge("publish", resume_start, via_child=True)
+
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        current = json.loads(self.locator.read_text())
+        self.assertEqual(current["runId"], source_run)
+        self.assertEqual(current["continuedFrom"], source_session)
+
+    def test_a_conversation_handed_off_twice_stays_in_its_run(self) -> None:
+        first_session = self.session_id
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        source_run = json.loads(self.locator.read_text())["runId"]
+
+        self.session_id = str(uuid.uuid4())
+        second_session = self.session_id
+        self.hand_off(first_session)
+        second = self.run_bridge("publish", self.continuation_input(), via_child=True)
+        self.assertEqual(second.returncode, 0, second.stderr)
+
+        self.session_id = str(uuid.uuid4())
+        self.hand_off(second_session)
+        third = self.run_bridge("publish", self.continuation_input(), via_child=True)
+
+        self.assertEqual(third.returncode, 0, third.stderr)
+        current = json.loads(self.locator.read_text())
+        self.assertEqual(current["runId"], source_run)
+        self.assertEqual(current["continuedFrom"], second_session)
+
 
 if __name__ == "__main__":
     unittest.main()
