@@ -115,3 +115,15 @@ has fallen out of the latest 128 events gets no marker. The entry is still drawn
 the line saying it continues another Run. `—— 新根分支 ——` does not depend on the window, since it
 needs only `parentEventId === null`. Fix with the cursor reads: have the helper answer the parent's
 Run for visible entries, or read the parents past the window.
+
+## Update 2026-09-24 (Issue 20 review)
+
+Review finding #2 (minor, CONFIRMED) belongs here. The parent-confirmation Pane labels each
+candidate through `parentLabel()` in `mods/prompt-trail/hooks/register.tsx`: from the loaded window
+as `#序号 首行文本`, otherwise from `branch-match`'s named candidates as `#序号 事件 xxxxxxxx`. The
+stored parent is offered first even when the transcript matched nothing, so it can be absent from
+both; it is then labelled `事件 xxxxxxxx` with no sequence. The choice still works and the event id
+prefix still tells it apart, but the person has less to recognise it by. This fallback predates
+Issue 20 (Issue 18's dialog had it too). Fix with the cursor reads: have the helper answer the
+sequence of a named event id, or keep the stored parent's sequence in `BranchState` when it is
+written.
