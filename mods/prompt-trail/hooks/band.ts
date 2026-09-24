@@ -6,6 +6,7 @@
    one stop at a time, and the window follows it. */
 
 export const TITLE_KEY = 'prompt-trail:toggle'
+export const EARLIER_HINT_KEY = 'prompt-trail:earlier-hint'
 
 /* Where one arrow press moves the ring: the neighbouring stop; the title,
    from the first stop when nothing lies before it in the project, and back

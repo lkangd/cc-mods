@@ -477,7 +477,8 @@ test('the read is bounded to the latest fixed batch', async ($, on) => {
   await $.session.start(session)
 
   await promptHistory($)
-  const band = JSON.stringify(await renderBand($))
+  /* A band tall enough to show the whole window. */
+  const band = JSON.stringify(await renderBand($, { maxRows: 400 }))
 
   /* The batch and one earlier entry above it; the four before that stay in
      the archive. Each keeps its place among the project's Prompt Entries. */
