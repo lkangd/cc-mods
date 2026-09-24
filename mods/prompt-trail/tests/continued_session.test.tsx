@@ -115,7 +115,7 @@ test('a continuation of a compacted session puts a lineage it cannot place to th
   const result = await composerPrompt($)
 
   expect(result).toMatchObject({ drop: expect.any(String) })
-  expect(await parentChoices($)).toEqual(['#7 PT-SECRET-EARLIER', '新根分支'])
+  expect(await parentChoices($)).toEqual(['#1 PT-SECRET-EARLIER', '新根分支'])
   expect(captureCalls(calls, 'branch-match')[0]?.argv[6]).toBe('truncated')
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   /* Marked as its own, so a session continued from this one inherits it too. */

@@ -308,7 +308,7 @@ test('a stored lineage a compacted transcript contradicts is put to the person, 
   expect(matchCalls(calls)[0]?.argv[6]).toBe('truncated')
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   /* The stored parent is offered first, by its sequence and its text. */
-  expect(await parentChoices($)).toEqual(['#3 PT-SECRET-EARLIER', '新根分支'])
+  expect(await parentChoices($)).toEqual(['#1 PT-SECRET-EARLIER', '新根分支'])
   await pickParent($, pane, labels => labels.find(label => label === '新根分支'))
   expect(fills).toEqual([SECRET])
   expect(store[branchKey()]).toMatchObject({ parentEventId: null, explicitRoot: true })

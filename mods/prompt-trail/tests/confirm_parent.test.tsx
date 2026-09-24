@@ -91,8 +91,8 @@ test('an ambiguous submission is dropped and the person chooses in a focused Pan
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   /* The stored parent first, by its text; one outside the window by its id. */
   expect(await parentChoices($)).toEqual([
-    '#3 PT-SECRET-EARLIER',
-    `#20 事件 ${forkPoint.slice(0, 8)}`,
+    '#1 PT-SECRET-EARLIER',
+    `#2 事件 ${forkPoint.slice(0, 8)}`,
     '新根分支',
   ])
 
@@ -107,6 +107,30 @@ test('an ambiguous submission is dropped and the person chooses in a focused Pan
   expect(resubmitted).toMatchObject({ text: SECRET })
   expect(parentOf(calls).parent).toBe(forkPoint)
   expect(parentOf(calls).branchId).not.toBe(branchId)
+})
+
+test('a stored parent outside the window is named by the number the helper places it at', async ($, on) => {
+  const store = consentedStore({ [branchKey()]: stored(earlier) })
+  const pane = parentPane()
+  installSupportedTarget(on, {
+    store,
+    parentPane: pane,
+    /* The band's window does not hold the stored parent. */
+    archive: [archivedEntry(forkPoint, 900, 'PT-SECRET-RECENT')],
+    branchMatch: {
+      ...ambiguous(forkPoint),
+      prefer: { eventId: earlier, sequence: 7, ordinal: 5 },
+    },
+  })
+  await $.session.start(session)
+
+  await composerPrompt($)
+
+  expect(await parentChoices($)).toEqual([
+    `#5 事件 ${earlier.slice(0, 8)}`,
+    '#1 PT-SECRET-RECENT',
+    '新根分支',
+  ])
 })
 
 test('a submission made before choosing is dropped too, and its text is the draft that comes back', async ($, on) => {
@@ -284,7 +308,7 @@ test('every candidate is offered, each on one row, with the ones the helper did 
   expect(JSON.stringify(await renderParentPane($))).toContain('另有 4 个候选未列出')
   /* Ten cells across, less the frame's margin: wide characters count twice. */
   const narrow = JSON.stringify(await renderParentPane($, 12))
-  expect(narrow).toContain('"#3 一段很…"')
+  expect(narrow).toContain('"#1 一段很…"')
 })
 
 test('a second press before the first choice is carried out is the same choice', async ($, on) => {
@@ -321,5 +345,5 @@ test('an emoji drawn two cells wide is clipped as two cells', async ($, on) => {
   await $.session.start(session)
   await composerPrompt($)
 
-  expect(JSON.stringify(await renderParentPane($, 12))).toContain('"#3 R⌚⌚…"')
+  expect(JSON.stringify(await renderParentPane($, 12))).toContain('"#1 R⌚⌚…"')
 })
