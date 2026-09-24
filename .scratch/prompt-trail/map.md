@@ -74,6 +74,13 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   直接开根；有标记时 `truncated` 匹配，`none` 仍询问。`branch-match` 的并列候选按已存父节点的祖先链裁决。
   视图从档案推导「新根分支 / 新分支」边界，不新增事件。**修正 Issue 18**：同一进程里 compact 后，`messages()`
   仍保留旧 prompt 行，只有跨进程 resume 才会丢失。
+- [接续 session 沿用原 Run 与 Active Branch](issues/33-continued-session-keeps-run.md)：
+  「转到后台」后在新进程里继续的 session（SessionStart source=`fork`，输入里没有来源），由 bridge 从同目录近期
+  transcript 尾部的 `continued-in` 认出来源，沿用来源 Run，会话索引与 locator 带可选 `continuedFrom`；插件据此
+  继承来源的分支记录与 compacted 标记。认不出就新开 Run，不猜测。**修正 Issue 18/32**：`continued-in` 来自
+  转到后台而非 `/fork`，`/fork` 与 `--fork-session` 仍新开 Run。门禁当前版本改为 2.1.281。fork 一个 compact
+  过的 session 挂不上父节点，拆为 [Issue 34](issues/34-fork-of-compacted-session.md)；连续接续中间 session
+  未提交时的继承缺口进了 backlog。
 
 ## Not yet specified
 
