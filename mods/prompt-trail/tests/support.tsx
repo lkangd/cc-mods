@@ -101,11 +101,8 @@ export type TargetOptions = {
      answer for a transcript nothing archived matches. */
   branchMatch?: Record<string, unknown> | ((call: ProcessCall) => Record<string, unknown>)
   branchMatchFails?: boolean
-  /* The label a parent-confirmation dialog receives, picked from its options;
-     `undefined` cancels it. */
-  parentAnswer?: (labels: string[]) => string | undefined
-  /* Every question a parent-confirmation dialog asked. */
-  parentQuestions?: { question: string; labels: string[] }[]
+  /* What the parent-confirmation Pane went through; see `pickParent`. */
+  parentPane?: ParentPane
   /* Collects every `$.prompt.fill`, so a test can see the restored draft. */
   fills?: string[]
   /* The host refuses to write the draft back, as a dialog holding the keys
@@ -257,16 +254,6 @@ export function installSupportedTarget(
     const choices = e.questions[0]?.options ?? []
     const labels = choices.map(choice => (typeof choice === 'string' ? choice : choice.label))
     const isReconcile = labels.includes('已进入')
-    if (!isReconcile && labels.includes('新根分支')) {
-      options.parentQuestions?.push({ question, labels })
-      const answer = options.parentAnswer?.(labels)
-      return {
-        result: {
-          questions: e.questions,
-          answers: answer === undefined ? {} : { [question]: answer },
-        },
-      }
-    }
     if (isReconcile) {
       /* A cancelled dialog answers nothing, which is what keeps the Run
          blocked rather than defaulting to confirm or discard. */
@@ -285,10 +272,29 @@ export function installSupportedTarget(
       },
     }
   })
-  if (options.fills || options.fillFails) {
+  const pane = options.parentPane
+  if (pane) pane.clock = clock
+  on('ui.open', (_$, e) => {
+    if (pane && e.id === PARENT_PANE_ID) {
+      if (pane.refused) return { deny: 'pane refused: PT-SECRET-REFUSED' }
+      pane.opens.push({ ...e })
+      pane.log.push('open')
+    }
+    return { value: undefined }
+  })
+  on('ui.close', (_$, e) => {
+    if (pane && e.id === PARENT_PANE_ID) pane.log.push(`close:${e.origin.kind}`)
+    return { value: undefined }
+  })
+  on('ui.toast', (_$, e) => {
+    pane?.toasts.push(e.text)
+    return { value: undefined }
+  })
+  if (options.fills || options.fillFails || pane) {
     const fills = options.fills
     on('prompt.fill', (_$, e) => {
       fills?.push(e.text)
+      pane?.log.push('fill')
       return { isFilled: !options.fillFails }
     })
   }
@@ -664,4 +670,78 @@ export async function renderBand($: import('claude-code/testing').Engine) {
       view: {},
     },
   })
+}
+
+/* The Pane Prompt Trail asks the person in when a transcript cannot place the
+   next prompt's parent. */
+export const PARENT_PANE_ID = 'prompt-trail-parent'
+const PARENT_KEY_PREFIX = 'prompt-trail:parent:'
+
+/* Every `$.ui.open` of that Pane, the order in which it opened, closed and the
+   draft was written back, and every toast. `clock` settles what a choice left
+   running. */
+export type ParentPane = {
+  opens: Record<string, unknown>[]
+  log: string[]
+  toasts: string[]
+  /* Another hook refuses to open it. */
+  refused?: true
+  clock?: import('claude-code/testing').MockClock
+}
+
+export function parentPane(): ParentPane {
+  return { opens: [], log: [], toasts: [] }
+}
+
+export async function renderParentPane(
+  $: import('claude-code/testing').Engine,
+  bodyColumns = 60,
+) {
+  return $.ui.render({
+    component: 'Pane',
+    surface: 'terminal',
+    requestId: PARENT_PANE_ID,
+    viewport: { columns: 80, rows: 24 },
+    props: {
+      title: '确认父节点',
+      isFocused: true,
+      bodyColumns,
+      placement: 'inline',
+      scroll: { offset: 0, bodyRows: 12 },
+      view: {},
+    },
+  })
+}
+
+type Drawn = { type?: string; props?: Record<string, unknown>; children?: unknown }
+
+function buttonsIn(tree: unknown): Record<string, unknown>[] {
+  if (Array.isArray(tree)) return tree.flatMap(buttonsIn)
+  if (!tree || typeof tree !== 'object') return []
+  const node = tree as Drawn
+  if (node.type === 'Button' && node.props) return [node.props]
+  return buttonsIn(node.children)
+}
+
+/* The candidates the Pane offers, as the person reads them. */
+export async function parentChoices($: import('claude-code/testing').Engine): Promise<string[]> {
+  return buttonsIn(await renderParentPane($))
+    .filter(button => String(button.key).startsWith(PARENT_KEY_PREFIX))
+    .map(button => String(button.label))
+}
+
+/* Presses the candidate `pick` names among the Pane's labels, as Enter or a
+   click would, and lets what the press left running finish. */
+export async function pickParent(
+  $: import('claude-code/testing').Engine,
+  pane: ParentPane,
+  pick: (labels: string[]) => string | undefined,
+): Promise<void> {
+  const buttons = buttonsIn(await renderParentPane($))
+    .filter(button => String(button.key).startsWith(PARENT_KEY_PREFIX))
+  const label = pick(buttons.map(button => String(button.label)))
+  const chosen = buttons.find(button => button.label === label)
+  if (!chosen) throw new Error(`no parent candidate labelled ${label}`)
+  await $.ui.press({ plugin: 'prompt-trail', key: String(chosen.key), requestId: PARENT_PANE_ID })
+  await pane.clock?.settle()
 }

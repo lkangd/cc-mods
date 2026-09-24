@@ -6,6 +6,9 @@ import {
   captureCalls,
   composerPrompt,
   installSupportedTarget,
+  parentChoices,
+  parentPane,
+  pickParent,
   projectId,
   promptHistory,
   runId,
@@ -98,22 +101,21 @@ test('a continuation of a compacted session puts a lineage it cannot place to th
     [branchKey(sourceSession)]: stored(earlier),
     [compactedKey(sourceSession)]: true,
   })
-  const parentQuestions: { question: string; labels: string[] }[] = []
+  const pane = parentPane()
   const calls = installSupportedTarget(on, {
     store,
-    parentQuestions,
+    parentPane: pane,
     classicSession: { id: continuedSession },
     continuedFrom: sourceSession,
     archive: [archivedEntry(earlier, 7, 'PT-SECRET-EARLIER')],
     branchMatch: { match: 'none', candidates: [], candidateCount: 0 },
-    parentAnswer: () => undefined,
   })
   await $.session.start(session)
 
   const result = await composerPrompt($)
 
   expect(result).toMatchObject({ drop: expect.any(String) })
-  expect(parentQuestions[0]?.labels).toEqual(['#7 PT-SECRET-EARLIER', '新根分支'])
+  expect(await parentChoices($)).toEqual(['#7 PT-SECRET-EARLIER', '新根分支'])
   expect(captureCalls(calls, 'branch-match')[0]?.argv[6]).toBe('truncated')
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   /* Marked as its own, so a session continued from this one inherits it too. */

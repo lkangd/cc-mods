@@ -320,6 +320,22 @@ let activeBranch: { key: string; value: BranchState } | undefined
 const ambiguousRoots = new Set<string>()
 /* The folds the person opened, by the entry each is drawn at. */
 const openFolds = new Set<string>()
+/* A parent the transcript could not place, waiting on the person in its Pane:
+   the branch it settles, what it may be settled to, and the draft of the
+   submission it dropped. The draft never leaves this module instance; a
+   reload forgets it, and the next submission asks again. */
+type ParentChoice = {
+  key: string
+  sessionId: string
+  stored: BranchState | undefined
+  candidates: { eventId: string; label: string }[]
+  unlisted: number
+  mark: TranscriptMark
+  draft: string
+  settling?: true
+  error?: string
+}
+let parentChoice: ParentChoice | undefined
 let lifecycleOthers: { queue: LifecycleWrite[]; unfinished: number } | undefined
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -2063,18 +2079,31 @@ function parentLabel(eventId: string, found: BranchMatch): string {
     : `事件 ${eventId.slice(0, 8)}`
 }
 
-/* The engine's dialog offers at most four answers: three parents and a root. */
-const PARENT_OPTION_LIMIT = 3
+const PARENT_PANE_ID = 'prompt-trail-parent'
 
 /* Settles this session's Active Branch against its transcript before every
    capture: in full the first time this module instance meets the session,
    and after that whenever the transcript no longer holds the last captured
    prompt where it landed, which is what a rewind leaves. Answers a result
    that drops the submission, or the transcript it was settled against. A
-   stored lineage the transcript cannot place is put to the person; the
-   submission is dropped either way, with the draft back in the prompt box,
-   and never resubmitted. */
+   stored lineage the transcript cannot place is put to the person in a
+   Pane: the submission is dropped, its draft held until they choose, and
+   never resubmitted. Whatever this submission settles, a choice an earlier
+   one left waiting is superseded by it. */
 async function alignBranch(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  draft: string,
+): Promise<{ drop: string } | { messages: readonly SessionMessage[] }> {
+  const waiting = parentChoice
+  try {
+    return await settleAlignment($, currentProject, draft)
+  } finally {
+    if (waiting && parentChoice === waiting) await dismissParentChoice($)
+  }
+}
+
+async function settleAlignment(
   $: EngineInterface,
   currentProject: ProjectState,
   draft: string,
@@ -2130,47 +2159,96 @@ async function alignBranch(
     return { messages }
   }
 
-  const offered = settlement.options.slice(0, PARENT_OPTION_LIMIT)
-  const labels = offered.map(eventId => parentLabel(eventId, found))
-  /* What the dialog leaves out, plus what the helper counted but never named. */
-  const unlisted = settlement.options.length - offered.length
-    + Math.max(0, found.candidateCount - found.candidates.length)
-  let answer: string | undefined
-  try {
-    answer = await $.ui.ask(
-      [
-        '这个会话的 transcript 与 Prompt Trail 记录的 Active Branch 对不上，无法唯一确定下一条 prompt 的父节点。',
-        '请选择它接在哪条 Prompt Entry 之后，或从新的根 Conversation Branch 开始。',
-        ...(unlisted > 0 ? [`另有 ${unlisted} 个候选未列出；它们都不对时请选“新根分支”。`] : []),
-        '选择后本次提交不会自动重发。',
-      ].join('\n'),
-      { header: '确认父节点', options: [...labels, '新根分支'] },
-    )
-  } catch {
-    answer = undefined
+  const choice: ParentChoice = {
+    key,
+    sessionId: startup.sessionId,
+    stored,
+    candidates: settlement.options.map(eventId => ({ eventId, label: parentLabel(eventId, found) })),
+    /* What the helper counted but never named. */
+    unlisted: Math.max(0, found.candidateCount - found.candidates.length),
+    mark: markTranscript(messages),
+    draft,
   }
-  const chosen = answer === '新根分支'
-    ? 'root'
-    : offered[labels.indexOf(answer ?? '')]
-  const restoredNote = async () => draftNote(await restoreDraft($, draft))
-  if (answer === undefined || chosen === undefined) {
+  parentChoice = choice
+  try {
+    await $.ui.open({
+      id: PARENT_PANE_ID,
+      title: '确认父节点',
+      focus: true,
+      closeOnEscape: true,
+      holdToasts: true,
+      rows: choice.candidates.length + (choice.unlisted > 0 ? 5 : 4),
+    })
+  } catch {
+    await dismissParentChoice($)
     return {
-      drop: `Prompt Trail 仍待确认 Conversation Branch 父节点，${await restoredNote()}；本次提交未进入会话。`,
+      drop: `Prompt Trail 无法打开「确认父节点」面板，${draftNote(await restoreDraft($, draft))}；本次提交未进入会话。`,
     }
   }
-  try {
-    const chosenBranch = chooseBranch(stored, chosen, crypto.randomUUID())
-    await $.store.set(key, chosenBranch)
-    rememberBranch(key, chosenBranch)
-  } catch {
-    return {
-      drop: `Prompt Trail 无法保存所选父节点，${await restoredNote()}；本次提交未进入会话。`,
-    }
-  }
-  settled()
+  $.ui.invalidate('ui.render')
   return {
-    drop: `Prompt Trail 已确认 Conversation Branch 父节点，${await restoredNote()}；请重新提交。`,
+    drop: 'Prompt Trail 无法唯一确定下一条 prompt 的父节点，请在「确认父节点」面板中选择；草稿已暂存，选择后放回输入框，不会自动重发。',
   }
+}
+
+/* Closes the Pane of a choice nobody will make any more. Its draft goes with
+   it: whatever superseded the choice holds a newer one, or has none to give. */
+async function dismissParentChoice($: EngineInterface): Promise<void> {
+  if (!parentChoice) return
+  parentChoice = undefined
+  try {
+    await $.ui.close({ id: PARENT_PANE_ID })
+  } catch {
+    // A hook kept it open; with no choice behind it, it only says so.
+  }
+}
+
+/* The person's choice in the Pane. It is carried out once the press has been
+   answered, so the Pane is closed from outside its own dispatch; a second
+   press meanwhile is the same choice, and is ignored. */
+function chooseParent($: EngineInterface, choice: ParentChoice, answer: string | 'root'): void {
+  if (parentChoice !== choice || choice.settling) return
+  choice.settling = true
+  $.clock.after(0, () => {
+    void settleParentChoice($, choice, answer)
+  })
+}
+
+async function settleParentChoice(
+  $: EngineInterface,
+  choice: ParentChoice,
+  answer: string | 'root',
+): Promise<void> {
+  if (parentChoice !== choice) return
+  let current: string | undefined
+  try {
+    current = await $.session.id()
+  } catch {
+    current = undefined
+  }
+  /* The session moved on, or a reconciliation is owed, since it was asked:
+     the candidates no longer describe the branch the next prompt joins. */
+  if (parentChoice !== choice) return
+  if (current !== choice.sessionId || reconcile) {
+    await dismissParentChoice($)
+    const restored = await restoreDraft($, choice.draft)
+    $.ui.toast(`Prompt Trail 的父节点确认已失效，${draftNote(restored)}；再次提交时会重新判断。`)
+    return
+  }
+  try {
+    const chosen = chooseBranch(choice.stored, answer, crypto.randomUUID())
+    await $.store.set(choice.key, chosen)
+    rememberBranch(choice.key, chosen)
+  } catch {
+    choice.settling = undefined
+    choice.error = '无法保存所选父节点；可以重试，或按 Esc 取消。'
+    $.ui.invalidate('ui.render')
+    return
+  }
+  transcriptMark = { key: choice.key, mark: choice.mark }
+  await dismissParentChoice($)
+  const restored = await restoreDraft($, choice.draft)
+  $.ui.toast(`Prompt Trail 已确认父节点，${draftNote(restored)}；请检查后重新提交。`)
 }
 
 async function sessionCompacted(
@@ -2703,6 +2781,65 @@ function entryLine(entry: Extract<TimelineItem, { kind: 'prompt' }>): string {
     return entry.attachmentCount > 0 ? `（附件 ×${entry.attachmentCount}）` : '（空提交）'
   }
   return entry.text.replace(/\r\n?|\n/g, ' ↵ ')
+}
+
+/* The symbols below U+1F300 that terminals draw as emoji, two cells wide
+   (Unicode's Emoji_Presentation outside the ranges `cellWidth` covers). */
+const WIDE_SYMBOLS: readonly (readonly [number, number])[] = [
+  [0x231a, 0x231b], [0x23e9, 0x23ec], [0x23f0, 0x23f0], [0x23f3, 0x23f3],
+  [0x25fd, 0x25fe], [0x2614, 0x2615], [0x2648, 0x2653], [0x267f, 0x267f],
+  [0x2693, 0x2693], [0x26a1, 0x26a1], [0x26aa, 0x26ab], [0x26bd, 0x26be],
+  [0x26c4, 0x26c5], [0x26ce, 0x26ce], [0x26d4, 0x26d4], [0x26ea, 0x26ea],
+  [0x26f2, 0x26f3], [0x26f5, 0x26f5], [0x26fa, 0x26fa], [0x26fd, 0x26fd],
+  [0x2705, 0x2705], [0x270a, 0x270b], [0x2728, 0x2728], [0x274c, 0x274c],
+  [0x274e, 0x274e], [0x2753, 0x2755], [0x2757, 0x2757], [0x2795, 0x2797],
+  [0x27b0, 0x27b0], [0x27bf, 0x27bf], [0x2b1b, 0x2b1c], [0x2b50, 0x2b50],
+  [0x2b55, 0x2b55], [0x1f004, 0x1f004], [0x1f0cf, 0x1f0cf], [0x1f18e, 0x1f18e],
+  [0x1f191, 0x1f19a], [0x1f200, 0x1f265],
+]
+
+/* Terminal cells a character takes: none for a combining mark or variation
+   selector, two for East Asian wide and emoji ranges. */
+function cellWidth(character: string): number {
+  const codePoint = character.codePointAt(0) ?? 0
+  if (
+    (codePoint >= 0x0300 && codePoint <= 0x036f) ||
+    (codePoint >= 0xfe00 && codePoint <= 0xfe0f)
+  ) return 0
+  if (WIDE_SYMBOLS.some(([first, last]) => codePoint >= first && codePoint <= last)) return 2
+  if (
+    codePoint >= 0x1100 && (
+      codePoint <= 0x115f ||
+      codePoint === 0x2329 ||
+      codePoint === 0x232a ||
+      (codePoint >= 0x2e80 && codePoint <= 0xa4cf) ||
+      (codePoint >= 0xac00 && codePoint <= 0xd7a3) ||
+      (codePoint >= 0xf900 && codePoint <= 0xfaff) ||
+      (codePoint >= 0xfe10 && codePoint <= 0xfe19) ||
+      (codePoint >= 0xfe30 && codePoint <= 0xfe6f) ||
+      (codePoint >= 0xff00 && codePoint <= 0xff60) ||
+      (codePoint >= 0xffe0 && codePoint <= 0xffe6) ||
+      (codePoint >= 0x1f300 && codePoint <= 0x1faff) ||
+      (codePoint >= 0x20000 && codePoint <= 0x3fffd)
+    )
+  ) return 2
+  return 1
+}
+
+/* A Button label cut to the cells it is drawn in, so it stays on one row. */
+function clipCells(text: string, columns: number): string {
+  const characters = Array.from(text)
+  if (characters.reduce((width, character) => width + cellWidth(character), 0) <= columns) {
+    return text
+  }
+  let width = 0
+  let clipped = ''
+  for (const character of characters) {
+    width += cellWidth(character)
+    if (width > Math.max(1, columns - 1)) break
+    clipped += character
+  }
+  return `${clipped}…`
 }
 
 /* A disabled interval is drawn as an explicit break, never as continuous
@@ -3631,6 +3768,71 @@ export const register: Register = on => {
       )
     }
     return result
+  })
+
+  /* Closing the Pane without choosing is cancelling: the draft goes back to
+     the prompt box once the Pane is gone, and the next submission is judged
+     again. While a choice is being saved the Pane stays, so a save that fails
+     can still say so there and the draft is not stranded behind it. */
+  on('ui.close', async ($, e, next) => {
+    const choice = parentChoice
+    if (e.id !== PARENT_PANE_ID || e.origin.kind !== 'person' || !choice) return next(e)
+    if (choice.settling) return { value: undefined }
+    parentChoice = undefined
+    const closed = await next(e)
+    $.clock.after(0, () => {
+      void (async () => {
+        const restored = await restoreDraft($, choice.draft)
+        $.ui.toast(`Prompt Trail 未确认父节点，${draftNote(restored)}；再次提交时会重新询问。`)
+      })()
+    })
+    return closed
+  })
+
+  on('ui.render', { component: 'Pane' }, ($, e, next) => {
+    if (e.requestId !== PARENT_PANE_ID) return next(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const choice = parentChoice
+    if (!choice) {
+      /* Left open by a module instance that has since reloaded: the draft and
+         the candidates went with it. */
+      $.clock.after(0, () => {
+        void $.ui.close({ id: PARENT_PANE_ID }).catch(() => undefined)
+      })
+      return <Text dimColor>这次父节点确认已失效，请重新提交。</Text>
+    }
+    const width = Math.max(1, e.props.bodyColumns - 2)
+    const answers = [
+      ...choice.candidates.map((candidate, index) => ({
+        key: `prompt-trail:parent:${index}`,
+        label: candidate.label,
+        answer: candidate.eventId,
+      })),
+      { key: 'prompt-trail:parent:root', label: '新根分支', answer: 'root' },
+    ]
+    return (
+      <Box flexDirection="column">
+        <Text wrap="wrap">transcript 无法唯一确定下一条 prompt 的父节点，本次提交已阻止。请选择它接在哪条 Prompt Entry 之后，或从新的根分支开始。</Text>
+        {answers.map((item, index) => (
+          /* The keyed row is what the pointer hovers. */
+          <Box key={`${item.key}:row`}>
+            <Button
+              key={item.key}
+              plain
+              label={clipCells(item.label, width)}
+              hover={{ inverse: true }}
+              {...(index === 0 ? { autoFocus: true as const } : {})}
+              onPress={() => chooseParent($, choice, item.answer)}
+            />
+          </Box>
+        ))}
+        {choice.unlisted > 0 ? (
+          <Text dimColor wrap="wrap">{`另有 ${choice.unlisted} 个候选未列出；它们都不对时请选“新根分支”。`}</Text>
+        ) : null}
+        {choice.error ? <Text color="red" wrap="wrap">{choice.error}</Text> : null}
+        <Text dimColor wrap="truncate-end">↑↓ 选择 · Enter 确认 · Esc 取消并放回草稿</Text>
+      </Box>
+    )
   })
 
   on('ui.render', { component: 'AbovePrompt', surface: 'terminal' }, ($, e) => {

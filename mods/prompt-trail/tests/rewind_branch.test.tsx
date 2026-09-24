@@ -8,6 +8,9 @@ import {
   captureCalls,
   composerPrompt,
   installSupportedTarget,
+  parentChoices,
+  parentPane,
+  pickParent,
   projectId,
   promptHistory,
   renderBand,
@@ -175,9 +178,9 @@ test('a transcript rewound to an earlier prompt branches from the entry before i
 
 test('a transcript rewound to its root starts a root branch without asking', async ($, on) => {
   const transcript: TranscriptRow[] = []
-  const parentQuestions: { question: string; labels: string[] }[] = []
+  const pane = parentPane()
   const store = consentedStore()
-  const calls = installSupportedTarget(on, { store, transcript, parentQuestions })
+  const calls = installSupportedTarget(on, { store, transcript, parentPane: pane })
   await $.session.start(session)
   await threePrompts($, transcript)
   const [a] = begins(calls)
@@ -186,7 +189,7 @@ test('a transcript rewound to its root starts a root branch without asking', asy
   const result = await composerPrompt($, { text: 'PT-SECRET-A2' })
 
   expect(result).toMatchObject({ text: 'PT-SECRET-A2' })
-  expect(parentQuestions).toHaveLength(0)
+  expect(pane.opens).toHaveLength(0)
   const fresh = begins(calls)[3]
   expect(fresh?.parent).toBe('-')
   expect(fresh?.branchId).not.toBe(a!.branchId)
@@ -261,8 +264,8 @@ function compactsTo(on: On, transcript: TranscriptRow[]) {
 test('a compaction seen in this process keeps the branch it was on', async ($, on) => {
   const transcript: TranscriptRow[] = []
   const store = consentedStore()
-  const parentQuestions: { question: string; labels: string[] }[] = []
-  const calls = installSupportedTarget(on, { store, transcript, parentQuestions })
+  const pane = parentPane()
+  const calls = installSupportedTarget(on, { store, transcript, parentPane: pane })
   compactsTo(on, transcript)
   await $.session.start(session)
   await threePrompts($, transcript)
@@ -272,7 +275,7 @@ test('a compaction seen in this process keeps the branch it was on', async ($, o
   expect(store[compactedKey()]).toBe(true)
   await composerPrompt($, { text: 'PT-SECRET-D' })
 
-  expect(parentQuestions).toHaveLength(0)
+  expect(pane.opens).toHaveLength(0)
   expect(matchCalls(calls)).toHaveLength(1)
   expect(begins(calls)[3]).toMatchObject({ branchId: c!.branchId, parent: c!.eventId })
 })
@@ -280,8 +283,8 @@ test('a compaction seen in this process keeps the branch it was on', async ($, o
 test('a compacted session asks rather than taking a transcript that proves nothing for a rewind', async ($, on) => {
   const transcript: TranscriptRow[] = []
   const store = consentedStore()
-  const parentQuestions: { question: string; labels: string[] }[] = []
-  const calls = installSupportedTarget(on, { store, transcript, parentQuestions, fills: [] })
+  const pane = parentPane()
+  const calls = installSupportedTarget(on, { store, transcript, parentPane: pane, fills: [] })
   compactsTo(on, transcript)
   await $.session.start(session)
   await threePrompts($, transcript)
@@ -293,7 +296,7 @@ test('a compacted session asks rather than taking a transcript that proves nothi
   const result = await composerPrompt($, { text: 'PT-SECRET-D2' })
 
   expect(result).toMatchObject({ drop: expect.any(String) })
-  expect(parentQuestions).toHaveLength(1)
+  expect(pane.opens).toHaveLength(1)
   /* Its earliest rows are gone, so a lineage may begin before them. */
   expect(matchCalls(calls).at(-1)?.argv[6]).toBe('truncated')
   expect(begins(calls)).toHaveLength(4)

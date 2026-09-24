@@ -7,6 +7,9 @@ import {
   captureCalls,
   composerPrompt,
   installSupportedTarget,
+  parentChoices,
+  parentPane,
+  pickParent,
   projectId,
   promptHistory,
   renderBand,
@@ -263,12 +266,12 @@ test('a session is aligned in full once, then again only when the session change
 
 test('a fork whose shared history matches several lineages archives from a marked root', async ($, on) => {
   const store = consentedStore()
-  const parentQuestions: { question: string; labels: string[] }[] = []
+  const pane = parentPane()
   const calls = installSupportedTarget(on, {
     store,
     messages: [{ role: 'user', text: 'PT-SECRET-SHARED' }],
     branchMatch: ambiguous(earlier, forkPoint),
-    parentQuestions,
+    parentPane: pane,
   })
   await $.session.start(session)
 
@@ -276,7 +279,7 @@ test('a fork whose shared history matches several lineages archives from a marke
 
   /* A background fork submits on its own; nobody is asked, nothing is lost. */
   expect(result).toMatchObject({ text: SECRET })
-  expect(parentQuestions).toEqual([])
+  expect(pane.opens).toHaveLength(0)
   expect(parentOf(captureCalls(calls, 'capture-begin')[0]).parent).toBe('-')
   expect(store[branchKey()]).toMatchObject({
     parentEventId: expect.any(String),
@@ -288,26 +291,26 @@ test('a fork whose shared history matches several lineages archives from a marke
 test('a stored lineage a compacted transcript contradicts is put to the person, and the draft comes back', async ($, on) => {
   const store = consentedStore({ [branchKey()]: stored(earlier), [compactedKey()]: true })
   const fills: string[] = []
-  const parentQuestions: { question: string; labels: string[] }[] = []
+  const pane = parentPane()
   const calls = installSupportedTarget(on, {
     store,
     fills,
-    parentQuestions,
+    parentPane: pane,
     archive: [archivedEntry(earlier, 3, 'PT-SECRET-EARLIER')],
     branchMatch: none(),
-    parentAnswer: labels => labels.find(label => label === '新根分支'),
   })
   await $.session.start(session)
 
   const asked = await composerPrompt($)
 
-  expect(asked).toMatchObject({ drop: expect.stringContaining('请重新提交') })
+  expect(asked).toMatchObject({ drop: expect.stringContaining('确认父节点') })
   /* Its earliest rows are gone, so a lineage may begin before them. */
   expect(matchCalls(calls)[0]?.argv[6]).toBe('truncated')
-  expect(fills).toEqual([SECRET])
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   /* The stored parent is offered first, by its sequence and its text. */
-  expect(parentQuestions[0]?.labels).toEqual(['#3 PT-SECRET-EARLIER', '新根分支'])
+  expect(await parentChoices($)).toEqual(['#3 PT-SECRET-EARLIER', '新根分支'])
+  await pickParent($, pane, labels => labels.find(label => label === '新根分支'))
+  expect(fills).toEqual([SECRET])
   expect(store[branchKey()]).toMatchObject({ parentEventId: null, explicitRoot: true })
 
   /* The resubmission goes through from the chosen root, without asking again. */
@@ -318,16 +321,18 @@ test('a stored lineage a compacted transcript contradicts is put to the person, 
 })
 
 test('choosing the stored parent keeps the branch it was on', async ($, on) => {
+  const pane = parentPane()
   const store = consentedStore({ [branchKey()]: stored(earlier) })
   const calls = installSupportedTarget(on, {
     store,
     fills: [],
+    parentPane: pane,
     branchMatch: ambiguous(forkPoint),
-    parentAnswer: labels => labels[0],
   })
   await $.session.start(session)
 
   await composerPrompt($)
+  await pickParent($, pane, labels => labels[0])
   await composerPrompt($)
 
   /* Not in the loaded window: the stored parent is named by its event id. */
@@ -335,16 +340,18 @@ test('choosing the stored parent keeps the branch it was on', async ($, on) => {
 })
 
 test('choosing another candidate branches from it', async ($, on) => {
+  const pane = parentPane()
   const store = consentedStore({ [branchKey()]: stored(earlier) })
   const calls = installSupportedTarget(on, {
     store,
     fills: [],
+    parentPane: pane,
     branchMatch: ambiguous(forkPoint),
-    parentAnswer: labels => labels[1],
   })
   await $.session.start(session)
 
   await composerPrompt($)
+  await pickParent($, pane, labels => labels[1])
   await composerPrompt($)
 
   const begin = parentOf(captureCalls(calls, 'capture-begin')[0])
@@ -352,13 +359,13 @@ test('choosing another candidate branches from it', async ($, on) => {
   expect(begin.branchId).not.toBe(branchId)
 })
 
-test('a cancelled parent confirmation keeps the submission blocked', async ($, on) => {
+test('a submission made before the parent is chosen stays blocked and asks again', async ($, on) => {
   const store = consentedStore({ [branchKey()]: stored(earlier), [compactedKey()]: true })
-  const parentQuestions: { question: string; labels: string[] }[] = []
+  const pane = parentPane()
   const calls = installSupportedTarget(on, {
     store,
     fills: [],
-    parentQuestions,
+    parentPane: pane,
     branchMatch: none(),
   })
   await $.session.start(session)
@@ -368,21 +375,21 @@ test('a cancelled parent confirmation keeps the submission blocked', async ($, o
 
   expect(first).toMatchObject({ drop: expect.any(String) })
   expect(second).toMatchObject({ drop: expect.any(String) })
-  expect(parentQuestions).toHaveLength(2)
+  expect(pane.opens).toHaveLength(2)
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   expect(store[branchKey()]).toEqual(stored(earlier))
 })
 
 test('a resume whose uncompacted transcript reaches no archived entry starts a root without asking', async ($, on) => {
   const store = consentedStore({ [branchKey()]: stored(earlier) })
-  const parentQuestions: { question: string; labels: string[] }[] = []
-  const calls = installSupportedTarget(on, { store, parentQuestions, branchMatch: none() })
+  const pane = parentPane()
+  const calls = installSupportedTarget(on, { store, parentPane: pane, branchMatch: none() })
   await $.session.start(session)
 
   const result = await composerPrompt($)
 
   expect(result).toMatchObject({ text: SECRET })
-  expect(parentQuestions).toHaveLength(0)
+  expect(pane.opens).toHaveLength(0)
   expect(matchCalls(calls)[0]?.argv[6]).toBe('whole')
   const begin = parentOf(captureCalls(calls, 'capture-begin')[0])
   expect(begin.parent).toBe('-')
