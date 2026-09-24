@@ -1124,14 +1124,20 @@ static void require_known_parent(sqlite3 *database, const char *parent_event_id)
   }
 }
 
+static long long prompt_ordinal(sqlite3 *database, long long sequence);
+
+/* The entry's sequence, and its ordinal among the project's Prompt Entries,
+   which is the number the band shows it under. */
 static void write_confirmation(
+  sqlite3 *database,
   const char *event_id,
   const char *project_id,
   long long sequence
 ) {
+  long long ordinal = prompt_ordinal(database, sequence);
   write_status_string("{\"eventId\":", event_id);
   write_status_string(",\"projectId\":", project_id);
-  printf(",\"sequence\":%lld}\n", sequence);
+  printf(",\"sequence\":%lld,\"ordinal\":%lld}\n", sequence, ordinal);
 }
 
 static long long allocate_sequence(sqlite3 *database, const char *project_id) {
@@ -1169,9 +1175,9 @@ static void capture_confirm(int argc, char **argv) {
   if (sequence > 0) {
     discard_pending(database, event_id);
     archive_sql(database, "COMMIT");
+    write_confirmation(database, event_id, project_id, sequence);
     sqlite3_close(database);
     free(prompt);
-    write_confirmation(event_id, project_id, sequence);
     return;
   }
 
@@ -1234,9 +1240,9 @@ static void capture_confirm(int argc, char **argv) {
   }
   sqlite3_finalize(remove);
   archive_sql(database, "COMMIT");
+  write_confirmation(database, event_id, project_id, sequence);
   sqlite3_close(database);
   free(prompt);
-  write_confirmation(event_id, project_id, sequence);
 }
 
 static void capture_abort(int argc, char **argv) {
@@ -1473,22 +1479,238 @@ static void boundary_append(int argc, char **argv) {
   printf(",\"sequence\":%lld}\n", sequence);
 }
 
-/* The latest Timeline Events of one Project Timeline, oldest first: Prompt
-   Entries and non-prompt boundaries interleaved by the project-level sequence
-   alone. The batch is fixed here, never chosen by the caller, so no request can
-   read the whole table; `truncated` says earlier events exist.
+/* One batch of a Project Timeline's events, oldest first: Prompt Entries and
+   non-prompt boundaries interleaved by the project-level sequence alone. With
+   no cursor it is the latest batch; `before <sequence>` and `after <sequence>`
+   read the batch next to an event the caller already holds. The batch is fixed
+   here, never chosen by the caller, so no request can read the whole table.
+   Each batch carries one event more on the side it was read towards, which the
+   band draws as its overscan row; `earlier` and `later` say whether events lie
+   beyond what was returned.
+
+   Each Prompt Entry carries its ordinal among the project's Prompt Entries, so
+   a number stays the same whichever batch shows it. What the view derives from
+   events outside the batch comes along too, identity only and bounded by it:
+   the active path ending at `tip` where it crosses the batch and where it
+   began in `run` (`path`); the Run of each entry's parent outside the batch
+   (`parents`); and, for each Run start, the Run that held its segment first
+   when that is another one (`origins`).
 
    This is the one subcommand whose response carries prompt text. It goes to
    the hook that asked, for display, and nowhere else: never argv, never
    stderr, never an error. A staged Pending Capture is not a Prompt Entry and
    is never read back. */
 #define TIMELINE_READ_LIMIT 128
+#define TIMELINE_READ_ROWS (TIMELINE_READ_LIMIT + 1)
+
+typedef struct {
+  char event_id[129];
+  char run_id[129];
+  char segment_id[129];
+  char parent_event_id[129];
+  long long sequence;
+  bool prompt;
+  bool run_started;
+} timeline_row;
+
+static bool parse_sequence_cursor(const char *text, long long minimum, long long *value) {
+  if (*text == '\0' || strlen(text) > 18) return false;
+  long long parsed = 0;
+  for (const char *cursor = text; *cursor; cursor += 1) {
+    if (!isdigit((unsigned char)*cursor)) return false;
+    parsed = parsed * 10 + (*cursor - '0');
+  }
+  if (parsed < minimum) return false;
+  *value = parsed;
+  return true;
+}
+
+static bool timeline_has_event(sqlite3 *database, const char *comparison, long long sequence) {
+  char sql[256];
+  snprintf(
+    sql,
+    sizeof(sql),
+    "SELECT EXISTS(SELECT 1 FROM prompt_entries WHERE sequence %s ?1)"
+    " OR EXISTS(SELECT 1 FROM timeline_events WHERE sequence %s ?1)",
+    comparison,
+    comparison
+  );
+  sqlite3_stmt *exists = archive_prepare(database, sql);
+  sqlite3_bind_int64(exists, 1, sequence);
+  if (sqlite3_step(exists) != SQLITE_ROW) archive_error("archive-sqlite");
+  bool found = sqlite3_column_int(exists, 0) != 0;
+  sqlite3_finalize(exists);
+  return found;
+}
+
+/* How many Prompt Entries the project holds up to `sequence`: an entry's
+   ordinal when `sequence` is its own. */
+static long long prompt_ordinal(sqlite3 *database, long long sequence) {
+  sqlite3_stmt *count = archive_prepare(
+    database,
+    "SELECT count(*) FROM prompt_entries WHERE sequence <= ?1"
+  );
+  sqlite3_bind_int64(count, 1, sequence);
+  if (sqlite3_step(count) != SQLITE_ROW) archive_error("archive-sqlite");
+  long long ordinal = sqlite3_column_int64(count, 0);
+  sqlite3_finalize(count);
+  return ordinal;
+}
+
+static void copy_column(char *target, sqlite3_stmt *statement, int column) {
+  const unsigned char *text = sqlite3_column_text(statement, column);
+  snprintf(target, 129, "%s", text ? (const char *)text : "");
+}
+
+static bool window_holds(const timeline_row *rows, int count, const char *event_id) {
+  for (int index = 0; index < count; index += 1) {
+    if (strcmp(rows[index].event_id, event_id) == 0) return true;
+  }
+  return false;
+}
+
+static void write_path(
+  sqlite3 *database,
+  const char *run_id,
+  const char *tip,
+  const timeline_row *rows,
+  int count
+) {
+  /* A parent is always archived before its child, so the chain only ever
+     descends in sequence and ends. */
+  sqlite3_stmt *chain = archive_prepare(
+    database,
+    "WITH RECURSIVE chain(event_id, sequence, run_id, parent) AS ("
+    " SELECT event_id, sequence, run_id, parent_event_id FROM prompt_entries"
+    "  WHERE event_id = ?1"
+    " UNION ALL"
+    " SELECT entry.event_id, entry.sequence, entry.run_id, entry.parent_event_id"
+    "  FROM prompt_entries entry JOIN chain ON entry.event_id = chain.parent"
+    ") SELECT event_id, sequence, run_id FROM chain"
+  );
+  archive_bind_text(database, chain, 1, tip);
+  long long low = count > 0 ? rows[0].sequence : 1;
+  long long high = count > 0 ? rows[count - 1].sequence : 0;
+  long long start = 0;
+  int listed = 0;
+  fputs(",\"path\":{\"eventIds\":[", stdout);
+  int step;
+  while ((step = sqlite3_step(chain)) == SQLITE_ROW) {
+    long long sequence = sqlite3_column_int64(chain, 1);
+    if (strcmp((const char *)sqlite3_column_text(chain, 2), run_id) == 0) start = sequence;
+    if (sequence < low || sequence > high) continue;
+    write_status_string(listed++ > 0 ? "," : "", (const char *)sqlite3_column_text(chain, 0));
+  }
+  if (step != SQLITE_DONE) archive_error("archive-sqlite");
+  sqlite3_finalize(chain);
+  if (start > 0) printf("],\"start\":%lld}", start);
+  else fputs("],\"start\":null}", stdout);
+}
+
+static void write_parents(sqlite3 *database, const timeline_row *rows, int count) {
+  sqlite3_stmt *lookup = archive_prepare(
+    database,
+    "SELECT run_id FROM prompt_entries WHERE event_id = ?1"
+  );
+  fputs(",\"parents\":[", stdout);
+  int listed = 0;
+  for (int index = 0; index < count; index += 1) {
+    const char *parent = rows[index].parent_event_id;
+    if (!rows[index].prompt || parent[0] == '\0' || window_holds(rows, count, parent)) continue;
+    bool repeated = false;
+    for (int earlier = 0; earlier < index && !repeated; earlier += 1) {
+      repeated = strcmp(rows[earlier].parent_event_id, parent) == 0;
+    }
+    if (repeated) continue;
+    sqlite3_reset(lookup);
+    archive_bind_text(database, lookup, 1, parent);
+    if (sqlite3_step(lookup) != SQLITE_ROW) archive_error("archive-sqlite");
+    if (listed++ > 0) fputs(",", stdout);
+    write_status_string("{\"eventId\":", parent);
+    write_status_string(",\"runId\":", (const char *)sqlite3_column_text(lookup, 0));
+    fputs("}", stdout);
+  }
+  sqlite3_finalize(lookup);
+  fputs("]", stdout);
+}
+
+static void write_origins(sqlite3 *database, const timeline_row *rows, int count) {
+  fputs(",\"origins\":[", stdout);
+  bool any = false;
+  for (int index = 0; index < count && !any; index += 1) any = rows[index].run_started;
+  if (!any) {
+    fputs("]", stdout);
+    return;
+  }
+  /* One pass over both tables for every segment a Run start in the batch
+     names; there is no index on segments, and a scan per start would not stay
+     bounded. */
+  archive_sql(database, "CREATE TEMP TABLE started_segments(segment_id TEXT PRIMARY KEY)");
+  sqlite3_stmt *insert = archive_prepare(
+    database,
+    "INSERT OR IGNORE INTO temp.started_segments(segment_id) VALUES(?1)"
+  );
+  for (int index = 0; index < count; index += 1) {
+    if (!rows[index].run_started) continue;
+    sqlite3_reset(insert);
+    archive_bind_text(database, insert, 1, rows[index].segment_id);
+    if (sqlite3_step(insert) != SQLITE_DONE) archive_error("archive-sqlite");
+  }
+  sqlite3_finalize(insert);
+  sqlite3_stmt *holders = archive_prepare(
+    database,
+    "SELECT segment_id, run_id, min(sequence) FROM ("
+    " SELECT segment_id, run_id, sequence FROM prompt_entries"
+    " UNION ALL SELECT segment_id, run_id, sequence FROM timeline_events"
+    ") WHERE segment_id IN (SELECT segment_id FROM temp.started_segments)"
+    " GROUP BY segment_id"
+  );
+  int listed = 0;
+  int step;
+  while ((step = sqlite3_step(holders)) == SQLITE_ROW) {
+    const char *segment = (const char *)sqlite3_column_text(holders, 0);
+    const char *holder = (const char *)sqlite3_column_text(holders, 1);
+    for (int index = 0; index < count; index += 1) {
+      if (!rows[index].run_started
+          || strcmp(rows[index].segment_id, segment) != 0
+          || strcmp(rows[index].run_id, holder) == 0) continue;
+      if (listed++ > 0) fputs(",", stdout);
+      write_status_string("{\"eventId\":", rows[index].event_id);
+      write_status_string(",\"runId\":", holder);
+      fputs("}", stdout);
+    }
+  }
+  if (step != SQLITE_DONE) archive_error("archive-sqlite");
+  sqlite3_finalize(holders);
+  fputs("]", stdout);
+}
 
 static void timeline_read(int argc, char **argv) {
-  if (argc != 6) usage();
+  if (argc != 8 && argc != 10) usage();
   const char *database_root = argv[2];
   const char *project_id = argv[3];
   if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  /* 0: the latest batch; -1: before the cursor; 1: after it. */
+  int direction = 0;
+  long long cursor = 0;
+  if (argc == 10) {
+    if (strcmp(argv[6], "before") == 0) {
+      direction = -1;
+      if (!parse_sequence_cursor(argv[7], 1, &cursor)) archive_error("read-input");
+    } else if (strcmp(argv[6], "after") == 0) {
+      direction = 1;
+      if (!parse_sequence_cursor(argv[7], 0, &cursor)) archive_error("read-input");
+    } else {
+      usage();
+    }
+  }
+  const char *run_id = argv[argc - 2];
+  const char *tip = argv[argc - 1];
+  bool with_path = strcmp(tip, "-") != 0;
+  if (with_path != (strcmp(run_id, "-") != 0)
+      || (with_path && (!pt_is_safe_identifier(run_id) || !pt_is_safe_identifier(tip)))) {
+    archive_error("read-input");
+  }
   bool root_present =
     capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
 
@@ -1515,65 +1737,102 @@ static void timeline_read(int argc, char **argv) {
 
   if (!archived) {
     write_status_string("{\"projectId\":", project_id);
-    fputs(",\"events\":[],\"truncated\":false}\n", stdout);
+    fputs(",\"events\":[],\"earlier\":false,\"later\":false", stdout);
+    if (with_path) fputs(",\"path\":{\"eventIds\":[],\"start\":null}", stdout);
+    fputs(",\"parents\":[],\"origins\":[]}\n", stdout);
     return;
   }
 
   sqlite3 *database = open_archive(database_root, project_id, false);
-  /* One more than the batch is fetched newest-first; if it arrives, the
-     oldest of them only proves that earlier events exist and is not shown. */
-  sqlite3_stmt *rows = archive_prepare(
+  /* Each table gives its own nearest rows through its sequence index before
+     the two are merged, so a read touches a batch, not the archive. */
+#define TIMELINE_COLUMNS_PROMPT \
+  "event_id, sequence, run_id, 'prompt' AS kind, prompt_text, attachment_count," \
+  " segment_id, branch_id, parent_event_id"
+#define TIMELINE_COLUMNS_EVENT \
+  "event_id, sequence, run_id, kind, NULL, 0, segment_id, branch_id, NULL"
+  sqlite3_stmt *select = archive_prepare(
     database,
-    "SELECT event_id, sequence, run_id, kind, prompt_text, attachment_count,"
-    " count(*) OVER (), segment_id, branch_id, parent_event_id FROM ("
-    "  SELECT event_id, sequence, run_id, 'prompt' AS kind, prompt_text,"
-    "   attachment_count, segment_id, branch_id, parent_event_id"
-    "   FROM prompt_entries"
-    "  UNION ALL"
-    "  SELECT event_id, sequence, run_id, kind, NULL, 0, segment_id, branch_id,"
-    "   NULL FROM timeline_events"
-    "  ORDER BY sequence DESC LIMIT ?1"
-    ") ORDER BY sequence ASC"
+    direction > 0
+      ? "SELECT * FROM ("
+        " SELECT * FROM (SELECT " TIMELINE_COLUMNS_PROMPT " FROM prompt_entries"
+        "  WHERE sequence > ?1 ORDER BY sequence ASC LIMIT ?2)"
+        " UNION ALL"
+        " SELECT * FROM (SELECT " TIMELINE_COLUMNS_EVENT " FROM timeline_events"
+        "  WHERE sequence > ?1 ORDER BY sequence ASC LIMIT ?2)"
+        " ORDER BY sequence ASC LIMIT ?2"
+        ") ORDER BY sequence ASC"
+      : "SELECT * FROM ("
+        " SELECT * FROM (SELECT " TIMELINE_COLUMNS_PROMPT " FROM prompt_entries"
+        "  WHERE sequence < ?1 ORDER BY sequence DESC LIMIT ?2)"
+        " UNION ALL"
+        " SELECT * FROM (SELECT " TIMELINE_COLUMNS_EVENT " FROM timeline_events"
+        "  WHERE sequence < ?1 ORDER BY sequence DESC LIMIT ?2)"
+        " ORDER BY sequence DESC LIMIT ?2"
+        ") ORDER BY sequence ASC"
   );
-  sqlite3_bind_int(rows, 1, TIMELINE_READ_LIMIT + 1);
+#undef TIMELINE_COLUMNS_PROMPT
+#undef TIMELINE_COLUMNS_EVENT
+  sqlite3_bind_int64(select, 1, direction == 0 ? INT64_MAX : cursor);
+  sqlite3_bind_int(select, 2, TIMELINE_READ_ROWS);
 
+  timeline_row *rows = calloc(TIMELINE_READ_ROWS, sizeof(timeline_row));
+  if (!rows) archive_error("archive-memory");
   write_status_string("{\"projectId\":", project_id);
   fputs(",\"events\":[", stdout);
-  bool truncated = false;
-  bool first_row = true;
-  int listed = 0;
+  int count = 0;
+  long long ordinal = 0;
   int step;
-  while ((step = sqlite3_step(rows)) == SQLITE_ROW) {
-    if (first_row && sqlite3_column_int(rows, 6) > TIMELINE_READ_LIMIT) {
-      truncated = true;
-      first_row = false;
-      continue;
-    }
-    first_row = false;
-    if (listed > 0) fputs(",", stdout);
-    write_status_string("{\"eventId\":", (const char *)sqlite3_column_text(rows, 0));
-    printf(",\"sequence\":%lld", (long long)sqlite3_column_int64(rows, 1));
-    write_status_string(",\"runId\":", (const char *)sqlite3_column_text(rows, 2));
-    write_status_string(",\"segmentId\":", (const char *)sqlite3_column_text(rows, 7));
-    write_status_string(",\"branchId\":", (const char *)sqlite3_column_text(rows, 8));
-    const char *kind = (const char *)sqlite3_column_text(rows, 3);
+  while ((step = sqlite3_step(select)) == SQLITE_ROW) {
+    if (count == TIMELINE_READ_ROWS) archive_error("archive-sqlite");
+    timeline_row *row = &rows[count];
+    copy_column(row->event_id, select, 0);
+    row->sequence = sqlite3_column_int64(select, 1);
+    copy_column(row->run_id, select, 2);
+    copy_column(row->segment_id, select, 6);
+    const char *kind = (const char *)sqlite3_column_text(select, 3);
+    row->prompt = strcmp(kind, "prompt") == 0;
+    row->run_started = strcmp(kind, "run-started") == 0;
+
+    if (count > 0) fputs(",", stdout);
+    write_status_string("{\"eventId\":", row->event_id);
+    printf(",\"sequence\":%lld", row->sequence);
+    write_status_string(",\"runId\":", row->run_id);
+    write_status_string(",\"segmentId\":", row->segment_id);
+    write_status_string(",\"branchId\":", (const char *)sqlite3_column_text(select, 7));
     write_status_string(",\"kind\":", kind);
-    if (strcmp(kind, "prompt") == 0) {
-      if (sqlite3_column_type(rows, 9) == SQLITE_NULL) {
+    if (row->prompt) {
+      ordinal = ordinal == 0 ? prompt_ordinal(database, row->sequence) : ordinal + 1;
+      if (sqlite3_column_type(select, 8) == SQLITE_NULL) {
         fputs(",\"parentEventId\":null", stdout);
       } else {
-        write_status_string(",\"parentEventId\":", (const char *)sqlite3_column_text(rows, 9));
+        copy_column(row->parent_event_id, select, 8);
+        write_status_string(",\"parentEventId\":", row->parent_event_id);
       }
-      write_status_string(",\"text\":", (const char *)sqlite3_column_text(rows, 4));
-      printf(",\"attachmentCount\":%lld", (long long)sqlite3_column_int64(rows, 5));
+      write_status_string(",\"text\":", (const char *)sqlite3_column_text(select, 4));
+      printf(",\"attachmentCount\":%lld", (long long)sqlite3_column_int64(select, 5));
+      printf(",\"ordinal\":%lld", ordinal);
     }
     fputs("}", stdout);
-    listed++;
+    count += 1;
   }
-  if (step != SQLITE_ROW && step != SQLITE_DONE) archive_error("archive-sqlite");
-  sqlite3_finalize(rows);
+  if (step != SQLITE_DONE) archive_error("archive-sqlite");
+  sqlite3_finalize(select);
+
+  /* Where nothing came back, the edges are the cursor's. */
+  long long low = count > 0 ? rows[0].sequence : direction > 0 ? cursor + 1 : direction < 0 ? cursor : 1;
+  long long high = count > 0 ? rows[count - 1].sequence : direction > 0 ? cursor : direction < 0 ? cursor - 1 : 0;
+  printf(
+    "],\"earlier\":%s,\"later\":%s",
+    timeline_has_event(database, "<", low) ? "true" : "false",
+    timeline_has_event(database, ">", high) ? "true" : "false"
+  );
+  if (with_path) write_path(database, run_id, tip, rows, count);
+  write_parents(database, rows, count);
+  write_origins(database, rows, count);
+  fputs("}\n", stdout);
+  free(rows);
   sqlite3_close(database);
-  printf("],\"truncated\":%s}\n", truncated ? "true" : "false");
 }
 
 /* `branch-match` answers which archived Prompt Entry a transcript ends on, so

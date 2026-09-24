@@ -7,6 +7,7 @@ import shutil
 import sqlite3
 import stat
 import subprocess
+import sys
 import tempfile
 import unittest
 import uuid
@@ -711,6 +712,29 @@ class HelperProtocolTests(unittest.TestCase):
         )
         self.assertEqual(confirm.returncode, 0, confirm.stderr)
         return event_id
+
+    def test_capture_confirm_answers_the_entrys_place_among_the_projects_prompt_entries(self) -> None:
+        project_id = "c7" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-ONE", identity=identity)
+        self.boundary(identity=identity, kind="clear")
+        event_id = str(uuid.uuid4())
+        self.assertEqual(
+            self.run_helper(*self.begin_argv(event_id, **identity), input_text="PT-SECRET-TWO").returncode,
+            0,
+        )
+
+        confirmed = self.run_helper(
+            *self.confirm_argv(event_id, project_id=project_id), input_text="PT-SECRET-TWO"
+        )
+        repeated = self.run_helper(
+            *self.confirm_argv(event_id, project_id=project_id), input_text="PT-SECRET-TWO"
+        )
+
+        for result in (confirmed, repeated):
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertEqual((payload["sequence"], payload["ordinal"]), (3, 2))
 
     def test_three_identical_prompts_form_three_distinct_prompt_entries(self) -> None:
         project_id = "c" * 64
@@ -1636,14 +1660,39 @@ class HelperProtocolTests(unittest.TestCase):
         )
 
 
-    def read_argv(self, *, project_id: str) -> tuple[str, ...]:
+    def read_argv(
+        self,
+        *,
+        project_id: str,
+        cursor: tuple[str, int] | None = None,
+        run_id: str = "-",
+        tip: str = "-",
+    ) -> tuple[str, ...]:
         return (
             "timeline-read",
             str(self.plugin_data / "archives"),
             project_id,
             json.loads(MANIFEST.read_text())["sha256"],
             "1",
+            *((cursor[0], str(cursor[1])) if cursor else ()),
+            run_id,
+            tip,
         )
+
+    def read(self, **argv: object) -> dict[str, object]:
+        result = self.run_helper(*self.read_argv(**argv))  # type: ignore[arg-type]
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        return json.loads(result.stdout)
+
+    def fixture(self, project_id: str, count: int) -> list[dict]:
+        """A helper-created archive holding one run start, then `count` more
+        events written by the test-only builder."""
+        self.boundary(identity=self.identity(project_id), kind="run-started")
+        sys.path.insert(0, str(ROOT / "tests"))
+        import timeline_fixture
+        database = self.plugin_data / "archives" / f"{project_id}.sqlite3"
+        return timeline_fixture.build(database, project_id, count)
 
     def test_run_boundaries_share_the_sequence_and_stay_idempotent(self) -> None:
         project_id = "5" * 64
@@ -1711,7 +1760,8 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertNotIn("PT-SECRET-STAGED", read.stdout)
         payload = json.loads(read.stdout)
         self.assertEqual(payload["projectId"], project_id)
-        self.assertIs(payload["truncated"], False)
+        self.assertIs(payload["earlier"], False)
+        self.assertIs(payload["later"], False)
         self.assertEqual(
             [(row["eventId"], row["sequence"], row["kind"]) for row in payload["events"]],
             [
@@ -1764,33 +1814,181 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(json.loads(read.stdout), {
             "projectId": project_id,
             "events": [],
-            "truncated": False,
+            "earlier": False,
+            "later": False,
+            "parents": [],
+            "origins": [],
         })
         self.assertFalse((database_root / f"{project_id}.sqlite3").exists())
 
-    def test_timeline_read_enforces_a_fixed_maximum_batch_of_the_latest_events(self) -> None:
+    def test_timeline_read_answers_the_latest_batch_and_one_earlier_event(self) -> None:
         project_id = "9" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         appended = [
             self.boundary(identity=identity, kind="clear")[0]
-            for _ in range(129)
+            for _ in range(130)
         ]
 
-        payload = json.loads(
-            self.run_helper(*self.read_argv(project_id=project_id)).stdout
-        )
+        payload = self.read(project_id=project_id)
 
-        self.assertIs(payload["truncated"], True)
+        # 128 events plus the one before them, which the band draws above the
+        # batch; the event before that is only reported, not returned.
+        self.assertIs(payload["earlier"], True)
+        self.assertIs(payload["later"], False)
         self.assertEqual([row["eventId"] for row in payload["events"]], appended[1:])
         self.assertEqual(
             [row["sequence"] for row in payload["events"]],
-            list(range(2, 130)),
+            list(range(2, 131)),
         )
+
+    def test_timeline_read_walks_the_whole_timeline_in_fixed_batches_both_ways(self) -> None:
+        project_id = "c1" * 32
+        events = self.fixture(project_id, 1_000)
+        total = events[-1]["sequence"]
+        self.assertEqual(total, 1_001)
+
+        seen: list[int] = []
+        payload = self.read(project_id=project_id)
+        while True:
+            sequences = [row["sequence"] for row in payload["events"]]
+            self.assertLessEqual(len(sequences), 129)
+            self.assertEqual(sequences, sorted(set(sequences)))
+            self.assertEqual(sequences, list(range(sequences[0], sequences[-1] + 1)))
+            if seen:
+                # The earlier batch ends right before the event that was on top.
+                self.assertEqual(sequences[-1] + 1, seen[0])
+            seen = sequences + seen
+            self.assertIs(payload["earlier"], sequences[0] > 1)
+            if not payload["earlier"]:
+                break
+            payload = self.read(project_id=project_id, cursor=("before", sequences[0]))
+        self.assertEqual(seen, list(range(1, total + 1)))
+
+        seen = []
+        payload = self.read(project_id=project_id, cursor=("after", 0))
+        while True:
+            sequences = [row["sequence"] for row in payload["events"]]
+            self.assertLessEqual(len(sequences), 129)
+            self.assertEqual(sequences, list(range(sequences[0], sequences[-1] + 1)))
+            if seen:
+                self.assertEqual(sequences[0], seen[-1] + 1)
+            seen += sequences
+            self.assertIs(payload["later"], sequences[-1] < total)
+            self.assertIs(payload["earlier"], sequences[0] > 1)
+            if not payload["later"]:
+                break
+            payload = self.read(project_id=project_id, cursor=("after", sequences[-1]))
+        self.assertEqual(seen, list(range(1, total + 1)))
+
+    def test_timeline_read_numbers_each_entry_among_the_projects_prompt_entries(self) -> None:
+        project_id = "c2" * 32
+        events = self.fixture(project_id, 600)
+        ordinals = {
+            event["eventId"]: index + 1
+            for index, event in enumerate(e for e in events if e["kind"] == "prompt")
+        }
+        middle = events[300]["sequence"]
+
+        payload = self.read(project_id=project_id, cursor=("before", middle))
+
+        prompts = [row for row in payload["events"] if row["kind"] == "prompt"]
+        self.assertTrue(prompts)
+        self.assertEqual(
+            [row["ordinal"] for row in prompts],
+            [ordinals[row["eventId"]] for row in prompts],
+        )
+        self.assertNotIn("ordinal", next(r for r in payload["events"] if r["kind"] != "prompt"))
+
+    def test_timeline_read_places_the_active_path_beyond_the_batch(self) -> None:
+        project_id = "c3" * 32
+        events = self.fixture(project_id, 800)
+        by_id = {event["eventId"]: event for event in events}
+        # A tip well above the batch read, so its chain enters the batch from
+        # outside it.
+        tip = next(e for e in reversed(events) if e["kind"] == "prompt")
+        run_id = tip["runId"]
+        chain = []
+        at = tip
+        while at is not None:
+            chain.append(at)
+            at = by_id.get(at["parentEventId"] or "")
+        self.assertGreater(len(chain), 1)
+        window_top = chain[-1]["sequence"] + 1
+
+        payload = self.read(
+            project_id=project_id,
+            cursor=("before", window_top),
+            run_id=run_id,
+            tip=tip["eventId"],
+        )
+
+        sequences = {row["sequence"] for row in payload["events"]}
+        self.assertEqual(
+            sorted(payload["path"]["eventIds"]),
+            sorted(e["eventId"] for e in chain if e["sequence"] in sequences),
+        )
+        self.assertEqual(
+            payload["path"]["start"],
+            min(e["sequence"] for e in chain if e["runId"] == run_id),
+        )
+
+    def test_timeline_read_names_the_run_of_each_parent_beyond_the_batch(self) -> None:
+        project_id = "c4" * 32
+        events = self.fixture(project_id, 700)
+        by_id = {event["eventId"]: event for event in events}
+
+        payload = self.read(project_id=project_id)
+
+        window = {row["eventId"] for row in payload["events"]}
+        expected = {
+            row["parentEventId"]: by_id[row["parentEventId"]]["runId"]
+            for row in payload["events"]
+            if row["kind"] == "prompt" and row["parentEventId"] and row["parentEventId"] not in window
+        }
+        self.assertTrue(expected)
+        self.assertEqual(
+            {row["eventId"]: row["runId"] for row in payload["parents"]},
+            expected,
+        )
+        self.assertEqual(payload["origins"], [])
+        self.assertNotIn("path", payload)
+
+    def test_timeline_read_names_the_run_that_held_a_segment_before_the_batch(self) -> None:
+        project_id = "c5" * 32
+        holder = self.identity(project_id)
+        self.capture("PT-SECRET-HELD", identity=holder)
+        sys.path.insert(0, str(ROOT / "tests"))
+        import timeline_fixture
+        timeline_fixture.build(
+            self.plugin_data / "archives" / f"{project_id}.sqlite3", project_id, 300
+        )
+        # A second process resumes the same session: a new Run in the old segment.
+        split = self.identity(project_id, segment_id=holder["segment_id"])
+        started, _ = self.boundary(identity=split, kind="run-started")
+
+        payload = self.read(project_id=project_id)
+
+        self.assertEqual(payload["origins"], [{"eventId": started, "runId": holder["run_id"]}])
+
+    def test_timeline_read_refuses_a_malformed_cursor_or_tip(self) -> None:
+        project_id = "c6" * 32
+        self.fixture(project_id, 10)
+        for argv in (
+            {"cursor": ("before", 0)},
+            {"cursor": ("after", -1)},
+            {"cursor": ("around", 5)},
+            {"run_id": "x y", "tip": "-"},
+            {"run_id": "-", "tip": str(uuid.uuid4())},
+        ):
+            with self.subTest(argv=argv):
+                refused = self.run_helper(*self.read_argv(project_id=project_id, **argv))
+                self.assertNotEqual(refused.returncode, 0)
+                self.assertEqual(refused.stdout, "")
+        malformed = self.run_helper(
+            "timeline-read", str(self.plugin_data / "archives"), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1", "before", "5x", "-", "-",
+        )
+        self.assertNotEqual(malformed.returncode, 0)
 
     def match_argv(
         self,
