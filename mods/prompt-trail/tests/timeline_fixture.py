@@ -119,6 +119,48 @@ def build(database: pathlib.Path, project_id: str, count: int, *, seed: int = 21
     return events
 
 
+def chain(
+    database: pathlib.Path,
+    project_id: str,
+    count: int,
+    text: str,
+    *,
+    run_id: str,
+    segment_id: str,
+    branch_id: str,
+) -> list[str]:
+    """Append one lineage of `count` Prompt Entries all holding `text`;
+    answers their event ids, root first."""
+    connection = sqlite3.connect(database)
+    event_ids: list[str] = []
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        (sequence,) = connection.execute(
+            "SELECT next_sequence FROM metadata WHERE project_id=?", (project_id,)
+        ).fetchone()
+        parent = None
+        for _ in range(count):
+            sequence += 1
+            event_id = str(uuid.uuid4())
+            connection.execute(
+                "INSERT INTO prompt_entries(event_id, sequence, run_id, segment_id,"
+                " branch_id, parent_event_id, occurred_at_ms, source,"
+                " attachment_count, attachment_kinds, prompt_text)"
+                " VALUES(?,?,?,?,?,?,?,'composer',0,'',?)",
+                (event_id, sequence, run_id, segment_id, branch_id, parent,
+                 1795000000000 + sequence, text),
+            )
+            event_ids.append(event_id)
+            parent = event_id
+        connection.execute(
+            "UPDATE metadata SET next_sequence=? WHERE project_id=?", (sequence, project_id)
+        )
+        connection.execute("COMMIT")
+    finally:
+        connection.close()
+    return event_ids
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("database", type=pathlib.Path)

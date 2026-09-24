@@ -9,6 +9,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 import uuid
 
@@ -2216,6 +2217,79 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(whole["match"], "none")
         self.assertEqual(whole["candidates"], [])
         self.assertEqual((truncated["match"], truncated["eventId"]), ("unique", tip))
+
+    def repeated_lineage(self, project_id: str, count: int) -> tuple[dict[str, str], list[str]]:
+        """A helper-created archive holding one lineage of `count` identical
+        prompts, the backlog's worst case for matching."""
+        identity = self.identity(project_id)
+        self.boundary(identity=identity, kind="run-started")
+        sys.path.insert(0, str(ROOT / "tests"))
+        import timeline_fixture
+        return identity, timeline_fixture.chain(
+            self.plugin_data / "archives" / f"{project_id}.sqlite3",
+            project_id,
+            count,
+            "PT-SECRET-AGAIN",
+            run_id=identity["run_id"],
+            segment_id=identity["segment_id"],
+            branch_id=identity["branch_id"],
+        )
+
+    def timed_match(self, rows: list[str], **argv: str) -> tuple[dict[str, object], float]:
+        encoded = "".join(f"{len(row.encode())}\n{row}" for row in rows)
+        started = time.monotonic()
+        result = subprocess.run(
+            [str(HELPER), *self.match_argv(**argv)],
+            input=encoded,
+            check=False,
+            capture_output=True,
+            text=True,
+            env=self.environment,
+            timeout=30,
+        )
+        elapsed = time.monotonic() - started
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("PT-SECRET", result.stdout)
+        return json.loads(result.stdout), elapsed
+
+    def test_branch_match_weighs_thousands_of_identical_entries_within_a_fixed_budget(self) -> None:
+        project_id = "d1" * 32
+        identity, lineage = self.repeated_lineage(project_id, 20_000)
+        rows = ["PT-SECRET-AGAIN"] * 4096
+
+        whole, whole_elapsed = self.timed_match(rows, project_id=project_id)
+        cut, cut_elapsed = self.timed_match(
+            rows, project_id=project_id, transcript="truncated", prefer=lineage[-1]
+        )
+
+        # A whole transcript of 4096 repeats holds exactly the first 4096 of
+        # the lineage; only its 4096th entry has a whole chain ending there.
+        self.assertEqual((whole["match"], whole.get("eventId")), ("unique", lineage[4095]))
+        # Cut to its newest rows, every entry from the 4096th on fits as well
+        # as any other: nothing tells them apart, and nothing is guessed.
+        self.assertEqual(cut["match"], "ambiguous")
+        self.assertLess(whole_elapsed, 3)
+        self.assertLess(cut_elapsed, 3)
+
+    def test_branch_match_numbers_its_candidates_and_the_preferred_entry(self) -> None:
+        project_id = "d2" * 32
+        identity = self.identity(project_id)
+        self.boundary(identity=identity, kind="run-started")
+        root = self.capture("PT-SECRET-ROOT", identity=identity)
+        self.boundary(identity=identity, kind="clear")
+        first = self.capture("PT-SECRET-SAME", identity=identity, parent=root)
+        second = self.capture("PT-SECRET-SAME", identity=identity, parent=root)
+
+        payload = self.match(
+            ["PT-SECRET-ROOT", "PT-SECRET-SAME"], project_id=project_id, prefer=root
+        )
+
+        self.assertEqual(payload["match"], "ambiguous")
+        self.assertEqual(
+            [(row["eventId"], row["sequence"], row["ordinal"]) for row in payload["candidates"]],
+            [(second, 5, 3), (first, 4, 2)],
+        )
+        self.assertEqual(payload["prefer"], {"eventId": root, "sequence": 2, "ordinal": 1})
 
     def test_branch_match_answers_an_absent_archive_without_creating_one(self) -> None:
         project_id = "a8" * 32
