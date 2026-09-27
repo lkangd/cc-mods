@@ -226,5 +226,5 @@ test('a blocked Run keeps the archive consistent with the conversation', async (
   expect(blocked.text).toBe(undefined)
   expect(captureCalls(calls, 'capture-confirm')).toHaveLength(0)
   expect(store[`prompt-trail:archive-state:${projectId}`])
-    .toStrictEqual({ version: 1, state: 'unavailable' })
+    .toMatchObject({ version: 2, state: 'unavailable', category: 'archive-sqlite' })
 })
