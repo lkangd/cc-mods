@@ -22,3 +22,25 @@
 ### 2026-09-23 · Run 定义修订
 
 Issue 32 把 Run 从「一个进程」改为「一条会话谱系」。本票的「并发 Run」仍指同一项目中同时接入的不同 Run；同一 Run 不会被两个进程同时接入（见新增条目）。
+
+### 实现层面对齐（2026-09-27）
+
+现状：大部分隔离已由前序票据做完。每个项目根一个 `<hash>.sqlite3`，库里只存 hash；项目根取 `rev-parse --show-toplevel`，非 Git 取启动目录，再 `realpath`，路径移动后就是新 hash；sequence 在 `BEGIN IMMEDIATE` 短事务里分配，`busy_timeout` 10 秒；mode、分支和生命周期队列都按 Run 分键；并发 resume 同一会话时，后到者开新 Run（Issue 32）；`status` 只报当前项目。缺口是：`capture-list` 不分 Run，并发 Run 会互相对账；`GIT_*` 环境变量和缺 Command Line Tools 时的 git shim 会让项目根判错或失败关闭；band 会把并发 Run 的条目和本 Run 的条目交错显示；另外缺少并发与隔离的测试。
+
+- **存活 Run 的 pending**：helper 在执行 `capture-list` 时扫描 locator 目录，按 pid 和启动时间核对进程世代。所属 Run 有别的存活进程接入的 pending 不列出，只回一个 `skipped` 计数，`status` 显示「另有 N 条属于正在运行的 Run」。判断存活的代码从 bridge 挪到 common 共用。这样保留了 Issue 15「一个进程可以结清前一个进程留下的 pending」，同时不会去碰别的 Run 正在进行中的提交。
+- **同一条孤儿 pending 被两个 Run 同时结清**：先到者生效。后到的 confirm 或 abort 回 `capture-settled-elsewhere`，插件清掉自己的 reconcile 记录，然后重新 discover，不阻止提交。
+- **看到并发 Run 的事件**：不轮询。保留现有机制：本 Run 追加时发现 sequence 不连续，在底部重读；滚到 later 边缘时读取。另外，`/prompt-history` 展开时一律重读最新一批。
+- **新条目计数**：仍只计本进程采集的条目（Issue 21）。
+- **`GIT_*` 环境变量**：改用 `/usr/bin/env -u GIT_DIR -u GIT_WORK_TREE -u GIT_COMMON_DIR -u GIT_CEILING_DIRECTORIES /usr/bin/git` 调用，项目根只由启动目录决定。
+- **git 失败**：任何非 0 退出码都往上查 `.git`。查到就失败关闭，查不到就按非 Git 项目处理，用启动目录。项目根的判定抽成可测的纯函数。
+- **band 显示**：只处理本 Run 起点之后的事件。每个其他 Run 折叠成一处「▸ 另一 Run · N 条」，锚点放在它在本 Run 起点之后的第一个事件上，它之后的 prompt 和边界行都收进这一处。N 只计 Prompt Entry，和「另一分支」共用展开状态与计数规则。本 Run 起点之前的历史不折叠。
+- **Run 边界行**：不加 Run 短 id。起点之前的并发历史里，交错出现的「Run 开始」无法区分，这一点记进 backlog。
+- **测试**：
+  - helper 黑盒：24 个进程在 barrier 后同时对同一项目混合执行 `capture-begin`/`confirm`/`boundary-append`，sequence 恰好是 1..N；同一 event id 的重试不产生新行；相同文本、不同 event id 的事件互相独立；两个项目互相隔离，一个库损坏、权限异常或被删，另一个库的读写和 preflight 都不受影响；覆盖存活 Run 的过滤与 `settled-elsewhere`。
+  - plugin test：另一存活 Run 的 pending 不触发对账；disable 一个 Run 不改另一个 Run 的 mode；`status` 不含其他项目的路径。
+  - 纯函数：项目根判定（Git 子目录、symlink、worktree、非 Git、shim 失败）和其他 Run 的折叠；worktree 与 symlink 用真实 `git worktree add` 验证。
+- **双 PTY 验收**：在 `pt21-project` 里开两个终端，覆盖 4 个场景：
+  1. 两边交替提交，顺序一致，本 Run 的活动路径连续，另一 Run 被折叠；
+  2. 一边 disable，另一边照常采集，`status` 显示两边的 mode 互不相同；
+  3. 两边同时 `--resume` 同一会话，后到者成为新 Run，两边各自保持分支（同时补上 Issue 32 真人双终端的覆盖）；
+  4. worktree 和非 Git 目录各自请求 consent，数据库文件各不相同。
