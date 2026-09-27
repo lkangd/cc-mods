@@ -650,6 +650,56 @@ static bool secure_path(const char *path, mode_t type, mode_t permissions) {
   return !pt_has_extended_acl(path);
 }
 
+bool pt_read_locator(
+  const char *directory,
+  const char *name,
+  PtLocatorIdentity *identity,
+  char **text
+) {
+  *text = NULL;
+  size_t name_length = strlen(name);
+  if (name_length <= 5 || strcmp(name + name_length - 5, ".json") != 0) {
+    return false;
+  }
+  int length = snprintf(identity->path, sizeof(identity->path), "%s/%s", directory, name);
+  if (length < 0 || (size_t)length >= sizeof(identity->path)
+      || !pt_path_is_private_file(identity->path)) {
+    return false;
+  }
+  char *locator = NULL;
+  bool valid = pt_read_file(identity->path, &locator, NULL)
+    && pt_json_validate(locator)
+    && pt_json_get_string(locator, "sessionId", identity->session_id, sizeof(identity->session_id))
+    && pt_json_get_i64(locator, "hostPid", &identity->host_pid)
+    && pt_json_get_i64(locator, "hostStartSeconds", &identity->host_start_seconds)
+    && pt_json_get_i64(locator, "hostStartMicroseconds", &identity->host_start_microseconds)
+    && identity->host_pid > 0
+    && identity->host_pid <= INT_MAX
+    && pt_is_safe_identifier(identity->session_id);
+  if (valid) {
+    char expected[PATH_MAX];
+    valid = (pt_locator_file_name(
+          identity->session_id,
+          identity->host_pid,
+          identity->host_start_seconds,
+          identity->host_start_microseconds,
+          expected,
+          sizeof(expected)
+        )
+        && strcmp(expected, name) == 0);
+    if (!valid) {
+      length = snprintf(expected, sizeof(expected), "%s.json", identity->session_id);
+      valid = length >= 0 && (size_t)length < sizeof(expected) && strcmp(expected, name) == 0;
+    }
+  }
+  if (!valid) {
+    free(locator);
+    return false;
+  }
+  *text = locator;
+  return true;
+}
+
 bool pt_path_is_private_directory(const char *path) {
   return secure_path(path, S_IFDIR, 0700);
 }

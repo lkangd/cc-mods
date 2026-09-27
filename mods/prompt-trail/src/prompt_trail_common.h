@@ -1,6 +1,7 @@
 #ifndef PROMPT_TRAIL_COMMON_H
 #define PROMPT_TRAIL_COMMON_H
 
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -59,6 +60,24 @@ bool pt_locator_file_name(
   int64_t host_start_microseconds,
   char *output,
   size_t capacity
+);
+/* One locator as every reader trusts it: a private regular file of well-formed
+   JSON naming a safe session and a positive host pid, and named after what it
+   holds, either `pt_locator_file_name` or the bare `<session>.json` older
+   builds used. `*text` then holds the locator for the fields each reader
+   needs besides these; the caller frees it. */
+typedef struct {
+  char path[PATH_MAX];
+  char session_id[129];
+  int64_t host_pid;
+  int64_t host_start_seconds;
+  int64_t host_start_microseconds;
+} PtLocatorIdentity;
+bool pt_read_locator(
+  const char *directory,
+  const char *name,
+  PtLocatorIdentity *identity,
+  char **text
 );
 bool pt_path_is_private_directory(const char *path);
 bool pt_path_is_private_file(const char *path);

@@ -253,116 +253,39 @@ static void write_key_string(
 /* One locator per process that has a classic session open: two processes
    resuming the same session each keep their own, instead of the later one
    overwriting the earlier one's. The name repeats the identity the locator
-   holds, so it can be checked rather than trusted. A bare `<session>.json`
-   is the name every locator had before; it is still recognised, so one left
-   behind by an older build is cleaned up rather than stranded. */
-static bool locator_name_matches(
-  const char *name,
-  const char *session_id,
-  int64_t host_pid,
-  int64_t host_start_seconds,
-  int64_t host_start_microseconds
-) {
-  char expected[PATH_MAX];
-  if (pt_locator_file_name(
-        session_id,
-        host_pid,
-        host_start_seconds,
-        host_start_microseconds,
-        expected,
-        sizeof(expected)
-      )
-      && strcmp(expected, name) == 0) {
-    return true;
-  }
-  int length = snprintf(expected, sizeof(expected), "%s.json", session_id);
-  return length >= 0
-    && (size_t)length < sizeof(expected)
-    && strcmp(expected, name) == 0;
-}
-
+   holds, so it can be checked rather than trusted (`pt_read_locator`). A bare
+   `<session>.json` is the name every locator had before; it is still
+   recognised, so one left behind by an older build is cleaned up rather than
+   stranded. */
 static void remove_proven_stale_locators(const char *directory) {
   DIR *stream = opendir(directory);
   if (!stream) return;
 
   struct dirent *entry = NULL;
   while ((entry = readdir(stream)) != NULL) {
-    size_t name_length = strlen(entry->d_name);
-    if (name_length <= 5
-        || strcmp(entry->d_name + name_length - 5, ".json") != 0) {
-      continue;
-    }
-
-    char path[PATH_MAX];
-    int path_length = snprintf(
-      path,
-      sizeof(path),
-      "%s/%s",
-      directory,
-      entry->d_name
-    );
-    if (path_length < 0 || (size_t)path_length >= sizeof(path)
-        || !pt_path_is_private_file(path)) {
-      continue;
-    }
-
+    PtLocatorIdentity identity;
     char *locator = NULL;
-    char session_id[129];
+    if (!pt_read_locator(directory, entry->d_name, &identity, &locator)) continue;
     int64_t locator_version = 0;
     int64_t plugin_protocol = 0;
     int64_t helper_protocol = 0;
-    int64_t host_pid = 0;
-    int64_t host_start_seconds = 0;
-    int64_t host_start_microseconds = 0;
-    if (!pt_read_file(path, &locator, NULL)
-        || !pt_json_validate(locator)
-        || !pt_json_get_i64(locator, "locatorVersion", &locator_version)
-        || !pt_json_get_i64(locator, "pluginProtocol", &plugin_protocol)
-        || !pt_json_get_i64(locator, "helperProtocol", &helper_protocol)
-        || !pt_json_get_i64(locator, "hostPid", &host_pid)
-        || !pt_json_get_i64(
-          locator,
-          "hostStartSeconds",
-          &host_start_seconds
-        )
-        || !pt_json_get_i64(
-          locator,
-          "hostStartMicroseconds",
-          &host_start_microseconds
-        )
-        || !pt_json_get_string(
-          locator,
-          "sessionId",
-          session_id,
-          sizeof(session_id)
-        )
-        || locator_version != LOCATOR_VERSION
-        || plugin_protocol != PLUGIN_PROTOCOL
-        || helper_protocol != PT_HELPER_PROTOCOL
-        || host_pid <= 0
-        || host_pid > INT_MAX
-        || !pt_is_safe_identifier(session_id)) {
-      free(locator);
-      continue;
-    }
+    bool current = pt_json_get_i64(locator, "locatorVersion", &locator_version)
+      && pt_json_get_i64(locator, "pluginProtocol", &plugin_protocol)
+      && pt_json_get_i64(locator, "helperProtocol", &helper_protocol)
+      && locator_version == LOCATOR_VERSION
+      && plugin_protocol == PLUGIN_PROTOCOL
+      && helper_protocol == PT_HELPER_PROTOCOL;
     free(locator);
-
-    if (!locator_name_matches(
-          entry->d_name,
-          session_id,
-          host_pid,
-          host_start_seconds,
-          host_start_microseconds
-        )
+    if (!current
         || !pt_process_generation_ended(
-          (pid_t)host_pid,
-          host_start_seconds,
-          host_start_microseconds
+          (pid_t)identity.host_pid,
+          identity.host_start_seconds,
+          identity.host_start_microseconds
         )) {
       continue;
     }
 
-    (void)unlink(path);
+    (void)unlink(identity.path);
   }
   closedir(stream);
 }
@@ -383,49 +306,16 @@ static bool read_continuity_locator(
   const char *name,
   ContinuityLocator *output
 ) {
-  size_t name_length = strlen(name);
-  if (name_length <= 5 || strcmp(name + name_length - 5, ".json") != 0) {
-    return false;
-  }
-
-  int path_length = snprintf(
-    output->path,
-    sizeof(output->path),
-    "%s/%s",
-    directory,
-    name
-  );
-  if (path_length < 0 || (size_t)path_length >= sizeof(output->path)
-      || !pt_path_is_private_file(output->path)) {
-    return false;
-  }
-
+  PtLocatorIdentity identity;
   char *locator = NULL;
+  if (!pt_read_locator(directory, name, &identity, &locator)) return false;
+
   int64_t locator_version = 0;
   int64_t plugin_protocol = 0;
   int64_t helper_protocol = 0;
-  bool valid = pt_read_file(output->path, &locator, NULL)
-    && pt_json_validate(locator)
-    && pt_json_get_i64(locator, "locatorVersion", &locator_version)
+  bool valid = pt_json_get_i64(locator, "locatorVersion", &locator_version)
     && pt_json_get_i64(locator, "pluginProtocol", &plugin_protocol)
     && pt_json_get_i64(locator, "helperProtocol", &helper_protocol)
-    && pt_json_get_i64(locator, "hostPid", &output->host_pid)
-    && pt_json_get_i64(
-      locator,
-      "hostStartSeconds",
-      &output->host_start_seconds
-    )
-    && pt_json_get_i64(
-      locator,
-      "hostStartMicroseconds",
-      &output->host_start_microseconds
-    )
-    && pt_json_get_string(
-      locator,
-      "sessionId",
-      output->session_id,
-      sizeof(output->session_id)
-    )
     && pt_json_get_string(
       locator,
       "pluginRoot",
@@ -447,21 +337,17 @@ static bool read_continuity_locator(
     && locator_version == LOCATOR_VERSION
     && plugin_protocol == PLUGIN_PROTOCOL
     && helper_protocol == PT_HELPER_PROTOCOL
-    && output->host_pid > 0
-    && output->host_pid <= INT_MAX
-    && pt_is_safe_identifier(output->session_id)
     && pt_is_safe_identifier(output->run_id)
     && pt_is_safe_identifier(output->archive_generation);
   free(locator);
   if (!valid) return false;
 
-  return locator_name_matches(
-    name,
-    output->session_id,
-    output->host_pid,
-    output->host_start_seconds,
-    output->host_start_microseconds
-  );
+  snprintf(output->path, sizeof(output->path), "%s", identity.path);
+  snprintf(output->session_id, sizeof(output->session_id), "%s", identity.session_id);
+  output->host_pid = identity.host_pid;
+  output->host_start_seconds = identity.host_start_seconds;
+  output->host_start_microseconds = identity.host_start_microseconds;
+  return true;
 }
 
 static bool same_host_locator(

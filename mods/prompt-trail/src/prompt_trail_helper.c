@@ -1272,9 +1272,10 @@ static void capture_abort(int argc, char **argv) {
 }
 
 /* The Runs a live process other than this helper's host is attached to, read
-   from the locators the bridge publishes one per process. A locator that is
-   not private, not well formed or not named after what it holds is nobody's
-   claim; one whose process cannot be proven gone still holds its Run. */
+   from the locators the bridge publishes one per process. A locator
+   `pt_read_locator` does not trust is nobody's claim; one of any protocol
+   whose process cannot be proven gone still holds its Run, so an older build
+   still submitting keeps its pending. */
 typedef struct {
   char (*run_ids)[129];
   size_t count;
@@ -1317,46 +1318,23 @@ static LiveRuns live_runs_elsewhere(void) {
 
   struct dirent *entry = NULL;
   while ((entry = readdir(stream)) != NULL) {
-    char path[PATH_MAX];
-    length = snprintf(path, sizeof(path), "%s/%s", directory, entry->d_name);
-    if (length < 0 || (size_t)length >= sizeof(path)
-        || !pt_path_is_private_file(path)) {
-      continue;
-    }
+    PtLocatorIdentity identity;
     char *locator = NULL;
-    char session_id[129];
+    if (!pt_read_locator(directory, entry->d_name, &identity, &locator)) continue;
     char run_id[129];
-    int64_t pid = 0;
-    int64_t start_seconds = 0;
-    int64_t start_microseconds = 0;
-    char expected[PATH_MAX];
-    bool valid = pt_read_file(path, &locator, NULL)
-      && pt_json_validate(locator)
-      && pt_json_get_string(locator, "sessionId", session_id, sizeof(session_id))
-      && pt_json_get_string(locator, "runId", run_id, sizeof(run_id))
-      && pt_json_get_i64(locator, "hostPid", &pid)
-      && pt_json_get_i64(locator, "hostStartSeconds", &start_seconds)
-      && pt_json_get_i64(locator, "hostStartMicroseconds", &start_microseconds)
-      && pid > 0
-      && pid <= INT_MAX
-      && pt_is_safe_identifier(session_id)
-      && pt_is_safe_identifier(run_id)
-      && pt_locator_file_name(
-        session_id,
-        pid,
-        start_seconds,
-        start_microseconds,
-        expected,
-        sizeof(expected)
-      )
-      && strcmp(expected, entry->d_name) == 0;
+    bool valid = pt_json_get_string(locator, "runId", run_id, sizeof(run_id))
+      && pt_is_safe_identifier(run_id);
     free(locator);
     if (!valid) continue;
-    bool own_host = pid == host_pid
-      && start_seconds == host_start_seconds
-      && start_microseconds == host_start_microseconds;
+    bool own_host = identity.host_pid == host_pid
+      && identity.host_start_seconds == host_start_seconds
+      && identity.host_start_microseconds == host_start_microseconds;
     if (own_host
-        || pt_process_generation_ended((pid_t)pid, start_seconds, start_microseconds)) {
+        || pt_process_generation_ended(
+          (pid_t)identity.host_pid,
+          identity.host_start_seconds,
+          identity.host_start_microseconds
+        )) {
       continue;
     }
     char (*grown)[129] = realloc(live.run_ids, (live.count + 1) * sizeof(*grown));
@@ -1383,6 +1361,9 @@ static bool live_runs_hold(const LiveRuns *live, const char *run_id) {
    way to ask for more in one call, so a caller cannot turn this read into an
    unbounded table scan; `truncated` says another call is owed. */
 #define PENDING_LIST_LIMIT 64
+/* How many rows one listing reads at most, skipped ones included, so pendings
+   live Runs hold cannot turn it into a table scan either. */
+#define PENDING_SCAN_LIMIT (4 * PENDING_LIST_LIMIT)
 
 /* Unresolved Pending Captures, oldest staged first. It answers identity only —
    no prompt text and no attachment kinds — because its whole job is to let a
@@ -1435,16 +1416,22 @@ static void capture_list(int argc, char **argv) {
     database,
     "SELECT event_id, run_id, segment_id, branch_id, parent_event_id,"
     " occurred_at_ms, attachment_count"
-    " FROM pending_captures ORDER BY rowid"
+    " FROM pending_captures ORDER BY rowid LIMIT ?1"
   );
+  sqlite3_bind_int(rows, 1, PENDING_SCAN_LIMIT + 1);
 
   write_status_string("{\"projectId\":", project_id);
   fputs(",\"pending\":[", stdout);
   int listed = 0;
   int skipped = 0;
+  int scanned = 0;
   bool truncated = false;
   int step;
   while ((step = sqlite3_step(rows)) == SQLITE_ROW) {
+    if (scanned++ == PENDING_SCAN_LIMIT) {
+      truncated = true;
+      break;
+    }
     const char *run_id = (const char *)sqlite3_column_text(rows, 1);
     if (strcmp(run_id, caller_run_id) != 0 && live_runs_hold(&live, run_id)) {
       skipped++;
