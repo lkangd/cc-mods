@@ -411,3 +411,24 @@ test('enable that cannot write its resume boundary names the failure and records
   expect(enabled.text).toContain('archive-busy')
   expect(store[archiveStateKey]).toMatchObject({ state: 'unavailable', category: 'archive-busy' })
 })
+
+test('a report lifted by another Run leaves the band once this Run reads it', async ($, on) => {
+  const store = consentedStore()
+  const invalidations: string[] = []
+  on('ui.invalidate', (_$, e, next) => {
+    invalidations.push(e.event)
+    return next(e)
+  })
+  installSupportedTarget(on, { store, fills: [] })
+  await attached($, store, { version: 2, state: 'unavailable', category: 'archive-busy', since: 1, runId: otherRun })
+  await composerPrompt($)
+  expect(titleOf(await renderBand($))).toContain('档案不可用')
+
+  delete store[archiveStateKey]
+  invalidations.length = 0
+  await promptHistory($, 'status')
+
+  /* The host redraws the band only when asked to. */
+  expect(invalidations).toContain('ui.render')
+  expect(titleOf(await renderBand($))).not.toContain('档案不可用')
+})
