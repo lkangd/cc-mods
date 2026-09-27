@@ -52,4 +52,4 @@ transcript 无法唯一确定下一条 prompt 的父节点时，提交被 drop�
 
 一轮 `/code-review` 找到 6 条：修了 3 条（BMP 内按 emoji 显示的符号按 2 格截断、保存期间拒绝使用者关闭 Pane、候选 id 与标签合为一条记录）；1 条进 backlog（窗口外且未被命名的已存父节点缺序号，追加到 `20260922-bounded-persisted-timeline-view.md`）；驳回 2 条（Issue 18 为已 resolved 票的历史决定；所谓重复的宽度表只在 `.scratch` 原型里）。
 
-门禁：`2.1.273`/`2.1.281` 各 **217** 项 plugin tests、8 静态、32 bridge、57 helper，TypeScript 与确定性重建全部通过。真人 PTY 在 2.1.281 上通过（session `b27a7bce`）：Pane 自动聚焦、方向键、Esc 取消并回填两行草稿、再次提交重新询问、hover 只高亮、点击选定后草稿回填且不自动提交、重新提交后接在所选父节点之后。review 修复后未再做 PTY。
+门禁：`2.1.273`/`2.1.281` 各 **217** 项 plugin tests、8 静态、32 bridge、57 helper，TypeScript 与确定性重建全部通过。真人 PTY 在 2.1.281 上通过（session `b27a7bce`）：Pane 自动聚焦、方向键、Esc 取消并回填两行草稿、再次提交重新询问、hover 只高亮、点击选定后草稿回填且不自动提交、重新提交后接在所选父节点之后。review 修复后在 2.1.283 上补测「选定后马上按 Esc」并通过（session `005b6afa`）：选择生效、Pane 关闭、草稿原样回填且不自动发送。

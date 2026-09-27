@@ -49,9 +49,8 @@
 - **显示（偏离规格）**：有效条目不加 `↵`，失效条目行首 `×` 并变暗。
 - **没做到的**：
   - rewind 后再提交与被移除行同文本的 prompt，新条目判为不唯一，显示 `×`；
-  - 渲染文本与归档文本不同（粘贴块、图片）时显示 `×`，不做规范化；粘贴的实际表现 PTY 未测；
-  - 同一进程里 `/resume` 回到本进程先前打开过的 session，原来的行显示 `×`，重启后恢复；
-  - fork 共享前缀的重绑只有 plugin test，PTY 未测。
+  - 渲染文本与归档文本不同（例如图片）时显示 `×`，不做规范化；PTY 实测粘贴块（`[Pasted text …]`）不在此列：不显示 `×`，能正常跳转；图片未测；
+  - 同一进程里 `/resume` 回到本进程先前打开过的 session，原来的行显示 `×`，重启后恢复。
 - **宿主事实**（2.1.283 实测）：
   - reload 与 resume 在 `session.start` 之前按 transcript 顺序重放全部行，`requestId` 不变；`UserMessage` 新增 `onScreen`，滚动时反复重画同一行。
   - rewind 不重画任何 transcript 行，也不重画 band，只重画 `PromptHint`；`/clear` 的 `SessionEnd` 之后宿主会把旧行再画一次，此时 `messages()` 尚未更新。
@@ -63,5 +62,5 @@
 - **修了 9 条**：显式根分支的对齐跨 Run 匹配（major）；重建分支后不重新对齐（major）；消失行检测对旧行重复扫描（major，效率）；乱序写入漏掉对齐；读 transcript 途中新画的行被误判消失；渲染行判重为线性；helper 输入格式重复实现；对齐结果解析两次；C 端用哨兵指针表示是否输出行。
 - **驳回 2 条**：重查发现消失后再读一次 transcript 是少见路径；地图里 2.1.281 是 Issue 33 当时的门禁版本。
 
-门禁：`2.1.273`/`2.1.283` 各 **272** 项 plugin tests、8 静态、32 bridge、70 helper，TypeScript 与确定性重建全部通过。真人 PTY 在 2.1.283 上通过：重复与多行 prompt 的独立目标、底部与非底部两种焦点状态、`×` 条目无副作用、reload 与 resume 重绑、普通重启失效、收起与展开状态下的 rewind 与 clear。review 修复后没有再做 PTY。
+门禁：`2.1.273`/`2.1.283` 各 **272** 项 plugin tests、8 静态、32 bridge、70 helper，TypeScript 与确定性重建全部通过。真人 PTY 在 2.1.283 上通过：重复与多行 prompt 的独立目标、底部与非底部两种焦点状态、`×` 条目无副作用、reload 与 resume 重绑、普通重启失效、收起与展开状态下的 rewind 与 clear。review 修复后在 2.1.283 上补做 PTY 并通过（session `b628a463`–`84c7cffe`）：重复与多行 prompt 的独立目标、展开状态下提交与 rewind、fork 共享前缀重绑、resume 重绑。
 
