@@ -79,13 +79,25 @@ export type TargetOptions = {
   gitExitCode?: number
   hasGitDirectory?: boolean
   preflightThrows?: boolean
-  confirmFails?: boolean
+  /* A failing helper subcommand: `true` answers `archive-sqlite`, a string
+     answers that category. */
+  confirmFails?: boolean | string
   /* Fails only the first confirmation, so a later reconciliation can land. */
   confirmFailsOnce?: boolean
-  beginFails?: boolean
-  abortFails?: boolean
-  boundaryFails?: boolean
-  listFails?: boolean
+  beginFails?: boolean | string
+  /* The host kills `capture-begin` at its time limit: the call rejects. */
+  beginRejects?: boolean
+  abortFails?: boolean | string
+  boundaryFails?: boolean | string
+  listFails?: boolean | string
+  /* What a successful `capture-begin` says about the archive's disk; absent,
+     it says nothing, as a helper that could not ask the disk does. */
+  lowSpace?: boolean
+  /* The answers the Archive unavailable dialog receives, one per dialog in
+     order; once they run out, a dialog is cancelled. */
+  unavailableAnswers?: ('重试' | '禁用当前 Run 后继续')[]
+  /* The text of every Archive unavailable dialog, as the person reads it. */
+  unavailableAsked?: string[]
   /* What `capture-list` answers: the pendings the archive still holds. A
      resolved one is dropped from the front, the way the archive would. */
   pendingList?: Record<string, unknown>[]
@@ -336,6 +348,13 @@ export function installSupportedTarget(
     const choices = e.questions[0]?.options ?? []
     const labels = choices.map(choice => (typeof choice === 'string' ? choice : choice.label))
     const isReconcile = labels.includes('已进入')
+    if (labels.includes('重试')) {
+      options.unavailableAsked?.push(question)
+      const answer = options.unavailableAnswers?.shift()
+      return {
+        result: { questions: e.questions, answers: answer ? { [question]: answer } : {} },
+      }
+    }
     if (isReconcile) {
       /* A cancelled dialog answers nothing, which is what keeps the Run
          blocked rather than defaulting to confirm or discard. */
@@ -476,14 +495,9 @@ export function installSupportedTarget(
     if (argv[0] === helperPath && argv[1] === 'capture-begin') {
       const eventId = argv[8]
       if (options.beginFails) {
-        return {
-          value: {
-            exitCode: 25,
-            stdout: '',
-            stderr: '{"category":"archive-sqlite"}',
-          },
-        }
+        return failure(options.beginFails)
       }
+      if (options.beginRejects) throw new Error('timed out: PT-SECRET-KILLED')
       if (eventId && !archive.some(row => row.eventId === eventId)) {
         staged.set(eventId, {
           kind: 'prompt',
@@ -499,7 +513,12 @@ export function installSupportedTarget(
       return {
         value: {
           exitCode: 0,
-          stdout: JSON.stringify({ eventId, projectId, pending: true }),
+          stdout: JSON.stringify({
+            eventId,
+            projectId,
+            pending: true,
+            ...(options.lowSpace === undefined ? {} : { lowSpace: options.lowSpace }),
+          }),
           stderr: '',
         },
       }
@@ -513,13 +532,7 @@ export function installSupportedTarget(
         return { value: { exitCode: 25, stdout: '', stderr: '{"category":"capture-not-found"}' } }
       }
       if (options.confirmFails || (options.confirmFailsOnce && isFirstConfirm)) {
-        return {
-          value: {
-            exitCode: 25,
-            stdout: '',
-            stderr: '{"category":"archive-sqlite"}',
-          },
-        }
+        return failure(options.confirmFails || true)
       }
       /* A confirmed capture is no longer pending, exactly as the helper's own
          transaction leaves it. */
@@ -553,13 +566,7 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'boundary-append') {
       if (options.boundaryFails) {
-        return {
-          value: {
-            exitCode: 25,
-            stdout: '',
-            stderr: '{"category":"archive-sqlite"}',
-          },
-        }
+        return failure(options.boundaryFails)
       }
       /* As strict as the helper: a repeated id answers the stored sequence
          only when every recorded fact matches, and a changed one is refused. */
@@ -602,13 +609,7 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'timeline-read') {
       if (options.readFails) {
-        return {
-          value: {
-            exitCode: 25,
-            stdout: '',
-            stderr: '{"category":"archive-sqlite"}',
-          },
-        }
+        return failure(options.readFails)
       }
       return {
         value: {
@@ -620,13 +621,7 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'branch-match') {
       if (options.branchMatchFails) {
-        return {
-          value: {
-            exitCode: 25,
-            stdout: '',
-            stderr: '{"category":"archive-sqlite"}',
-          },
-        }
+        return failure(options.branchMatchFails)
       }
       const call = calls[calls.length - 1]!
       const answer = typeof options.branchMatch === 'function'
@@ -648,13 +643,7 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'capture-list') {
       if (options.listFails) {
-        return {
-          value: {
-            exitCode: 25,
-            stdout: '',
-            stderr: '{"category":"archive-sqlite"}',
-          },
-        }
+        return failure(options.listFails)
       }
       if (argv.length !== 7) throw new Error(`unexpected capture-list: ${argv.join(' ')}`)
       const caller = argv[4]
@@ -680,13 +669,7 @@ export function installSupportedTarget(
         return { value: { exitCode: 25, stdout: '', stderr: '{"category":"capture-conflict"}' } }
       }
       if (options.abortFails) {
-        return {
-          value: {
-            exitCode: 25,
-            stdout: '',
-            stderr: '{"category":"archive-sqlite"}',
-          },
-        }
+        return failure(options.abortFails)
       }
       /* Only a successful abort removes the row; a failed one leaves the
          pending in the archive, still blocking. */
@@ -707,6 +690,17 @@ export function installSupportedTarget(
     return { text, context: e.context, origin: e.origin }
   })
   return calls
+}
+
+/* A helper subcommand that failed with a category, as the helper exits. */
+function failure(category: boolean | string) {
+  return {
+    value: {
+      exitCode: 25,
+      stdout: '',
+      stderr: JSON.stringify({ category: category === true ? 'archive-sqlite' : category }),
+    },
+  }
 }
 
 export function captureCalls(calls: readonly ProcessCall[], command: string) {

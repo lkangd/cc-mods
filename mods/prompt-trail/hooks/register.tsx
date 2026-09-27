@@ -1,4 +1,10 @@
-import type { EngineInterface, Register, SessionMessage } from 'claude-code'
+import type {
+  EngineInterface,
+  PromptSubmitInput,
+  PromptSubmitResult,
+  Register,
+  SessionMessage,
+} from 'claude-code'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from './artifact'
 import type { BranchMatch, BranchState, TranscriptMark } from './branch'
 import { EARLIER_HINT_KEY, TITLE_KEY, arrowStep } from './band'
@@ -262,6 +268,42 @@ const SAFE_ERROR_CATEGORIES = new Set([
   'schema-version',
   'sqlite-capability',
 ])
+/* Failures of the archive itself, which every Run using it meets; anything
+   else (the locator, the helper, this process's identity or store) is the
+   affected Run's alone. */
+const SHARED_FAILURES = new Set([
+  'archive-busy',
+  'archive-full',
+  'archive-sqlite',
+  'database-path',
+  'database-permissions',
+  'database-root',
+  'database-root-permissions',
+  'database-root-unavailable',
+  'database-unavailable',
+  'project-identity',
+  'schema-version',
+])
+/* What the plugin itself names a failure it met, beside the helper's own
+   categories. Nothing else a failure carries is ever shown. */
+const PLUGIN_FAILURES = new Set([
+  'boundary-append',
+  'boundary-response',
+  'capture-abort',
+  'capture-begin',
+  'capture-confirm',
+  'capture-identity',
+  'capture-list',
+  'capture-response',
+  'category-unrecorded',
+  'database-root-unproven',
+  'helper-timeout',
+  'lifecycle-write',
+  'preflight-failed',
+  'project-root-unproven',
+  'run-mode-unreadable',
+  'store-unavailable',
+])
 const RETRYABLE_LOCATOR_REASONS = new Set([
   'claude-code-version-unproven',
   'locator-directory-permissions',
@@ -323,13 +365,28 @@ let crampedRing: string | undefined
 /* The title row's word on giving the band the keyboard, and the fewest cells
    its way up is cut to (`↑ 点…`). */
 const FOCUS_HINT = 'ctrl+x tab 键盘选择'
+/* Said on the title row while this Run collects and cannot, so a failure
+   another Run found shows before the next submission meets it. */
+const UNAVAILABLE_MARK = '档案不可用'
 const UP_MIN_CELLS = 5
 /* AskUserQuestion dialogs now open, and whether the host's last drawing of
    the band had a survey holding it: the band gives way to either, and leaves
    the slot's scrolling and focus to them meanwhile. */
 let dialogs = 0
 let surveyHeld = false
-let archiveUnavailable = false
+/* Archive unavailable as this Run knows it. A shared failure is also on
+   record for the project's other Runs and stops a submission before it tries
+   (`blocking`); a Run-local one only reports, and the next submission tries
+   for real. `elsewhere` is a record another Run wrote. */
+type Unavailable = {
+  scope: 'run' | 'archive'
+  category: string
+  elsewhere: boolean
+  blocking: boolean
+}
+let archiveFailure: Unavailable | undefined
+/* What the latest staged capture said about the archive's disk. */
+let diskSpace: 'low' | 'ok' | 'unknown' = 'unknown'
 let runMode: { key: string; value: RunModeState } | undefined
 /* `text` is present only while the module instance that staged the capture is
    still loaded; after a restart the staged bytes in the archive are the only
@@ -523,6 +580,22 @@ async function run(
   stdin?: string,
 ) {
   return $.process.run(argv, { timeoutMs, ...(stdin === undefined ? {} : { stdin }) })
+}
+
+/* A helper call on the archive. One the host killed at its time limit, or
+   could not start, rejects in the host's own words, which are never shown:
+   it is named `helper-timeout`. */
+async function runArchive(
+  $: EngineInterface,
+  argv: readonly string[],
+  timeoutMs: number,
+  stdin?: string,
+) {
+  try {
+    return await run($, argv, timeoutMs, stdin)
+  } catch {
+    throw new Error('helper-timeout')
+  }
 }
 
 async function runText(
@@ -1374,7 +1447,7 @@ async function appendBoundary(
     throw new Error('capture-identity')
   }
   const eventId = overrides.eventId ?? crypto.randomUUID()
-  const result = await run(
+  const result = await runArchive(
     $,
     [
       startup.helperPath,
@@ -1405,6 +1478,7 @@ async function appendBoundary(
     kind,
   )
   currentProject.archiveReady = true
+  await archiveRecovered($, currentProject)
   return { eventId, sequence }
 }
 
@@ -1449,23 +1523,20 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
     /* Consent belongs to the Project Timeline, which concurrent Runs share:
        another Run may have been asked since this one last looked. */
     project.consent = storedConsent(await $.store.get(consentKey(id))) ?? project.consent
+    /* So is the archive, and another Run may have found it failing, or
+       working again, since this one last looked. */
+    await readArchiveState($, project)
     return project
   }
   const consent = storedConsent(await $.store.get(consentKey(id)))
-  let blocked = false
+  archiveFailure = undefined
   let owed: ReconcileState | undefined
+  let owedUnknown = false
   try {
-    const archiveState = await $.store.get(archiveStateKey(id))
-    blocked = isRecord(archiveState)
-      && archiveState.version === 1
-      && archiveState.state === 'unavailable'
     owed = storedReconcile(await $.store.get(reconcileKey(id)))
   } catch {
-    /* Not knowing whether something is owed is itself a reason to stop, so an
-       unreadable record fails closed exactly as an unreadable archive does. */
-    blocked = consent === 'enabled'
+    owedUnknown = true
   }
-  archiveUnavailable = blocked
   reconcile = owed ? { state: owed } : undefined
   pendingDiscovered = false
   pendingUnknown = false
@@ -1488,21 +1559,98 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
     archiveReady: false,
   }
   startup.projectPath = root
+  await readArchiveState($, project)
+  /* Not knowing whether something is owed is itself a reason to stop, so an
+     unreadable record fails closed exactly as an unreadable archive does. */
+  if (owedUnknown && consent === 'enabled') {
+    archiveFailure = { scope: 'run', category: 'store-unavailable', elsewhere: false, blocking: true }
+  }
   return project
 }
 
-async function markArchiveUnavailable(
+/* The project's shared record of a failing archive: every submission, `enable`
+   and `status` reads it again, so a Run stops at its next operation after
+   another Run found the archive failing, and resumes once any Run proved it
+   works. A record that cannot be read stops this Run as a failing archive
+   would, without being written anywhere. */
+async function readArchiveState($: EngineInterface, currentProject: ProjectState): Promise<void> {
+  let stored: unknown
+  try {
+    stored = await $.store.get(archiveStateKey(currentProject.id))
+  } catch {
+    if (currentProject.consent === 'enabled') {
+      archiveFailure = { scope: 'run', category: 'store-unavailable', elsewhere: false, blocking: true }
+    }
+    return
+  }
+  if (
+    isRecord(stored)
+    && (stored.version === 1 || stored.version === 2)
+    && stored.state === 'unavailable'
+  ) {
+    /* The first builds recorded neither the category nor the Run. */
+    const category = typeof stored.category === 'string' && isFailureCategory(stored.category)
+      ? stored.category
+      : 'category-unrecorded'
+    const elsewhere = typeof stored.runId === 'string' && stored.runId !== startup.runId
+    archiveFailure = { scope: 'archive', category, elsewhere, blocking: true }
+    return
+  }
+  if (archiveFailure?.scope === 'archive') archiveFailure = undefined
+}
+
+function isFailureCategory(category: string): boolean {
+  return SAFE_ERROR_CATEGORIES.has(category) || PLUGIN_FAILURES.has(category)
+}
+
+/* The category a failure is shown and recorded under: a helper's own, or the
+   plugin's name for what it met, never the text an error carries. */
+function failureCategory(error: unknown, fallback: string): string {
+  return error instanceof Error && isFailureCategory(error.message) ? error.message : fallback
+}
+
+/* A failure of the archive itself goes on record for the project's other
+   Runs; a Run-local one stays with this Run, which tries again for real at
+   its next submission. */
+async function markUnavailable(
+  $: EngineInterface,
+  currentProject: ProjectState | undefined,
+  category: string,
+  scope: 'run' | 'archive' = SHARED_FAILURES.has(category) ? 'archive' : 'run',
+): Promise<Unavailable> {
+  archiveFailure = { scope, category, elsewhere: false, blocking: scope === 'archive' }
+  $.ui.invalidate('ui.render')
+  if (scope === 'archive' && currentProject) {
+    try {
+      await $.store.set(archiveStateKey(currentProject.id), {
+        version: 2,
+        state: 'unavailable',
+        category,
+        since: await $.clock.now(),
+        ...(startup.runId ? { runId: startup.runId } : {}),
+      })
+    } catch {
+      // The in-memory block remains active for this module instance.
+    }
+  }
+  return archiveFailure
+}
+
+/* A write the archive took proves it works, for this Run and every other:
+   whichever Run lands one first lifts the record. */
+async function archiveRecovered(
   $: EngineInterface,
   currentProject: ProjectState,
 ): Promise<void> {
-  archiveUnavailable = true
+  if (archiveFailure) {
+    archiveFailure = undefined
+    $.ui.invalidate('ui.render')
+  }
   try {
-    await $.store.set(archiveStateKey(currentProject.id), {
-      version: 1,
-      state: 'unavailable',
-    })
+    const key = archiveStateKey(currentProject.id)
+    if (await $.store.get(key) !== undefined) await $.store.delete(key)
   } catch {
-    // The in-memory block remains active for this module instance.
+    // Left on record, the next Run to read it retries before it collects.
   }
 }
 
@@ -1619,18 +1767,21 @@ async function branchState(
   return { key, value }
 }
 
+/* Whether the archive's disk is low on space, when the helper could ask it. */
 function parsePendingResponse(
   text: string,
   eventId: string,
   projectId: string,
-): void {
+): boolean | undefined {
   const value: unknown = JSON.parse(text)
   if (
     !isRecord(value) ||
     value.eventId !== eventId ||
     value.projectId !== projectId ||
-    value.pending !== true
+    value.pending !== true ||
+    (value.lowSpace !== undefined && typeof value.lowSpace !== 'boolean')
   ) throw new Error('capture-response')
+  return value.lowSpace as boolean | undefined
 }
 
 type Confirmed = { sequence: number; ordinal: number }
@@ -1661,11 +1812,11 @@ async function beginCapture(
   occurredAt: number,
   text: string,
   attachmentKinds: readonly string[],
-): Promise<void> {
+): Promise<boolean | undefined> {
   if (!startup.helperPath || !startup.databaseRoot || !startup.runId || !startup.sessionId) {
     throw new Error('capture-identity')
   }
-  const result = await run(
+  const result = await runArchive(
     $,
     [
       startup.helperPath,
@@ -1687,9 +1838,11 @@ async function beginCapture(
     10_000,
     text,
   )
-  if (result.exitCode !== 0) throw new Error('capture-begin')
-  parsePendingResponse(result.stdout, eventId, currentProject.id)
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-begin'))
+  const lowSpace = parsePendingResponse(result.stdout, eventId, currentProject.id)
   currentProject.archiveReady = true
+  await archiveRecovered($, currentProject)
+  return lowSpace
 }
 
 /* `text` is the text `next(e)` returned. Without it — a reconciliation after a
@@ -1704,7 +1857,7 @@ async function confirmCapture(
   if (!startup.helperPath || !startup.databaseRoot) {
     throw new Error('capture-identity')
   }
-  const result = await run(
+  const result = await runArchive(
     $,
     [
       startup.helperPath,
@@ -1720,7 +1873,9 @@ async function confirmCapture(
     text,
   )
   if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-confirm'))
-  return parseConfirmedResponse(result.stdout, eventId, currentProject.id)
+  const confirmed = parseConfirmedResponse(result.stdout, eventId, currentProject.id)
+  await archiveRecovered($, currentProject)
+  return confirmed
 }
 
 function parsePendingList(
@@ -1756,7 +1911,7 @@ async function listPending(
   if (!startup.helperPath || !startup.databaseRoot || !startup.runId) {
     throw new Error('capture-identity')
   }
-  const result = await run(
+  const result = await runArchive(
     $,
     [
       startup.helperPath,
@@ -1769,7 +1924,7 @@ async function listPending(
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error('capture-list')
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-list'))
   return parsePendingList(result.stdout, currentProject.id)
 }
 
@@ -1907,7 +2062,7 @@ async function readBatch(
 ): Promise<TimelineBatch> {
   if (!startup.helperPath || !startup.databaseRoot) throw new Error('timeline-read')
   const tip = currentTip(currentProject)
-  const result = await run(
+  const result = await runArchive(
     $,
     [
       startup.helperPath,
@@ -2216,7 +2371,7 @@ async function abortCapture(
   eventId: string,
 ): Promise<void> {
   if (!startup.helperPath || !startup.databaseRoot) return
-  const result = await run(
+  const result = await runArchive(
     $,
     [
       startup.helperPath,
@@ -2230,6 +2385,7 @@ async function abortCapture(
     10_000,
   )
   if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-abort'))
+  await archiveRecovered($, currentProject)
 }
 
 /* Another Run offered the same pending and settled it first: a confirmation
@@ -2508,7 +2664,7 @@ async function runBranchMatch(
   if (!startup.helperPath || !startup.databaseRoot || !startup.runId || !startup.sessionId) {
     throw new Error('capture-identity')
   }
-  const result = await run(
+  const result = await runArchive(
     $,
     [
       startup.helperPath,
@@ -3399,6 +3555,317 @@ async function drainLifecycle(
   return foreignSettled && ownSettled ? 'clear' : 'blocked'
 }
 
+/* Why a collecting Run is holding a submission: the failure as `status`
+   reports it, and what went wrong in words. */
+type Blocked = Unavailable & { reason: string }
+
+type SubmitOutcome = { done: PromptSubmitResult } | { blocked: Blocked }
+
+/* What the submission met, recorded for this Run (and, for a failure of the
+   archive itself, for the project's other Runs). */
+async function holdSubmission(
+  $: EngineInterface,
+  currentProject: ProjectState | undefined,
+  category: string,
+  reason: string,
+  scope?: 'run',
+): Promise<SubmitOutcome> {
+  return { blocked: { ...await markUnavailable($, currentProject, category, scope), reason } }
+}
+
+/* The dialog a held submission waits on. It offers only what spec §13 allows:
+   try again, or stop collecting this Run and let the prompt through. Closing
+   it keeps the submission held. */
+async function askUnavailable(
+  $: EngineInterface,
+  failure: Blocked,
+): Promise<'retry' | 'disable' | undefined> {
+  const scope = failure.scope === 'archive' ? '本项目所有 Run' : '本 Run（其他 Run 不受影响）'
+  let answer: string | undefined
+  try {
+    answer = await $.ui.ask(
+      [
+        `Prompt Trail ${failure.reason}，无法证明这次提交能被正确保存；本次提交尚未进入会话。`,
+        `范围：${scope}`,
+        `类别：${failure.category}${failure.elsewhere ? '（由另一个 Run 报告）' : ''}`,
+        '“重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。',
+      ].join('\n'),
+      { header: '档案不可用', options: ['重试', '禁用当前 Run 后继续'] },
+    )
+  } catch {
+    return undefined
+  }
+  return answer === '重试' ? 'retry' : answer === '禁用当前 Run 后继续' ? 'disable' : undefined
+}
+
+/* Once the low-space warning has been shown to a Run: it spans the Run's
+   processes, so a reload or a resume does not show it again. */
+function spaceWarnedKey(projectId: string, forRunId: string): string {
+  return `prompt-trail:space-warned:${projectId}:${forRunId}`
+}
+
+async function noteDiskSpace(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  lowSpace: boolean | undefined,
+): Promise<void> {
+  diskSpace = lowSpace === undefined ? 'unknown' : lowSpace ? 'low' : 'ok'
+  if (!lowSpace || !startup.runId) return
+  const key = spaceWarnedKey(currentProject.id, startup.runId)
+  try {
+    if (await $.store.get(key) !== undefined) return
+    await $.store.set(key, { version: 1 })
+  } catch {
+    return
+  }
+  $.ui.toast(`Prompt Trail 档案所在磁盘可用空间低于 1 GiB：${statusValue(currentProject.databasePath ?? '')}`)
+}
+
+/* One attempt at a collecting submission. `retrying` is the person's own
+   retry, which tries the archive even though a failure is on record. */
+async function submitCollected(
+  $: EngineInterface,
+  e: PromptSubmitInput,
+  next: (e: PromptSubmitInput) => Promise<PromptSubmitResult>,
+  retrying: boolean,
+): Promise<SubmitOutcome> {
+  if (!runtimeTarget) return { done: await next(e) }
+  let currentProject: ProjectState
+  try {
+    currentProject = await prepareProject($)
+  } catch {
+    /* A Run that is already known to be disabled collects nothing, so there
+       is nothing to miss and nothing to block. */
+    if (runMode?.value.mode === 'disabled') return { done: await next(e) }
+    if (project?.consent === 'enabled') {
+      return holdSubmission($, undefined, 'project-root-unproven', '无法证明当前项目身份')
+    }
+    return { done: await next(e) }
+  }
+  /* An in-process `/resume` may have moved this process to another Run. The
+     switch that decides this submission is that Run's, so the locator is
+     read again before it, never after. */
+  try {
+    if ((await $.session.id()) !== startup.sessionId) await refreshStartup($)
+  } catch {
+    // The switch is read below for the Run last proven; the target is re-checked after.
+  }
+  /* A disabled Run lets the submission through untouched: no Pending Capture,
+     no Prompt Entry, and no archive block standing in its way. */
+  let mode: RunModeState
+  try {
+    mode = (await loadRunMode($, currentProject)).value
+  } catch {
+    if (currentProject.consent === 'enabled') {
+      return holdSubmission($, currentProject, 'run-mode-unreadable', '无法读取当前 Run collection mode')
+    }
+    return { done: await next(e) }
+  }
+  if (mode.mode === 'disabled') return { done: await next(e) }
+
+  try {
+    startup = await inspectTarget(
+      $,
+      runtimeTarget.isInteractive,
+      runtimeTarget.surface,
+      runtimeTarget.cwd,
+    )
+  } catch {
+    if (currentProject.consent === 'enabled') {
+      return holdSubmission($, currentProject, 'preflight-failed', 'preflight 失败')
+    }
+    return { done: await next(e) }
+  }
+  if (startup.support !== 'supported') {
+    if (currentProject.consent === 'enabled') {
+      /* Whatever the target lacks is this process's, never the archive's. */
+      const category = isFailureCategory(startup.reason) ? startup.reason : 'preflight-failed'
+      return holdSubmission($, undefined, category, '当前不可采集', 'run')
+    }
+    return { done: await next(e) }
+  }
+  if (!startup.databaseRoot) {
+    if (currentProject.consent === 'enabled') {
+      return holdSubmission($, currentProject, 'database-root-unproven', '无法证明数据库位置')
+    }
+    return { done: { drop: 'Prompt Trail 无法证明数据库位置；本次提交未进入会话。' } }
+  }
+  currentProject.databasePath = `${startup.databaseRoot}/${currentProject.id}.sqlite3`
+  startup.projectPath = currentProject.root
+
+  let decision: ConsentDecision | undefined
+  try {
+    decision = await requestConsent($, currentProject)
+  } catch {
+    return { done: { drop: 'Prompt Trail 无法完成采集同意；本次提交未进入会话。' } }
+  }
+  if (decision === 'declined') return { done: await next(e) }
+  if (decision !== 'enabled') {
+    return { done: { drop: '请选择“启用”或“继续但不启用”后再提交。' } }
+  }
+
+  /* Anything unresolved is settled before another capture is staged, so a
+     second pending can never pile onto the first. This runs ahead of the
+     archive block, because a pending the archive still holds is exactly what
+     an earlier uncertain failure may have left behind — blocking on the flag
+     first would make it unreachable forever. */
+  let settled: 'clear' | 'settled' | 'blocked'
+  try {
+    settled = await settlePending($, currentProject)
+  } catch (error) {
+    return holdSubmission($, currentProject, failureCategory(error, 'capture-list'), '无法读取未决的 Pending Capture')
+  }
+  if (settled !== 'clear') {
+    /* A submission that met a reconciliation is never sent on the person's
+       behalf, whether or not it succeeded: the draft goes back and they
+       press Enter again. */
+    const restored = await restoreDraft($, e.text)
+    return {
+      done: {
+        drop: settled === 'settled'
+          ? `Prompt Trail 已完成对账，${draftNote(restored)}；请重新提交。`
+          : `Prompt Trail 仍有未决的 Pending Capture 待对账，${draftNote(restored)}；本次提交未进入会话。`,
+      },
+    }
+  }
+
+  /* After the pending is settled and before anything new is staged: the
+     Pending Capture belongs to the segment before the `/clear`, so it is
+     archived first, and the Clear Boundary then takes the sequence that
+     separates it from this submission. */
+  if (await drainLifecycle($, currentProject) === 'blocked') {
+    return holdSubmission(
+      $,
+      currentProject,
+      lifecycleFailure ?? 'lifecycle-write',
+      '无法补写中断的 Clear Boundary 或 Run 边界',
+    )
+  }
+
+  /* A failure on record stops the submission before it tries, unless the
+     person asked to try again. */
+  if (archiveFailure?.blocking && !retrying) {
+    return { blocked: { ...archiveFailure, reason: '档案当前不可用' } }
+  }
+
+  /* A resumed or forked session may already hold history this Run's branch
+     has to continue from; it is settled before anything is staged. */
+  if (timelineLoaded !== currentProject.id) {
+    try {
+      await loadTimeline($, currentProject)
+    } catch {
+      // Candidates it cannot show are offered by event id.
+    }
+  }
+  const aligned = await alignBranch($, currentProject, e.text)
+  if ('drop' in aligned) return { done: aligned }
+
+  let branch: { key: string; value: BranchState }
+  const eventId = crypto.randomUUID()
+  const attachmentKinds = e.attachments?.map(attachment => attachment.type) ?? []
+  let lowSpace: boolean | undefined
+  try {
+    branch = await branchState($, currentProject)
+    lowSpace = await beginCapture(
+      $,
+      currentProject,
+      branch.value,
+      eventId,
+      await $.clock.now(),
+      e.text,
+      attachmentKinds,
+    )
+  } catch (error) {
+    /* The helper may have committed the pending row and died before saying
+       so, so this Run stops trusting its earlier "nothing owed" answer and
+       asks the archive again on the next submission. */
+    pendingDiscovered = false
+    return holdSubmission($, currentProject, failureCategory(error, 'capture-begin'), '无法预写 Pending Capture')
+  }
+  await noteDiskSpace($, currentProject, lowSpace)
+
+  let result: PromptSubmitResult
+  try {
+    result = await next(e)
+  } catch (error) {
+    /* The capture is staged and the submission's fate is unknown, so the
+       pending must be rediscoverable. The host failed, not the archive:
+       nothing is put on record. */
+    pendingDiscovered = false
+    throw error
+  }
+  const finalText = result.text
+  if (typeof finalText !== 'string') {
+    try {
+      await abortCapture($, currentProject, eventId)
+    } catch (error) {
+      await markUnavailable($, currentProject, failureCategory(error, 'capture-abort'))
+    }
+    return { done: result }
+  }
+
+  /* `/prompt-history disable` runs immediately, so it can land while this
+     submission is still in flight. The stop boundary says later prompts were
+     not recorded, so a capture the stop overtook is discarded rather than
+     archived inside the disabled interval. */
+  let stillCollecting = true
+  try {
+    stillCollecting = (await loadRunMode($, currentProject)).value.mode === 'enabled'
+  } catch {
+    stillCollecting = false
+  }
+  if (!stillCollecting) {
+    try {
+      await abortCapture($, currentProject, eventId)
+    } catch (error) {
+      await markUnavailable($, currentProject, failureCategory(error, 'capture-abort'))
+    }
+    return { done: result }
+  }
+
+  try {
+    const confirmed = await confirmCapture($, currentProject, eventId, finalText)
+    const nextBranch: BranchState = {
+      ...branch.value,
+      parentEventId: eventId,
+    }
+    await $.store.set(branch.key, nextBranch)
+    rememberBranch(branch.key, nextBranch)
+    transcriptMark = { key: branch.key, mark: markTranscript(aligned.messages, finalText) }
+    appendToWindow($, {
+      kind: 'prompt',
+      eventId,
+      sequence: confirmed.sequence,
+      ordinal: confirmed.ordinal,
+      runId: startup.runId ?? '',
+      ...(startup.sessionId ? { segmentId: startup.sessionId } : {}),
+      branchId: branch.value.branchId,
+      parentEventId: branch.value.parentEventId,
+      text: finalText,
+      attachmentCount: attachmentKinds.length,
+    })
+  } catch {
+    /* The prompt did enter the session, so the pending is kept rather than
+       dropped, and this Run collects nothing further until the outcome is
+       settled. The final text stays in memory so a reconciliation in this
+       module instance can still archive exactly what entered. */
+    await saveReconcile(
+      $,
+      currentProject,
+      {
+        version: 1,
+        eventId,
+        runId: startup.runId ?? branch.value.branchId,
+        branchId: branch.value.branchId,
+        parentEventId: branch.value.parentEventId,
+        attachmentCount: attachmentKinds.length,
+      },
+      finalText,
+    )
+  }
+  return { done: result }
+}
+
 /* The draft belongs to the person, not to the submission Prompt Trail
    refused: it goes back into the composer, and they decide whether to send
    it again. */
@@ -3533,7 +4000,7 @@ function collectionModeText(): string {
       ? 'disabled · Clear Boundary 待补写'
       : 'disabled · Run 边界待补写'
   }
-  if (archiveUnavailable) return 'disabled · 档案不可用'
+  if (archiveFailure) return 'disabled · 档案不可用'
   if (startup.support !== 'supported') {
     return `disabled · ${statusValue(startup.reason)}`
   }
@@ -3567,8 +4034,8 @@ function statusText(): string {
   /* The Run switch and what it actually amounts to are reported together, so a
      Run that is switched on but not collecting never reads as collecting. */
   const collectionMode = collectionModeText()
-  const archive = archiveUnavailable
-    ? 'unavailable'
+  const archive = archiveFailure
+    ? `unavailable · 范围 ${archiveFailure.scope} · 类别 ${archiveFailure.category}${archiveFailure.elsewhere ? ' · 由另一个 Run 报告' : ''}`
     : project?.archiveReady && project.databasePath
       ? `ready · ${statusValue(project.databasePath)}`
       : 'not created'
@@ -3584,6 +4051,7 @@ function statusText(): string {
     `pending reconciliation: ${reconcileSummary()}`,
     `clear transition: ${clearSummary()}`,
     `archive: ${archive}`,
+    `disk space: ${diskSpace}`,
     `project: ${startup.projectPath ? statusValue(startup.projectPath) : 'unavailable'}`,
     `database root: ${startup.databaseRoot ? statusValue(startup.databaseRoot) : 'unavailable'}`,
     `helper: ${helper}`,
@@ -3730,19 +4198,19 @@ async function enableCollection($: EngineInterface): Promise<string> {
     if (await settlePending($, currentProject) === 'blocked') {
       return '仍有未决的 Pending Capture 待对账，未启用采集；请先完成对账。'
     }
-  } catch {
-    return 'Prompt Trail 无法读取未决的 Pending Capture，未启用采集。'
+  } catch (error) {
+    const failure = await markUnavailable($, currentProject, failureCategory(error, 'capture-list'))
+    return `Prompt Trail 无法读取未决的 Pending Capture（${failure.category}），未启用采集。`
   }
 
   /* A resume boundary written ahead of a Clear Boundary that is still owed
      would order the segment break after the interval it precedes, so the queue
      is emptied first and enable refuses while anything is left in it. */
   if (await drainLifecycle($, currentProject) === 'blocked') {
-    return 'Prompt Trail 仍有中断的 Clear Boundary 或 Run 边界待补写，未启用采集。'
-  }
-
-  if (archiveUnavailable) {
-    return 'Prompt Trail 档案当前不可用，未启用采集。'
+    const failure = lifecycleFailure
+      ? `（${(await markUnavailable($, currentProject, lifecycleFailure)).category}）`
+      : ''
+    return `Prompt Trail 仍有中断的 Clear Boundary 或 Run 边界待补写${failure}，未启用采集。`
   }
 
   /* Already collecting means the switch is on and consent was granted before
@@ -3792,9 +4260,9 @@ async function enableCollection($: EngineInterface): Promise<string> {
   let appended: { eventId: string; sequence: number }
   try {
     appended = await appendBoundary($, currentProject, branchId, kind)
-  } catch {
-    await markArchiveUnavailable($, currentProject)
-    return 'Prompt Trail 无法写入 Collection Boundary，未启用采集。'
+  } catch (error) {
+    const failure = await markUnavailable($, currentProject, failureCategory(error, 'boundary-append'))
+    return `Prompt Trail 无法写入 Collection Boundary（${failure.category}），未启用采集。`
   }
 
   try {
@@ -4264,235 +4732,29 @@ export const register: Register = on => {
     if (!runtimeTarget) return next(e)
     await awaitStartup($)
 
-    let currentProject: ProjectState
-    try {
-      currentProject = await prepareProject($)
-    } catch {
-      /* A Run that is already known to be disabled collects nothing, so there
-         is nothing to miss and nothing to block. */
-      if (runMode?.value.mode === 'disabled') return next(e)
-      if (project?.consent === 'enabled') {
-        return { drop: 'Prompt Trail 无法证明当前项目身份；为避免漏记，本次提交已阻止。' }
+    /* A collecting Run that cannot prove this submission will be kept holds
+       it, and the person chooses: retry, or disable the Run and let it
+       through. Every retry is theirs; nothing retries in the background. */
+    for (let retrying = false; ; retrying = true) {
+      const outcome = await submitCollected($, e, next, retrying)
+      if ('done' in outcome) return outcome.done
+      const failure = outcome.blocked
+      const choice = await askUnavailable($, failure)
+      if (choice === 'retry') continue
+      if (choice === 'disable') {
+        const note = await disableCollection($)
+        if (runMode?.value.mode === 'disabled') {
+          $.ui.toast(note)
+          return next(e)
+        }
+        const restored = await restoreDraft($, e.text)
+        return { drop: `${note}${draftNote(restored)}；本次提交未进入会话。` }
       }
-      return next(e)
-    }
-    /* An in-process `/resume` may have moved this process to another Run. The
-       switch that decides this submission is that Run's, so the locator is
-       read again before it, never after. */
-    try {
-      if ((await $.session.id()) !== startup.sessionId) await refreshStartup($)
-    } catch {
-      // The switch is read below for the Run last proven; the target is re-checked after.
-    }
-    /* A disabled Run lets the submission through untouched: no Pending Capture,
-       no Prompt Entry, and no archive block standing in its way. */
-    let mode: RunModeState
-    try {
-      mode = (await loadRunMode($, currentProject)).value
-    } catch {
-      if (currentProject.consent === 'enabled') {
-        return { drop: 'Prompt Trail 无法读取当前 Run collection mode；为避免漏记，本次提交已阻止。' }
-      }
-      return next(e)
-    }
-    if (mode.mode === 'disabled') return next(e)
-
-    try {
-      startup = await inspectTarget(
-        $,
-        runtimeTarget.isInteractive,
-        runtimeTarget.surface,
-        runtimeTarget.cwd,
-      )
-    } catch {
-      if (currentProject.consent === 'enabled') {
-        return { drop: 'Prompt Trail preflight 失败；为避免漏记，本次提交已阻止。' }
-      }
-      return next(e)
-    }
-    if (startup.support !== 'supported') {
-      if (currentProject.consent === 'enabled') {
-        return { drop: 'Prompt Trail 当前不可采集；为避免漏记，本次提交已阻止。' }
-      }
-      return next(e)
-    }
-    if (!startup.databaseRoot) {
-      return { drop: 'Prompt Trail 无法证明数据库位置；本次提交未进入会话。' }
-    }
-    currentProject.databasePath = `${startup.databaseRoot}/${currentProject.id}.sqlite3`
-    startup.projectPath = currentProject.root
-
-    let decision: ConsentDecision | undefined
-    try {
-      decision = await requestConsent($, currentProject)
-    } catch {
-      return { drop: 'Prompt Trail 无法完成采集同意；本次提交未进入会话。' }
-    }
-    if (decision === 'declined') return next(e)
-    if (decision !== 'enabled') {
-      return { drop: '请选择“启用”或“继续但不启用”后再提交。' }
-    }
-
-    /* Anything unresolved is settled before another capture is staged, so a
-       second pending can never pile onto the first. This runs ahead of the
-       archive block, because a pending the archive still holds is exactly what
-       an earlier uncertain failure may have left behind — blocking on the flag
-       first would make it unreachable forever. */
-    let settled: 'clear' | 'settled' | 'blocked'
-    try {
-      settled = await settlePending($, currentProject)
-    } catch {
-      await markArchiveUnavailable($, currentProject)
       const restored = await restoreDraft($, e.text)
       return {
-        drop: `Prompt Trail 无法读取未决的 Pending Capture，${draftNote(restored)}；为避免漏记，本次提交已阻止。`,
+        drop: `Prompt Trail ${failure.reason}（${failure.category}），${draftNote(restored)}；为避免漏记，本次提交已阻止。`,
       }
     }
-    if (settled !== 'clear') {
-      /* A submission that met a reconciliation is never sent on the person's
-         behalf, whether or not it succeeded: the draft goes back and they
-         press Enter again. */
-      const restored = await restoreDraft($, e.text)
-      return {
-        drop: settled === 'settled'
-          ? `Prompt Trail 已完成对账，${draftNote(restored)}；请重新提交。`
-          : `Prompt Trail 仍有未决的 Pending Capture 待对账，${draftNote(restored)}；本次提交未进入会话。`,
-      }
-    }
-
-    /* After the pending is settled and before anything new is staged: the
-       Pending Capture belongs to the segment before the `/clear`, so it is
-       archived first, and the Clear Boundary then takes the sequence that
-       separates it from this submission. */
-    if (await drainLifecycle($, currentProject) === 'blocked') {
-      const restored = await restoreDraft($, e.text)
-      return {
-        drop: `Prompt Trail 无法补写中断的 Clear Boundary 或 Run 边界，${draftNote(restored)}；为避免漏记，本次提交已阻止。`,
-      }
-    }
-
-    if (archiveUnavailable) {
-      return { drop: 'Prompt Trail 档案当前不可用；为避免漏记，本次提交已阻止。' }
-    }
-
-    /* A resumed or forked session may already hold history this Run's branch
-       has to continue from; it is settled before anything is staged. */
-    if (timelineLoaded !== currentProject.id) {
-      try {
-        await loadTimeline($, currentProject)
-      } catch {
-        // Candidates it cannot show are offered by event id.
-      }
-    }
-    const aligned = await alignBranch($, currentProject, e.text)
-    if ('drop' in aligned) return aligned
-
-    let branch: { key: string; value: BranchState }
-    const eventId = crypto.randomUUID()
-    const attachmentKinds = e.attachments?.map(attachment => attachment.type) ?? []
-    try {
-      branch = await branchState($, currentProject)
-      await beginCapture(
-        $,
-        currentProject,
-        branch.value,
-        eventId,
-        await $.clock.now(),
-        e.text,
-        attachmentKinds,
-      )
-    } catch {
-      /* The helper may have committed the pending row and died before saying
-         so, so this Run stops trusting its earlier "nothing owed" answer and
-         asks the archive again on the next submission. */
-      pendingDiscovered = false
-      await markArchiveUnavailable($, currentProject)
-      const restored = await restoreDraft($, e.text)
-      return {
-        drop: `Prompt Trail 无法预写 Pending Capture，${draftNote(restored)}；本次提交未进入会话。`,
-      }
-    }
-
-    let result
-    try {
-      result = await next(e)
-    } catch (error) {
-      /* The capture is staged and the submission's fate is unknown, so the
-         pending must be rediscoverable rather than sealed behind the flag. */
-      pendingDiscovered = false
-      await markArchiveUnavailable($, currentProject)
-      throw error
-    }
-    const finalText = result.text
-    if (typeof finalText !== 'string') {
-      try {
-        await abortCapture($, currentProject, eventId)
-      } catch {
-        await markArchiveUnavailable($, currentProject)
-      }
-      return result
-    }
-
-    /* `/prompt-history disable` runs immediately, so it can land while this
-       submission is still in flight. The stop boundary says later prompts were
-       not recorded, so a capture the stop overtook is discarded rather than
-       archived inside the disabled interval. */
-    let stillCollecting = true
-    try {
-      stillCollecting = (await loadRunMode($, currentProject)).value.mode === 'enabled'
-    } catch {
-      stillCollecting = false
-    }
-    if (!stillCollecting) {
-      try {
-        await abortCapture($, currentProject, eventId)
-      } catch {
-        await markArchiveUnavailable($, currentProject)
-      }
-      return result
-    }
-
-    try {
-      const confirmed = await confirmCapture($, currentProject, eventId, finalText)
-      const nextBranch: BranchState = {
-        ...branch.value,
-        parentEventId: eventId,
-      }
-      await $.store.set(branch.key, nextBranch)
-      rememberBranch(branch.key, nextBranch)
-      transcriptMark = { key: branch.key, mark: markTranscript(aligned.messages, finalText) }
-      appendToWindow($, {
-        kind: 'prompt',
-        eventId,
-        sequence: confirmed.sequence,
-        ordinal: confirmed.ordinal,
-        runId: startup.runId ?? '',
-        ...(startup.sessionId ? { segmentId: startup.sessionId } : {}),
-        branchId: branch.value.branchId,
-        parentEventId: branch.value.parentEventId,
-        text: finalText,
-        attachmentCount: attachmentKinds.length,
-      })
-    } catch {
-      /* The prompt did enter the session, so the pending is kept rather than
-         dropped, and this Run collects nothing further until the outcome is
-         settled. The final text stays in memory so a reconciliation in this
-         module instance can still archive exactly what entered. */
-      await saveReconcile(
-        $,
-        currentProject,
-        {
-          version: 1,
-          eventId,
-          runId: startup.runId ?? branch.value.branchId,
-          branchId: branch.value.branchId,
-          parentEventId: branch.value.parentEventId,
-          attachmentCount: attachmentKinds.length,
-        },
-        finalText,
-      )
-    }
-    return result
   })
 
   /* Closing the Pane without choosing is cancelling: the draft goes back to
@@ -4650,12 +4912,15 @@ export const register: Register = on => {
       /* Opening always shows the latest events. */
       await returnToLatest($, loaded)
     }
+    const unavailableShown = archiveFailure !== undefined
+      && project?.consent === 'enabled'
+      && runMode?.value.mode !== 'disabled'
     if (!expanded) {
       return (
         <Button
           key="prompt-trail:toggle"
           plain
-          label="▸ Prompt Trail"
+          label={unavailableShown ? `▸ Prompt Trail · ${UNAVAILABLE_MARK}` : '▸ Prompt Trail'}
           onPress={toggle}
         />
       )
@@ -4757,15 +5022,19 @@ export const register: Register = on => {
     const up = upLabel === undefined || room < 2 + UP_MIN_CELLS ? undefined : clipCells(upLabel, room - 2)
     if (up !== undefined) room -= 2 + textCells(up)
     const focusHint = stops.length > 0 && room >= 2 + textCells(FOCUS_HINT)
+    if (focusHint) room -= 2 + textCells(FOCUS_HINT)
+    /* The first thing a narrow row gives up: status still says it. */
+    const mark = unavailableShown && room >= 2 + textCells(UNAVAILABLE_MARK)
     return (
       <Box flexDirection="column">
-        {up !== undefined || focusHint ? (
+        {up !== undefined || focusHint || mark ? (
           <Box flexDirection="row" gap={2}>
             <Button key="prompt-trail:toggle" plain label={title} onPress={toggle} />
             {up !== undefined ? (
               <Button key={EARLIER_HINT_KEY} plain dimColor label={up} onPress={() => pageUp($)} />
             ) : null}
             {focusHint ? <Text dimColor>{FOCUS_HINT}</Text> : null}
+            {mark ? <Text color="yellow">{UNAVAILABLE_MARK}</Text> : null}
           </Box>
         ) : (
           <Button key="prompt-trail:toggle" plain label={title} onPress={toggle} />
