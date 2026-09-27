@@ -93,6 +93,12 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   `ui.scroll`，但只在 band 的树高于 `maxRows` 时送，且此时宿主必画 `n more`；插件用空白行占位让计数等于视图下方的
   真实行数，到底时树不超高、收不到触控板，由标题行提示点击上翻。`branch-match` 改为内存里自顶向下匹配。Gap 边界等
   Issue 26，跨窗口折叠计数和宿主 `n more` 限制进了 backlog。
+- [绑定和失效 Jump Target](issues/22-bind-jump-targets.md)：
+  当前 transcript 仍画着的 Prompt Entry 点击或 Enter 即跳回原行并收起 band，焦点回到输入框；没有目标的条目变暗并加
+  `×`，**偏离规格**：有效条目不加 `↵`。绑定只存在内存：插件记下 composer 渲染行，由 `branch-match --rows` 在两种嵌入一致时
+  报出每行对应的条目；rewind、clear 没有信号，靠读 `messages()` 剪掉末尾消失的行，展开时借 band 与 `PromptHint` 的重画
+  重查。门禁当前版本改为 2.1.283。**修正 Issue 13**：排队的提交在 `next(e)` 返回时尚未进入对话，可能被撤回，拆为
+  [Issue 35](issues/35-queued-submission-withdrawn.md)。
 
 ## Not yet specified
 
