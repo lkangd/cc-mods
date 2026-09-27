@@ -1785,17 +1785,17 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(begin.returncode, 0, stderr)
         self.assertTrue(json.loads(stdout)["pending"])
 
-    def mount_small_volume(self) -> pathlib.Path:
-        """A few-megabyte volume serving as the archive root, so the disk it
-        sits on really fills up."""
+    def mount_small_volume(self, at: pathlib.Path | None = None) -> pathlib.Path:
+        """A few-megabyte volume serving as the archive root (or, given `at`,
+        as that directory), so the disk it sits on really fills up."""
         image = pathlib.Path(self.temporary.name) / "small.dmg"
         subprocess.run(
             ["/usr/bin/hdiutil", "create", "-size", "4m", "-fs", "HFS+",
              "-volname", "pt-small", "-o", str(image), "-quiet"],
             check=True,
         )
-        archives = self.plugin_data / "archives"
-        archives.mkdir(mode=0o700)
+        archives = at or self.plugin_data / "archives"
+        archives.mkdir(mode=0o700, exist_ok=True)
         subprocess.run(
             ["/usr/bin/hdiutil", "attach", str(image), "-mountpoint", str(archives),
              "-nobrowse", "-noverify", "-quiet"],
@@ -1861,6 +1861,9 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(texts, ["PT-SECRET-FIRST", large])
 
     def test_capture_begin_says_whether_the_archive_disk_is_low_on_space(self) -> None:
+        volume = os.statvfs(self.plugin_data)
+        if volume.f_bavail * volume.f_frsize < 2 * (1 << 30):
+            self.skipTest("the temporary directory's disk is itself low on space")
         identity = self.identity("c8" * 32)
         roomy = self.run_helper(
             *self.begin_argv(str(uuid.uuid4()), **identity),
@@ -1868,6 +1871,19 @@ class HelperProtocolTests(unittest.TestCase):
         )
         self.assertEqual(roomy.returncode, 0, roomy.stderr)
         self.assertIs(json.loads(roomy.stdout)["lowSpace"], False)
+
+    def test_a_full_disk_before_the_first_capture_is_named_archive_full(self) -> None:
+        # The archive root does not exist yet: creating it, or the database in
+        # it, is what meets the full disk.
+        self.mount_small_volume(at=self.plugin_data)
+        self.plugin_data.chmod(0o700)
+        self.fill_volume(self.plugin_data)
+        begin = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), **self.identity("ca" * 32)),
+            input_text="PT-SECRET-FIRST",
+        )
+        self.assertNotEqual(begin.returncode, 0)
+        self.assertEqual(json.loads(begin.stderr)["category"], "archive-full")
 
     def test_capture_begin_reports_low_space_on_a_small_disk(self) -> None:
         self.mount_small_volume()

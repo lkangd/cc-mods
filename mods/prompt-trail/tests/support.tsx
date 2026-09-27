@@ -118,7 +118,7 @@ export type TargetOptions = {
   /* What `branch-match` answers; a function sees the call. The default is the
      answer for a transcript nothing archived matches. */
   branchMatch?: Record<string, unknown> | ((call: ProcessCall) => Record<string, unknown>)
-  branchMatchFails?: boolean
+  branchMatchFails?: boolean | string
   /* What the parent-confirmation Pane went through; see `pickParent`. */
   parentPane?: ParentPane
   /* Collects every `$.prompt.fill`, so a test can see the restored draft. */
@@ -142,7 +142,7 @@ export type TargetOptions = {
   /* The persisted archive; confirmed prompts and boundaries are appended to it
      and `timeline-read` answers from it. */
   archive?: ArchiveRow[]
-  readFails?: boolean
+  readFails?: boolean | string
   /* An AskUserQuestion dialog stays up until this settles; one that rejects
      is a dialog that failed. */
   askHold?: Promise<void>
