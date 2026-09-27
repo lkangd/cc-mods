@@ -8,6 +8,7 @@ import {
   captureCalls,
   composerPrompt,
   installSupportedTarget,
+  parentPane,
   projectId,
   projectRoot,
   promptHistory,
@@ -250,9 +251,11 @@ test('a Run that declined begins collecting once another Run enables the project
 
 test('when two Runs ask at once, the first answer is the project\'s', async ($, on) => {
   const store: Record<string, unknown> = {}
+  const notices = parentPane()
   const calls = installSupportedTarget(on, {
     store,
     ask: '继续但不启用',
+    parentPane: notices,
     /* While this Run's dialog is up, another Run's is answered first. */
     duringAsk: () => {
       store[`prompt-trail:consent:${projectId}`] = { policyVersion: 1, decision: 'enabled' }
@@ -265,4 +268,6 @@ test('when two Runs ask at once, the first answer is the project\'s', async ($, 
   expect(result.text).toBe(SECRET)
   expect(store[`prompt-trail:consent:${projectId}`]).toStrictEqual({ policyVersion: 1, decision: 'enabled' })
   expect(captureCalls(calls, 'capture-confirm')).toHaveLength(1)
+  /* The answer given here did not take effect, and the person is told so. */
+  expect(notices.toasts).toEqual(['另一个 Run 已先为本项目启用采集，这里的选择未生效。'])
 })
