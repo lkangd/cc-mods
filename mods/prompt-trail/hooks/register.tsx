@@ -203,6 +203,8 @@ const LOCATOR_SUFFIX = '.claude/plugins/data/.function-hook-locators/prompt-trai
 const SAFE_IDENTIFIER = /^[A-Za-z0-9_-]{1,128}$/
 const SAFE_ERROR_CATEGORIES = new Set([
   'architecture',
+  'archive-busy',
+  'archive-full',
   'archive-sqlite',
   'boundary-conflict',
   'boundary-input',

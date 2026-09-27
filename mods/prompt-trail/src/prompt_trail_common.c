@@ -711,8 +711,10 @@ bool pt_path_is_private_file(const char *path) {
 bool pt_ensure_private_directory(const char *path) {
   struct stat status;
   if (lstat(path, &status) != 0) {
-    if (errno != ENOENT || mkdir(path, 0700) != 0) return false;
-    return pt_path_is_private_directory(path);
+    if (errno != ENOENT) return false;
+    if (mkdir(path, 0700) == 0) return pt_path_is_private_directory(path);
+    /* Another Run created it first: it is checked like any existing one. */
+    if (errno != EEXIST || lstat(path, &status) != 0) return false;
   }
   if (!S_ISDIR(status.st_mode) || status.st_uid != geteuid() || pt_has_extended_acl(path)) {
     return false;
