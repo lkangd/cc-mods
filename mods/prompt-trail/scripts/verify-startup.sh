@@ -4,7 +4,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 REPO=$(CDPATH= cd -- "$ROOT/../.." && pwd)
 MINIMUM_CLAUDE_VERSION=2.1.273
-CURRENT_CLAUDE_VERSION=2.1.281
+CURRENT_CLAUDE_VERSION=2.1.283
 TYPESCRIPT_VERSION=5.9.3
 
 for path in .claude-plugin hooks bin artifacts scripts src tests tsconfig.json CONTEXT.md; do

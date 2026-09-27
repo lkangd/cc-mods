@@ -53,7 +53,9 @@ type Band = { keys: string[]; prompts: string[]; labels: string[]; rows: number;
 
 /* The keyed rows the band drew, in order; Prompt Entries by their labels.
    A Text keeps no key in the drawn tree, so `rows` counts every row and
-   `text` holds what they say. */
+   `text` holds what they say. The archived entries here are none of this
+   transcript's rows, so each is marked ×; a label leaves the mark out, which
+   is Issue 22's to test. */
 function band(tree: unknown): Band {
   const keys: string[] = []
   const labels: string[] = []
@@ -63,7 +65,7 @@ function band(tree: unknown): Band {
     const { props, children } = node as { props?: Record<string, unknown>; children?: unknown }
     if (typeof props?.key === 'string') {
       keys.push(props.key)
-      if (typeof props.label === 'string') labels.push(props.label)
+      if (typeof props.label === 'string') labels.push(props.label.replace(/^× /, ''))
     }
     walk(children)
   }

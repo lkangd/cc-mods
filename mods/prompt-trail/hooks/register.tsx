@@ -2,11 +2,14 @@ import type { EngineInterface, Register, SessionMessage } from 'claude-code'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from './artifact'
 import type { BranchMatch, BranchState, TranscriptMark } from './branch'
 import { EARLIER_HINT_KEY, TITLE_KEY, arrowStep } from './band'
+import type { DrawnRow } from './jump'
+import { alignmentInput, jumpOutcome, jumpTargets, recordRow, vanishedRows } from './jump'
 import {
   branchStarts,
   chooseBranch,
   foldTimeline,
   forkSources,
+  isPersonRow,
   markTranscript,
   settleBranch,
   transcriptKept,
@@ -362,6 +365,25 @@ let locatorAwaited: string | undefined
    fork's shared history matched several lineages. Both only shape the view. */
 let activeBranch: { key: string; value: BranchState } | undefined
 const ambiguousRoots = new Set<string>()
+/* The person's rows the transcript drew, in the order first drawn, and the
+   Jump Target of each Prompt Entry the helper tied to one: the row's
+   `requestId`, in memory only. A row the transcript lost (a rewind, a clear,
+   a row the engine would not scroll to) is gone, and never kept or tied
+   again. The generation moves whenever the transcript starts over, so an
+   alignment asked of the old rows cannot land on the new ones; one asked
+   while another runs is run again once it ends. */
+let drawnRows: DrawnRow[] = []
+let goneRows = new Set<string>()
+let jumpTable = new Map<string, string>()
+let drawnGeneration = 0
+let alignmentQueued = false
+let alignment: { again: boolean } | undefined
+/* A rewind says nothing and draws nothing: while the band is open, a
+   drawing asks the transcript again at once, and once more this long after,
+   in case the transcript was cut short a moment later; drawings in between
+   wait for that follow-up. */
+const RECHECK_INTERVAL = 500
+let recheckQueued = false
 /* The folds the person opened, by the entry each is drawn at. */
 const openFolds = new Set<string>()
 /* A parent the transcript could not place, waiting on the person in its Pane:
@@ -2062,6 +2084,7 @@ function appendToWindow($: EngineInterface, item: TimelineItem): void {
   }
   const following = expanded && bandBottom
   if (item.kind === 'prompt') {
+    queueAlignment($)
     if (expanded && !following) unread += 1
     if (activePath && item.parentEventId === activePath.tip) {
       activePath.tip = item.eventId
@@ -2392,10 +2415,22 @@ async function matchBranch(
   compacted: boolean,
   messages: readonly SessionMessage[],
 ): Promise<BranchMatch> {
+  const stdout = await runBranchMatch($, currentProject, stored, compacted, transcriptRows(messages), false)
+  return parseBranchMatch(stdout, currentProject.id)
+}
+
+/* `aligned` asks the helper also for the row each entry of the lineage took. */
+async function runBranchMatch(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  stored: BranchState | undefined,
+  compacted: boolean,
+  rows: { stdin: string; truncated: boolean },
+  aligned: boolean,
+): Promise<string> {
   if (!startup.helperPath || !startup.databaseRoot || !startup.runId || !startup.sessionId) {
     throw new Error('capture-identity')
   }
-  const rows = transcriptRows(messages)
   const scoped = stored?.parentEventId != null
   const result = await run(
     $,
@@ -2412,12 +2447,174 @@ async function matchBranch(
       EXPECTED_HELPER_SHA256,
       String(HELPER_PROTOCOL),
       '--stdin',
+      ...(aligned ? ['--rows'] : []),
     ],
     10_000,
     rows.stdin,
   )
   if (result.exitCode !== 0) throw new Error('branch-match')
-  return parseBranchMatch(result.stdout, currentProject.id)
+  return result.stdout
+}
+
+/* The rows `branch-match --rows` placed: a row of its input and the entry
+   that took it. */
+function parseAlignedRows(text: string): { row: number; eventId: string }[] {
+  const value: unknown = JSON.parse(text)
+  if (!isRecord(value) || !Array.isArray(value.rows)) throw new Error('branch-match')
+  return value.rows.map((row: unknown) => {
+    if (
+      !isRecord(row) ||
+      !Number.isSafeInteger(row.row) ||
+      (row.row as number) < 0 ||
+      !isSafeId(row.eventId)
+    ) throw new Error('branch-match')
+    return { row: row.row as number, eventId: row.eventId }
+  })
+}
+
+/* Ties the rows drawn so far to Prompt Entries, once whatever is drawing or
+   settling right now has finished. */
+function queueAlignment($: EngineInterface): void {
+  if (alignmentQueued) return
+  alignmentQueued = true
+  $.clock.after(0, () => {
+    alignmentQueued = false
+    void alignJumpTargets($)
+  })
+}
+
+async function alignJumpTargets($: EngineInterface): Promise<void> {
+  if (alignment) {
+    alignment.again = true
+    return
+  }
+  const running = { again: true }
+  alignment = running
+  try {
+    while (running.again) {
+      running.again = false
+      await alignOnce($)
+    }
+  } finally {
+    alignment = undefined
+  }
+}
+
+/* Drops the rows the transcript no longer holds, then asks the helper which
+   entry each remaining row is, matched the way this session's branch is
+   settled. A rewind or a clear says nothing, so the transcript is read each
+   time. An alignment that fails keeps the targets already proven: a row that
+   has gone since is refused when jumped to. */
+async function alignOnce($: EngineInterface): Promise<void> {
+  const currentProject = project
+  if (
+    startup.support !== 'supported' ||
+    currentProject?.consent !== 'enabled' ||
+    !startup.runId ||
+    !startup.sessionId ||
+    drawnRows.length === 0
+  ) return
+  let generation = drawnGeneration
+  try {
+    const held = (await $.session.messages()).filter(isPersonRow).map(message => message.text)
+    if (generation === drawnGeneration) forgetRows($, vanishedRows(drawnRows, held))
+  } catch {
+    // Unread, the transcript proves nothing gone; a jump still finds out.
+  }
+  if (drawnRows.length === 0) return
+  generation = drawnGeneration
+  const rows = drawnRows.slice()
+  const input = alignmentInput(rows)
+  const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
+  const stored = activeBranch?.key === key ? activeBranch.value : undefined
+  let aligned: { row: number; eventId: string }[]
+  try {
+    const compacted = await sessionCompacted($, currentProject.id, startup.sessionId)
+    const stdout = await runBranchMatch($, currentProject, stored, compacted, input, true)
+    parseBranchMatch(stdout, currentProject.id)
+    aligned = parseAlignedRows(stdout)
+  } catch {
+    return
+  }
+  if (generation !== drawnGeneration) return
+  const table = jumpTargets(rows, input.indices, aligned, goneRows)
+  if (table.size === jumpTable.size && [...table].every(([eventId, requestId]) => jumpTable.get(eventId) === requestId)) {
+    return
+  }
+  jumpTable = table
+  $.ui.invalidate('ui.render')
+}
+
+/* Whether the transcript still holds the rows with targets: a row it lost
+   takes its target with it, and the rest are tied again. */
+function queueRecheck($: EngineInterface): void {
+  if (recheckQueued || jumpTable.size === 0) return
+  recheckQueued = true
+  $.clock.after(0, () => void recheckRows($))
+  $.clock.after(RECHECK_INTERVAL, () => {
+    recheckQueued = false
+    void recheckRows($)
+  })
+}
+
+async function recheckRows($: EngineInterface): Promise<void> {
+  if (jumpTable.size === 0) return
+  const generation = drawnGeneration
+  let held: string[]
+  try {
+    held = (await $.session.messages()).filter(isPersonRow).map(message => message.text)
+  } catch {
+    return
+  }
+  if (generation !== drawnGeneration) return
+  const vanished = vanishedRows(drawnRows, held)
+  forgetRows($, vanished)
+  if (vanished.length > 0) queueAlignment($)
+}
+
+/* The transcript started over: a clear, a resume into another session, an
+   exit. Nothing drawn before is where it was, and the engine may draw some
+   of it once more on the way out, so all of it is gone for good. */
+function forgetDrawnRows($: EngineInterface): void {
+  for (const row of drawnRows) goneRows.add(row.requestId)
+  drawnRows = []
+  drawnGeneration += 1
+  if (jumpTable.size > 0) $.ui.invalidate('ui.render')
+  jumpTable = new Map()
+}
+
+/* Rows the transcript lost: no longer kept, and no entry's target. */
+function forgetRows($: EngineInterface, requestIds: readonly string[]): void {
+  if (requestIds.length === 0) return
+  const lost = new Set(requestIds)
+  for (const requestId of lost) goneRows.add(requestId)
+  drawnRows = drawnRows.filter(row => !lost.has(row.requestId))
+  const before = jumpTable.size
+  jumpTable = new Map([...jumpTable].filter(([, requestId]) => !lost.has(requestId)))
+  if (jumpTable.size !== before) $.ui.invalidate('ui.render')
+}
+
+/* Activating a Prompt Entry: back to its row in the transcript, the band
+   folding away once the engine got there. A row the engine refused is gone,
+   and its entry is marked as no longer reachable; a call that failed proves
+   nothing and changes nothing. An entry without a target does nothing. */
+async function jumpTo($: EngineInterface, eventId: string): Promise<void> {
+  const requestId = jumpTable.get(eventId)
+  if (requestId === undefined) return
+  let result: { deny?: string } | undefined
+  try {
+    result = await $.ui.scroll({ to: { requestId } })
+  } catch {
+    result = undefined
+  }
+  const outcome = jumpOutcome(result)
+  if (outcome === 'collapse') {
+    expanded = false
+    $.ui.invalidate('ui.render')
+    await saveExpanded($)
+  } else if (outcome === 'stale') {
+    forgetRows($, [requestId])
+  }
 }
 
 /* How a candidate parent is offered: by its sequence and a single line of its
@@ -2600,6 +2797,7 @@ async function settleParentChoice(
     const chosen = chooseBranch(choice.stored, answer, crypto.randomUUID())
     await $.store.set(choice.key, chosen)
     rememberBranch(choice.key, chosen)
+    queueAlignment($)
   } catch {
     choice.settling = undefined
     choice.error = '无法保存所选父节点；可以重试，或按 Esc 取消。'
@@ -3700,7 +3898,7 @@ async function saveExpanded($: EngineInterface): Promise<void> {
 
 /* One row of the expanded band, a line each: a Prompt Entry (a stop for the
    focus ring), a fold, or a line of text. */
-type BandRow = { key: string; text: string; dim: boolean; fold?: string; entry?: true }
+type BandRow = { key: string; text: string; dim: boolean; fold?: string; entry?: true; eventId?: string }
 
 /* Every row the band's window holds, in order; the view shows a stretch of
    them under the title. */
@@ -3771,12 +3969,23 @@ function bandRows(): BandRow[] {
           ),
           dim: true,
         }
-      : {
-          key: `prompt-trail:prompt:${item.eventId}`,
-          text: `${item.ordinal}. ${entryLine(item)}`,
-          dim: false,
-          entry: true,
-        }
+      : jumpTable.has(item.eventId)
+        ? {
+            key: `prompt-trail:prompt:${item.eventId}`,
+            text: `${item.ordinal}. ${entryLine(item)}`,
+            dim: false,
+            entry: true,
+            eventId: item.eventId,
+          }
+        /* No row of the current transcript is this entry's: it stays, marked
+           as one that cannot be jumped to. */
+        : {
+            key: `prompt-trail:prompt:${item.eventId}`,
+            text: `× ${item.ordinal}. ${entryLine(item)}`,
+            dim: true,
+            entry: true,
+            eventId: item.eventId,
+          }
     const runId = unclosed.get(item.eventId)
     return runId === undefined
       ? [...before, drawn]
@@ -3894,6 +4103,28 @@ export const register: Register = on => {
         // The band shows what this module instance records from here on.
       }
     }
+    /* A reload or a resume replays the transcript's rows before this. */
+    queueAlignment($)
+    return next(e)
+  })
+
+  /* A rewind draws none of the transcript; the one thing it draws is the hint
+     line under the prompt box, as the old prompt is put back there. While
+     the band is open, that is a moment to ask the transcript again. */
+  on('ui.render', { component: 'PromptHint', surface: 'terminal' }, ($, e, next) => {
+    if (expanded) queueRecheck($)
+    return next(e)
+  })
+
+  /* A row the person wrote, drawn by the transcript, is where its Prompt Entry
+     can be jumped back to. A preview (`placeholder`) is not a row yet, and a
+     row anyone else wrote is not the person's. Drawing archives nothing. */
+  on('ui.render', { component: 'UserMessage', surface: 'terminal' }, ($, e, next) => {
+    if (
+      e.requestId !== 'placeholder' &&
+      e.props.origin.kind === 'composer' &&
+      recordRow(drawnRows, goneRows, e.requestId, e.props.text)
+    ) queueAlignment($)
     return next(e)
   })
 
@@ -3903,6 +4134,7 @@ export const register: Register = on => {
      result is not this plugin's to change, so the hook writes what it can and
      hands the event on untouched. */
   on('classic.SessionEnd', async ($, e, next) => {
+    forgetDrawnRows($)
     await applyLifecycle($, {
       event: 'session-end',
       sessionId: e.session_id,
@@ -3953,6 +4185,7 @@ export const register: Register = on => {
       await ensureTimeline($)
       expanded = true
       await saveExpanded($)
+      queueAlignment($)
       /* Opening always shows the latest events. */
       await returnToLatest($)
       return { text: 'Prompt Trail 已展开。' }
@@ -4353,6 +4586,9 @@ export const register: Register = on => {
       $.ui.invalidate('ui.render')
       await saveExpanded($)
       if (!expanded) return
+      /* Whatever was rewound or cleared while it was folded is marked as the
+         band opens. */
+      queueAlignment($)
       if (startup.support !== 'supported' || timelineLoaded === undefined) {
         await refreshStartup($)
         await ensureTimeline($)
@@ -4370,6 +4606,7 @@ export const register: Register = on => {
         />
       )
     }
+    queueRecheck($)
     const rows = bandRows()
     const stops = stopKeys(rows)
     const width = Math.max(1, e.props.bodyColumns)
@@ -4474,8 +4711,9 @@ export const register: Register = on => {
             }}
           />
         ) : row.entry ? (
-          /* A Prompt Entry is a stop for the ring; activating it is Issue 22's.
-             Taking the band's keyboard starts on the latest one shown. */
+          /* A Prompt Entry is a stop for the ring, activated to jump back to
+             its row. Taking the band's keyboard starts on the latest one
+             shown. */
           <Button
             key={row.key}
             plain
@@ -4483,6 +4721,7 @@ export const register: Register = on => {
             {...(row.dim ? { dimColor: true } : {})}
             {...(row.key === lastShownStop ? { autoFocus: true as const } : {})}
             onPress={() => {
+              if (row.eventId !== undefined) void jumpTo($, row.eventId)
               if (row.key === 'prompt-trail:earlier') void extendWindow($, 'earlier')
               if (row.key === 'prompt-trail:later') void extendWindow($, 'later')
             }}
