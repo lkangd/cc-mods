@@ -316,10 +316,15 @@ let pendingFocus: string | undefined
    rows), and the element its ring stood on then, to return to with room. */
 let cramped = false
 let crampedRing: string | undefined
-/* The title row's word on giving the band the keyboard. */
+/* The title row's word on giving the band the keyboard, and the fewest cells
+   its way up is cut to (`↑ 点…`). */
 const FOCUS_HINT = 'ctrl+x tab 键盘选择'
-/* AskUserQuestion dialogs now open, the band giving way to them. */
+const UP_MIN_CELLS = 5
+/* AskUserQuestion dialogs now open, and whether the host's last drawing of
+   the band had a survey holding it: the band gives way to either, and leaves
+   the slot's scrolling and focus to them meanwhile. */
 let dialogs = 0
+let surveyHeld = false
 let archiveUnavailable = false
 let runMode: { key: string; value: RunModeState } | undefined
 /* `text` is present only while the module instance that staged the capture is
@@ -4494,7 +4499,7 @@ export const register: Register = on => {
      band's own view moves instead, and an arrow key (a step of one row, no
      pointer) while the ring is on the band walks the ring. */
   on('ui.scroll', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.origin.kind !== 'person' || !expanded) return next(e)
+    if (e.origin.kind !== 'person' || !expanded || dialogs > 0 || surveyHeld) return next(e)
     const arrow = e.pointer === undefined && Math.abs(e.by) === 1
     if (arrow && ringKey !== undefined
         && (ringKey === TITLE_KEY || bandView.stops.includes(ringKey))) {
@@ -4512,6 +4517,7 @@ export const register: Register = on => {
      to the title goes on only to a later batch. A click or Tab can still
      land the ring on the window's end row, which fetches ahead. */
   on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (dialogs > 0 || surveyHeld) return next(e)
     if (e.origin.kind === 'person' && expanded && bandView.fits && ringKey !== undefined) {
       const showing = bandView.stops.filter(key => bandView.shown.includes(key))
       const hiddenAbove = bandView.shown[0] !== bandView.rowKeys[0] || timelineEdges.earlier
@@ -4556,7 +4562,8 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'AbovePrompt', surface: 'terminal' }, ($, e, next) => {
-    if (dialogs > 0 || e.props.hasSurvey) return next(e)
+    surveyHeld = e.props.hasSurvey
+    if (dialogs > 0 || surveyHeld) return next(e)
     const { Box, Button, Text } = $.ui.resolve(e)
     bandView.requestId = e.requestId
     const toggle = async () => {
@@ -4669,12 +4676,16 @@ export const register: Register = on => {
        scrolling at all, so it says so); then how to give the band the
        keyboard, which reads true whoever holds it now. The hint goes whole
        or not at all, before the way up is cut. */
-    const title = unread > 0 ? `▾ Prompt Trail · ${unread} 条新条目` : '▾ Prompt Trail'
-    let room = width - textCells(title)
     const upLabel = view.top > 0 || timelineEdges.earlier
       ? (view.fits ? '↑ 点此向上浏览 · 底部不响应触控板' : '↑ 点此向上浏览')
       : undefined
-    const up = upLabel === undefined ? undefined : clipCells(upLabel, Math.max(1, room - 2))
+    /* A count crowding out the way up leaves the title: it still shows on the
+       row that takes the view back down. */
+    let title = unread > 0 ? `▾ Prompt Trail · ${unread} 条新条目` : '▾ Prompt Trail'
+    if (upLabel !== undefined && width - textCells(title) < 2 + UP_MIN_CELLS) title = '▾ Prompt Trail'
+    title = clipCells(title, width)
+    let room = width - textCells(title)
+    const up = upLabel === undefined || room < 2 + UP_MIN_CELLS ? undefined : clipCells(upLabel, room - 2)
     if (up !== undefined) room -= 2 + textCells(up)
     const focusHint = stops.length > 0 && room >= 2 + textCells(FOCUS_HINT)
     return (
