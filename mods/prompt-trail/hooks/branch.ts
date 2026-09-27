@@ -132,35 +132,44 @@ export function isPersonRow(message: TranscriptMessage): boolean {
   return message.role === 'user' && (message.toolResults?.length ?? 0) === 0
 }
 
-/* The `user` rows `branch-match` reads, oldest first, each as
-   `<bytes>\n<text>`. A tool result is the engine's, not the person's; a row
-   too long to have been archived could never match and is left out. When the
-   rows run past what the helper reads, the oldest go, and the transcript is
-   marked truncated just as one at the engine's own limit is: either way its
-   earliest rows are not all there. */
-export function transcriptRows(
-  messages: readonly TranscriptMessage[],
-): { stdin: string; truncated: boolean } {
+/* Rows as `branch-match` reads them, oldest first, each as
+   `<bytes>\n<text>`, and which of `texts` each line is. A text too long to
+   have been archived could never match and is left out. When the rows run
+   past what the helper reads, the oldest go and the input is marked
+   truncated: its earliest rows are not all there. */
+export function matchInput(
+  texts: readonly string[],
+): { stdin: string; truncated: boolean; indices: number[] } {
   const encoder = new TextEncoder()
-  let truncated = messages.length >= TRANSCRIPT_ROW_LIMIT
+  let truncated = false
   const kept: string[] = []
+  const indices: number[] = []
   let bytes = 0
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index]!
-    if (!isPersonRow(message)) continue
-    const length = encoder.encode(message.text).length
+  for (let index = texts.length - 1; index >= 0; index -= 1) {
+    const text = texts[index]!
+    const length = encoder.encode(text).length
     if (length >= ARCHIVED_TEXT_LIMIT) continue
-    const row = `${length}\n${message.text}`
     const rowBytes = length + String(length).length + 1
     /* The helper refuses input that reaches its limit, not only past it. */
-    if (bytes + rowBytes >= MATCH_INPUT_LIMIT) {
+    if (kept.length === TRANSCRIPT_ROW_LIMIT || bytes + rowBytes >= MATCH_INPUT_LIMIT) {
       truncated = true
       break
     }
     bytes += rowBytes
-    kept.push(row)
+    kept.push(`${length}\n${text}`)
+    indices.push(index)
   }
-  return { stdin: kept.reverse().join(''), truncated }
+  return { stdin: kept.reverse().join(''), truncated, indices: indices.reverse() }
+}
+
+/* The transcript's `user` rows as `branch-match` reads them. A tool result
+   is the engine's, not the person's. A transcript at the engine's own limit
+   is truncated just as one past the helper's is. */
+export function transcriptRows(
+  messages: readonly TranscriptMessage[],
+): { stdin: string; truncated: boolean } {
+  const { stdin, truncated } = matchInput(messages.filter(isPersonRow).map(message => message.text))
+  return { stdin, truncated: truncated || messages.length >= TRANSCRIPT_ROW_LIMIT }
 }
 
 /* A person-side `user` row the transcript has to keep holding: its index

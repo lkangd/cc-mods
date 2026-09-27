@@ -22,11 +22,11 @@ import {
 
 test('a drawn row is kept once, where it was first drawn', () => {
   const rows: DrawnRow[] = []
-  const gone = new Set<string>()
-  expect(recordRow(rows, gone, 'r1', 'PT-SECRET-A')).toBe(true)
-  expect(recordRow(rows, gone, 'r2', 'PT-SECRET-A')).toBe(true)
+  const seen = new Set<string>()
+  expect(recordRow(rows, seen, 'r1', 'PT-SECRET-A')).toBe(true)
+  expect(recordRow(rows, seen, 'r2', 'PT-SECRET-A')).toBe(true)
   /* A redraw of the first row, as a resize or a scroll brings. */
-  expect(recordRow(rows, gone, 'r1', 'PT-SECRET-A')).toBe(false)
+  expect(recordRow(rows, seen, 'r1', 'PT-SECRET-A')).toBe(false)
   expect(rows).toEqual([
     { requestId: 'r1', text: 'PT-SECRET-A' },
     { requestId: 'r2', text: 'PT-SECRET-A' },
@@ -539,4 +539,42 @@ test('a transcript cut short just after the drawing that asked is found by the f
     '1. PT-SECRET-ONE',
     '× 2. PT-SECRET-TWO',
   ])
+})
+
+test('an explicitly rooted session ties rows among its own entries first', async ($, on) => {
+  const branch: BranchState = { version: 1, branchId, parentEventId: null, explicitRoot: true }
+  const { calls, settle } = install(on, {
+    store: { ...storeOn(null), [`prompt-trail:branch:${projectId}:${runId}:${sessionId}`]: branch },
+    archive: lineage().slice(0, 1),
+    messages: holding('PT-SECRET-ONE'),
+    branchMatch: aligned(first, [{ row: 0, eventId: first }]),
+  })
+  await $.session.start(session)
+  await drawRow($, 'row-1', 'PT-SECRET-ONE')
+  await settle()
+
+  expect(alignCalls(calls)[0]?.argv.slice(4, 8)).toEqual([runId, sessionId, 'whole', '-'])
+})
+
+test('a branch the transcript rebuilds is aligned again even when the submission goes nowhere', async ($, on) => {
+  const { calls, settle } = install(on, {
+    store: storeOn(first),
+    archive: lineage(),
+    messages: holding('PT-SECRET-ONE', 'PT-SECRET-TWO', 'PT-SECRET-TWO'),
+    branchMatch: call => call.argv.includes('--rows')
+      ? aligned(third, [{ row: 2, eventId: third }])
+      : { match: 'unique', eventId: third, candidates: [], candidateCount: 1 },
+    dropBeneath: 'PT-SECRET-DROPPED',
+  })
+  await $.session.start(session)
+  await drawRow($, 'row-1', 'PT-SECRET-ONE')
+  await settle()
+  expect(alignCalls(calls).at(-1)?.argv[7]).toBe(first)
+
+  /* The first submission settles the branch on the transcript's tip; the
+     engine beneath drops it, so nothing is captured. */
+  await $.prompt.submit({ text: 'PT-SECRET-NEXT', wait: false, origin: { kind: 'composer' } })
+  await settle()
+
+  expect(alignCalls(calls).at(-1)?.argv[7]).toBe(third)
 })

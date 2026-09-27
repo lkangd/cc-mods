@@ -2163,6 +2163,7 @@ static void write_match(
   int listed,
   int winner_count,
   const char *prefer,
+  bool include_rows,
   const int *rows,
   const int *aligned,
   int aligned_count
@@ -2186,7 +2187,7 @@ static void write_match(
     fputs("}", stdout);
   }
   printf("],\"candidateCount\":%d", winner_count);
-  if (rows) {
+  if (include_rows) {
     fputs(",\"rows\":[", stdout);
     for (int index = 0; index < aligned_count; index += 1) {
       if (index > 0) fputs(",", stdout);
@@ -2221,7 +2222,6 @@ static void branch_match(int argc, char **argv) {
   if ((argc != 11 && argc != 12) || strcmp(argv[10], "--stdin") != 0) usage();
   if (argc == 12 && strcmp(argv[11], "--rows") != 0) usage();
   bool with_rows = argc == 12;
-  static const int no_rows[1];
   const char *database_root = argv[2];
   const char *project_id = argv[3];
   const char *run_id = argv[4];
@@ -2279,7 +2279,7 @@ static void branch_match(int argc, char **argv) {
     }
   }
   if (!archived || row_count == 0) {
-    write_match(NULL, project_id, NULL, NULL, 0, 0, prefer, with_rows ? no_rows : NULL, NULL, 0);
+    write_match(NULL, project_id, NULL, NULL, 0, 0, prefer, with_rows, NULL, NULL, 0);
     free(rows);
     free(input);
     return;
@@ -2457,7 +2457,7 @@ static void branch_match(int argc, char **argv) {
   }
   write_match(
     database, project_id, entries, winners, listed, winner_count, prefer,
-    aligned_rows, aligned, aligned_count
+    with_rows, aligned_rows, aligned, aligned_count
   );
   free(chain);
   free(latest);
