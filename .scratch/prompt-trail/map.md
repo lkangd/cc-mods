@@ -111,6 +111,12 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   pending 时先到者生效。**修正 Issue 12**：consent 每次都从 `$.store` 刷新，并发询问时先答者生效，后答者收到 toast。宿主事实：
   `$.store` 跨进程实时共享。band 展开时一律重读最新一批，本 Run 起点之后，其他 Run 折叠成「另一 Run · N 条」。24 个并发 writer
   的 sequence 无缺无重。起点之前的并发边界无法区分，进了 backlog。
+- [Archive unavailable 时失败关闭](issues/25-fail-closed-archive-unavailable.md)：
+  helper 每次调用共用 8 秒 busy 预算，超时报 `archive-busy`；写满报 `archive-full`，事务完整回滚；`capture-begin` 报低空间。
+  档案本身的故障写入按项目划分的共享记录，其他 Run 每次操作都重新读取，读到就不经尝试直接拦下提交；locator、helper、preflight
+  故障只影响本 Run，只记在内存。任何成功写入都会解除共享记录。被拦下的提交只给「重试」和「禁用当前 Run 后继续」两个选择，
+  关闭对话框即恢复草稿。`status` 显示范围、类别和磁盘空间，band 标题显示「档案不可用」。顺带修了新档案切换 WAL、
+  并发创建 archives 目录这两个原有竞争。读命令也要拿写锁，进了 backlog。
 
 ## Not yet specified
 

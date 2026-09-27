@@ -4,18 +4,18 @@
 
 **Blocked by:** 15「对账中断的 Pending Capture」、24「隔离项目并支持并发 Run」
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] SQLite busy 使用有界退避且总自动等待不超过 10 秒；超时进入 Archive unavailable，不在后台无限重试。
-- [ ] 可用空间低于 1 GiB 时每个 Run 只警告一次；实际 `ENOSPC` 完整回滚，不产生半事件或丢失 Pending Capture。
-- [ ] 只读目录、权限异常、locator/helper 启动失败、运行中 helper 消失或摘要变化均形成明确、非敏感的失败状态。
-- [ ] Run-local locator/helper 故障只阻止受影响 Run；共享档案故障会让使用同一 Archive generation 的所有 Run 在下一次操作时停止写入。
-- [ ] 已启用 Run 在 Archive unavailable 下 drop composer submission 并原样保留草稿，不允许 Claude Code 对话静默领先于档案。
-- [ ] 使用者只可选择“重试”或“明确禁用当前 Run 后继续”；禁用写 Collection Boundary，且不得声称禁用区间完整。
-- [ ] 重试成功后恢复原 Run 和 Active Branch，不重复 Pending Capture 或 Prompt Entry。
-- [ ] `status` 在所有失败状态下可用，只显示作用范围、错误类别、必要路径和非敏感 ID。
-- [ ] 任一失败路径都不截断、轮转、自动删除、联网、热切换 helper 或启用无持久化 fallback。
-- [ ] helper fault injection、plugin test 与真实 PTY 分别覆盖 busy、ENOSPC、权限、helper/locator 失效、重试和禁用后继续。
+- [x] SQLite busy 使用有界退避且总自动等待不超过 10 秒；超时进入 Archive unavailable，不在后台无限重试。
+- [x] 可用空间低于 1 GiB 时每个 Run 只警告一次；实际 `ENOSPC` 完整回滚，不产生半事件或丢失 Pending Capture。
+- [x] 只读目录、权限异常、locator/helper 启动失败、运行中 helper 消失或摘要变化均形成明确、非敏感的失败状态。
+- [x] Run-local locator/helper 故障只阻止受影响 Run；共享档案故障会让使用同一 Archive generation 的所有 Run 在下一次操作时停止写入。
+- [x] 已启用 Run 在 Archive unavailable 下 drop composer submission 并原样保留草稿，不允许 Claude Code 对话静默领先于档案。
+- [x] 使用者只可选择“重试”或“明确禁用当前 Run 后继续”；禁用写 Collection Boundary，且不得声称禁用区间完整。
+- [x] 重试成功后恢复原 Run 和 Active Branch，不重复 Pending Capture 或 Prompt Entry。
+- [x] `status` 在所有失败状态下可用，只显示作用范围、错误类别、必要路径和非敏感 ID。
+- [x] 任一失败路径都不截断、轮转、自动删除、联网、热切换 helper 或启用无持久化 fallback。
+- [x] helper fault injection、plugin test 与真实 PTY 分别覆盖 busy、ENOSPC、权限、helper/locator 失效、重试和禁用后继续。
 
 ## Comments
 
@@ -59,3 +59,49 @@
   5. 禁用后继续：本次 prompt 进入会话但不入档，`status` 为 disabled；恢复后 `enable`，禁用区间有 stop/resume 边界。
   6. ENOSPC 与低空间：`hdiutil` 小卷挂到 archives 目录，先见每 Run 一次的低空间 toast，写满后提交被阻止，Pending Capture 不丢。宿主路径校验不允许时只在 helper 黑盒层覆盖，并记录原因。
 - **Q13 协议版本**：不提升 `HELPER_PROTOCOL`。字段只是追加，插件钉死了 helper 摘要，新旧不会混用。
+
+### 实现中修订（2026-09-27）
+
+- **两个原有的并发竞争（修 Q3 的同时发现）**：24 进程并发测试约 1/30 失败，都早于本票。
+  - 新档案切换到 WAL 时，SQLite 为避免死锁直接返回 `SQLITE_BUSY`，不经过 busy handler。改为这条 PRAGMA 用同一个截止时间自行退避重试。
+  - 并发首次创建 archives 目录时，`mkdir` 抢输返回 `EEXIST` 就判失败。改为按已存在的目录继续校验。
+  - 新增 helper 测试：40 轮 × 32 个 Run 同时首次创建目录。
+- **故障类别**：`archive-busy` 与 `archive-full` 由 helper 按 SQLite 实际错误码改写（`SQLITE_BUSY`/`LOCKED`；`SQLITE_FULL`，或 `IOERR` 且 errno 为 `ENOSPC`）。静态门禁改为同时扫描这种改写。
+- **不可采集（preflight 结果）一律按 Run 级处理**，不管 reason 是什么类别，都不写共享记录。
+- **`$.store` 里的 reconcile 或共享记录读不到时**：记为 Run 级 `store-unavailable`，但下一次提交仍不经尝试直接拦下，和原先的失败关闭一致。只有真实写入成功才会解除。
+- **`enable`**：对账失败或 lifecycle 补写被阻止时，同样按类别写入对应范围的记录，并在提示里写明类别。
+- **共享记录变化时重绘 band**：本 Run 读到记录的写入或解除（提交、`status`、`enable`）就 invalidate，否则 band 上的标记要等下一次别的重绘才会变。
+- **宿主给 AskUserQuestion 追加的「Type something.」「Chat about this」**：插件把它们当作取消，drop 并恢复草稿（PTY 已验证）。
+- **PTY 场景 2 改用数据库文件 `chmod 400`**：`capture-begin` 会把 archives 目录的权限修复回 0700，给目录 `chmod 500` 造不成故障。
+- **PTY 用 cmux 驱动**：经使用者要求与授权，用 `cmux send`/`send-key`/`read-screen` 驱动使用者已开好的两个分屏。`read-screen` 抓不到 toast（最小探针也一样），低空间 toast 的显示由使用者目视确认；「每个 Run 只提醒一次」以 store 记录和 `status` 为证。
+
+## Answer
+
+Prompt Trail 无法证明新 Prompt Entry 能被正确保存时，已启用的 Run 会拦下这次提交，并给出两个选择：重试，或禁用当前 Run 后继续。实现在 `59fb931`（helper）、`b57790d`（插件）、`3b410a9`（band 重绘）；与对齐稿不同的地方见上方「实现中修订」。
+
+- **helper**：
+  - 整次调用共用 8 秒 busy 预算，退避从 5ms 起、封顶 250ms，超时报 `archive-busy`，总能赶在插件的 10 秒超时之前自己作答；
+  - 磁盘写满报 `archive-full`，事务完整回滚：不留半行，既有 Pending Capture 仍可确认；
+  - `capture-begin` 的响应带上 `lowSpace`（数据库所在卷可用空间低于 1 GiB），不暴露字节数。
+- **范围**：
+  - 档案本身的故障（`archive-*`、`database-*`、`schema-version`、`project-identity`）写入 `$.store` 的 `archive-state:<projectId>`（version 2：类别、时间、写入的 Run），其他 Run 在下一次提交、`enable` 或 `status` 时读到，提交会不经尝试直接被拦下；
+  - locator、helper、preflight、被宿主 kill 的 helper 调用（`helper-timeout`）只影响本 Run，只记在内存里，下一次提交照常真实尝试；
+  - 任何 Run 的任何一次成功写入都会解除共享记录；
+  - `next(e)` 抛错属于宿主故障，不写任何记录。
+- **交互**：对话框写明原因、范围、类别，别的 Run 写的记录会注明「由另一个 Run 报告」。
+  - 「重试」真实重跑整个提交流程，成功就直接提交，Run 和 Active Branch 不变，也不会重复记录；
+  - 「禁用当前 Run 后继续」尽量写 stop boundary，写不成就记 `stopBoundaryMissing`，然后放行；
+  - 关闭对话框则 drop 并恢复草稿。
+  - 原来所有「为避免漏记」的阻止路径都统一走这个对话框。
+- **`status` 与 band**：
+  - `archive:` 显示范围和类别，新增 `disk space: low|ok|unknown`；
+  - band 标题在本 Run 采集中且档案不可用时显示「档案不可用」，窄终端时最先被截掉；
+  - 低空间 toast 每个 Run 只弹一次，reload 或 resume 后也不重复。
+- **测试**：
+  - helper 黑盒用真实条件：python 持锁，`hdiutil` 挂 4 MB 小卷制造 ENOSPC 和低空间；
+  - 新增 plugin test `archive_unavailable.test.tsx` 共 20 项，插件侧 22 个变异、C 侧 6 个变异都能被测试抓到；
+  - 门禁：两个版本各 330 项 plugin test，helper 84 项；
+  - 真人 PTY 6 个场景全部通过：busy、权限、Run 级 helper 缺失、跨 Run 传播、禁用后继续、写满与低空间。
+- **backlog**：
+  - `20260927-locator-directory-failure-scope.md` 随本票解决；
+  - 新增 `20260927-read-commands-take-the-write-lock.md`：读命令打开档案时也要拿写锁，busy 期间 `status` 等读取同样要等 8 秒，归 Issue 27。
