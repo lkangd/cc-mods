@@ -1541,7 +1541,12 @@ async function requestConsent(
       : undefined
   if (!decision) return undefined
   const first = await answered()
-  if (first) return first
+  if (first) {
+    if (first !== decision) {
+      $.ui.toast(`另一个 Run 已先为本项目${first === 'enabled' ? '启用采集' : '选择不启用采集'}，这里的选择未生效。`)
+    }
+    return first
+  }
   currentProject.consent = decision
   try {
     await $.store.set(consentKey(currentProject.id), {
