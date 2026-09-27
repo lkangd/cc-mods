@@ -51,7 +51,8 @@ function archiveOf(count: number): ArchiveRow[] {
 
 type Band = { keys: string[]; prompts: string[]; labels: string[]; rows: number; text: string }
 
-/* The keyed rows the band drew, in order; Prompt Entries by their labels.
+/* The keyed rows the band drew, in order; Prompt Entries by their labels,
+   the title row's way up left out of them.
    A Text keeps no key in the drawn tree, so `rows` counts every row and
    `text` holds what they say. The archived entries here are none of this
    transcript's rows, so each is marked ×; a label leaves the mark out, which
@@ -65,7 +66,9 @@ function band(tree: unknown): Band {
     const { props, children } = node as { props?: Record<string, unknown>; children?: unknown }
     if (typeof props?.key === 'string') {
       keys.push(props.key)
-      if (typeof props.label === 'string') labels.push(props.label.replace(/^× /, ''))
+      if (typeof props.label === 'string' && props.key !== EARLIER_HINT) {
+        labels.push(props.label.replace(/^× /, ''))
+      }
     }
     walk(children)
   }
@@ -160,7 +163,6 @@ test('away from the bottom a blank row stands for each row below the view', asyn
   expect(drawn.prompts).toHaveLength(10)
   expect(drawn.labels.at(-1)).toBe('579. PT-SECRET-OLD-579')
   expect(drawn.rows).toBe(1 + 10 + 21)
-  expect(drawn.keys).not.toContain(EARLIER_HINT)
 })
 
 test('at the bottom with rows above, the title row says the trackpad needs the band moved first', async ($, on) => {
@@ -174,7 +176,9 @@ test('at the bottom with rows above, the title row says the trackpad needs the b
 
   expect(drawn.rows).toBeGreaterThan(12)
   expect(drawn.labels.at(-1)).not.toBe('600. PT-SECRET-OLD-600')
-  expect(drawn.keys).not.toContain(EARLIER_HINT)
+  /* Away from the bottom the trackpad reaches the band, and the title row
+     no longer says it does not. */
+  expect(drawn.text).not.toContain('底部不响应触控板')
 })
 
 test('a band whose rows all fit draws no blank rows', async ($, on) => {
@@ -269,7 +273,7 @@ test('at the bottom, the engine moving the ring off the first row onto the title
   await $.session.start(session)
   await promptHistory($)
   const drawn = band(await renderBand($, { maxRows: 12 }))
-  expect(drawn.labels.at(1 + 1)).toBe('590. PT-SECRET-OLD-590')
+  expect(drawn.labels[1]).toBe('590. PT-SECRET-OLD-590')
   await focusRow($, drawn.prompts[0]!)
 
   expect((await focusRow($, 'prompt-trail:toggle')).deny).toBeUndefined()

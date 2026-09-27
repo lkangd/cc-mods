@@ -125,6 +125,9 @@ export type TargetOptions = {
      and `timeline-read` answers from it. */
   archive?: ArchiveRow[]
   readFails?: boolean
+  /* An AskUserQuestion dialog stays up until this settles; one that rejects
+     is a dialog that failed. */
+  askHold?: Promise<void>
   run?: RunIdentity
   /* The session the locator says this one continues: the conversation was
      moved here from it, and this session took up its Run. */
@@ -314,7 +317,8 @@ export function installSupportedTarget(
       ...(options.continuedFrom === undefined ? {} : { continuedFrom: options.continuedFrom }),
     }),
   }))
-  on('tool.call', { tool: 'AskUserQuestion' }, (_$, e) => {
+  on('tool.call', { tool: 'AskUserQuestion' }, async (_$, e) => {
+    if (options.askHold) await options.askHold
     const question = e.questions[0]?.question ?? ''
     const choices = e.questions[0]?.options ?? []
     const labels = choices.map(choice => (typeof choice === 'string' ? choice : choice.label))
@@ -723,10 +727,11 @@ export async function promptHistory(
 export const BAND_ID = 'prompt-trail-band'
 
 /* Draws the band. `scroll` places the engine's window over a tree taller than
-   `maxRows`; by default it sits at the top. */
+   `maxRows`; by default it sits at the top. `bodyColumns` is the band's width,
+   and `hasSurvey` a survey holding it. */
 export async function renderBand(
   $: import('claude-code/testing').Engine,
-  view: { maxRows?: number; offset?: number } = {},
+  view: { maxRows?: number; offset?: number; bodyColumns?: number; hasSurvey?: boolean } = {},
 ) {
   const maxRows = view.maxRows ?? 12
   return $.ui.render({
@@ -735,10 +740,10 @@ export async function renderBand(
     requestId: BAND_ID,
     viewport: { columns: 80, rows: 24 },
     props: {
-      hasSurvey: false,
+      hasSurvey: view.hasSurvey ?? false,
       isWorking: false,
       maxRows,
-      bodyColumns: 80,
+      bodyColumns: view.bodyColumns ?? 80,
       scroll: { offset: view.offset ?? 0, bodyRows: maxRows - 1 },
       view: {},
     },

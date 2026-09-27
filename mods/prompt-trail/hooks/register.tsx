@@ -2,6 +2,7 @@ import type { EngineInterface, Register, SessionMessage } from 'claude-code'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from './artifact'
 import type { BranchMatch, BranchState, TranscriptMark } from './branch'
 import { EARLIER_HINT_KEY, TITLE_KEY, arrowStep } from './band'
+import { clipCells, textCells } from './cells'
 import type { DrawnRow } from './jump'
 import { alignmentInput, jumpOutcome, jumpTargets, recordRow, vanishedRows } from './jump'
 import {
@@ -311,6 +312,14 @@ let bandView: {
    row the ring moves to once the next drawing shows it. */
 let ringKey: string | undefined
 let pendingFocus: string | undefined
+/* Whether the band last drew too small for its rows (under 28 columns or 6
+   rows), and the element its ring stood on then, to return to with room. */
+let cramped = false
+let crampedRing: string | undefined
+/* The title row's word on giving the band the keyboard. */
+const FOCUS_HINT = 'ctrl+x tab 键盘选择'
+/* AskUserQuestion dialogs now open, the band giving way to them. */
+let dialogs = 0
 let archiveUnavailable = false
 let runMode: { key: string; value: RunModeState } | undefined
 /* `text` is present only while the module instance that staged the capture is
@@ -3355,65 +3364,6 @@ function entryLine(entry: Extract<TimelineItem, { kind: 'prompt' }>): string {
   return entry.text.replace(/\r\n?|\n/g, ' ↵ ')
 }
 
-/* The symbols below U+1F300 that terminals draw as emoji, two cells wide
-   (Unicode's Emoji_Presentation outside the ranges `cellWidth` covers). */
-const WIDE_SYMBOLS: readonly (readonly [number, number])[] = [
-  [0x231a, 0x231b], [0x23e9, 0x23ec], [0x23f0, 0x23f0], [0x23f3, 0x23f3],
-  [0x25fd, 0x25fe], [0x2614, 0x2615], [0x2648, 0x2653], [0x267f, 0x267f],
-  [0x2693, 0x2693], [0x26a1, 0x26a1], [0x26aa, 0x26ab], [0x26bd, 0x26be],
-  [0x26c4, 0x26c5], [0x26ce, 0x26ce], [0x26d4, 0x26d4], [0x26ea, 0x26ea],
-  [0x26f2, 0x26f3], [0x26f5, 0x26f5], [0x26fa, 0x26fa], [0x26fd, 0x26fd],
-  [0x2705, 0x2705], [0x270a, 0x270b], [0x2728, 0x2728], [0x274c, 0x274c],
-  [0x274e, 0x274e], [0x2753, 0x2755], [0x2757, 0x2757], [0x2795, 0x2797],
-  [0x27b0, 0x27b0], [0x27bf, 0x27bf], [0x2b1b, 0x2b1c], [0x2b50, 0x2b50],
-  [0x2b55, 0x2b55], [0x1f004, 0x1f004], [0x1f0cf, 0x1f0cf], [0x1f18e, 0x1f18e],
-  [0x1f191, 0x1f19a], [0x1f200, 0x1f265],
-]
-
-/* Terminal cells a character takes: none for a combining mark or variation
-   selector, two for East Asian wide and emoji ranges. */
-function cellWidth(character: string): number {
-  const codePoint = character.codePointAt(0) ?? 0
-  if (
-    (codePoint >= 0x0300 && codePoint <= 0x036f) ||
-    (codePoint >= 0xfe00 && codePoint <= 0xfe0f)
-  ) return 0
-  if (WIDE_SYMBOLS.some(([first, last]) => codePoint >= first && codePoint <= last)) return 2
-  if (
-    codePoint >= 0x1100 && (
-      codePoint <= 0x115f ||
-      codePoint === 0x2329 ||
-      codePoint === 0x232a ||
-      (codePoint >= 0x2e80 && codePoint <= 0xa4cf) ||
-      (codePoint >= 0xac00 && codePoint <= 0xd7a3) ||
-      (codePoint >= 0xf900 && codePoint <= 0xfaff) ||
-      (codePoint >= 0xfe10 && codePoint <= 0xfe19) ||
-      (codePoint >= 0xfe30 && codePoint <= 0xfe6f) ||
-      (codePoint >= 0xff00 && codePoint <= 0xff60) ||
-      (codePoint >= 0xffe0 && codePoint <= 0xffe6) ||
-      (codePoint >= 0x1f300 && codePoint <= 0x1faff) ||
-      (codePoint >= 0x20000 && codePoint <= 0x3fffd)
-    )
-  ) return 2
-  return 1
-}
-
-/* A Button label cut to the cells it is drawn in, so it stays on one row. */
-function clipCells(text: string, columns: number): string {
-  const characters = Array.from(text)
-  if (characters.reduce((width, character) => width + cellWidth(character), 0) <= columns) {
-    return text
-  }
-  let width = 0
-  let clipped = ''
-  for (const character of characters) {
-    width += cellWidth(character)
-    if (width > Math.max(1, columns - 1)) break
-    clipped += character
-  }
-  return `${clipped}…`
-}
-
 /* A disabled interval is drawn as an explicit break, never as continuous
    history: the stop marker says the prompts after it were not recorded and the
    resume marker says nothing from that interval is reconstructed. */
@@ -4591,7 +4541,22 @@ export const register: Register = on => {
     return result
   })
 
-  on('ui.render', { component: 'AbovePrompt', surface: 'terminal' }, ($, e) => {
+  /* An AskUserQuestion dialog, the model's or this plugin's own, takes the
+     slot above the prompt for as long as it is up, the survey its host flag
+     does not report; the band returns as it was once the call settles. */
+  on('tool.call', { tool: 'AskUserQuestion' }, async ($, e, next) => {
+    dialogs += 1
+    $.ui.invalidate('ui.render')
+    try {
+      return await next(e)
+    } finally {
+      dialogs -= 1
+      $.ui.invalidate('ui.render')
+    }
+  })
+
+  on('ui.render', { component: 'AbovePrompt', surface: 'terminal' }, ($, e, next) => {
+    if (dialogs > 0 || e.props.hasSurvey) return next(e)
     const { Box, Button, Text } = $.ui.resolve(e)
     bandView.requestId = e.requestId
     const toggle = async () => {
@@ -4618,6 +4583,18 @@ export const register: Register = on => {
           onPress={toggle}
         />
       )
+    }
+    /* Too small for its rows, the band keeps only its title, which still
+       folds it; the window, the view and the count wait for room. */
+    if (e.props.bodyColumns < 28 || e.props.maxRows < 6) {
+      if (!cramped) crampedRing = ringKey
+      cramped = true
+      return <Button key="prompt-trail:toggle" plain label="▾ Prompt Trail · 空间不足" onPress={toggle} />
+    }
+    if (cramped) {
+      cramped = false
+      if (crampedRing !== undefined && crampedRing !== TITLE_KEY) pendingFocus ??= crampedRing
+      crampedRing = undefined
     }
     queueRecheck($)
     const rows = bandRows()
@@ -4687,24 +4664,28 @@ export const register: Register = on => {
     }
     const lastShownStop = stops.filter(key => shownKeys.includes(key)).at(-1)
     const below = rows.length - view.top - shown.length
-    /* Resting at the window's end, the engine sends the band no scrolling at
-       all: the title row says so while rows lie above, and takes the view up
-       a page, after which the trackpad reaches it. */
-    const earlierHint = view.fits && (view.top > 0 || timelineEdges.earlier)
+    /* The title row: while rows lie above the view, a click that takes it up
+       a page (resting at the window's end the engine sends the band no
+       scrolling at all, so it says so); then how to give the band the
+       keyboard, which reads true whoever holds it now. The hint goes whole
+       or not at all, before the way up is cut. */
     const title = unread > 0 ? `▾ Prompt Trail · ${unread} 条新条目` : '▾ Prompt Trail'
-    const titleCells = Array.from(title).reduce((cells, character) => cells + cellWidth(character), 0)
+    let room = width - textCells(title)
+    const upLabel = view.top > 0 || timelineEdges.earlier
+      ? (view.fits ? '↑ 点此向上浏览 · 底部不响应触控板' : '↑ 点此向上浏览')
+      : undefined
+    const up = upLabel === undefined ? undefined : clipCells(upLabel, Math.max(1, room - 2))
+    if (up !== undefined) room -= 2 + textCells(up)
+    const focusHint = stops.length > 0 && room >= 2 + textCells(FOCUS_HINT)
     return (
       <Box flexDirection="column">
-        {earlierHint ? (
+        {up !== undefined || focusHint ? (
           <Box flexDirection="row" gap={2}>
             <Button key="prompt-trail:toggle" plain label={title} onPress={toggle} />
-            <Button
-              key={EARLIER_HINT_KEY}
-              plain
-              dimColor
-              label={clipCells('↑ 点此向上浏览 · 底部不响应触控板', Math.max(1, width - titleCells - 2))}
-              onPress={() => pageUp($)}
-            />
+            {up !== undefined ? (
+              <Button key={EARLIER_HINT_KEY} plain dimColor label={up} onPress={() => pageUp($)} />
+            ) : null}
+            {focusHint ? <Text dimColor>{FOCUS_HINT}</Text> : null}
           </Box>
         ) : (
           <Button key="prompt-trail:toggle" plain label={title} onPress={toggle} />
