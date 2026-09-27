@@ -373,6 +373,7 @@ const ambiguousRoots = new Set<string>()
    alignment asked of the old rows cannot land on the new ones; one asked
    while another runs is run again once it ends. */
 let drawnRows: DrawnRow[] = []
+let seenRows = new Set<string>()
 let goneRows = new Set<string>()
 let jumpTable = new Map<string, string>()
 let drawnGeneration = 0
@@ -2068,6 +2069,7 @@ async function returnToLatest($: EngineInterface): Promise<void> {
    batch; elsewhere it leaves the window where it is. A Prompt Entry that
    arrives while the band is looking elsewhere is counted. */
 function appendToWindow($: EngineInterface, item: TimelineItem): void {
+  if (item.kind === 'prompt') queueAlignment($)
   if (timeline.some(held => held.eventId === item.eventId)) return
   /* A repeated boundary answers the sequence it was stored under: already
      archived, and drawn wherever a read places it. A write that finished
@@ -2084,7 +2086,6 @@ function appendToWindow($: EngineInterface, item: TimelineItem): void {
   }
   const following = expanded && bandBottom
   if (item.kind === 'prompt') {
-    queueAlignment($)
     if (expanded && !following) unread += 1
     if (activePath && item.parentEventId === activePath.tip) {
       activePath.tip = item.eventId
@@ -2415,23 +2416,27 @@ async function matchBranch(
   compacted: boolean,
   messages: readonly SessionMessage[],
 ): Promise<BranchMatch> {
-  const stdout = await runBranchMatch($, currentProject, stored, compacted, transcriptRows(messages), false)
+  const stdout = await runBranchMatch(
+    $, currentProject, stored, compacted, transcriptRows(messages), stored?.parentEventId != null, false,
+  )
   return parseBranchMatch(stdout, currentProject.id)
 }
 
-/* `aligned` asks the helper also for the row each entry of the lineage took. */
+/* `scoped` looks inside this session's stretch of the Run first (the helper
+   widens to the project when the session archived nothing there); `aligned`
+   asks also for the row each entry of the lineage took. */
 async function runBranchMatch(
   $: EngineInterface,
   currentProject: ProjectState,
   stored: BranchState | undefined,
   compacted: boolean,
   rows: { stdin: string; truncated: boolean },
+  scoped: boolean,
   aligned: boolean,
 ): Promise<string> {
   if (!startup.helperPath || !startup.databaseRoot || !startup.runId || !startup.sessionId) {
     throw new Error('capture-identity')
   }
-  const scoped = stored?.parentEventId != null
   const result = await run(
     $,
     [
@@ -2458,9 +2463,11 @@ async function runBranchMatch(
 
 /* The rows `branch-match --rows` placed: a row of its input and the entry
    that took it. */
-function parseAlignedRows(text: string): { row: number; eventId: string }[] {
+function parseAlignedRows(text: string, projectId: string): { row: number; eventId: string }[] {
   const value: unknown = JSON.parse(text)
-  if (!isRecord(value) || !Array.isArray(value.rows)) throw new Error('branch-match')
+  if (!isRecord(value) || value.projectId !== projectId || !Array.isArray(value.rows)) {
+    throw new Error('branch-match')
+  }
   return value.rows.map((row: unknown) => {
     if (
       !isRecord(row) ||
@@ -2515,9 +2522,12 @@ async function alignOnce($: EngineInterface): Promise<void> {
     drawnRows.length === 0
   ) return
   let generation = drawnGeneration
+  /* Only rows drawn before the read: one drawn while it was on its way may
+     be missing from it without being gone. */
+  const asked = drawnRows.slice()
   try {
     const held = (await $.session.messages()).filter(isPersonRow).map(message => message.text)
-    if (generation === drawnGeneration) forgetRows($, vanishedRows(drawnRows, held))
+    if (generation === drawnGeneration) forgetRows($, vanishedRows(asked, held))
   } catch {
     // Unread, the transcript proves nothing gone; a jump still finds out.
   }
@@ -2530,9 +2540,10 @@ async function alignOnce($: EngineInterface): Promise<void> {
   let aligned: { row: number; eventId: string }[]
   try {
     const compacted = await sessionCompacted($, currentProject.id, startup.sessionId)
-    const stdout = await runBranchMatch($, currentProject, stored, compacted, input, true)
-    parseBranchMatch(stdout, currentProject.id)
-    aligned = parseAlignedRows(stdout)
+    /* Scoped even for a root somebody chose: its rows are tied among the
+       session's own entries before anyone else's. */
+    const stdout = await runBranchMatch($, currentProject, stored, compacted, input, true, true)
+    aligned = parseAlignedRows(stdout, currentProject.id)
   } catch {
     return
   }
@@ -2560,6 +2571,7 @@ function queueRecheck($: EngineInterface): void {
 async function recheckRows($: EngineInterface): Promise<void> {
   if (jumpTable.size === 0) return
   const generation = drawnGeneration
+  const asked = drawnRows.slice()
   let held: string[]
   try {
     held = (await $.session.messages()).filter(isPersonRow).map(message => message.text)
@@ -2567,7 +2579,7 @@ async function recheckRows($: EngineInterface): Promise<void> {
     return
   }
   if (generation !== drawnGeneration) return
-  const vanished = vanishedRows(drawnRows, held)
+  const vanished = vanishedRows(asked, held)
   forgetRows($, vanished)
   if (vanished.length > 0) queueAlignment($)
 }
@@ -2706,6 +2718,7 @@ async function settleAlignment(
     if (settlement.kind === 'set') {
       await $.store.set(key, settlement.state)
       rememberBranch(key, settlement.state)
+      queueAlignment($)
     } else if (settlement.kind === 'keep' && stored) {
       rememberBranch(key, stored)
     }
@@ -4123,7 +4136,7 @@ export const register: Register = on => {
     if (
       e.requestId !== 'placeholder' &&
       e.props.origin.kind === 'composer' &&
-      recordRow(drawnRows, goneRows, e.requestId, e.props.text)
+      recordRow(drawnRows, seenRows, e.requestId, e.props.text)
     ) queueAlignment($)
     return next(e)
   })

@@ -8,26 +8,24 @@
    aligns the rows with the Active Branch's lineage and names a row only where
    every way the lineage fits them puts the same entry. */
 
-import { TRANSCRIPT_ROW_LIMIT } from './branch'
+import { matchInput } from './branch'
 
 /* One person's row the transcript drew, in the order rows were first drawn. */
 export type DrawnRow = { requestId: string; text: string }
 
-/* The helper archives prompts under 1 MiB and reads at most 64 MiB of rows. */
-const ARCHIVED_TEXT_LIMIT = 1024 * 1024
-const MATCH_INPUT_LIMIT = 64 * 1024 * 1024
-
 /* Keeps a row the first time it is drawn; a redraw (a resize, a scroll, a
-   reload replaying the transcript) keeps its place. A row the transcript
-   has lost (`gone`) is not kept again: the engine may still draw it once on
-   the way out. Answers whether it is new. */
+   reload replaying the transcript) keeps its place. `seen` holds every row
+   ever kept, the ones the transcript has since lost too: the engine may
+   still draw one of those once on the way out, and it is not kept again.
+   Answers whether it is new. */
 export function recordRow(
   rows: DrawnRow[],
-  gone: ReadonlySet<string>,
+  seen: Set<string>,
   requestId: string,
   text: string,
 ): boolean {
-  if (gone.has(requestId) || rows.some(row => row.requestId === requestId)) return false
+  if (seen.has(requestId)) return false
+  seen.add(requestId)
   rows.push({ requestId, text })
   return true
 }
@@ -39,45 +37,36 @@ export function recordRow(
    nowhere with rows held after it is only drawn unlike its stored text (a
    paste, say), and stays. */
 export function vanishedRows(rows: readonly DrawnRow[], held: readonly string[]): string[] {
+  const places = new Map<string, number[]>()
+  held.forEach((text, at) => {
+    const list = places.get(text)
+    if (list) list.push(at)
+    else places.set(text, [at])
+  })
   let from = 0
   let last = -1
   rows.forEach((row, index) => {
-    const at = held.indexOf(row.text, from)
-    if (at < 0) return
-    from = at + 1
+    const list = places.get(row.text)
+    if (!list) return
+    let low = 0
+    let high = list.length
+    while (low < high) {
+      const middle = (low + high) >> 1
+      if (list[middle]! < from) low = middle + 1
+      else high = middle
+    }
+    if (low === list.length) return
+    from = list[low]! + 1
     last = index
   })
   return rows.slice(last + 1).map(row => row.requestId)
 }
 
-/* What `branch-match --rows` reads, oldest first as `<bytes>\n<text>`, and
-   which drawn row each line of it is. A row too long to have been archived
-   could never match and is left out. Past what the helper reads, the oldest
-   rows go and the input is marked truncated: its earliest rows are not all
-   there. */
+/* What `branch-match --rows` reads, and which drawn row each line of it is. */
 export function alignmentInput(
   rows: readonly DrawnRow[],
 ): { stdin: string; truncated: boolean; indices: number[] } {
-  const encoder = new TextEncoder()
-  let truncated = false
-  const kept: string[] = []
-  const indices: number[] = []
-  let bytes = 0
-  for (let index = rows.length - 1; index >= 0; index -= 1) {
-    const text = rows[index]!.text
-    const length = encoder.encode(text).length
-    if (length >= ARCHIVED_TEXT_LIMIT) continue
-    const rowBytes = length + String(length).length + 1
-    /* The helper refuses input that reaches its limit, not only past it. */
-    if (kept.length === TRANSCRIPT_ROW_LIMIT || bytes + rowBytes >= MATCH_INPUT_LIMIT) {
-      truncated = true
-      break
-    }
-    bytes += rowBytes
-    kept.push(`${length}\n${text}`)
-    indices.push(index)
-  }
-  return { stdin: kept.reverse().join(''), truncated, indices: indices.reverse() }
+  return matchInput(rows.map(row => row.text))
 }
 
 /* Each entry the helper placed, and the `requestId` of the row it took;
