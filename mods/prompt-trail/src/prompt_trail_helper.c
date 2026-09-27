@@ -1856,7 +1856,12 @@ static void timeline_read(int argc, char **argv) {
    chain has no such top: how far back it runs depends on the row its tail
    takes, so each tied candidate is walked back on its own, under a fixed
    budget. Past the budget the answer is `ambiguous` with nobody named, which
-   asks the person rather than guessing. */
+   asks the person rather than guessing.
+
+   With `--rows`, a unique answer also names the row each entry of its lineage
+   took, so the caller can tie drawn rows to entries. An entry is named only
+   when every way the lineage fits the rows puts it on the same row: the
+   earliest fit and the latest fit agree there. */
 #define MATCH_ROW_LIMIT 4096
 #define MATCH_INPUT_LIMIT ((size_t)64 * 1024 * 1024)
 #define MATCH_CANDIDATE_LIMIT 8
@@ -2114,6 +2119,42 @@ static int lineage_winner(
   return found;
 }
 
+/* The rows the lineage of `index` takes wherever all its fits agree, from
+   its newest entry back through `length` of them: the latest fit walks back
+   from the entry's last row, the earliest walks forward from the top. Each
+   agreeing row goes to `rows`, its entry to `aligned`; answers how many. */
+static int align_lineage(
+  const match_entry *entries,
+  const match_texts *texts,
+  int index,
+  int length,
+  int *chain,
+  int *latest,
+  int *rows,
+  int *aligned
+) {
+  int row = entries[index].last_row;
+  int depth = 0;
+  for (int at = index; at >= 0 && depth < length; at = entries[at].parent) {
+    if (depth > 0) row = row_before(texts, entries[at].text, row);
+    if (row == MATCH_NO_ROW) break;
+    chain[depth] = at;
+    latest[depth] = row;
+    depth += 1;
+  }
+  int count = 0;
+  int earliest = -1;
+  for (int step = depth - 1; step >= 0; step -= 1) {
+    earliest = row_at_or_after(texts, entries[chain[step]].text, earliest + 1);
+    if (earliest == latest[step]) {
+      rows[count] = earliest;
+      aligned[count] = chain[step];
+      count += 1;
+    }
+  }
+  return count;
+}
+
 static void write_match(
   sqlite3 *database,
   const char *project_id,
@@ -2121,7 +2162,10 @@ static void write_match(
   const int *winners,
   int listed,
   int winner_count,
-  const char *prefer
+  const char *prefer,
+  const int *rows,
+  const int *aligned,
+  int aligned_count
 ) {
   write_status_string("{\"projectId\":", project_id);
   const char *match = winner_count == 0
@@ -2142,6 +2186,16 @@ static void write_match(
     fputs("}", stdout);
   }
   printf("],\"candidateCount\":%d", winner_count);
+  if (rows) {
+    fputs(",\"rows\":[", stdout);
+    for (int index = 0; index < aligned_count; index += 1) {
+      if (index > 0) fputs(",", stdout);
+      printf("{\"row\":%d", rows[index]);
+      write_status_string(",\"eventId\":", entries[aligned[index]].event_id);
+      fputs("}", stdout);
+    }
+    fputs("]", stdout);
+  }
   /* The stored parent's place, so the caller can name it when neither its
      view nor the candidates hold it. */
   if (database && strcmp(prefer, "-") != 0) {
@@ -2164,7 +2218,10 @@ static void write_match(
 }
 
 static void branch_match(int argc, char **argv) {
-  if (argc != 11 || strcmp(argv[10], "--stdin") != 0) usage();
+  if ((argc != 11 && argc != 12) || strcmp(argv[10], "--stdin") != 0) usage();
+  if (argc == 12 && strcmp(argv[11], "--rows") != 0) usage();
+  bool with_rows = argc == 12;
+  static const int no_rows[1];
   const char *database_root = argv[2];
   const char *project_id = argv[3];
   const char *run_id = argv[4];
@@ -2222,7 +2279,7 @@ static void branch_match(int argc, char **argv) {
     }
   }
   if (!archived || row_count == 0) {
-    write_match(NULL, project_id, NULL, NULL, 0, 0, prefer);
+    write_match(NULL, project_id, NULL, NULL, 0, 0, prefer, with_rows ? no_rows : NULL, NULL, 0);
     free(rows);
     free(input);
     return;
@@ -2378,7 +2435,34 @@ static void branch_match(int argc, char **argv) {
   }
 
   qsort(winners, (size_t)listed, sizeof(int), compare_newest_first);
-  write_match(database, project_id, entries, winners, listed, winner_count, prefer);
+  int *chain = NULL;
+  int *latest = NULL;
+  int *aligned_rows = NULL;
+  int *aligned = NULL;
+  int aligned_count = 0;
+  if (with_rows) {
+    chain = calloc((size_t)row_count, sizeof(int));
+    latest = calloc((size_t)row_count, sizeof(int));
+    aligned_rows = calloc((size_t)row_count, sizeof(int));
+    aligned = calloc((size_t)row_count, sizeof(int));
+    if (!chain || !latest || !aligned_rows || !aligned) archive_error("archive-memory");
+    if (winner_count == 1) {
+      /* Each entry of a lineage takes a row of its own, so no fit is longer
+         than the rows; a whole one runs to its root. */
+      aligned_count = align_lineage(
+        entries, &texts, winners[0], truncated ? row_count : entries[winners[0]].depth,
+        chain, latest, aligned_rows, aligned
+      );
+    }
+  }
+  write_match(
+    database, project_id, entries, winners, listed, winner_count, prefer,
+    aligned_rows, aligned, aligned_count
+  );
+  free(chain);
+  free(latest);
+  free(aligned_rows);
+  free(aligned);
   sqlite3_close(database);
   free(order);
   free(winners);

@@ -2321,6 +2321,83 @@ class HelperProtocolTests(unittest.TestCase):
         result = self.run_helper(*self.match_argv(project_id=project_id), input_text=too_many)
         self.assertEqual(json.loads(result.stderr), {"category": "match-input"})
 
+    def aligned(self, rows: list[str], **argv: str) -> dict[str, object]:
+        """Ask the same, and which row each entry of the matched lineage took."""
+        encoded = "".join(f"{len(row.encode())}\n{row}" for row in rows)
+        result = self.run_helper(*self.match_argv(**argv), "--rows", input_text=encoded)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("PT-SECRET", result.stdout)
+        return json.loads(result.stdout)
+
+    def test_branch_match_names_the_row_each_entry_of_its_lineage_took(self) -> None:
+        project_id = "e1" * 32
+        identity = self.identity(project_id)
+        first = self.capture("PT-SECRET-SAME", identity=identity)
+        middle = self.capture("PT-SECRET-MIDDLE", identity=identity, parent=first)
+        last = self.capture("PT-SECRET-SAME", identity=identity, parent=middle)
+
+        # A row no Run archived sits between them, and the repeat is told
+        # apart by where the lineage stands, not by its text.
+        payload = self.aligned(
+            ["PT-SECRET-SAME", "PT-SECRET-UNARCHIVED", "PT-SECRET-MIDDLE", "PT-SECRET-SAME"],
+            project_id=project_id,
+        )
+
+        self.assertEqual((payload["match"], payload["eventId"]), ("unique", last))
+        self.assertEqual(payload["rows"], [
+            {"row": 0, "eventId": first},
+            {"row": 2, "eventId": middle},
+            {"row": 3, "eventId": last},
+        ])
+
+    def test_branch_match_leaves_out_an_entry_that_fits_more_than_one_row(self) -> None:
+        project_id = "e2" * 32
+        identity = self.identity(project_id)
+        first = self.capture("PT-SECRET-FIRST", identity=identity)
+        self.capture("PT-SECRET-AGAIN", identity=identity, parent=first)
+
+        # The same text went in twice but was archived once: either row may be
+        # the entry's, so neither is named; its parent still has one row only.
+        payload = self.aligned(
+            ["PT-SECRET-FIRST", "PT-SECRET-AGAIN", "PT-SECRET-AGAIN"],
+            project_id=project_id,
+        )
+
+        self.assertEqual(payload["match"], "unique")
+        self.assertEqual(payload["rows"], [{"row": 0, "eventId": first}])
+
+    def test_branch_match_aligns_only_the_tail_a_truncated_transcript_holds(self) -> None:
+        project_id = "e3" * 32
+        identity = self.identity(project_id)
+        root = self.capture("PT-SECRET-OLDEST", identity=identity)
+        middle = self.capture("PT-SECRET-MIDDLE", identity=identity, parent=root)
+        tip = self.capture("PT-SECRET-NEWEST", identity=identity, parent=middle)
+
+        payload = self.aligned(
+            ["PT-SECRET-MIDDLE", "PT-SECRET-NEWEST"],
+            project_id=project_id,
+            transcript="truncated",
+        )
+
+        self.assertEqual((payload["match"], payload["eventId"]), ("unique", tip))
+        self.assertEqual(payload["rows"], [
+            {"row": 0, "eventId": middle},
+            {"row": 1, "eventId": tip},
+        ])
+
+    def test_branch_match_names_no_rows_without_a_unique_lineage(self) -> None:
+        project_id = "e4" * 32
+        for _ in range(2):
+            self.capture("PT-SECRET-TWIN", identity=self.identity(project_id))
+
+        tied = self.aligned(["PT-SECRET-TWIN"], project_id=project_id)
+        unmatched = self.aligned(["PT-SECRET-UNARCHIVED"], project_id=project_id)
+        plain = self.match(["PT-SECRET-TWIN"], project_id=project_id)
+
+        self.assertEqual((tied["match"], tied["rows"]), ("ambiguous", []))
+        self.assertEqual((unmatched["match"], unmatched["rows"]), ("none", []))
+        self.assertNotIn("rows", plain)
+
     def test_timeline_read_refuses_an_archive_root_it_cannot_vouch_for(self) -> None:
         project_id = "4" * 64
         identity = {

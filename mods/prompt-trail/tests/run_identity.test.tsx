@@ -482,8 +482,9 @@ test('the read is bounded to the latest fixed batch', async ($, on) => {
 
   /* The batch and one earlier entry above it; the four before that stay in
      the archive. Each keeps its place among the project's Prompt Entries. */
-  expect(band).toContain('"5. PT-SECRET-EARLIER-5"')
-  expect(band).toContain(`"${TIMELINE_READ_LIMIT + 5}. PT-SECRET-EARLIER-${TIMELINE_READ_LIMIT + 5}"`)
+  /* An earlier Run's entries, none drawn by this transcript: marked ×. */
+  expect(band).toContain('"× 5. PT-SECRET-EARLIER-5"')
+  expect(band).toContain(`"× ${TIMELINE_READ_LIMIT + 5}. PT-SECRET-EARLIER-${TIMELINE_READ_LIMIT + 5}"`)
   expect(band).not.toContain('PT-SECRET-EARLIER-4"')
 })
 

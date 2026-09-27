@@ -128,7 +128,7 @@ type TranscriptMessage = {
 }
 
 /* A `user` row the person wrote: a tool result is the engine's. */
-function isPersonRow(message: TranscriptMessage): boolean {
+export function isPersonRow(message: TranscriptMessage): boolean {
   return message.role === 'user' && (message.toolResults?.length ?? 0) === 0
 }
 
