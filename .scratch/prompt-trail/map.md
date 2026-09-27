@@ -105,6 +105,12 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   状态保留。AskUserQuestion 的 `tool.call` 期间让出 band。**修正 Issue 21**：「树不超高时宿主不送 `ui.scroll`」
   只适用于方向键和触控板，页键在底部同样会送。Home/End 到不了最前或最后，不承诺；宿主的其他对话框和第三方插件争用
   槽位记为兼容限制。
+- [隔离项目并支持并发 Run](issues/24-project-isolation-concurrent-runs.md)：
+  物理隔离前序票据已经做到，本票补测。项目根抽成纯函数：调用 git 时去掉 `GIT_*` 重定向变量，git 以任何原因失败时往上查 `.git`，
+  查不到就用启动目录。`capture-list` 带上调用方的 Run，不再列出别的存活 Run 的 pending，只计入 `skipped`；两个 Run 同时结清同一条
+  pending 时先到者生效。**修正 Issue 12**：consent 每次都从 `$.store` 刷新，并发询问时先答者生效，后答者收到 toast。宿主事实：
+  `$.store` 跨进程实时共享。band 展开时一律重读最新一批，本 Run 起点之后，其他 Run 折叠成「另一 Run · N 条」。24 个并发 writer
+  的 sequence 无缺无重。起点之前的并发边界无法区分，进了 backlog。
 
 ## Not yet specified
 
