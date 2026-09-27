@@ -1,6 +1,6 @@
 ---
 id: locator-directory-failure-scope
-status: open
+status: resolved
 severity: minor
 found: 2026-09-27
 source: /code-review, round 1
@@ -41,3 +41,12 @@ unavailable.
 `grep -n "locator-directory" mods/prompt-trail/src/*.c`. Reproduce with a helper black-box
 test in `tests/helper_protocol.py` that `chmod 000`s the locator directory and runs
 `capture-list`, then a plugin test with `listFails` returning that category.
+
+## Resolved 2026-09-27 (Issue 25, `b57790d`)
+
+`capture-list` failures now carry the helper's category to the plugin, and each category has a
+scope. `locator-directory` is Run-local: it blocks only the current Run, with a retry, and is
+kept in memory rather than written as the project's `archive-state`. The next submission lists
+again for real, so once the directory is readable it proceeds, and no project is left marked
+unavailable. The plugin test `a Run-local failure is not put on record, and the next submission
+tries for real` covers it.
