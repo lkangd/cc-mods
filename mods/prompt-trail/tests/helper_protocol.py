@@ -1665,6 +1665,34 @@ class HelperProtocolTests(unittest.TestCase):
             mine = [row for row in events if row["runId"] == identity["run_id"]]
             self.assertEqual([row["eventId"] for row in mine], [prompt, boundary])
 
+    def test_runs_that_create_the_archive_root_at_once_all_stage(self) -> None:
+        # Each writer stages into a project of its own, so the only thing they
+        # race for is the archive root that none of them finds yet.
+        for round_number in range(40):
+            plugin_data = pathlib.Path(self.temporary.name) / f"plugin-data-{round_number}"
+            plugin_data.mkdir(mode=0o700)
+            database_root = plugin_data.resolve() / "archives"
+            gate = pathlib.Path(self.temporary.name) / f"go-{round_number}"
+            processes = []
+            for writer in range(32):
+                identity = self.identity(f"{writer:02x}" * 32)
+                argv = list(self.begin_argv(str(uuid.uuid4()), **identity))
+                argv[1] = str(database_root)
+                script = 'while [ ! -e "$0" ]; do /bin/sleep 0.005; done\n' + (
+                    "printf %s PT-SECRET-ROOT | " + " ".join(f"'{part}'" for part in [str(HELPER), *argv])
+                    + " >/dev/null"
+                )
+                processes.append(subprocess.Popen(
+                    ["/bin/sh", "-c", script, str(gate)],
+                    env=self.environment,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                ))
+            gate.touch()
+            for process in processes:
+                _, stderr = process.communicate(timeout=60)
+                self.assertEqual(process.returncode, 0, stderr)
+
     def test_one_projects_broken_archive_leaves_another_project_untouched(self) -> None:
         self.publish_locator()
         broken_id, healthy_id = "a3" * 32, "b4" * 32
@@ -1702,6 +1730,154 @@ class HelperProtocolTests(unittest.TestCase):
         gone = self.run_helper(*self.confirm_argv(str(uuid.uuid4()), project_id=broken_id), input_text="PT-SECRET-X")
         self.assertEqual(json.loads(gone.stderr)["category"], "database-unavailable")
         healthy_still_works("AFTER-DELETION")
+
+    def hold_write_lock(self, project_id: str) -> sqlite3.Connection:
+        """A second writer that keeps the archive's write lock until closed."""
+        holder = sqlite3.connect(
+            self.plugin_data / "archives" / f"{project_id}.sqlite3",
+            isolation_level=None,
+        )
+        self.addCleanup(holder.close)
+        holder.execute("BEGIN IMMEDIATE")
+        return holder
+
+    def test_a_held_write_lock_ends_in_archive_busy_within_the_wait_budget(self) -> None:
+        project_id = "c5" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-FIRST", identity=identity)
+        holder = self.hold_write_lock(project_id)
+
+        started = time.monotonic()
+        begin = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), **identity),
+            input_text="PT-SECRET-BUSY",
+        )
+        elapsed = time.monotonic() - started
+
+        self.assertNotEqual(begin.returncode, 0)
+        self.assertEqual(json.loads(begin.stderr)["category"], "archive-busy")
+        self.assertNotIn("PT-SECRET", begin.stdout + begin.stderr)
+        # The whole invocation waits a fixed budget, finishing well inside the
+        # host's ten-second limit rather than being killed by it.
+        self.assertGreater(elapsed, 6.0)
+        self.assertLess(elapsed, 9.0)
+
+        holder.execute("ROLLBACK")
+        self.capture("PT-SECRET-AFTER", identity=identity)
+
+    def test_a_lock_released_during_the_wait_lets_the_write_through(self) -> None:
+        project_id = "c6" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-FIRST", identity=identity)
+        holder = self.hold_write_lock(project_id)
+        event_id = str(uuid.uuid4())
+        begin = subprocess.Popen(
+            [str(HELPER), *self.begin_argv(event_id, **identity)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=self.environment,
+        )
+        time.sleep(1.0)
+        holder.execute("ROLLBACK")
+        stdout, stderr = begin.communicate("PT-SECRET-WAITED", timeout=10)
+        self.assertEqual(begin.returncode, 0, stderr)
+        self.assertTrue(json.loads(stdout)["pending"])
+
+    def mount_small_volume(self) -> pathlib.Path:
+        """A few-megabyte volume serving as the archive root, so the disk it
+        sits on really fills up."""
+        image = pathlib.Path(self.temporary.name) / "small.dmg"
+        subprocess.run(
+            ["/usr/bin/hdiutil", "create", "-size", "4m", "-fs", "HFS+",
+             "-volname", "pt-small", "-o", str(image), "-quiet"],
+            check=True,
+        )
+        archives = self.plugin_data / "archives"
+        archives.mkdir(mode=0o700)
+        subprocess.run(
+            ["/usr/bin/hdiutil", "attach", str(image), "-mountpoint", str(archives),
+             "-nobrowse", "-noverify", "-quiet"],
+            check=True,
+        )
+        self.addCleanup(
+            subprocess.run,
+            ["/usr/bin/hdiutil", "detach", str(archives), "-force", "-quiet"],
+            check=False,
+        )
+        archives.chmod(0o700)
+        return archives
+
+    def fill_volume(self, volume: pathlib.Path) -> pathlib.Path:
+        filler = volume / "filler"
+        descriptor = os.open(filler, os.O_WRONLY | os.O_CREAT, 0o600)
+        try:
+            # Down to what is left for a single small block: too little for a
+            # new page of any prompt below.
+            for size in (65536, 512):
+                try:
+                    while os.write(descriptor, b"\0" * size) == size:
+                        pass
+                except OSError:
+                    pass
+        finally:
+            os.close(descriptor)
+        return filler
+
+    def test_a_full_disk_stages_nothing_and_keeps_an_earlier_pending_whole(self) -> None:
+        volume = self.mount_small_volume()
+        project_id = "c7" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-FIRST", identity=identity)
+        staged = str(uuid.uuid4())
+        large = "PT-SECRET-STAGED " + "x" * 300_000
+        begin = self.run_helper(*self.begin_argv(staged, **identity), input_text=large)
+        self.assertEqual(begin.returncode, 0, begin.stderr)
+        filler = self.fill_volume(volume)
+
+        refused = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), **identity),
+            input_text="PT-SECRET-REFUSED " + "y" * 300_000,
+        )
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertEqual(json.loads(refused.stderr)["category"], "archive-full")
+        self.assertNotIn("PT-SECRET", refused.stdout + refused.stderr)
+
+        confirm = self.run_helper(*self.confirm_from_pending_argv(staged, project_id=project_id))
+        self.assertNotEqual(confirm.returncode, 0)
+        self.assertEqual(json.loads(confirm.stderr)["category"], "archive-full")
+
+        filler.unlink()
+        listed = self.run_helper(*self.list_argv(project_id=project_id))
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(
+            [row["eventId"] for row in json.loads(listed.stdout)["pending"]],
+            [staged],
+        )
+        confirm = self.run_helper(*self.confirm_from_pending_argv(staged, project_id=project_id))
+        self.assertEqual(confirm.returncode, 0, confirm.stderr)
+        texts = [row.get("text") for row in self.read(project_id=project_id)["events"]]
+        self.assertEqual(texts, ["PT-SECRET-FIRST", large])
+
+    def test_capture_begin_says_whether_the_archive_disk_is_low_on_space(self) -> None:
+        identity = self.identity("c8" * 32)
+        roomy = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), **identity),
+            input_text="PT-SECRET-ROOMY",
+        )
+        self.assertEqual(roomy.returncode, 0, roomy.stderr)
+        self.assertIs(json.loads(roomy.stdout)["lowSpace"], False)
+
+    def test_capture_begin_reports_low_space_on_a_small_disk(self) -> None:
+        self.mount_small_volume()
+        identity = self.identity("c9" * 32)
+        cramped = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), **identity),
+            input_text="PT-SECRET-CRAMPED",
+        )
+        self.assertEqual(cramped.returncode, 0, cramped.stderr)
+        self.assertIs(json.loads(cramped.stdout)["lowSpace"], True)
 
     def test_confirm_from_pending_archives_the_staged_text(self) -> None:
         project_id = "d" * 64

@@ -18,8 +18,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/mount.h>
 #include <sys/sysctl.h>
 #include <sys/utsname.h>
+#include <time.h>
 #include <unistd.h>
 
 #define MINIMUM_CLAUDE_VERSION_MAJOR 2UL
@@ -32,6 +34,14 @@
 #define EXIT_PROTOCOL_MISMATCH 23
 #define EXIT_SQLITE_CAPABILITY 24
 #define EXIT_ARCHIVE_UNAVAILABLE 25
+/* The whole invocation's automatic wait on a write lock another Run holds.
+   It ends inside the plugin's ten-second limit on the helper, so the helper
+   answers `archive-busy` itself rather than being killed without a category. */
+#define ARCHIVE_WAIT_MS 8000LL
+#define ARCHIVE_WAIT_FIRST_MS 5LL
+#define ARCHIVE_WAIT_LONGEST_MS 250LL
+/* Below this much free space on the archive's disk, `capture-begin` says so. */
+#define LOW_SPACE_BYTES (1ULL << 30)
 
 /* Non-prompt Timeline Events. They share the project-level monotonic sequence
    with prompt entries, so a boundary is ordered against prompts by sequence
@@ -595,8 +605,55 @@ static void preflight(
 
 static void usage(void);
 
+/* The archive this invocation has open, so a failure can say what SQLite
+   actually ran into: a lock held past the wait, or a full disk, is not the
+   corruption or refusal the calling site otherwise names. */
+static sqlite3 *active_archive;
+static long long wait_deadline_ms;
+
+static void close_archive(sqlite3 *database) {
+  if (database == active_archive) active_archive = NULL;
+  sqlite3_close(database);
+}
+
 static void archive_error(const char *category) {
+  if (active_archive) {
+    int code = sqlite3_errcode(active_archive) & 0xff;
+    if (code == SQLITE_BUSY || code == SQLITE_LOCKED) {
+      category = "archive-busy";
+    } else if (code == SQLITE_FULL
+               || (code == SQLITE_IOERR
+                   && sqlite3_system_errno(active_archive) == ENOSPC)) {
+      category = "archive-full";
+    }
+  }
   json_error(EXIT_ARCHIVE_UNAVAILABLE, category);
+}
+
+static long long monotonic_ms(void) {
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  return (long long)now.tv_sec * 1000LL + now.tv_nsec / 1000000L;
+}
+
+/* Bounded backoff against the invocation's single deadline: however many
+   locks one command takes, together they wait no longer than the budget. */
+static int archive_busy_wait(void *context, int attempts) {
+  (void)context;
+  long long remaining = wait_deadline_ms - monotonic_ms();
+  if (remaining <= 0) return 0;
+  long long delay = ARCHIVE_WAIT_LONGEST_MS;
+  if (attempts < 6) {
+    delay = ARCHIVE_WAIT_FIRST_MS << attempts;
+    if (delay > ARCHIVE_WAIT_LONGEST_MS) delay = ARCHIVE_WAIT_LONGEST_MS;
+  }
+  if (delay > remaining) delay = remaining;
+  struct timespec pause = {
+    .tv_sec = (time_t)(delay / 1000LL),
+    .tv_nsec = (long)(delay % 1000LL) * 1000000L,
+  };
+  nanosleep(&pause, NULL);
+  return 1;
 }
 
 static bool lowercase_sha256(const char *value) {
@@ -841,15 +898,25 @@ static sqlite3 *open_archive(
   int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX;
   if (create) flags |= SQLITE_OPEN_CREATE;
   if (sqlite3_open_v2(database_path, &database, flags, NULL) != SQLITE_OK) {
-    sqlite3_close(database);
+    close_archive(database);
     archive_error("database-unavailable");
   }
   if (!pt_path_is_private_file(database_path)) {
-    sqlite3_close(database);
+    close_archive(database);
     archive_error("database-permissions");
   }
-  sqlite3_busy_timeout(database, 10000);
-  archive_sql(database, "PRAGMA journal_mode=WAL");
+  active_archive = database;
+  sqlite3_busy_handler(database, archive_busy_wait, NULL);
+  /* Turning a new archive to WAL needs the exclusive lock, and SQLite answers
+     a Run that meets another one mid-switch with SQLITE_BUSY at once rather
+     than through the busy handler, so it waits here on the same budget. */
+  for (int attempts = 0;; attempts += 1) {
+    int result = sqlite3_exec(database, "PRAGMA journal_mode=WAL", NULL, NULL, NULL);
+    if (result == SQLITE_OK) break;
+    if ((result & 0xff) != SQLITE_BUSY || !archive_busy_wait(NULL, attempts)) {
+      archive_error("archive-sqlite");
+    }
+  }
   archive_sql(database, "PRAGMA synchronous=FULL");
   archive_sql(database, "PRAGMA foreign_keys=ON");
   archive_sql(database, "PRAGMA secure_delete=ON");
@@ -911,7 +978,7 @@ static sqlite3 *open_archive(
       );
     } else if (schema_version != 2) {
       archive_sql(database, "ROLLBACK");
-      sqlite3_close(database);
+      close_archive(database);
       archive_error("schema-version");
     }
     archive_sql(database, "COMMIT");
@@ -933,7 +1000,7 @@ static sqlite3 *open_archive(
   if (sqlite3_step(metadata) != SQLITE_ROW
       || sqlite3_column_int(metadata, 0) != 1) {
     sqlite3_finalize(metadata);
-    sqlite3_close(database);
+    close_archive(database);
     archive_error("project-identity");
   }
   sqlite3_finalize(metadata);
@@ -1024,6 +1091,25 @@ static bool pending_matches(
   return true;
 }
 
+/* A staged capture, and whether the archive's disk is below the low-space
+   mark. Only the yes or no leaves the helper; when the disk cannot be asked,
+   the answer is left out rather than guessed. */
+static void write_pending(
+  const char *database_root,
+  const char *event_id,
+  const char *project_id
+) {
+  write_status_string("{\"eventId\":", event_id);
+  write_status_string(",\"projectId\":", project_id);
+  fputs(",\"pending\":true", stdout);
+  struct statfs volume;
+  if (statfs(database_root, &volume) == 0) {
+    bool low = (unsigned long long)volume.f_bavail * volume.f_bsize < LOW_SPACE_BYTES;
+    fputs(low ? ",\"lowSpace\":true" : ",\"lowSpace\":false", stdout);
+  }
+  fputs("}\n", stdout);
+}
+
 static void capture_begin(int argc, char **argv) {
   if (argc != 15 || strcmp(argv[14], "--stdin") != 0) usage();
   const char *database_root = argv[2];
@@ -1074,11 +1160,9 @@ static void capture_begin(int argc, char **argv) {
         prompt_length
       )) {
     archive_sql(database, "COMMIT");
-    sqlite3_close(database);
+    close_archive(database);
     free(prompt);
-    write_status_string("{\"eventId\":", event_id);
-    write_status_string(",\"projectId\":", project_id);
-    fputs(",\"pending\":true}\n", stdout);
+    write_pending(database_root, event_id, project_id);
     return;
   }
   sqlite3_stmt *insert = archive_prepare(
@@ -1100,12 +1184,10 @@ static void capture_begin(int argc, char **argv) {
   if (sqlite3_step(insert) != SQLITE_DONE) archive_error("capture-conflict");
   sqlite3_finalize(insert);
   archive_sql(database, "COMMIT");
-  sqlite3_close(database);
+  close_archive(database);
   free(prompt);
 
-  write_status_string("{\"eventId\":", event_id);
-  write_status_string(",\"projectId\":", project_id);
-  fputs(",\"pending\":true}\n", stdout);
+  write_pending(database_root, event_id, project_id);
 }
 
 static void discard_pending(sqlite3 *database, const char *event_id) {
@@ -1177,7 +1259,7 @@ static void capture_confirm(int argc, char **argv) {
     discard_pending(database, event_id);
     archive_sql(database, "COMMIT");
     write_confirmation(database, event_id, project_id, sequence);
-    sqlite3_close(database);
+    close_archive(database);
     free(prompt);
     return;
   }
@@ -1242,7 +1324,7 @@ static void capture_confirm(int argc, char **argv) {
   sqlite3_finalize(remove);
   archive_sql(database, "COMMIT");
   write_confirmation(database, event_id, project_id, sequence);
-  sqlite3_close(database);
+  close_archive(database);
   free(prompt);
 }
 
@@ -1267,7 +1349,7 @@ static void capture_abort(int argc, char **argv) {
   int removed = sqlite3_changes(database);
   sqlite3_finalize(remove);
   archive_sql(database, "COMMIT");
-  sqlite3_close(database);
+  close_archive(database);
   printf("{\"aborted\":%s}\n", removed > 0 ? "true" : "false");
 }
 
@@ -1463,7 +1545,7 @@ static void capture_list(int argc, char **argv) {
   }
   if (step != SQLITE_ROW && step != SQLITE_DONE) archive_error("archive-sqlite");
   sqlite3_finalize(rows);
-  sqlite3_close(database);
+  close_archive(database);
   free(live.run_ids);
   printf(
     "],\"skipped\":%d,\"truncated\":%s}\n",
@@ -1583,7 +1665,7 @@ static void boundary_append(int argc, char **argv) {
     sqlite3_finalize(insert);
   }
   archive_sql(database, "COMMIT");
-  sqlite3_close(database);
+  close_archive(database);
 
   write_status_string("{\"eventId\":", event_id);
   write_status_string(",\"projectId\":", project_id);
@@ -1944,7 +2026,7 @@ static void timeline_read(int argc, char **argv) {
   write_origins(database, rows, count);
   fputs("}\n", stdout);
   free(rows);
-  sqlite3_close(database);
+  close_archive(database);
 }
 
 /* `branch-match` answers which archived Prompt Entry a transcript ends on, so
@@ -2575,7 +2657,7 @@ static void branch_match(int argc, char **argv) {
   free(latest);
   free(aligned_rows);
   free(aligned);
-  sqlite3_close(database);
+  close_archive(database);
   free(order);
   free(winners);
   free(stack);
@@ -2594,6 +2676,7 @@ static void usage(void) {
 
 int main(int argc, char **argv) {
   umask(0077);
+  wait_deadline_ms = monotonic_ms() + ARCHIVE_WAIT_MS;
   if (argc == 4
       && strcmp(argv[1], "probe") == 0
       && strcmp(argv[2], "--protocol") == 0) {

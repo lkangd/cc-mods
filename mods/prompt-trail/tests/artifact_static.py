@@ -104,7 +104,11 @@ class StaticArtifactTests(unittest.TestCase):
         source = HELPER_SOURCE.read_text()
         helper_categories = set(
             re.findall(r'json_error\([^,]+, "([^"]+)"', source)
-        ) | set(re.findall(r'archive_error\("([^"]+)"', source))
+        ) | set(re.findall(r'archive_error\("([^"]+)"', source)) | set(
+            # What SQLite actually ran into, named in place of the site's own.
+            re.findall(r'\bcategory = "([^"]+)"', source)
+        )
+        self.assertTrue({"archive-busy", "archive-full"} <= helper_categories)
         register = REGISTER_TS.read_text()
         safe_block = re.search(
             r"const SAFE_ERROR_CATEGORIES = new Set\(\[(.*?)\]\)",
