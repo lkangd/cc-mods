@@ -289,6 +289,7 @@ const SHARED_FAILURES = new Set([
 const PLUGIN_FAILURES = new Set([
   'boundary-append',
   'boundary-response',
+  'branch-match',
   'capture-abort',
   'capture-begin',
   'capture-confirm',
@@ -297,12 +298,14 @@ const PLUGIN_FAILURES = new Set([
   'capture-response',
   'category-unrecorded',
   'database-root-unproven',
-  'helper-timeout',
+  'helper-call-failed',
   'lifecycle-write',
   'preflight-failed',
   'project-root-unproven',
   'run-mode-unreadable',
   'store-unavailable',
+  'timeline-read',
+  'transcript-unreadable',
 ])
 const RETRYABLE_LOCATOR_REASONS = new Set([
   'claude-code-version-unproven',
@@ -383,10 +386,15 @@ type Unavailable = {
   category: string
   elsewhere: boolean
   blocking: boolean
+  /* The Run a Run-local failure belongs to; another Run this process moves
+     to does not inherit it. */
+  runId?: string
 }
 let archiveFailure: Unavailable | undefined
 /* What the latest staged capture said about the archive's disk. */
 let diskSpace: 'low' | 'ok' | 'unknown' = 'unknown'
+/* Runs this module instance has warned of low disk space. */
+const spaceWarned = new Set<string>()
 let runMode: { key: string; value: RunModeState } | undefined
 /* `text` is present only while the module instance that staged the capture is
    still loaded; after a restart the staged bytes in the archive are the only
@@ -398,7 +406,7 @@ let reconcile: { state: ReconcileState; text?: string } | undefined
 let pendingDiscovered = false
 /* Set when the archive could not say whether anything is owed. Not knowing is
    not the same as nothing being owed, and status says so. */
-let pendingUnknown = false
+let pendingUnknown: string | undefined
 /* How many pendings of other, live Runs the archive held at the latest
    listing; `status` lists again, so it never reports a stale count. */
 let pendingElsewhere: number | undefined
@@ -583,8 +591,8 @@ async function run(
 }
 
 /* A helper call on the archive. One the host killed at its time limit, or
-   could not start, rejects in the host's own words, which are never shown:
-   it is named `helper-timeout`. */
+   could not start, rejects in the host's own words, which are never shown and
+   do not say which it was: it is named `helper-call-failed`. */
 async function runArchive(
   $: EngineInterface,
   argv: readonly string[],
@@ -594,7 +602,7 @@ async function runArchive(
   try {
     return await run($, argv, timeoutMs, stdin)
   } catch {
-    throw new Error('helper-timeout')
+    throw new Error('helper-call-failed')
   }
 }
 
@@ -1539,7 +1547,7 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
   }
   reconcile = owed ? { state: owed } : undefined
   pendingDiscovered = false
-  pendingUnknown = false
+  pendingUnknown = undefined
   pendingElsewhere = undefined
   runMode = undefined
   /* The lifecycle record is keyed by Run, so it is read once the Run is proven
@@ -1563,7 +1571,7 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
   /* Not knowing whether something is owed is itself a reason to stop, so an
      unreadable record fails closed exactly as an unreadable archive does. */
   if (owedUnknown && consent === 'enabled') {
-    archiveFailure = { scope: 'run', category: 'store-unavailable', elsewhere: false, blocking: true }
+    archiveFailure = runLocal('store-unavailable', true)
   }
   return project
 }
@@ -1576,6 +1584,7 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
 async function readArchiveState($: EngineInterface, currentProject: ProjectState): Promise<void> {
   const before = JSON.stringify(archiveFailure)
   await readArchiveRecord($, currentProject)
+  forgetOtherRunsFailure()
   /* The band says what this Run knows, which a read can change either way. */
   if (JSON.stringify(archiveFailure) !== before) $.ui.invalidate('ui.render')
 }
@@ -1585,9 +1594,7 @@ async function readArchiveRecord($: EngineInterface, currentProject: ProjectStat
   try {
     stored = await $.store.get(archiveStateKey(currentProject.id))
   } catch {
-    if (currentProject.consent === 'enabled') {
-      archiveFailure = { scope: 'run', category: 'store-unavailable', elsewhere: false, blocking: true }
-    }
+    if (currentProject.consent === 'enabled') archiveFailure = runLocal('store-unavailable', true)
     return
   }
   if (
@@ -1604,6 +1611,24 @@ async function readArchiveRecord($: EngineInterface, currentProject: ProjectStat
     return
   }
   if (archiveFailure?.scope === 'archive') archiveFailure = undefined
+}
+
+function runLocal(category: string, blocking: boolean): Unavailable {
+  return {
+    scope: 'run',
+    category,
+    elsewhere: false,
+    blocking,
+    ...(startup.runId ? { runId: startup.runId } : {}),
+  }
+}
+
+/* After an in-process `/resume` into another Run, the Run left behind keeps
+   its own failure; the archive's stays for every Run. */
+function forgetOtherRunsFailure(): void {
+  if (startup.runId && archiveFailure?.scope === 'run' && archiveFailure.runId !== startup.runId) {
+    archiveFailure = undefined
+  }
 }
 
 function isFailureCategory(category: string): boolean {
@@ -1625,7 +1650,9 @@ async function markUnavailable(
   category: string,
   scope: 'run' | 'archive' = SHARED_FAILURES.has(category) ? 'archive' : 'run',
 ): Promise<Unavailable> {
-  archiveFailure = { scope, category, elsewhere: false, blocking: scope === 'archive' }
+  archiveFailure = scope === 'archive'
+    ? { scope, category, elsewhere: false, blocking: true }
+    : runLocal(category, false)
   $.ui.invalidate('ui.render')
   if (scope === 'archive' && currentProject) {
     try {
@@ -1654,8 +1681,7 @@ async function archiveRecovered(
     $.ui.invalidate('ui.render')
   }
   try {
-    const key = archiveStateKey(currentProject.id)
-    if (await $.store.get(key) !== undefined) await $.store.delete(key)
+    await $.store.delete(archiveStateKey(currentProject.id))
   } catch {
     // Left on record, the next Run to read it retries before it collects.
   }
@@ -2084,7 +2110,7 @@ async function readBatch(
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error('timeline-read')
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'timeline-read'))
   return parseBatch(result.stdout, currentProject.id, tip)
 }
 
@@ -2555,7 +2581,7 @@ async function discoverPending(
     owed = listed.owed
     pendingElsewhere = listed.skipped
   } catch (error) {
-    pendingUnknown = true
+    pendingUnknown = failureCategory(error, 'capture-list')
     pendingElsewhere = undefined
     throw error
   }
@@ -2563,7 +2589,7 @@ async function discoverPending(
      that Run may exit without settling it, and the pending is then this
      Run's to settle, so the next submission asks again. */
   pendingDiscovered = pendingElsewhere === 0
-  pendingUnknown = false
+  pendingUnknown = undefined
   const first = owed[0]
   /* Persisted, not just held in memory: a reconciliation that gets partway —
      the entry confirmed but its branch not yet written — must still be owed
@@ -2691,7 +2717,7 @@ async function runBranchMatch(
     10_000,
     rows.stdin,
   )
-  if (result.exitCode !== 0) throw new Error('branch-match')
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'branch-match'))
   return result.stdout
 }
 
@@ -2898,7 +2924,7 @@ async function alignBranch(
   $: EngineInterface,
   currentProject: ProjectState,
   draft: string,
-): Promise<{ drop: string } | { messages: readonly SessionMessage[] }> {
+): Promise<Alignment> {
   const waiting = parentChoice
   try {
     return await settleAlignment($, currentProject, draft)
@@ -2907,23 +2933,26 @@ async function alignBranch(
   }
 }
 
+/* What aligning the Active Branch came to: the transcript it read, a drop the
+   Pane or a refusal already answered, or a failure the submission is held
+   over, with the person's choice to retry. */
+type Alignment =
+  | { messages: readonly SessionMessage[] }
+  | { drop: string }
+  | { failed: string }
+
 async function settleAlignment(
   $: EngineInterface,
   currentProject: ProjectState,
   draft: string,
-): Promise<{ drop: string } | { messages: readonly SessionMessage[] }> {
-  if (!startup.runId || !startup.sessionId) {
-    return { drop: 'Prompt Trail 无法证明当前 Run 身份；本次提交未进入会话。' }
-  }
+): Promise<Alignment> {
+  if (!startup.runId || !startup.sessionId) return { failed: 'capture-identity' }
   const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
-  const blocked = async () => ({
-    drop: `Prompt Trail 无法重建 Conversation Branch，${draftNote(await restoreDraft($, draft))}；为避免挂错父节点，本次提交已阻止。`,
-  })
   let messages: readonly SessionMessage[]
   try {
     messages = await $.session.messages()
   } catch {
-    return blocked()
+    return { failed: 'transcript-unreadable' }
   }
   const settled = () => {
     transcriptMark = { key, mark: markTranscript(messages) }
@@ -2956,8 +2985,8 @@ async function settleAlignment(
     } else if (settlement.kind === 'keep' && stored) {
       rememberBranch(key, stored)
     }
-  } catch {
-    return blocked()
+  } catch (error) {
+    return { failed: failureCategory(error, 'branch-match') }
   }
   if (settlement.kind !== 'ask') {
     settled()
@@ -3619,11 +3648,15 @@ async function noteDiskSpace(
   diskSpace = lowSpace === undefined ? 'unknown' : lowSpace ? 'low' : 'ok'
   if (!lowSpace || !startup.runId) return
   const key = spaceWarnedKey(currentProject.id, startup.runId)
+  /* A store that cannot say whether the Run was warned leaves this module
+     instance to remember it: the warning is not skipped for want of it. */
+  if (spaceWarned.has(key)) return
+  spaceWarned.add(key)
   try {
     if (await $.store.get(key) !== undefined) return
     await $.store.set(key, { version: 1 })
   } catch {
-    return
+    // Warned below all the same; a reload may warn this Run once more.
   }
   $.ui.toast(`Prompt Trail 档案所在磁盘可用空间低于 1 GiB：${statusValue(currentProject.databasePath ?? '')}`)
 }
@@ -3683,11 +3716,12 @@ async function submitCollected(
     }
     return { done: await next(e) }
   }
+  forgetOtherRunsFailure()
   if (startup.support !== 'supported') {
     if (currentProject.consent === 'enabled') {
-      /* Whatever the target lacks is this process's, never the archive's. */
-      const category = isFailureCategory(startup.reason) ? startup.reason : 'preflight-failed'
-      return holdSubmission($, undefined, category, '当前不可采集', 'run')
+      /* Whatever the target lacks is this process's, never the archive's, and
+         is named by the reason status reports for it. */
+      return holdSubmission($, undefined, statusValue(startup.reason), '当前不可采集', 'run')
     }
     return { done: await next(e) }
   }
@@ -3765,6 +3799,9 @@ async function submitCollected(
     }
   }
   const aligned = await alignBranch($, currentProject, e.text)
+  if ('failed' in aligned) {
+    return holdSubmission($, currentProject, aligned.failed, '无法重建 Conversation Branch')
+  }
   if ('drop' in aligned) return { done: aligned }
 
   let branch: { key: string; value: BranchState }
@@ -3830,8 +3867,14 @@ async function submitCollected(
     return { done: result }
   }
 
+  let confirmed: Confirmed | undefined
   try {
-    const confirmed = await confirmCapture($, currentProject, eventId, finalText)
+    confirmed = await confirmCapture($, currentProject, eventId, finalText)
+  } catch (error) {
+    await markUnavailable($, currentProject, failureCategory(error, 'capture-confirm'))
+  }
+  try {
+    if (!confirmed) throw new Error('capture-confirm')
     const nextBranch: BranchState = {
       ...branch.value,
       parentEventId: eventId,
@@ -3935,7 +3978,7 @@ function boundarySummary(mode: RunModeState | undefined): string {
 function reconcileSummary(): string {
   const elsewhere = pendingElsewhere ? ` · 另有 ${pendingElsewhere} 条属于正在运行的其他 Run` : ''
   if (reconcile) return `${reconcile.state.eventId.slice(0, 8)} · 待对账${elsewhere}`
-  if (pendingUnknown) return 'unknown · 未决 Pending Capture 不可读'
+  if (pendingUnknown) return `unknown · 未决 Pending Capture 不可读（${pendingUnknown}）`
   return `none${elsewhere}`
 }
 
@@ -3998,7 +4041,7 @@ function collectionModeText(): string {
   if (runMode.value.mode === 'disabled') return 'disabled · 本 Run 已停用采集'
   if (project?.consent !== 'enabled') return 'disabled · 未授予 Collection consent'
   if (reconcile) return 'disabled · 未决 Pending Capture 待对账'
-  if (pendingUnknown) return 'unknown · 未决 Pending Capture 不可读'
+  if (pendingUnknown) return `unknown · 未决 Pending Capture 不可读（${pendingUnknown}）`
   if (!lifecycle) return 'unknown · lifecycle 记录不可读'
   if (deferredClear) return 'disabled · 已观察到 /clear 但尚未记录'
   const owed = [...lifecycle.value.queue, ...lifecycleOthers?.queue ?? []]
@@ -4084,6 +4127,7 @@ async function refreshStartup($: EngineInterface): Promise<void> {
         runtimeTarget.cwd,
       )
     }
+    forgetOtherRunsFailure()
   } catch {
     startup = {
       support: 'helper unavailable',

@@ -170,13 +170,15 @@ test('a confirmation failure keeps collection blocked across a reload', async ($
 
   const blocked = await composerPrompt($)
   expect(blocked).toMatchObject({ drop: expect.any(String) })
-  /* The prompt did enter the session, so what persists is the unresolved
-     Pending Capture rather than a blanket archive failure. */
+  /* The prompt did enter the session, so the unresolved Pending Capture
+     persists. The archive's refusal is on record for the other Runs too, until
+     any write it takes lifts it (Issue 25). */
   expect(store[`prompt-trail:reconcile:${projectId}`]).toMatchObject({
     version: 1,
     eventId: expect.any(String),
   })
-  expect(store[`prompt-trail:archive-state:${projectId}`]).toBeUndefined()
+  expect(store[`prompt-trail:archive-state:${projectId}`])
+    .toMatchObject({ state: 'unavailable', category: 'archive-sqlite' })
 })
 
 test('a store write failure never blocks a prompt the person declined to collect', async ($, on) => {

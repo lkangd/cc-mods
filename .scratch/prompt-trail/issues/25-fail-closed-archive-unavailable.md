@@ -75,6 +75,19 @@
 - **PTY 场景 2 改用数据库文件 `chmod 400`**：`capture-begin` 会把 archives 目录的权限修复回 0700，给目录 `chmod 500` 造不成故障。
 - **PTY 用 cmux 驱动**：经使用者要求与授权，用 `cmux send`/`send-key`/`read-screen` 驱动使用者已开好的两个分屏。`read-screen` 抓不到 toast（最小探针也一样），低空间 toast 的显示由使用者目视确认；「每个 Run 只提醒一次」以 store 记录和 `status` 为证。
 
+### Code review 修复（2026-09-27，round 1）
+
+- **`helper-timeout` 改名为 `helper-call-failed`**：宿主 reject 时不说明是超时还是 helper 未能启动，用中性名称，不误导（修订 Q2 的类别名）。
+- **重建 Conversation Branch 失败也走对话框**：`branch-match` 失败、transcript 不可读、分支记录读写失败，原来会直接 drop，现在带类别走 Q6 对话框（`branch-match` 透传 helper 类别；`transcript-unreadable` 为 Run 级）。父节点歧义候选 Pane 仍按 Q7 排除在外。`timeline-read` 也改为透传 helper 类别。
+- **确认写入失败也写入共享记录**：`capture-confirm` 被档案拒绝时，除了保存 reconcile，还按类别记录故障。这修订了 Issue 15 当时「只留待对账、不写整体档案故障」的断言：那时的标记永不解除，现在任何成功写入都会解除它。
+- **不可采集按 `startup.reason` 命名**（例如 `execution-refused`），不再笼统写 `preflight-failed`。
+- **Run 级故障带上所属 Run**：进程内 `/resume` 到另一个 Run 后，旧 Run 的 Run 级故障（包括会拦截提交的 `store-unavailable`）不再被新 Run 继承；档案级故障照旧保留。
+- **store 记不住「已提醒」时仍然提醒**：由模块实例在内存里去重，reload 后最多再提醒一次。
+- **`status` 的 Pending Capture 读取失败带上类别**，例如「未决 Pending Capture 不可读（archive-busy）」。只显示，不从 `status` 写记录。
+- **首次创建 archives 目录或数据库文件时遇到 ENOSPC**，报 `archive-full`，不再报 `database-root-permissions` 或 `database-unavailable`。helper 测试用写满的小卷挂在 plugin data 上覆盖了建目录这一路径；打开数据库那一路径在这个条件下到不了，只做了代码核对。
+- **删除共享记录不再先读一次**。先读后删之间的竞争（review #8）Q11 已经接受过，不处理。
+- **「空间充足」的 helper 测试**：临时目录所在卷可用空间低于 2 GiB 时跳过。
+
 ## Answer
 
 Prompt Trail 无法证明新 Prompt Entry 能被正确保存时，已启用的 Run 会拦下这次提交，并给出两个选择：重试，或禁用当前 Run 后继续。实现在 `59fb931`（helper）、`b57790d`（插件）、`3b410a9`（band 重绘）；与对齐稿不同的地方见上方「实现中修订」。
@@ -85,7 +98,7 @@ Prompt Trail 无法证明新 Prompt Entry 能被正确保存时，已启用的 R
   - `capture-begin` 的响应带上 `lowSpace`（数据库所在卷可用空间低于 1 GiB），不暴露字节数。
 - **范围**：
   - 档案本身的故障（`archive-*`、`database-*`、`schema-version`、`project-identity`）写入 `$.store` 的 `archive-state:<projectId>`（version 2：类别、时间、写入的 Run），其他 Run 在下一次提交、`enable` 或 `status` 时读到，提交会不经尝试直接被拦下；
-  - locator、helper、preflight、被宿主 kill 的 helper 调用（`helper-timeout`）只影响本 Run，只记在内存里，下一次提交照常真实尝试；
+  - locator、helper、preflight、被宿主 reject 的 helper 调用（`helper-call-failed`）只影响本 Run，只记在内存里，下一次提交照常真实尝试；
   - 任何 Run 的任何一次成功写入都会解除共享记录；
   - `next(e)` 抛错属于宿主故障，不写任何记录。
 - **交互**：对话框写明原因、范围、类别，别的 Run 写的记录会注明「由另一个 Run 报告」。

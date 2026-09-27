@@ -835,8 +835,11 @@ static bool capture_runtime(
   }
 
   if (root_mode == PT_ROOT_CREATE) {
+    errno = 0;
     if (!pt_ensure_private_directory(database_root)) {
-      archive_error("database-root-permissions");
+      /* The first capture creates the root, and a full disk is not a
+         permissions problem. */
+      archive_error(errno == ENOSPC ? "archive-full" : "database-root-permissions");
     }
   } else if (!pt_path_is_private_directory(database_root)) {
     /* Only a root that provably is not there answers "nothing archived yet".
@@ -898,8 +901,12 @@ static sqlite3 *open_archive(
   int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX;
   if (create) flags |= SQLITE_OPEN_CREATE;
   if (sqlite3_open_v2(database_path, &database, flags, NULL) != SQLITE_OK) {
+    /* Named from the handle before it closes: creating the file can meet a
+       full disk as much as writing to it can. */
+    bool full = (sqlite3_extended_errcode(database) & 0xff) == SQLITE_FULL
+      || sqlite3_system_errno(database) == ENOSPC;
     close_archive(database);
-    archive_error("database-unavailable");
+    archive_error(full ? "archive-full" : "database-unavailable");
   }
   if (!pt_path_is_private_file(database_path)) {
     close_archive(database);

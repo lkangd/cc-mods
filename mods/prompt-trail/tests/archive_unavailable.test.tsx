@@ -10,6 +10,7 @@ import {
   promptHistory,
   renderBand,
   runId,
+  sessionId,
   session,
 } from './support'
 import type { TargetOptions } from './support'
@@ -153,7 +154,8 @@ test('a helper the host killed is this Run\'s failure, named without the host\'s
 
   const result = await composerPrompt($)
 
-  expect(unavailableAsked[0]).toContain('helper-timeout')
+  /* Whether it timed out or never started, the host does not say. */
+  expect(unavailableAsked[0]).toContain('helper-call-failed')
   expect(unavailableAsked[0]).toContain('本 Run（其他 Run 不受影响）')
   expect(unavailableAsked[0]).not.toContain('PT-SECRET')
   expect(result.drop).not.toContain('PT-SECRET')
@@ -431,4 +433,122 @@ test('a report lifted by another Run leaves the band once this Run reads it', as
   /* The host redraws the band only when asked to. */
   expect(invalidations).toContain('ui.render')
   expect(titleOf(await renderBand($))).not.toContain('档案不可用')
+})
+
+/* Code review of Issue 25, round 1. */
+
+test('a busy archive met while rebuilding the branch offers the same choice', async ($, on) => {
+  const store = consentedStore()
+  const unavailableAsked: string[] = []
+  const options: TargetOptions = {
+    store,
+    branchMatchFails: 'archive-busy',
+    fills: [],
+    unavailableAsked,
+    unavailableAnswers: ['重试'],
+    duringAsk: () => { options.branchMatchFails = false },
+  }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(unavailableAsked[0]).toContain('Conversation Branch')
+  expect(unavailableAsked[0]).toContain('archive-busy')
+  expect(unavailableAsked[0]).toContain('本项目所有 Run')
+  expect(result.text).toBe(SECRET)
+  expect(store[archiveStateKey]).toBeUndefined()
+})
+
+test('a transcript that cannot be read holds only this Run, with the choice', async ($, on) => {
+  const store = consentedStore()
+  const unavailableAsked: string[] = []
+  installSupportedTarget(on, { store, messagesFail: true, fills: [], unavailableAsked })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(unavailableAsked[0]).toContain('transcript-unreadable')
+  expect(unavailableAsked[0]).toContain('本 Run（其他 Run 不受影响）')
+  expect(result.drop).toContain('Conversation Branch')
+  expect(store[archiveStateKey]).toBeUndefined()
+})
+
+test('a confirmation the archive refused is put on record for the other Runs', async ($, on) => {
+  const store = consentedStore()
+  installSupportedTarget(on, { store, confirmFails: 'archive-full', fills: [] })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  /* The prompt entered; the pending stays owed. */
+  expect(result.text).toBe(SECRET)
+  expect(store[`prompt-trail:reconcile:${projectId}`]).toBeDefined()
+  expect(store[archiveStateKey]).toMatchObject({ state: 'unavailable', category: 'archive-full' })
+})
+
+test('a preflight the host would not run is named by its own reason', async ($, on) => {
+  const unavailableAsked: string[] = []
+  const options: TargetOptions = { store: consentedStore(), fills: [], unavailableAsked }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+  options.preflightThrows = true
+
+  await composerPrompt($)
+
+  expect(unavailableAsked[0]).toContain('execution-refused')
+  expect(unavailableAsked[0]).toContain('本 Run（其他 Run 不受影响）')
+})
+
+test('a Run-local failure stays with its Run when the process moves to another', async ($, on) => {
+  const store = consentedStore()
+  const classicSession = { id: sessionId }
+  const identity = { runId }
+  const options: TargetOptions = {
+    store,
+    listFails: 'locator-directory',
+    fills: [],
+    classicSession,
+    run: identity,
+  }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+  await composerPrompt($)
+  expect((await promptHistory($, 'status')).text).toContain('archive: unavailable · 范围 run')
+
+  /* `/resume` into another Run's session. */
+  classicSession.id = '66666666-7777-4888-8999-aaaaaaaaaaaa'
+  identity.runId = otherRun
+  options.listFails = false
+  const status = await promptHistory($, 'status')
+
+  expect(status.text).toContain(`run: ${otherRun}`)
+  expect(status.text).not.toContain('archive: unavailable')
+  expect(titleOf(await renderBand($))).not.toContain('档案不可用')
+})
+
+test('low disk space still warns once when the store cannot remember it', async ($, on) => {
+  const pane = parentPane()
+  installSupportedTarget(on, {
+    store: consentedStore(),
+    lowSpace: true,
+    parentPane: pane,
+    storeGetFailsFor: 'space-warned',
+  })
+  await $.session.start(session)
+
+  await composerPrompt($)
+  await composerPrompt($, { text: 'PT-SECRET-SECOND' })
+
+  expect(pane.toasts.filter(text => text.includes('1 GiB'))).toHaveLength(1)
+})
+
+test('status names what the pending listing met', async ($, on) => {
+  installSupportedTarget(on, { store: consentedStore(), listFails: 'archive-busy' })
+  await $.session.start(session)
+
+  const status = await promptHistory($, 'status')
+
+  expect(status.text).toContain('pending reconciliation: unknown · 未决 Pending Capture 不可读（archive-busy）')
+  expect(status.text).toContain('Run collection mode: unknown · 未决 Pending Capture 不可读（archive-busy）')
 })
