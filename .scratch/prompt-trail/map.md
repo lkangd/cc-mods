@@ -99,6 +99,12 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   报出每行对应的条目；rewind、clear 没有信号，靠读 `messages()` 剪掉末尾消失的行，展开时借 band 与 `PromptHint` 的重画
   重查。门禁当前版本改为 2.1.283。**修正 Issue 13**：排队的提交在 `next(e)` 返回时尚未进入对话，可能被撤回，拆为
   [Issue 35](issues/35-queued-submission-withdrawn.md)。
+- [在终端限制下保持时间线可用](issues/23-terminal-fallbacks.md)：
+  支持路径是方向键、Enter、点击和 PageUp/PageDown；标题行常驻 `ctrl+x tab 键盘选择`；视图上方还有行时，两种状态下都有
+  向上翻页的按钮。按字素簇计宽，保证每行只占一行（`hooks/cells.ts`）。低于 28 列或 6 行时只剩标题和「空间不足」，
+  状态保留。AskUserQuestion 的 `tool.call` 期间让出 band。**修正 Issue 21**：「树不超高时宿主不送 `ui.scroll`」
+  只适用于方向键和触控板，页键在底部同样会送。Home/End 到不了最前或最后，不承诺；宿主的其他对话框和第三方插件争用
+  槽位记为兼容限制。
 
 ## Not yet specified
 
