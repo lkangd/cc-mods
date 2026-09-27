@@ -1574,6 +1574,13 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
    works. A record that cannot be read stops this Run as a failing archive
    would, without being written anywhere. */
 async function readArchiveState($: EngineInterface, currentProject: ProjectState): Promise<void> {
+  const before = JSON.stringify(archiveFailure)
+  await readArchiveRecord($, currentProject)
+  /* The band says what this Run knows, which a read can change either way. */
+  if (JSON.stringify(archiveFailure) !== before) $.ui.invalidate('ui.render')
+}
+
+async function readArchiveRecord($: EngineInterface, currentProject: ProjectState): Promise<void> {
   let stored: unknown
   try {
     stored = await $.store.get(archiveStateKey(currentProject.id))
