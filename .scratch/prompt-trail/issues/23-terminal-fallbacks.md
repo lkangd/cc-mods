@@ -39,7 +39,7 @@
 
 ## Answer
 
-Prompt Trail 在窄终端、宿主不送滚动、AskUserQuestion 占用槽位时，仍有一条完整的键盘和鼠标路径。实现在 `2d1d3ea`；与对齐结论不同的地方见上方「实现中修订」。
+Prompt Trail 在窄终端、宿主不送滚动、AskUserQuestion 占用槽位时，仍有一条完整的键盘和鼠标路径。实现在 `2d1d3ea`，review 修复见下；与对齐结论不同的地方见上方「实现中修订」。
 
 - **支持路径**：方向键逐条遍历，Enter 或点击激活，鼠标 hover 时条目反色（宿主提供）；PageUp/PageDown 按页翻动。视图上方还有行时，标题行在两种状态下都有向上翻页的按钮（在底部时写明「底部不响应触控板」），所以只用鼠标也能往上翻；往下靠「↓ N 条新条目」，或折叠后再展开。触控板和 Home/End 不写进承诺。
 - **焦点提示**：标题行右侧常驻暗色的 `ctrl+x tab 键盘选择`，不描述焦点当前在哪；没有可选的条目时不显示；宽度不够时整段去掉，优先保留向上翻页的按钮。Esc 由宿主处理，把键盘还给输入框，band 保持展开；折叠靠标题或裸 `/prompt-history`。
@@ -58,4 +58,9 @@ Prompt Trail 在窄终端、宿主不送滚动、AskUserQuestion 占用槽位时
   - band 让出后，测试里要注册一个画空 `Box` 的宿主替身，返回 `null` 会被引擎拒绝；
   - `long_timeline` 的 `band()` 把向上翻页按钮排除在 `labels` 之外，只保留在 `keys` 里。
 
-门禁：`2.1.273`/`2.1.283` 各 **284** 项 plugin tests、8 静态、32 bridge、70 helper，TypeScript 与确定性重建全部通过。真人 PTY 在 2.1.283 上通过：焦点提示与键盘遍历、Esc 后保持展开、只用鼠标逐页上翻、40 列下含 emoji 和中日韩文字的条目保持单行、窄屏降级与恢复、AskUserQuestion 回答或 Esc 后 band 恢复原状、PageUp/PageDown 两种状态都能翻页。父节点 Pane 的焦点已在 Issue 20 验证。尚未做 `/code-review`。
+一轮 `/code-review` 找到 8 条（`.code-review/runs/20260927-141958/round-1/`）：
+- **修了 6 条**：只认识部分组合标记，截断会拆开阿拉伯文的字母和元音符号，改用 `\p{M}`，Mc 按 wcwidth 算 1 格；survey 占着 band 时，插件仍接管 `ui.scroll`/`ui.focus`（两条合并），让出期间改为直接 `next(e)`；窄屏下新条目计数撑满标题，把向上按钮挤出屏幕（两条合并），改为放不下时标题去掉计数（计数仍在「↓ N 条新条目」行），标题与按钮都按宽度截断；截断改为只读到截断点。
+- **驳回 2 条**：不带 FE0F 的键帽序列不属于 RGI emoji，宿主与 wcwidth 都按 1 格计；标题行重复计宽只是三段短字符串的成本。
+- 测试引擎不把插件站点的 `ui.scroll` 交给测试替身，「让出期间放行」只能用「band 视图没被移动」间接断言。
+
+门禁：`2.1.273`/`2.1.283` 各 **286** 项 plugin tests、8 静态、32 bridge、70 helper，TypeScript 与确定性重建全部通过。真人 PTY 在 2.1.283 上通过：焦点提示与键盘遍历、Esc 后保持展开、只用鼠标逐页上翻、40 列下含 emoji 和中日韩文字的条目保持单行、窄屏降级与恢复、AskUserQuestion 回答或 Esc 后 band 恢复原状、PageUp/PageDown 两种状态都能翻页；review 修复后复验正常。父节点 Pane 的焦点已在 Issue 20 验证。

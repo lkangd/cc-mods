@@ -37,6 +37,8 @@ test('a row is cut to its cells with an ellipsis, never inside a character', () 
   expect(clipCells('ab\u2764\ufe0fcd', 4)).toBe('ab…')
   expect(clipCells('ab\u{1f468}\u200d\u{1f469}\u200d\u{1f467}cd', 5)).toBe('ab\u{1f468}\u200d\u{1f469}\u200d\u{1f467}…')
   expect(clipCells('ae\u0301cd', 3)).toBe('ae\u0301…')
+  /* An Arabic letter keeps its vowel mark. */
+  expect(clipCells('\u0628\u064eXY', 2)).toBe('\u0628\u064e…')
 })
 
 const otherRunId = '12121212-3434-4565-8787-909090909090'
@@ -279,4 +281,34 @@ test('with nothing to select the title row gives no keyboard hint', async ($, on
   await promptHistory($)
 
   expect(drawn(await renderBand($)).texts).not.toContain(FOCUS_HINT)
+})
+
+test('with many new entries in a narrow band the title row keeps the way up on screen', async ($, on) => {
+  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
+  await $.session.start(session)
+  await promptHistory($)
+  await renderBand($)
+  await scrollBand($, -10)
+  for (let index = 0; index < 10; index += 1) await composerPrompt($, { text: `PT-SECRET-NEW-${index}` })
+
+  const band = drawn(await renderBand($, { bodyColumns: 28 }))
+
+  /* The count still shows on the row that takes the view back down. */
+  expect(band.labels[0]).toBe('▾ Prompt Trail')
+  expect(band.labels[1]).toBe('↑ 点此向上…')
+  expect(textCells(band.labels[0]!) + 2 + textCells(band.labels[1]!)).toBeLessThanOrEqual(28)
+  expect(band.labels).toContain('↓ 10 条新条目')
+})
+
+test('scrolling a survey that holds the band leaves the band\'s view where it was', async ($, on) => {
+  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
+  engineBand(on)
+  await $.session.start(session)
+  await promptHistory($)
+  const before = drawn(await renderBand($))
+  await renderBand($, { hasSurvey: true })
+
+  await scrollBand($, -3)
+
+  expect(drawn(await renderBand($)).labels).toEqual(before.labels)
 })
