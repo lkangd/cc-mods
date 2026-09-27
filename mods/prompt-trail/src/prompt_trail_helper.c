@@ -5,6 +5,7 @@
 #define PT_HELPER_PROTOCOL 1
 
 #include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -1270,6 +1271,114 @@ static void capture_abort(int argc, char **argv) {
   printf("{\"aborted\":%s}\n", removed > 0 ? "true" : "false");
 }
 
+/* The Runs a live process other than this helper's host is attached to, read
+   from the locators the bridge publishes one per process. A locator that is
+   not private, not well formed or not named after what it holds is nobody's
+   claim; one whose process cannot be proven gone still holds its Run. */
+typedef struct {
+  char (*run_ids)[129];
+  size_t count;
+} LiveRuns;
+
+static LiveRuns live_runs_elsewhere(void) {
+  LiveRuns live = { NULL, 0 };
+  const char *home = getenv("HOME");
+  if (!home || home[0] != '/') archive_error("home-unavailable");
+  char directory[PATH_MAX];
+  int length = snprintf(
+    directory,
+    sizeof(directory),
+    "%s/.claude/plugins/data/.function-hook-locators/prompt-trail",
+    home
+  );
+  if (length < 0 || (size_t)length >= sizeof(directory)) {
+    archive_error("locator-directory");
+  }
+  DIR *stream = opendir(directory);
+  if (!stream) {
+    if (errno == ENOENT) return live;
+    archive_error("locator-directory");
+  }
+
+  pid_t host_pid = getppid();
+  char host_executable[PROC_PIDPATHINFO_MAXSIZE];
+  int64_t host_start_seconds = 0;
+  int64_t host_start_microseconds = 0;
+  if (!pt_process_identity(
+        host_pid,
+        host_executable,
+        sizeof(host_executable),
+        &host_start_seconds,
+        &host_start_microseconds
+      )) {
+    closedir(stream);
+    archive_error("host-generation");
+  }
+
+  struct dirent *entry = NULL;
+  while ((entry = readdir(stream)) != NULL) {
+    char path[PATH_MAX];
+    length = snprintf(path, sizeof(path), "%s/%s", directory, entry->d_name);
+    if (length < 0 || (size_t)length >= sizeof(path)
+        || !pt_path_is_private_file(path)) {
+      continue;
+    }
+    char *locator = NULL;
+    char session_id[129];
+    char run_id[129];
+    int64_t pid = 0;
+    int64_t start_seconds = 0;
+    int64_t start_microseconds = 0;
+    char expected[PATH_MAX];
+    bool valid = pt_read_file(path, &locator, NULL)
+      && pt_json_validate(locator)
+      && pt_json_get_string(locator, "sessionId", session_id, sizeof(session_id))
+      && pt_json_get_string(locator, "runId", run_id, sizeof(run_id))
+      && pt_json_get_i64(locator, "hostPid", &pid)
+      && pt_json_get_i64(locator, "hostStartSeconds", &start_seconds)
+      && pt_json_get_i64(locator, "hostStartMicroseconds", &start_microseconds)
+      && pid > 0
+      && pid <= INT_MAX
+      && pt_is_safe_identifier(session_id)
+      && pt_is_safe_identifier(run_id)
+      && pt_locator_file_name(
+        session_id,
+        pid,
+        start_seconds,
+        start_microseconds,
+        expected,
+        sizeof(expected)
+      )
+      && strcmp(expected, entry->d_name) == 0;
+    free(locator);
+    if (!valid) continue;
+    bool own_host = pid == host_pid
+      && start_seconds == host_start_seconds
+      && start_microseconds == host_start_microseconds;
+    if (own_host
+        || pt_process_generation_ended((pid_t)pid, start_seconds, start_microseconds)) {
+      continue;
+    }
+    char (*grown)[129] = realloc(live.run_ids, (live.count + 1) * sizeof(*grown));
+    if (!grown) {
+      closedir(stream);
+      archive_error("locator-directory");
+    }
+    live.run_ids = grown;
+    snprintf(live.run_ids[live.count], sizeof(live.run_ids[live.count]), "%s", run_id);
+    live.count += 1;
+  }
+  closedir(stream);
+  return live;
+}
+
+static bool live_runs_hold(const LiveRuns *live, const char *run_id) {
+  for (size_t index = 0; index < live->count; index += 1) {
+    if (strcmp(live->run_ids[index], run_id) == 0) return true;
+  }
+  return false;
+}
+
 /* The fixed maximum batch a single listing answers. The protocol offers no
    way to ask for more in one call, so a caller cannot turn this read into an
    unbounded table scan; `truncated` says another call is owed. */
@@ -1277,14 +1386,19 @@ static void capture_abort(int argc, char **argv) {
 
 /* Unresolved Pending Captures, oldest staged first. It answers identity only —
    no prompt text and no attachment kinds — because its whole job is to let a
-   Run discover, after a crash or a restart, that something is owed. */
+   Run discover, after a crash or a restart, that something is owed. A pending
+   of another Run that a live process is attached to may be a submission still
+   in flight there, so it is left to that Run and only counted as `skipped`;
+   the caller's own Run is always listed. */
 static void capture_list(int argc, char **argv) {
-  if (argc != 6) usage();
+  if (argc != 7) usage();
   const char *database_root = argv[2];
   const char *project_id = argv[3];
+  const char *caller_run_id = argv[4];
   if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  if (!pt_is_safe_identifier(caller_run_id)) archive_error("capture-input");
   bool root_present =
-    capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
+    capture_runtime(database_root, argv[5], argv[6], PT_ROOT_OPTIONAL);
 
   bool archived = false;
   if (root_present) {
@@ -1311,25 +1425,31 @@ static void capture_list(int argc, char **argv) {
      than a failure: the caller asked whether anything is unresolved. */
   if (!archived) {
     write_status_string("{\"projectId\":", project_id);
-    fputs(",\"pending\":[],\"truncated\":false}\n", stdout);
+    fputs(",\"pending\":[],\"skipped\":0,\"truncated\":false}\n", stdout);
     return;
   }
 
+  LiveRuns live = live_runs_elsewhere();
   sqlite3 *database = open_archive(database_root, project_id, false);
   sqlite3_stmt *rows = archive_prepare(
     database,
     "SELECT event_id, run_id, segment_id, branch_id, parent_event_id,"
     " occurred_at_ms, attachment_count"
-    " FROM pending_captures ORDER BY rowid LIMIT ?1"
+    " FROM pending_captures ORDER BY rowid"
   );
-  sqlite3_bind_int(rows, 1, PENDING_LIST_LIMIT + 1);
 
   write_status_string("{\"projectId\":", project_id);
   fputs(",\"pending\":[", stdout);
   int listed = 0;
+  int skipped = 0;
   bool truncated = false;
   int step;
   while ((step = sqlite3_step(rows)) == SQLITE_ROW) {
+    const char *run_id = (const char *)sqlite3_column_text(rows, 1);
+    if (strcmp(run_id, caller_run_id) != 0 && live_runs_hold(&live, run_id)) {
+      skipped++;
+      continue;
+    }
     if (listed == PENDING_LIST_LIMIT) {
       truncated = true;
       break;
@@ -1357,7 +1477,12 @@ static void capture_list(int argc, char **argv) {
   if (step != SQLITE_ROW && step != SQLITE_DONE) archive_error("archive-sqlite");
   sqlite3_finalize(rows);
   sqlite3_close(database);
-  printf("],\"truncated\":%s}\n", truncated ? "true" : "false");
+  free(live.run_ids);
+  printf(
+    "],\"skipped\":%d,\"truncated\":%s}\n",
+    skipped,
+    truncated ? "true" : "false"
+  );
 }
 
 /* The kinds of non-prompt Timeline Event this protocol accepts. `clear` is the

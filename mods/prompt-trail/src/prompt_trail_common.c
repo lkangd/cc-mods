@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <libproc.h>
 #include <paths.h>
+#include <signal.h>
 #include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -451,6 +452,28 @@ bool pt_process_is_same(
     )
     && actual_seconds == start_seconds
     && actual_microseconds == start_microseconds;
+}
+
+bool pt_process_generation_ended(
+  pid_t process_id,
+  int64_t start_seconds,
+  int64_t start_microseconds
+) {
+  char executable[PROC_PIDPATHINFO_MAXSIZE];
+  int64_t actual_seconds = 0;
+  int64_t actual_microseconds = 0;
+  if (pt_process_identity(
+        process_id,
+        executable,
+        sizeof(executable),
+        &actual_seconds,
+        &actual_microseconds
+      )) {
+    return actual_seconds != start_seconds
+      || actual_microseconds != start_microseconds;
+  }
+  errno = 0;
+  return kill(process_id, 0) != 0 && errno == ESRCH;
 }
 
 static bool run_capture(

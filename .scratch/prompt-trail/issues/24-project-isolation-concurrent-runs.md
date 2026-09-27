@@ -44,3 +44,11 @@ Issue 32 把 Run 从「一个进程」改为「一条会话谱系」。本票的
   2. 一边 disable，另一边照常采集，`status` 显示两边的 mode 互不相同；
   3. 两边同时 `--resume` 同一会话，后到者成为新 Run，两边各自保持分支（同时补上 Issue 32 真人双终端的覆盖）；
   4. worktree 和非 Git 目录各自请求 consent，数据库文件各不相同。
+
+### 实现中修订（2026-09-27）
+
+- **同一条孤儿 pending 被两个 Run 同时结清（修订对齐稿）**：helper 已经能区分这两种撞车。先被丢弃、后再确认，返回 `capture-not-found`；先被确认、后再丢弃，返回 `capture-conflict`。所以不新增 `capture-settled-elsewhere` 类别，只在插件的对账路径里把这两个类别视为「已被别处结清」。存储里残留的 reconcile 记录指向一条早已结清的 pending 时，也走同一条路径。
+- **`capture-list` 协议**：新增调用方 Run 参数（位于 project 之后），响应新增 `skipped`。判断存活时排除 helper 自己的宿主进程：进程内 `/resume` 改绑后，旧 locator 可能还在，它不能挡住旧 Run 的对账。进程存在但无法检查的，按 bridge 的规则仍算存活。
+- **`status`**：已发现过 pending 时，每次都重新列出，保证「另有 N 条属于正在运行的其他 Run」不会显示过时的计数。
+- **静态门禁**：hook 启动的可执行文件白名单改为扫描所有 hook 模块，并加入 `/usr/bin/env`。新增 `tests/project_root.py`，用真实 git 验证子目录、symlink、worktree 和 `GIT_DIR` 注入，并进入 `verify-startup.sh`；它同时检查 Python 与 `hooks/project.ts` 去除的变量列表一致。
+- **既有断言更新**：`resume_fork_branch` 中「另一 Run 不折叠」的断言，按本票改为折叠成「另一 Run」。

@@ -250,28 +250,6 @@ static void write_key_string(
   pt_write_json_string(descriptor, value);
 }
 
-static bool process_generation_ended(
-  pid_t pid,
-  int64_t expected_seconds,
-  int64_t expected_microseconds
-) {
-  char executable[PROC_PIDPATHINFO_MAXSIZE];
-  int64_t actual_seconds = 0;
-  int64_t actual_microseconds = 0;
-  if (pt_process_identity(
-        pid,
-        executable,
-        sizeof(executable),
-        &actual_seconds,
-        &actual_microseconds
-      )) {
-    return actual_seconds != expected_seconds
-      || actual_microseconds != expected_microseconds;
-  }
-  errno = 0;
-  return kill(pid, 0) != 0 && errno == ESRCH;
-}
-
 /* One locator per process that has a classic session open: two processes
    resuming the same session each keep their own, instead of the later one
    overwriting the earlier one's. The name repeats the identity the locator
@@ -376,7 +354,7 @@ static void remove_proven_stale_locators(const char *directory) {
           host_start_seconds,
           host_start_microseconds
         )
-        || !process_generation_ended(
+        || !pt_process_generation_ended(
           (pid_t)host_pid,
           host_start_seconds,
           host_start_microseconds
@@ -583,7 +561,7 @@ static bool run_held_elsewhere(
     bool same_process = locator.host_pid == host_pid
       && locator.host_start_seconds == host_start_seconds
       && locator.host_start_microseconds == host_start_microseconds;
-    held = !same_process && !process_generation_ended(
+    held = !same_process && !pt_process_generation_ended(
       (pid_t)locator.host_pid,
       locator.host_start_seconds,
       locator.host_start_microseconds

@@ -461,10 +461,11 @@ test('entries this Run left behind after a resume fold at their fork point', () 
 
   const folds = foldTimeline(rows, 'run-a', 'a4')
 
-  /* z1 lies before the active path's first entry, another Run is its own:
-     neither is folded. */
-  expect([...folds.folded]).toEqual([['a2', 'a2'], ['a3', 'a2']])
-  expect([...folds.counts]).toEqual([['a2', 2]])
+  /* z1 lies before the active path's first entry and is not folded; the Run
+     writing alongside folds on its own (Issue 24). */
+  expect([...folds.folded]).toEqual([['a2', 'a2'], ['other', 'other'], ['a3', 'a2']])
+  expect([...folds.counts]).toEqual([['a2', 2], ['other', 1]])
+  expect([...folds.runs]).toEqual(['other'])
 })
 
 test('a later segment the resumed session never saw folds as a branch of its own', () => {

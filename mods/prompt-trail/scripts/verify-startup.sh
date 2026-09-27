@@ -44,6 +44,7 @@ npx -y -p "typescript@$TYPESCRIPT_VERSION" tsc -p "$ROOT/tsconfig.json"
 python3 -m unittest -v "$ROOT/tests/artifact_static.py"
 python3 -m unittest -v "$ROOT/tests/bridge_protocol.py"
 python3 -m unittest -v "$ROOT/tests/helper_protocol.py"
+python3 -m unittest -v "$ROOT/tests/project_root.py"
 "$ROOT/bin/prompt-trail-helper" probe --protocol 1
 
 failure=$(mktemp "${TMPDIR:-/tmp}/prompt-trail-probe.XXXXXX")

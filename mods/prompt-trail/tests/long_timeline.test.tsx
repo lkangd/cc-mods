@@ -537,6 +537,29 @@ test('an entry another Run wrote in between is read back, never skipped over', a
   ]))
 })
 
+test('opening the band again reads what another Run archived while it was closed', async ($, on) => {
+  const archive = archiveOf(3)
+  installSupportedTarget(on, { store: consentedStore(), archive })
+  await $.session.start(session)
+  await promptHistory($)
+  await renderBand($)
+  const toggle = () => $.ui.press({ plugin: 'prompt-trail', key: 'prompt-trail:toggle' })
+
+  /* No signal crosses processes: the band learns of it only by reading,
+     whichever way it is opened. */
+  await toggle()
+  archive.push(entry(4, { text: 'PT-SECRET-CONCURRENT', parentEventId: null }))
+  await toggle()
+  const pressed = band(await renderBand($))
+  await toggle()
+  archive.push(entry(5, { text: 'PT-SECRET-LATER', parentEventId: null }))
+  await promptHistory($)
+  const commanded = band(await renderBand($))
+
+  expect(pressed.labels).toContain('4. PT-SECRET-CONCURRENT')
+  expect(commanded.labels).toContain('5. PT-SECRET-LATER')
+})
+
 test('away from the bottom, a gap leaves the window and counts the entry', async ($, on) => {
   const archive = archiveOf(40)
   installSupportedTarget(on, { store: consentedStore(), archive })

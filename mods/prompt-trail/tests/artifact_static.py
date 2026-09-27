@@ -134,14 +134,18 @@ class StaticArtifactTests(unittest.TestCase):
         self.assertNotIn("e.reason !==", body)
 
     def test_startup_runtime_has_no_forbidden_side_effect_surface(self) -> None:
-        hook_executables = set(
-            re.findall(r"'(/(?:usr|bin)/[^']+)'", REGISTER_TS.read_text())
-        )
+        hook_sources = sorted(REGISTER_TS.parent.glob("*.ts")) + sorted(REGISTER_TS.parent.glob("*.tsx"))
+        hook_executables = {
+            executable
+            for source in hook_sources
+            for executable in re.findall(r"'(/(?:usr|bin)/[^']+)'", source.read_text())
+        }
         self.assertEqual(
             hook_executables,
             {
                 "/bin/ls",
                 "/bin/realpath",
+                "/usr/bin/env",
                 "/usr/bin/git",
                 "/usr/bin/id",
                 "/usr/bin/shasum",
