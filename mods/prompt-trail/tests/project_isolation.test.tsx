@@ -217,3 +217,52 @@ test('the band folds a Run writing alongside this one and opens it on a press', 
   expect(opened).toContain('PT-SECRET-OTHER')
   expect(opened).toContain('Run 离开')
 })
+
+test('a consent another Run gave after this one started is not asked again, nor overwritten', async ($, on) => {
+  const store: Record<string, unknown> = {}
+  const calls = installSupportedTarget(on, { store, ask: '继续但不启用' })
+  await $.session.start(session)
+  await promptHistory($, 'status')
+
+  /* Another process of the same project is asked first, and enables. */
+  store[`prompt-trail:consent:${projectId}`] = { policyVersion: 1, decision: 'enabled' }
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(1)
+  expect(store[`prompt-trail:consent:${projectId}`]).toStrictEqual({ policyVersion: 1, decision: 'enabled' })
+})
+
+test('a Run that declined begins collecting once another Run enables the project', async ($, on) => {
+  const store: Record<string, unknown> = {}
+  const calls = installSupportedTarget(on, { store, ask: '继续但不启用' })
+  await $.session.start(session)
+  await composerPrompt($)
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+
+  store[`prompt-trail:consent:${projectId}`] = { policyVersion: 1, decision: 'enabled' }
+  await composerPrompt($, { text: 'PT-SECRET-AFTER' })
+  const status = await promptHistory($, 'status')
+
+  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(1)
+  expect(status.text).toContain('collection consent: granted')
+})
+
+test('when two Runs ask at once, the first answer is the project\'s', async ($, on) => {
+  const store: Record<string, unknown> = {}
+  const calls = installSupportedTarget(on, {
+    store,
+    ask: '继续但不启用',
+    /* While this Run's dialog is up, another Run's is answered first. */
+    duringAsk: () => {
+      store[`prompt-trail:consent:${projectId}`] = { policyVersion: 1, decision: 'enabled' }
+    },
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(store[`prompt-trail:consent:${projectId}`]).toStrictEqual({ policyVersion: 1, decision: 'enabled' })
+  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(1)
+})

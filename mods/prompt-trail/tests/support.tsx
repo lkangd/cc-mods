@@ -134,6 +134,8 @@ export type TargetOptions = {
   /* An AskUserQuestion dialog stays up until this settles; one that rejects
      is a dialog that failed. */
   askHold?: Promise<void>
+  /* Runs while an AskUserQuestion dialog is up, before it is answered. */
+  duringAsk?: () => void
   run?: RunIdentity
   /* The session the locator says this one continues: the conversation was
      moved here from it, and this session took up its Run. */
@@ -325,6 +327,7 @@ export function installSupportedTarget(
   }))
   on('tool.call', { tool: 'AskUserQuestion' }, async (_$, e) => {
     if (options.askHold) await options.askHold
+    options.duringAsk?.()
     const question = e.questions[0]?.question ?? ''
     const choices = e.questions[0]?.options ?? []
     const labels = choices.map(choice => (typeof choice === 'string' ? choice : choice.label))

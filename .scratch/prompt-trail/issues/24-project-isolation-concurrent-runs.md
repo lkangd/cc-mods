@@ -52,3 +52,6 @@ Issue 32 把 Run 从「一个进程」改为「一条会话谱系」。本票的
 - **`status`**：已发现过 pending 时，每次都重新列出，保证「另有 N 条属于正在运行的其他 Run」不会显示过时的计数。
 - **静态门禁**：hook 启动的可执行文件白名单改为扫描所有 hook 模块，并加入 `/usr/bin/env`。新增 `tests/project_root.py`，用真实 git 验证子目录、symlink、worktree 和 `GIT_DIR` 注入，并进入 `verify-startup.sh`；它同时检查 Python 与 `hooks/project.ts` 去除的变量列表一致。
 - **既有断言更新**：`resume_fork_branch` 中「另一 Run 不折叠」的断言，按本票改为折叠成「另一 Run」。
+- **Collection consent 跨 Run 共享（PTY 场景 4 发现，经使用者确认，Q11 选 a）**：在 `pt24-link` 提交时又问了一次 consent。时间戳表明，link 进程（16:35:50）启动得比 repo 进程点「启用」（16:36:17）还早。它在启动时把「未同意」缓存进 `project`，提交时 `prepareProject` 命中缓存，没有重读。symlink 归并本身没有问题：两个进程是同一个 hash，重启后 `status` 显示已同意。宿主事实（`claude -p` 探针实测）：`$.store` 的写入会立刻落盘，另一个进程，包括早已在运行的进程，下一次 `get` 就能读到，两个进程写不同的键也不会互相覆盖。修复分两处：
+  - `prepareProject` 命中缓存时也从 `$.store` 刷新 consent。已经存下的决定一律以存储为准；存储里没有记录时，保留本进程的决定，比如「拒绝」写入失败的情况。
+  - `requestConsent` 在询问前和询问后各读一次。两个 Run 同时弹出对话框时，按 Q2 的「先到者生效」：后答的一方采用已存的决定，不覆盖。

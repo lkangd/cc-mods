@@ -1444,6 +1444,9 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
     project.root = root
     if (databasePath) project.databasePath = databasePath
     startup.projectPath = root
+    /* Consent belongs to the Project Timeline, which concurrent Runs share:
+       another Run may have been asked since this one last looked. */
+    project.consent = storedConsent(await $.store.get(consentKey(id))) ?? project.consent
     return project
   }
   const consent = storedConsent(await $.store.get(consentKey(id)))
@@ -1507,6 +1510,16 @@ async function requestConsent(
 ): Promise<ConsentDecision | undefined> {
   if (currentProject.consent) return currentProject.consent
   if (!currentProject.databasePath) throw new Error('database-root-unavailable')
+  /* Another Run of the project may have answered meanwhile, even while this
+     dialog was up: the first answer is the project's, never asked again or
+     overwritten here. */
+  const answered = async () => {
+    const stored = storedConsent(await $.store.get(consentKey(currentProject.id)))
+    if (stored) currentProject.consent = stored
+    return stored
+  }
+  const earlier = await answered()
+  if (earlier) return earlier
   const answer = await $.ui.ask(
     [
       'Prompt Trail 会保存每次成功提交的完整最终文本。',
@@ -1527,6 +1540,8 @@ async function requestConsent(
       ? 'declined'
       : undefined
   if (!decision) return undefined
+  const first = await answered()
+  if (first) return first
   currentProject.consent = decision
   try {
     await $.store.set(consentKey(currentProject.id), {
