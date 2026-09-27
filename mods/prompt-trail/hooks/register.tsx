@@ -1540,13 +1540,14 @@ async function requestConsent(
       ? 'declined'
       : undefined
   if (!decision) return undefined
-  const first = await answered()
-  if (first) {
-    if (first !== decision) {
-      $.ui.toast(`另一个 Run 已先为本项目${first === 'enabled' ? '启用采集' : '选择不启用采集'}，这里的选择未生效。`)
+  const settled = (kept: ConsentDecision): ConsentDecision => {
+    if (kept !== decision) {
+      $.ui.toast(`另一个 Run 已先为本项目${kept === 'enabled' ? '启用采集' : '选择不启用采集'}，这里的选择未生效。`)
     }
-    return first
+    return kept
   }
+  const first = await answered()
+  if (first) return settled(first)
   currentProject.consent = decision
   try {
     await $.store.set(consentKey(currentProject.id), {
@@ -1559,16 +1560,25 @@ async function requestConsent(
       throw error
     }
   }
+  /* The store has no set-if-absent: two Runs saving at once both find no
+     answer, and the later write is the one kept. Reading it back makes both
+     agree on it. */
+  let kept: ConsentDecision = decision
+  try {
+    kept = (await answered()) ?? decision
+  } catch {
+    // What this Run saved stands until the next look at the store.
+  }
   /* The archive has just become this plugin's to look into, and it may already
      hold what an earlier consent recorded. */
-  if (decision === 'enabled') {
+  if (settled(kept) === 'enabled') {
     try {
       await loadTimeline($, currentProject)
     } catch {
       // The band shows what this module instance records from here on.
     }
   }
-  return decision
+  return kept
 }
 
 /* The Active Branch is keyed by classic session, which is what makes a
@@ -2384,7 +2394,10 @@ async function discoverPending(
     pendingElsewhere = undefined
     throw error
   }
-  pendingDiscovered = true
+  /* A listing that left another live Run's pending out is not the last word:
+     that Run may exit without settling it, and the pending is then this
+     Run's to settle, so the next submission asks again. */
+  pendingDiscovered = pendingElsewhere === 0
   pendingUnknown = false
   const first = owed[0]
   /* Persisted, not just held in memory: a reconciliation that gets partway —
@@ -4219,10 +4232,13 @@ export const register: Register = on => {
              so status says so rather than reading as healthy. A failure here
              never costs the rest of the report. */
           try {
-            if (pendingDiscovered || reconcile) {
+            if (reconcile) {
               pendingElsewhere = undefined
               pendingElsewhere = (await listPending($, currentProject)).skipped
             } else {
+              /* Listed afresh, and anything owed is taken up rather than
+                 dropped with the count. */
+              pendingDiscovered = false
               await discoverPending($, currentProject)
             }
           } catch {

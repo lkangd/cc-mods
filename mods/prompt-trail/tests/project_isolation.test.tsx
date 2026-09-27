@@ -271,3 +271,25 @@ test('when two Runs ask at once, the first answer is the project\'s', async ($, 
   /* The answer given here did not take effect, and the person is told so. */
   expect(notices.toasts).toEqual(['另一个 Run 已先为本项目启用采集，这里的选择未生效。'])
 })
+
+test('two Runs saving their answers at once agree on the one the store kept', async ($, on) => {
+  const store: Record<string, unknown> = {}
+  const notices = parentPane()
+  const key = `prompt-trail:consent:${projectId}`
+  const calls = installSupportedTarget(on, {
+    store,
+    ask: '继续但不启用',
+    parentPane: notices,
+    /* Both read no answer; the other Run's write lands just after this one's. */
+    afterStoreSet: written => {
+      if (written === key) store[key] = { policyVersion: 1, decision: 'enabled' }
+    },
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(1)
+  expect(notices.toasts).toEqual(['另一个 Run 已先为本项目启用采集，这里的选择未生效。'])
+})

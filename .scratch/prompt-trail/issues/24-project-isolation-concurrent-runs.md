@@ -83,7 +83,17 @@ Issue 32 把 Run 从「一个进程」改为「一条会话谱系」。本票的
   - 静态门禁改为扫描所有 hook 模块启动的可执行文件；
   - 测试引擎里没有 `setTimeout` 的类型。
 
-门禁：`2.1.273`/`2.1.283` 各 **307** 项 plugin tests、8 静态、32 bridge、76 helper、5 项真实 git，TypeScript 与确定性重建全部通过。真人 PTY 在 2.1.283 上通过：
+一轮 `/code-review` 找到 9 条（`.code-review/runs/20260927-170508/round-1/`）：
+- **修了 7 条**：
+  - 询问后的读取和写入之间仍有窗口（两条合并）。`$.store` 没有「不存在才写入」，改为写入后再读回：两个 Run 同时写入时，都会收敛到存储最后留下的值，没被采用的一方收到 toast。
+  - 列出时跳过了存活 Run 的 pending，这次发现就不算完整。之前那个 Run 退出后，它留下的 pending 在本进程重启前都不会再被对账。现在 `skipped` 大于 0 时，下一次提交会重新列出；`status` 每次都重新发现，列出的 pending 不会随计数一起被丢掉。
+  - helper 自己又写了一份 locator 解析，而且漏掉了 bridge 仍然认的旧式 `<session>.json` 命名（两条合并）。身份校验提到 common 的 `pt_read_locator`，bridge 的两处读取和 helper 共用；helper 认任何协议下存活进程的 locator。
+  - 去掉 LIMIT 之后扫描行数没有上界。改为单次最多读 256 行，超出就标记 `truncated`。
+  - Issue 15 记录的 `capture-list` 协议已经过时。按惯例不改历史票据，在地图条目里注明「修正 Issue 15」。
+- **记入 backlog 1 条**：locator 目录不可读时，当前项目会被标为 Archive unavailable（`20260927-locator-directory-failure-scope.md`）。按失败的作用域分级、以及如何恢复，归 Issue 25。
+- **驳回 1 条**：`foldTimeline` 多出的一遍只遍历窗口内最多 257 行，不值得为它牺牲可读性。
+
+门禁：`2.1.273`/`2.1.283` 各 **310** 项 plugin tests、8 静态、32 bridge、78 helper、5 项真实 git，TypeScript 与确定性重建全部通过。真人 PTY 在 2.1.283 上通过：
 - 同一项目两个终端交替提交，两边顺序一致，各自的活动路径连续，另一 Run 被折叠；
 - 一边 disable，另一边照常采集；
 - 两个终端同时 `--continue`，后到者成为新 Run；

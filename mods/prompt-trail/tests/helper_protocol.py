@@ -1542,6 +1542,39 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(payload["pending"], [])
         self.assertEqual(payload["skipped"], 1)
 
+    def test_capture_list_honours_a_live_locator_under_the_older_bare_name(self) -> None:
+        project_id, _, _ = self.held_pending()
+        held = json.loads(self.locator.read_text())
+        bare = self.locator.parent / f"{held['sessionId']}.json"
+        self.locator.rename(bare)
+
+        listed = self.run_helper(*self.list_argv(project_id=project_id), via_child=True)
+
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(json.loads(listed.stdout)["skipped"], 1)
+
+    def test_capture_list_reads_a_bounded_number_of_rows_however_many_are_held(self) -> None:
+        project_id, _, event_id = self.held_pending()
+        database = self.plugin_data / "archives" / f"{project_id}.sqlite3"
+        # The test-only way to hold hundreds of pendings: copies of the staged row.
+        with sqlite3.connect(database) as connection:
+            columns = [row[1] for row in connection.execute("PRAGMA table_info(pending_captures)")]
+            rest = ", ".join(column for column in columns if column != "event_id")
+            for _ in range(300):
+                connection.execute(
+                    f"INSERT INTO pending_captures(event_id, {rest}) "
+                    f"SELECT ?, {rest} FROM pending_captures WHERE event_id = ?",
+                    (str(uuid.uuid4()), event_id),
+                )
+
+        listed = self.run_helper(*self.list_argv(project_id=project_id), via_child=True)
+
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        payload = json.loads(listed.stdout)
+        self.assertEqual(payload["pending"], [])
+        self.assertEqual(payload["skipped"], 256)
+        self.assertIs(payload["truncated"], True)
+
     def test_capture_list_offers_a_pending_whose_holder_has_exited(self) -> None:
         project_id, _, event_id = self.held_pending()
         held = json.loads(self.locator.read_text())

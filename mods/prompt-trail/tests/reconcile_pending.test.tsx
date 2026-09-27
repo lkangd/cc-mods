@@ -577,6 +577,29 @@ test('status counts the pendings live Runs hold, as the archive answers now', as
   expect(settled.text).toContain('pending reconciliation: none\n')
 })
 
+for (const lookedAt of ['submission', 'status'] as const) {
+  test(`a pending left to a live Run is settled here once that Run is gone (${lookedAt})`, async ($, on) => {
+    const store = consentedStore()
+    const options = {
+      store,
+      pendingList: [{ ...HELD_ELSEWHERE }],
+      liveRuns: [HELD_ELSEWHERE.runId],
+      reconcileAnswer: '未进入' as const,
+    }
+    const calls = installSupportedTarget(on, options)
+    await $.session.start(session)
+    await composerPrompt($)
+
+    /* That Run's process exits without settling it. */
+    options.liveRuns = []
+    if (lookedAt === 'status') await promptHistory($, 'status')
+    const next = await composerPrompt($, { text: 'PT-SECRET-SECOND' })
+
+    expect(next.drop).toContain('已完成对账')
+    expect(captureCalls(calls, 'capture-abort').map(call => call.argv[4])).toStrictEqual([HELD_ELSEWHERE.eventId])
+  })
+}
+
 /* A pending a crashed process left behind, which every live Run may offer. */
 const ORPHANED = { ...HELD_ELSEWHERE, eventId: '66666666-7777-4888-8999-aaaaaaaaaaaa' }
 

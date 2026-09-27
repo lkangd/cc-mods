@@ -136,6 +136,9 @@ export type TargetOptions = {
   askHold?: Promise<void>
   /* Runs while an AskUserQuestion dialog is up, before it is answered. */
   duringAsk?: () => void
+  /* Runs right after a store write lands, as another process writing the
+     same key a moment later would. */
+  afterStoreSet?: (key: string) => void
   run?: RunIdentity
   /* The session the locator says this one continues: the conversation was
      moved here from it, and this session took up its Run. */
@@ -274,6 +277,7 @@ export function installSupportedTarget(
         branchWrites += 1
       }
       store[e.key] = e.value
+      options.afterStoreSet?.(e.key)
       return { value: undefined }
     })
     on('store.delete', (_$, e) => {
