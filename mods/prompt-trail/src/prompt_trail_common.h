@@ -37,6 +37,14 @@ bool pt_process_is_same(
   int64_t start_seconds,
   int64_t start_microseconds
 );
+/* Whether the process generation a locator names is gone: the pid now belongs
+   to a process started at another instant, or to none. A process that exists
+   but cannot be inspected is not proven gone. */
+bool pt_process_generation_ended(
+  pid_t process_id,
+  int64_t start_seconds,
+  int64_t start_microseconds
+);
 bool pt_executable_version(const char *executable, char *output, size_t capacity);
 bool pt_sha256_file(const char *path, char output[65]);
 bool pt_is_safe_identifier(const char *value);

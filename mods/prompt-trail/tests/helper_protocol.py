@@ -44,9 +44,13 @@ class HelperProtocolTests(unittest.TestCase):
         self,
         *args: str,
         input_text: str | None = None,
+        via_child: bool = False,
     ) -> subprocess.CompletedProcess[str]:
+        # A shell that outlives the helper becomes its parent, so the helper
+        # runs for a host process other than the one these tests stand for.
+        wrapper = ["/bin/sh", "-c", '"$@"; exit $?', "sh"] if via_child else []
         return subprocess.run(
-            [str(HELPER), *args],
+            [*wrapper, str(HELPER), *args],
             input=input_text,
             check=False,
             capture_output=True,
@@ -1406,11 +1410,12 @@ class HelperProtocolTests(unittest.TestCase):
 
         self.assertEqual((first, second), (1, 2))
 
-    def list_argv(self, *, project_id: str) -> tuple[str, ...]:
+    def list_argv(self, *, project_id: str, run_id: str | None = None) -> tuple[str, ...]:
         return (
             "capture-list",
             str(self.plugin_data / "archives"),
             project_id,
+            run_id or str(uuid.uuid4()),
             json.loads(MANIFEST.read_text())["sha256"],
             "1",
         )
@@ -1515,6 +1520,155 @@ class HelperProtocolTests(unittest.TestCase):
             [row["eventId"] for row in payload["pending"]],
             staged[:64],
         )
+
+    def held_pending(self) -> tuple[str, dict[str, str], str]:
+        """A pending staged for the Run this test process's locator holds."""
+        self.publish_locator()
+        run_id = json.loads(self.locator.read_text())["runId"]
+        project_id = "e1" * 32
+        identity = self.identity(project_id, run_id=run_id)
+        event_id = str(uuid.uuid4())
+        staged = self.run_helper(*self.begin_argv(event_id, **identity), input_text="PT-SECRET-HELD")
+        self.assertEqual(staged.returncode, 0, staged.stderr)
+        return project_id, identity, event_id
+
+    def test_capture_list_leaves_out_a_pending_whose_run_a_live_process_holds(self) -> None:
+        project_id, _, _ = self.held_pending()
+
+        listed = self.run_helper(*self.list_argv(project_id=project_id), via_child=True)
+
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        payload = json.loads(listed.stdout)
+        self.assertEqual(payload["pending"], [])
+        self.assertEqual(payload["skipped"], 1)
+
+    def test_capture_list_offers_a_pending_whose_holder_has_exited(self) -> None:
+        project_id, _, event_id = self.held_pending()
+        held = json.loads(self.locator.read_text())
+        gone = {**held, "hostPid": 2_147_483_647, "hostStartSeconds": 1, "hostStartMicroseconds": 1}
+        self.locator.unlink()
+        stale = self.locator.parent / (
+            f"{gone['sessionId']}.{gone['hostPid']}-{gone['hostStartSeconds']}-{gone['hostStartMicroseconds']}.json"
+        )
+        stale.write_text(json.dumps(gone) + "\n")
+        stale.chmod(0o600)
+
+        listed = self.run_helper(*self.list_argv(project_id=project_id), via_child=True)
+
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        payload = json.loads(listed.stdout)
+        self.assertEqual([row["eventId"] for row in payload["pending"]], [event_id])
+        self.assertEqual(payload["skipped"], 0)
+
+    def test_capture_list_offers_the_callers_own_run_whoever_holds_it(self) -> None:
+        project_id, identity, event_id = self.held_pending()
+
+        listed = self.run_helper(
+            *self.list_argv(project_id=project_id, run_id=identity["run_id"]), via_child=True
+        )
+
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        payload = json.loads(listed.stdout)
+        self.assertEqual([row["eventId"] for row in payload["pending"]], [event_id])
+        self.assertEqual(payload["skipped"], 0)
+
+    def test_capture_list_offers_the_pending_of_a_run_its_own_host_holds(self) -> None:
+        project_id, _, event_id = self.held_pending()
+
+        listed = self.run_helper(*self.list_argv(project_id=project_id))
+
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual([row["eventId"] for row in json.loads(listed.stdout)["pending"]], [event_id])
+
+    def test_twenty_four_concurrent_runs_all_commit_in_one_gapless_sequence(self) -> None:
+        project_id = "f2" * 32
+        writers = 24
+        gate = pathlib.Path(self.temporary.name) / "go"
+        # Each writer is a Run of its own: it stages and confirms one prompt,
+        # retries the confirmation, and appends one boundary twice. Every
+        # writer submits the same text, and the archive does not exist yet.
+        planned = []
+        for _ in range(writers):
+            identity = self.identity(project_id)
+            prompt, boundary = str(uuid.uuid4()), str(uuid.uuid4())
+            planned.append((identity, prompt, boundary))
+        processes = []
+        for identity, prompt, boundary in planned:
+            steps = [
+                self.begin_argv(prompt, **identity),
+                self.confirm_argv(prompt, project_id=project_id),
+                self.confirm_argv(prompt, project_id=project_id),
+                self.boundary_argv(boundary, kind="clear", **identity),
+                self.boundary_argv(boundary, kind="clear", **identity),
+            ]
+            script = 'while [ ! -e "$0" ]; do /bin/sleep 0.01; done\n' + "\n".join(
+                "printf %s PT-SECRET-SAME | " + " ".join(f"'{part}'" for part in [str(HELPER), *argv])
+                + " >/dev/null || exit 1"
+                for argv in steps
+            )
+            processes.append(subprocess.Popen(
+                ["/bin/sh", "-c", script, str(gate)],
+                env=self.environment,
+                stderr=subprocess.PIPE,
+                text=True,
+            ))
+        gate.touch()
+        for process in processes:
+            _, stderr = process.communicate(timeout=60)
+            self.assertEqual(process.returncode, 0, stderr)
+
+        payload = self.read(project_id=project_id)
+
+        events = payload["events"]
+        self.assertEqual([row["sequence"] for row in events], list(range(1, 2 * writers + 1)))
+        self.assertEqual(
+            sorted(row["eventId"] for row in events),
+            sorted(event for _, prompt, boundary in planned for event in (prompt, boundary)),
+        )
+        prompts = [row for row in events if row["kind"] == "prompt"]
+        self.assertEqual(len(prompts), writers)
+        self.assertEqual({row["text"] for row in prompts}, {"PT-SECRET-SAME"})
+        for identity, prompt, boundary in planned:
+            mine = [row for row in events if row["runId"] == identity["run_id"]]
+            self.assertEqual([row["eventId"] for row in mine], [prompt, boundary])
+
+    def test_one_projects_broken_archive_leaves_another_project_untouched(self) -> None:
+        self.publish_locator()
+        broken_id, healthy_id = "a3" * 32, "b4" * 32
+        broken = self.identity(broken_id)
+        healthy = self.identity(healthy_id)
+        self.capture("PT-SECRET-BROKEN", identity=broken)
+        self.capture("PT-SECRET-HEALTHY", identity=healthy)
+        database = self.plugin_data / "archives" / f"{broken_id}.sqlite3"
+        manifest = json.loads(MANIFEST.read_text())
+
+        def healthy_still_works(label: str) -> None:
+            self.capture(f"PT-SECRET-{label}", identity=healthy)
+            texts = [row.get("text") for row in self.read(project_id=healthy_id)["events"]]
+            self.assertEqual(texts[-1], f"PT-SECRET-{label}", label)
+            preflight = self.run_helper(
+                "preflight", "--locator", str(self.locator), "--session", self.session_id,
+                "--expected-sha", manifest["sha256"], "--protocol", str(manifest["helperProtocol"]),
+            )
+            self.assertEqual(preflight.returncode, 0, preflight.stderr)
+
+        database.chmod(0o644)
+        widened = self.run_helper(*self.begin_argv(str(uuid.uuid4()), **broken), input_text="PT-SECRET-X")
+        self.assertEqual(json.loads(widened.stderr)["category"], "database-permissions")
+        healthy_still_works("AFTER-PERMISSIONS")
+
+        database.chmod(0o600)
+        for suffix in ("-wal", "-shm"):
+            pathlib.Path(f"{database}{suffix}").unlink(missing_ok=True)
+        database.write_bytes(b"PT-NOT-A-DATABASE" * 512)
+        corrupt = self.run_helper(*self.begin_argv(str(uuid.uuid4()), **broken), input_text="PT-SECRET-X")
+        self.assertNotEqual(corrupt.returncode, 0)
+        healthy_still_works("AFTER-CORRUPTION")
+
+        database.unlink()
+        gone = self.run_helper(*self.confirm_argv(str(uuid.uuid4()), project_id=broken_id), input_text="PT-SECRET-X")
+        self.assertEqual(json.loads(gone.stderr)["category"], "database-unavailable")
+        healthy_still_works("AFTER-DELETION")
 
     def test_confirm_from_pending_archives_the_staged_text(self) -> None:
         project_id = "d" * 64

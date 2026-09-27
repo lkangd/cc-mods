@@ -222,6 +222,8 @@ export type TimelineFolds = {
      earliest entry, which is where the timeline draws it. */
   folded: Map<string, string>
   counts: Map<string, number>
+  /* The folds that hold another Run rather than a branch of this one. */
+  runs: Set<string>
 }
 
 /* The entries of `runId` that left its active path — the chain ending at
@@ -230,8 +232,13 @@ export type TimelineFolds = {
    transcript was rewound or resumed past, or a later segment the resumed
    session never saw. Entries before the path, and every other Run's, stay as
    they are. Each fold gathers the entries that leave the path at the same
-   point, or that grow from the same root when they never touched it. The
-   archive is untouched; this only decides what is drawn folded.
+   point, or that grow from the same root when they never touched it.
+
+   Every other Run that entered a prompt once the path began was writing
+   alongside this one: all it archived from then on — its boundaries too —
+   folds into one place, at its first such event, counting its Prompt
+   Entries. Before the path began, the project's history is drawn as it is.
+   The archive is untouched; this only decides what is drawn folded.
 
    `rows` are a window over the timeline. `beyond`, when the archive placed
    the same tip, says which rows of the window the path crosses and where it
@@ -243,7 +250,7 @@ export function foldTimeline(
   tip: string | null,
   beyond?: { eventIds: ReadonlySet<string>; start: number | null },
 ): TimelineFolds {
-  const folds: TimelineFolds = { folded: new Map(), counts: new Map() }
+  const folds: TimelineFolds = { folded: new Map(), counts: new Map(), runs: new Set() }
   const entries = new Map(
     rows.filter(row => row.kind === 'prompt').map(row => [row.eventId, row]),
   )
@@ -279,12 +286,28 @@ export function foldTimeline(
     for (const row of members) folds.folded.set(row.eventId, first.eventId)
     folds.counts.set(first.eventId, members.length)
   }
-  folds.counts = new Map(
-    [...folds.counts].sort(([left], [right]) => entries.get(left)!.sequence - entries.get(right)!.sequence),
-  )
-  folds.folded = new Map(
-    [...folds.folded].sort(([left], [right]) => entries.get(left)!.sequence - entries.get(right)!.sequence),
-  )
+
+  const alongside = new Map<string, ViewRow[]>()
+  for (const row of rows) {
+    if (row.runId === runId || row.sequence <= start || path.has(row.eventId)) continue
+    const members = alongside.get(row.runId)
+    if (members) members.push(row)
+    else alongside.set(row.runId, [row])
+  }
+  for (const members of alongside.values()) {
+    const prompts = members.filter(row => row.kind === 'prompt').length
+    if (prompts === 0) continue
+    const first = members.reduce((earliest, row) => (row.sequence < earliest.sequence ? row : earliest))
+    for (const row of members) folds.folded.set(row.eventId, first.eventId)
+    folds.counts.set(first.eventId, prompts)
+    folds.runs.add(first.eventId)
+  }
+
+  const sequences = new Map(rows.map(row => [row.eventId, row.sequence]))
+  const bySequence = ([left]: [string, unknown], [right]: [string, unknown]) =>
+    sequences.get(left)! - sequences.get(right)!
+  folds.counts = new Map([...folds.counts].sort(bySequence))
+  folds.folded = new Map([...folds.folded].sort(bySequence))
   return folds
 }
 

@@ -89,6 +89,12 @@ export type TargetOptions = {
   /* What `capture-list` answers: the pendings the archive still holds. A
      resolved one is dropped from the front, the way the archive would. */
   pendingList?: Record<string, unknown>[]
+  /* Runs a live process other than this one is attached to: `capture-list`
+     leaves their pendings out, unless the caller names that Run as its own. */
+  liveRuns?: string[]
+  /* Another Run settled every listed pending first: a confirmation finds it
+     gone and an abort finds it confirmed, as the helper answers each. */
+  settledElsewhere?: boolean
   /* What `$.session.messages()` answers: to reconciliation, and to the
      Active Branch alignment ahead of a session's first capture. */
   messages?: readonly TranscriptRow[]
@@ -426,7 +432,7 @@ export function installSupportedTarget(
         },
       }
     }
-    if (argv[0] === '/usr/bin/git') {
+    if (argv[0] === '/usr/bin/git' || (argv[0] === '/usr/bin/env' && argv.includes('/usr/bin/git'))) {
       const exitCode = options.gitExitCode ?? 0
       return {
         value: {
@@ -495,6 +501,10 @@ export function installSupportedTarget(
       const eventId = argv[4]
       const isFirstConfirm =
         calls.filter(call => call.argv[1] === 'capture-confirm').length === 1
+      if (options.settledElsewhere && options.pendingList?.some(row => row.eventId === eventId)) {
+        options.pendingList = options.pendingList.filter(row => row.eventId !== eventId)
+        return { value: { exitCode: 25, stdout: '', stderr: '{"category":"capture-not-found"}' } }
+      }
       if (options.confirmFails || (options.confirmFailsOnce && isFirstConfirm)) {
         return {
           value: {
@@ -639,12 +649,18 @@ export function installSupportedTarget(
           },
         }
       }
+      if (argv.length !== 7) throw new Error(`unexpected capture-list: ${argv.join(' ')}`)
+      const caller = argv[4]
+      const held = (row: Record<string, unknown>) =>
+        row.runId !== caller && (options.liveRuns ?? []).includes(row.runId as string)
+      const pending = options.pendingList ?? []
       return {
         value: {
           exitCode: 0,
           stdout: JSON.stringify({
             projectId,
-            pending: options.pendingList ?? [],
+            pending: pending.filter(row => !held(row)),
+            skipped: pending.filter(held).length,
             truncated: false,
           }),
           stderr: '',
@@ -652,6 +668,10 @@ export function installSupportedTarget(
       }
     }
     if (argv[0] === helperPath && argv[1] === 'capture-abort') {
+      if (options.settledElsewhere && options.pendingList?.some(row => row.eventId === argv[4])) {
+        options.pendingList = options.pendingList.filter(row => row.eventId !== argv[4])
+        return { value: { exitCode: 25, stdout: '', stderr: '{"category":"capture-conflict"}' } }
+      }
       if (options.abortFails) {
         return {
           value: {

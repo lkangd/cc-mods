@@ -523,3 +523,82 @@ test('新根分支 keeps the block when the new root cannot be stored', async ($
   expect(blocked.drop).toContain('仍有未决的 Pending Capture')
   expect(store[reconcileKey()]).toBeDefined()
 })
+
+/* A pending of another Run that a live process is attached to. */
+const HELD_ELSEWHERE = {
+  eventId: '55555555-6666-4777-8888-999999999999',
+  runId: 'dddddddd-eeee-4fff-8000-111111111111',
+  segmentId: '11111111-2222-4333-8444-555555555555',
+  branchId: '22222222-3333-4444-8555-666666666666',
+  parentEventId: null,
+  occurredAtMs: 1_795_000_000_000,
+  attachmentCount: 0,
+}
+
+test('a pending another live Run holds is left to that Run', async ($, on) => {
+  const store = consentedStore()
+  const calls = installSupportedTarget(on, {
+    store,
+    pendingList: [{ ...HELD_ELSEWHERE }],
+    liveRuns: [HELD_ELSEWHERE.runId],
+    reconcileAnswer: '未进入',
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  /* It may be a submission still in flight there: this Run neither asks about
+     it nor settles it, and its own prompt goes through. */
+  expect(result.text).toBe(SECRET)
+  expect(captureCalls(calls, 'capture-list')[0]?.argv[4]).toBe(runId)
+  expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
+  expect(captureCalls(calls, 'capture-confirm').map(call => call.argv[4]))
+    .not.toContain(HELD_ELSEWHERE.eventId)
+  expect(store[reconcileKey()]).toBeUndefined()
+})
+
+test('status counts the pendings live Runs hold, as the archive answers now', async ($, on) => {
+  const store = consentedStore()
+  const options = {
+    store,
+    pendingList: [{ ...HELD_ELSEWHERE }],
+    liveRuns: [HELD_ELSEWHERE.runId],
+  }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+  await composerPrompt($)
+
+  const held = await promptHistory($, 'status')
+  /* That Run settled its submission meanwhile. */
+  options.pendingList = []
+  const settled = await promptHistory($, 'status')
+
+  expect(held.text).toContain('pending reconciliation: none · 另有 1 条属于正在运行的其他 Run')
+  expect(settled.text).toContain('pending reconciliation: none\n')
+})
+
+/* A pending a crashed process left behind, which every live Run may offer. */
+const ORPHANED = { ...HELD_ELSEWHERE, eventId: '66666666-7777-4888-8999-aaaaaaaaaaaa' }
+
+for (const answer of ['已进入', '未进入'] as const) {
+  test(`${answer} on a pending another Run settled first counts as settled`, async ($, on) => {
+    const store = consentedStore()
+    const calls = installSupportedTarget(on, {
+      store,
+      pendingList: [{ ...ORPHANED }],
+      settledElsewhere: true,
+      reconcileAnswer: answer,
+    })
+    await $.session.start(session)
+
+    const first = await composerPrompt($)
+    const second = await composerPrompt($, { text: 'PT-SECRET-SECOND' })
+
+    /* The first Run's answer stands; this one's is not an archive failure. */
+    expect(first.drop).toContain('已完成对账')
+    expect(store[reconcileKey()]).toBeUndefined()
+    expect(store[`prompt-trail:archive-state:${projectId}`]).toBeUndefined()
+    expect(second.text).toBe('PT-SECRET-SECOND')
+    expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
+  })
+}

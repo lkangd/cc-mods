@@ -17,6 +17,7 @@ import {
   transcriptRows,
   trustsStoredBranch,
 } from './branch'
+import { gitToplevelArgv, projectRootFrom } from './project'
 import type {
   Attachment,
   LifecycleEvent,
@@ -232,6 +233,7 @@ const SAFE_ERROR_CATEGORIES = new Set([
   'helper-untrusted',
   'host-executable',
   'host-generation',
+  'locator-directory',
   'locator-digest-mismatch',
   'locator-directory-permissions',
   'locator-identifiers',
@@ -338,6 +340,9 @@ let pendingDiscovered = false
 /* Set when the archive could not say whether anything is owed. Not knowing is
    not the same as nothing being owed, and status says so. */
 let pendingUnknown = false
+/* How many pendings of other, live Runs the archive held at the latest
+   listing; `status` lists again, so it never reports a stale count. */
+let pendingElsewhere: number | undefined
 /* The Conversation Segment lifecycle for the current project: the latest
    `/clear` transition and the Clear Boundaries the archive still owes. Kept per
    project rather than per Run, because a lifecycle write that never landed is
@@ -1406,29 +1411,21 @@ async function canonicalProjectRoot(
   cwd: string,
 ): Promise<string> {
   const canonicalCwd = await realpath($, cwd)
-  let candidate = canonicalCwd
-  const git = await run(
-    $,
-    ['/usr/bin/git', '-C', canonicalCwd, 'rev-parse', '--show-toplevel'],
-  )
-  if (git.exitCode === 0) {
-    const root = git.stdout.trim()
-    if (!root.startsWith('/') || /[\u0000-\u001f\u007f]/.test(root)) {
-      throw new Error('project-root-unproven')
-    }
-    candidate = root
-  } else {
-    if (git.exitCode !== 128) throw new Error('project-root-unproven')
-    let directory = canonicalCwd
-    for (;;) {
+  const git = await run($, gitToplevelArgv(canonicalCwd))
+  let insideGitRepository = false
+  if (git.exitCode !== 0) {
+    for (let directory = canonicalCwd; ;) {
       if (await $.fs.exists(`${directory}/.git`)) {
-        throw new Error('project-root-unproven')
+        insideGitRepository = true
+        break
       }
       const slash = directory.lastIndexOf('/')
       if (slash <= 0) break
       directory = directory.slice(0, slash)
     }
   }
+  const candidate = projectRootFrom(canonicalCwd, git, insideGitRepository)
+  if (candidate === undefined) throw new Error('project-root-unproven')
   const canonical = await realpath($, candidate)
   if (!canonical.startsWith('/') || /[\u0000-\u001f\u007f]/.test(canonical)) {
     throw new Error('project-root-unproven')
@@ -1467,6 +1464,7 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
   reconcile = owed ? { state: owed } : undefined
   pendingDiscovered = false
   pendingUnknown = false
+  pendingElsewhere = undefined
   runMode = undefined
   /* The lifecycle record is keyed by Run, so it is read once the Run is proven
      rather than here. Left unset, status reports it as unknown rather than as
@@ -1689,16 +1687,21 @@ async function confirmCapture(
     10_000,
     text,
   )
-  if (result.exitCode !== 0) throw new Error('capture-confirm')
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-confirm'))
   return parseConfirmedResponse(result.stdout, eventId, currentProject.id)
 }
 
-function parsePendingList(text: string, projectId: string): ReconcileState[] {
+function parsePendingList(
+  text: string,
+  projectId: string,
+): { owed: ReconcileState[]; skipped: number } {
   const value: unknown = JSON.parse(text)
   if (
     !isRecord(value) ||
     value.projectId !== projectId ||
-    !Array.isArray(value.pending)
+    !Array.isArray(value.pending) ||
+    !Number.isSafeInteger(value.skipped) ||
+    (value.skipped as number) < 0
   ) throw new Error('capture-list')
   const owed: ReconcileState[] = []
   for (const row of value.pending) {
@@ -1706,17 +1709,19 @@ function parsePendingList(text: string, projectId: string): ReconcileState[] {
     if (!state) throw new Error('capture-list')
     owed.push(state)
   }
-  return owed
+  return { owed, skipped: value.skipped as number }
 }
 
 /* What the archive still holds unresolved. It is the only way a new process
    learns that a previous one left a Pending Capture behind — its `$.store`
-   record may never have been written. */
+   record may never have been written. A pending of another Run that a live
+   process is attached to may still be in flight there: the helper leaves it
+   out and only counts it. */
 async function listPending(
   $: EngineInterface,
   currentProject: ProjectState,
-): Promise<ReconcileState[]> {
-  if (!startup.helperPath || !startup.databaseRoot) {
+): Promise<{ owed: ReconcileState[]; skipped: number }> {
+  if (!startup.helperPath || !startup.databaseRoot || !startup.runId) {
     throw new Error('capture-identity')
   }
   const result = await run(
@@ -1726,6 +1731,7 @@ async function listPending(
       'capture-list',
       startup.databaseRoot,
       currentProject.id,
+      startup.runId,
       EXPECTED_HELPER_SHA256,
       String(HELPER_PROTOCOL),
     ],
@@ -2062,8 +2068,11 @@ async function stepRing($: EngineInterface, by: 1 | -1): Promise<void> {
 }
 
 /* Back to the latest events, the band's bottom. */
-async function returnToLatest($: EngineInterface): Promise<void> {
-  if (timelineEdges.later && project && timelineLoaded === project.id) {
+/* `reread` is an opening band's: another Run may have archived meanwhile, and
+   no signal crosses processes, so the latest batch is read even when the
+   window believes it already holds it. */
+async function returnToLatest($: EngineInterface, reread = false): Promise<void> {
+  if ((timelineEdges.later || reread) && project && timelineLoaded === project.id) {
     try {
       mergeBatch(await readBatch($, project), 'latest')
     } catch {
@@ -2188,7 +2197,15 @@ async function abortCapture(
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error('capture-abort')
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-abort'))
+}
+
+/* Another Run offered the same pending and settled it first: a confirmation
+   finds it gone, an abort finds it confirmed. Its answer stands, and this
+   Run has nothing left to settle. */
+function settledElsewhere(error: unknown, operation: 'confirm' | 'abort'): boolean {
+  return error instanceof Error
+    && error.message === (operation === 'confirm' ? 'capture-not-found' : 'capture-conflict')
 }
 
 /* `$.session.messages()` answers at most the latest 4096 rows and mixes the
@@ -2255,19 +2272,21 @@ async function reconcilePending(
       }
       await clearReconcile($, currentProject)
       return 'resolved'
-    } catch {
-      return 'blocked'
+    } catch (error) {
+      if (!settledElsewhere(error, 'confirm')) return 'blocked'
+      await clearReconcile($, currentProject)
+      return 'resolved'
     }
   }
 
   const discardPending = async (): Promise<'resolved' | 'blocked'> => {
     try {
       await abortCapture($, currentProject, owed.state.eventId)
-      await clearReconcile($, currentProject)
-      return 'resolved'
-    } catch {
-      return 'blocked'
+    } catch (error) {
+      if (!settledElsewhere(error, 'abort')) return 'blocked'
     }
+    await clearReconcile($, currentProject)
+    return 'resolved'
   }
 
   let verdict: 'entered' | 'absent' | 'ambiguous' = 'ambiguous'
@@ -2337,9 +2356,12 @@ async function discoverPending(
   if (pendingDiscovered || reconcile) return
   let owed: ReconcileState[]
   try {
-    owed = await listPending($, currentProject)
+    const listed = await listPending($, currentProject)
+    owed = listed.owed
+    pendingElsewhere = listed.skipped
   } catch (error) {
     pendingUnknown = true
+    pendingElsewhere = undefined
     throw error
   }
   pendingDiscovered = true
@@ -3402,9 +3424,10 @@ function boundarySummary(mode: RunModeState | undefined): string {
 /* Enough to identify the unresolved event and nothing more: no draft, no
    prompt text, not even its length. */
 function reconcileSummary(): string {
-  if (reconcile) return `${reconcile.state.eventId.slice(0, 8)} · 待对账`
+  const elsewhere = pendingElsewhere ? ` · 另有 ${pendingElsewhere} 条属于正在运行的其他 Run` : ''
+  if (reconcile) return `${reconcile.state.eventId.slice(0, 8)} · 待对账${elsewhere}`
   if (pendingUnknown) return 'unknown · 未决 Pending Capture 不可读'
-  return 'none'
+  return `none${elsewhere}`
 }
 
 /* What a recovery queue still owes, by kind, so an owed Run start never reads
@@ -3894,23 +3917,24 @@ function bandRows(): BandRow[] {
   )
   const rows = ordered.flatMap((item): BandRow[] => {
     const before: BandRow[] = []
+    /* Another Run's fold holds its boundaries too, so it may begin at one. */
+    const fold = folds.folded.get(item.eventId)
+    if (fold === item.eventId) {
+      const open = openFolds.has(fold)
+      before.push({
+        key: `prompt-trail:fold:${fold}`,
+        text: `${open ? '▾' : '▸'} ${folds.runs.has(fold) ? '另一 Run' : '另一分支'} · ${folds.counts.get(fold) ?? 0} 条`,
+        dim: true,
+        fold,
+      })
+    }
+    if (fold !== undefined && !openFolds.has(fold)) {
+      /* A Run left unrecorded is never hidden inside a fold. */
+      return unclosed.has(item.eventId)
+        ? [...before, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
+        : before
+    }
     if (item.kind === 'prompt') {
-      const fold = folds.folded.get(item.eventId)
-      if (fold === item.eventId) {
-        const open = openFolds.has(fold)
-        before.push({
-          key: `prompt-trail:fold:${fold}`,
-          text: `${open ? '▾' : '▸'} 另一分支 · ${folds.counts.get(fold) ?? 0} 条`,
-          dim: true,
-          fold,
-        })
-      }
-      if (fold !== undefined && !openFolds.has(fold)) {
-        /* A Run left unrecorded is never hidden inside a fold. */
-        return unclosed.has(item.eventId)
-          ? [...before, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
-          : before
-      }
       const start = starts.get(item.eventId)
       if (item.parentEventId === null && item.branchId && ambiguousRoots.has(item.branchId)) {
         before.push({
@@ -4150,12 +4174,13 @@ export const register: Register = on => {
     const args = e.args.trim()
     if (args === '') {
       await refreshStartup($)
+      const loaded = project !== undefined && timelineLoaded === project.id
       await ensureTimeline($)
       expanded = true
       await saveExpanded($)
       queueAlignment($)
       /* Opening always shows the latest events. */
-      await returnToLatest($)
+      await returnToLatest($, loaded)
       return { text: 'Prompt Trail 已展开。' }
     }
     if (args === 'status') {
@@ -4174,7 +4199,12 @@ export const register: Register = on => {
              so status says so rather than reading as healthy. A failure here
              never costs the rest of the report. */
           try {
-            await discoverPending($, currentProject)
+            if (pendingDiscovered || reconcile) {
+              pendingElsewhere = undefined
+              pendingElsewhere = (await listPending($, currentProject)).skipped
+            } else {
+              await discoverPending($, currentProject)
+            }
           } catch {
             /* `discoverPending` has already recorded that the archive could
                not be asked, so the report says "unknown" rather than reading
@@ -4574,12 +4604,13 @@ export const register: Register = on => {
       /* Whatever was rewound or cleared while it was folded is marked as the
          band opens. */
       queueAlignment($)
+      const loaded = project !== undefined && timelineLoaded === project.id
       if (startup.support !== 'supported' || timelineLoaded === undefined) {
         await refreshStartup($)
         await ensureTimeline($)
       }
       /* Opening always shows the latest events. */
-      await returnToLatest($)
+      await returnToLatest($, loaded)
     }
     if (!expanded) {
       return (
