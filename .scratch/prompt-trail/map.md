@@ -143,6 +143,13 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   失败保持 `clear-run-unfinished`，任何 Run 可续做。有隔离档案时拒绝。`capture-begin` 预写前即校验父条目，插件遇到
   `capture-parent-unknown` 改新根重试。
 
+- [记录并闭合 Integrity gap](issues/26-integrity-gap-recovery.md)：
+  `integrity-gap` 与 `integrity-recovery` 是按 Run 归属的两种边界。恢复队列溢出、记录损坏、只见 `source=clear` 的开始，以及
+  generation 无法确定的队列项（不再回放），都转成该 Run 欠的 gap；队列落档后、下一个 Prompt Entry 前写 gap，紧接着写恢复边界。
+  fail-open 由 `$.store` 里不含原文的在途标记发现：pending 之前或 `/clear` 途中留下的记为 gap，pending 之后的交给对账；别的 Run 的
+  标记只在它不再存活时判定（`archive-status` 新增 `liveRuns` 与 gap 计数）。停用时只写 gap，恢复边界在 `collection-resumed` 之后。
+  清除随 Run 删除 gap。band 以黄色、不折叠显示，`status` 显示当前是否欠 gap 与档案里的 gap 数。
+
 ## Not yet specified
 
 <!-- 当前无尚不能精确成票据的范围。 -->
