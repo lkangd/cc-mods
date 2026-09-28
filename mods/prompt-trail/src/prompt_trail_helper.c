@@ -1685,6 +1685,8 @@ static void write_pending(
    knows one. Staged into another generation, its parent and Run would name
    events that are not there: it stages nothing, and the Run starts over in
    the generation now in place. */
+static void require_known_parent(sqlite3 *database, const char *parent_event_id);
+
 static void capture_begin(int argc, char **argv) {
   if (argc != 16 || strcmp(argv[15], "--stdin") != 0) usage();
   const char *database_root = argv[2];
@@ -1759,6 +1761,10 @@ static void capture_begin(int argc, char **argv) {
     write_pending(database_root, event_id, project_id, generation);
     return;
   }
+  /* Asked before anything is staged, so a Run whose tip a Run clear took can
+     start a new root before its submission goes in, rather than meet this
+     at its confirmation. */
+  require_known_parent(database, parent_event_id);
   sqlite3_stmt *insert = archive_prepare(
     database,
     "INSERT INTO pending_captures("
