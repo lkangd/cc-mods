@@ -72,6 +72,10 @@ _Avoid_: Silent degradation, best-effort mode
 An archive generation removed from active use after an integrity failure while its original database files are preserved unchanged for later recovery or deletion.
 _Avoid_: Migration backup, active archive generation
 
+**Migration backup**:
+A private copy of an archive taken just before a schema migration, kept beside it until the next successful open rechecks the upgraded archive. It holds every archived prompt, is never restored automatically, and while it cannot be removed the archive stays unavailable.
+_Avoid_: Quarantined archive, archive generation
+
 **Integrity gap**:
 A detected interval where Prompt Trail cannot prove that its Prompt Entries and lifecycle boundaries match the Claude Code conversation, typically after a host-level fail-open or unrecoverable lifecycle write. It is shown explicitly and never treated as a complete timeline.
 _Avoid_: Archive unavailable, silent omission, disabled collection interval
