@@ -128,6 +128,7 @@ test('clear-run shows the Run it removes and cancelling removes nothing', async 
   const asked = clearAsked[0] ?? ''
   expect(asked).toContain('整条会话谱系')
   expect(asked).toContain('共 1 次')
+  expect(asked).toMatch(/最早一条在 \d{4}-\d{2}-\d{2} \d{2}:\d{2}/)
   expect(asked).toContain('2 条 Prompt Entry、0 个 Pending Capture、1 条边界事件')
   expect(asked).toContain('其他 Run 有 1 条记录以本 Run 的条目为父节点')
   expect(asked).toContain('编号可能前移')
@@ -249,6 +250,7 @@ test('clear-run in another Run only finishes the Run clear under way', async ($,
   const clearOffered: string[][] = []
   const clearAsked: string[] = []
   const clearRunLeaves = [{ name: `${projectId}.sqlite3.pre-migration-v1`, bytes: 4096 }]
+  store[archiveStateKey] = { version: 2, state: 'unavailable', category: 'clear-run-unfinished', since: 1 }
   installSupportedTarget(on, {
     store, archive, clearRunUnderway, clearOffered, clearAsked, clearRunLeaves,
     clearAnswers: ['继续清除'],
@@ -267,6 +269,49 @@ test('clear-run in another Run only finishes the Run clear under way', async ($,
   expect(answer.text).toContain('之前确认过的按 Run 清除已完成。当前 Run 的记录未清除')
   expect(archive.filter(row => row.runId === runId)).toHaveLength(3)
   expect(store[branchKey]).toEqual(collectingStore()[branchKey])
+  /* Finished, the archive is usable again for every Run. */
+  expect(store[archiveStateKey]).toBeUndefined()
+})
+
+test('declining to continue a Run clear under way removes nothing', async ($, on) => {
+  const clearRunUnderway = { value: true, runId: otherRun }
+  const calls = installSupportedTarget(on, {
+    store: collectingStore(), archive: archivedBefore(), clearRunUnderway, clearAnswers: ['取消'],
+  })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-run')
+
+  expect(answer.text).toBe('已取消，未删除任何内容。')
+  expect(captureCalls(calls, 'clear-run')).toEqual([])
+})
+
+test('clear-run points to clear-all while a clear-all is unfinished', async ($, on) => {
+  const clearAsked: string[] = []
+  const calls = installSupportedTarget(on, {
+    store: collectingStore(), clearUnderway: { value: true }, clearLeaves: [], clearAsked,
+  })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-run')
+
+  expect(answer.text).toContain('clear-all 尚未完成')
+  expect(clearAsked).toEqual([])
+  expect(captureCalls(calls, 'clear-run')).toEqual([])
+})
+
+test('a pending another Run owes is left to it by a Run clear', async ($, on) => {
+  const store = collectingStore()
+  const owed = {
+    version: 1, eventId: 'e'.repeat(64), runId: otherRun, branchId: 'b'.repeat(64), parentEventId: null, attachmentCount: 0,
+  }
+  store[reconcileKey] = owed
+  installSupportedTarget(on, { store, archive: archivedBefore(), clearAnswers: ['清除当前 Run'] })
+  await $.session.start(session)
+
+  await promptHistory($, 'clear-run')
+
+  expect(store[reconcileKey]).toEqual(owed)
 })
 
 test('clear-run says so when the Run clear it would continue finished elsewhere', async ($, on) => {
