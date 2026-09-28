@@ -42,6 +42,10 @@
 #define ARCHIVE_WAIT_LONGEST_MS 250LL
 /* Below this much free space on the archive's disk, `capture-begin` says so. */
 #define LOW_SPACE_BYTES (1ULL << 30)
+/* The schema this helper writes; the manifest's `schemaWriteMax`. */
+#define ARCHIVE_SCHEMA_VERSION 2
+/* Room a migration leaves on the disk beyond its backup and its own growth. */
+#define MIGRATION_SPACE_MARGIN_BYTES (16ULL << 20)
 
 /* Non-prompt Timeline Events. They share the project-level monotonic sequence
    with prompt entries, so a boundary is ordered against prompts by sequence
@@ -616,18 +620,22 @@ static void close_archive(sqlite3 *database) {
   sqlite3_close(database);
 }
 
-static void archive_error(const char *category) {
-  if (active_archive) {
-    int code = sqlite3_errcode(active_archive) & 0xff;
+static const char *archive_failure(sqlite3 *database, const char *category) {
+  if (database) {
+    int code = sqlite3_errcode(database) & 0xff;
     if (code == SQLITE_BUSY || code == SQLITE_LOCKED) {
       category = "archive-busy";
     } else if (code == SQLITE_FULL
                || (code == SQLITE_IOERR
-                   && sqlite3_system_errno(active_archive) == ENOSPC)) {
+                   && sqlite3_system_errno(database) == ENOSPC)) {
       category = "archive-full";
     }
   }
-  json_error(EXIT_ARCHIVE_UNAVAILABLE, category);
+  return category;
+}
+
+static void archive_error(const char *category) {
+  json_error(EXIT_ARCHIVE_UNAVAILABLE, archive_failure(active_archive, category));
 }
 
 static long long monotonic_ms(void) {
@@ -864,11 +872,317 @@ static bool capture_runtime(
 
 static int archive_schema_version(sqlite3 *database) {
   sqlite3_stmt *version = archive_prepare(database, "PRAGMA user_version");
-  int schema_version = sqlite3_step(version) == SQLITE_ROW
-    ? sqlite3_column_int(version, 0)
-    : -1;
+  if (sqlite3_step(version) != SQLITE_ROW) archive_error("archive-sqlite");
+  int schema_version = sqlite3_column_int(version, 0);
   sqlite3_finalize(version);
   return schema_version;
+}
+
+/* A migration that cannot finish leaves the archive as it found it: the open
+   transaction is rolled back and the connection closed before the failure is
+   named, a lock or full disk SQLite met still naming it. */
+static void abandon_migration(sqlite3 *database, const char *category) {
+  category = archive_failure(database, category);
+  sqlite3_exec(database, "ROLLBACK", NULL, NULL, NULL);
+  close_archive(database);
+  json_error(EXIT_ARCHIVE_UNAVAILABLE, category);
+}
+
+static void migration_backup_paths(
+  const char *database_path,
+  int from_version,
+  char backup[PATH_MAX],
+  char partial[PATH_MAX]
+) {
+  int length = snprintf(
+    backup, PATH_MAX, "%s.pre-migration-v%d", database_path, from_version
+  );
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  length = snprintf(partial, PATH_MAX, "%s.partial", backup);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+}
+
+/* Whether a backup path holds nothing, or only a file this helper could have
+   written: a private regular file of this user. Anything else there is left
+   untouched and the archive fails closed. */
+static bool backup_path_trusted(const char *path, bool *present) {
+  struct stat status;
+  if (lstat(path, &status) != 0) {
+    *present = false;
+    return errno == ENOENT;
+  }
+  *present = true;
+  return pt_path_is_private_file(path);
+}
+
+static bool sync_directory(const char *directory) {
+  int descriptor = open(directory, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  if (descriptor < 0) return false;
+  bool synced = fsync(descriptor) == 0;
+  close(descriptor);
+  return synced;
+}
+
+static bool sync_file(const char *path) {
+  int descriptor = open(path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+  if (descriptor < 0) return false;
+  bool synced = fcntl(descriptor, F_FULLFSYNC) == 0 || fsync(descriptor) == 0;
+  close(descriptor);
+  return synced;
+}
+
+/* `integrity_check` answering its single "ok" and `foreign_key_check`
+   answering nothing. A page SQLite cannot read fails the check as well. */
+static bool archive_checks_clean(sqlite3 *database, bool quick) {
+  sqlite3_stmt *check = NULL;
+  const char *sql = quick ? "PRAGMA quick_check" : "PRAGMA integrity_check";
+  if (sqlite3_prepare_v2(database, sql, -1, &check, NULL) != SQLITE_OK) {
+    return false;
+  }
+  bool clean = sqlite3_step(check) == SQLITE_ROW
+    && strcmp((const char *)sqlite3_column_text(check, 0), "ok") == 0
+    && sqlite3_step(check) == SQLITE_DONE;
+  sqlite3_finalize(check);
+  if (!clean || quick) return clean;
+  if (sqlite3_prepare_v2(database, "PRAGMA foreign_key_check", -1, &check, NULL)
+      != SQLITE_OK) {
+    return false;
+  }
+  clean = sqlite3_step(check) == SQLITE_DONE;
+  sqlite3_finalize(check);
+  return clean;
+}
+
+/* What a migration must carry over unchanged, reduced to counts and sums over
+   every archived row: entries and their sequences and text, staged captures
+   and their text, and the project's sequence allocator. */
+typedef struct {
+  sqlite3_int64 values[7];
+} ArchiveFingerprint;
+
+static bool archive_fingerprint(sqlite3 *database, ArchiveFingerprint *fingerprint) {
+  sqlite3_stmt *select = NULL;
+  if (sqlite3_prepare_v2(
+        database,
+        "SELECT"
+        " (SELECT count(*) FROM prompt_entries),"
+        " (SELECT coalesce(sum(sequence), 0) FROM prompt_entries),"
+        " (SELECT coalesce(max(sequence), 0) FROM prompt_entries),"
+        " (SELECT coalesce(sum(length(CAST(prompt_text AS BLOB))), 0)"
+        "  FROM prompt_entries),"
+        " (SELECT count(*) FROM pending_captures),"
+        " (SELECT coalesce(sum(length(CAST(prompt_text AS BLOB))), 0)"
+        "  FROM pending_captures),"
+        " (SELECT coalesce(sum(next_sequence), 0) FROM metadata)",
+        -1,
+        &select,
+        NULL
+      ) != SQLITE_OK) {
+    return false;
+  }
+  bool read = sqlite3_step(select) == SQLITE_ROW;
+  for (int index = 0; read && index < 7; index += 1) {
+    fingerprint->values[index] = sqlite3_column_int64(select, index);
+  }
+  sqlite3_finalize(select);
+  return read;
+}
+
+/* Twice the archive, once for the backup and once for a migration that
+   rewrites every page, plus its write-ahead log and a margin. */
+static bool migration_space_available(
+  sqlite3 *database,
+  const char *database_root,
+  const char *database_path
+) {
+  sqlite3_stmt *size = archive_prepare(
+    database,
+    "SELECT page_count * page_size"
+    " FROM pragma_page_count(), pragma_page_size()"
+  );
+  if (sqlite3_step(size) != SQLITE_ROW) archive_error("archive-sqlite");
+  unsigned long long archive_bytes =
+    (unsigned long long)sqlite3_column_int64(size, 0);
+  sqlite3_finalize(size);
+  char wal_path[PATH_MAX];
+  int length = snprintf(wal_path, sizeof(wal_path), "%s-wal", database_path);
+  if (length < 0 || (size_t)length >= sizeof(wal_path)) archive_error("database-path");
+  struct stat wal;
+  unsigned long long wal_bytes =
+    lstat(wal_path, &wal) == 0 ? (unsigned long long)wal.st_size : 0;
+  struct statfs volume;
+  if (statfs(database_root, &volume) != 0) {
+    abandon_migration(database, "database-unavailable");
+  }
+  unsigned long long available =
+    (unsigned long long)volume.f_bavail * (unsigned long long)volume.f_bsize;
+  return available >= 2 * archive_bytes + wal_bytes + MIGRATION_SPACE_MARGIN_BYTES;
+}
+
+/* The archive exactly as it stands, copied into a private file beside it
+   while the migration holds the write lock. SQLite will not back up from a
+   connection that holds a write transaction, so a second, read-only one does
+   the copying; the lock keeps every other writer out, so it copies what the
+   migration will change. The copy is written under a temporary name and
+   renamed only once complete and on disk, so the backup name never holds a
+   partial copy. */
+static void write_migration_backup(
+  sqlite3 *database,
+  const char *database_root,
+  const char *database_path,
+  const char *backup,
+  const char *partial
+) {
+  int descriptor = open(
+    partial, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600
+  );
+  if (descriptor < 0) {
+    abandon_migration(database, errno == ENOSPC ? "archive-full" : "migration-backup");
+  }
+  close(descriptor);
+  const char *failure = "migration-backup";
+  sqlite3 *source = NULL;
+  sqlite3 *copy = NULL;
+  bool written =
+    sqlite3_open_v2(database_path, &source, SQLITE_OPEN_READONLY, NULL) == SQLITE_OK
+    && sqlite3_open_v2(partial, &copy, SQLITE_OPEN_READWRITE, NULL) == SQLITE_OK
+    && sqlite3_exec(copy, "PRAGMA journal_mode=OFF", NULL, NULL, NULL) == SQLITE_OK;
+  if (written) {
+    sqlite3_backup *backup_step = sqlite3_backup_init(copy, "main", source, "main");
+    written = backup_step
+      && sqlite3_backup_step(backup_step, -1) == SQLITE_DONE;
+    if (backup_step && sqlite3_backup_finish(backup_step) != SQLITE_OK) written = false;
+    if (!written) failure = archive_failure(copy, failure);
+  }
+  if (sqlite3_close(source) != SQLITE_OK) written = false;
+  if (sqlite3_close(copy) != SQLITE_OK) written = false;
+  if (written) {
+    errno = 0;
+    written = pt_path_is_private_file(partial)
+      && sync_file(partial)
+      && renamex_np(partial, backup, RENAME_EXCL) == 0
+      && sync_directory(database_root);
+    if (!written && errno == ENOSPC) failure = "archive-full";
+  }
+  if (!written) {
+    unlink(partial);
+    abandon_migration(database, failure);
+  }
+}
+
+/* The declared one-way upgrades, each from the version before it. */
+static bool apply_migration_step(sqlite3 *database, int from_version) {
+  if (from_version == 1) {
+    /* Schema 1 gained the non-prompt Timeline Event table. */
+    return sqlite3_exec(
+      database,
+      TIMELINE_EVENTS_DDL "PRAGMA user_version=2;",
+      NULL,
+      NULL,
+      NULL
+    ) == SQLITE_OK;
+  }
+  return false;
+}
+
+/* Runs inside the caller's write transaction, which commits only after this
+   returns. Nothing is changed until the archive has passed its checks and a
+   complete backup exists; a step that fails, or an upgraded archive that no
+   longer holds what it held, is rolled back and its backup removed. */
+static void migrate_archive(
+  sqlite3 *database,
+  const char *database_root,
+  const char *database_path,
+  int from_version
+) {
+  char backup[PATH_MAX];
+  char partial[PATH_MAX];
+  migration_backup_paths(database_path, from_version, backup, partial);
+  /* Files left by an attempt that never committed: the archive itself is
+     still the older schema, so it, not they, is what gets backed up. */
+  bool present = false;
+  if (!backup_path_trusted(backup, &present)
+      || (present && unlink(backup) != 0)
+      || !backup_path_trusted(partial, &present)
+      || (present && unlink(partial) != 0)) {
+    abandon_migration(database, "migration-backup");
+  }
+  if (!archive_checks_clean(database, false)) {
+    abandon_migration(database, "archive-integrity");
+  }
+  if (!migration_space_available(database, database_root, database_path)) {
+    abandon_migration(database, "archive-full");
+  }
+  ArchiveFingerprint before;
+  if (!archive_fingerprint(database, &before)) {
+    abandon_migration(database, "archive-integrity");
+  }
+  write_migration_backup(database, database_root, database_path, backup, partial);
+
+  ArchiveFingerprint after;
+  bool migrated = true;
+  for (int version = from_version; migrated && version < ARCHIVE_SCHEMA_VERSION; version += 1) {
+    migrated = apply_migration_step(database, version);
+  }
+  migrated = migrated
+    && archive_schema_version(database) == ARCHIVE_SCHEMA_VERSION
+    && archive_checks_clean(database, false)
+    && archive_fingerprint(database, &after)
+    && memcmp(before.values, after.values, sizeof(before.values)) == 0;
+  if (!migrated) {
+    const char *category = archive_failure(database, "migration-verify");
+    unlink(backup);
+    sync_directory(database_root);
+    abandon_migration(database, category);
+  }
+}
+
+/* The first successful open after a migration committed checks the upgraded
+   archive once more and only then removes the backup; one it cannot remove
+   keeps the archive unavailable, since it holds every archived prompt. */
+static void settle_migration_backups(
+  sqlite3 *database,
+  const char *database_root,
+  const char *database_path
+) {
+  for (int version = 1; version < ARCHIVE_SCHEMA_VERSION; version += 1) {
+    char backup[PATH_MAX];
+    char partial[PATH_MAX];
+    migration_backup_paths(database_path, version, backup, partial);
+    bool backup_present = false;
+    bool partial_present = false;
+    if (!backup_path_trusted(backup, &backup_present)
+        || !backup_path_trusted(partial, &partial_present)) {
+      close_archive(database);
+      archive_error("migration-backup");
+    }
+    if (!backup_present && !partial_present) continue;
+    if (!archive_checks_clean(database, true)) {
+      close_archive(database);
+      archive_error("archive-integrity");
+    }
+    if ((backup_present && unlink(backup) != 0 && errno != ENOENT)
+        || (partial_present && unlink(partial) != 0 && errno != ENOENT)
+        || !sync_directory(database_root)) {
+      close_archive(database);
+      archive_error("migration-backup-cleanup");
+    }
+  }
+}
+
+/* The project row's policy version, or 0 when the archive has no row for
+   this project. */
+static int archive_policy_version(sqlite3 *database, const char *project_id) {
+  sqlite3_stmt *metadata = archive_prepare(
+    database,
+    "SELECT policy_version FROM metadata WHERE project_id=?1"
+  );
+  archive_bind_text(database, metadata, 1, project_id);
+  int step = sqlite3_step(metadata);
+  if (step != SQLITE_ROW && step != SQLITE_DONE) archive_error("archive-sqlite");
+  int policy = step == SQLITE_ROW ? sqlite3_column_int(metadata, 0) : 0;
+  sqlite3_finalize(metadata);
+  return policy;
 }
 
 static sqlite3 *open_archive(
@@ -887,6 +1201,14 @@ static sqlite3 *open_archive(
   );
   if (length < 0 || (size_t)length >= sizeof(database_path)) {
     archive_error("database-path");
+  }
+
+  /* On a read-only disk SQLite quietly opens the file read-only and then
+     fails on WAL's shared memory under some other name, if it fails at all
+     before a write, so the disk itself is asked. */
+  struct statfs volume;
+  if (statfs(database_root, &volume) == 0 && (volume.f_flags & MNT_RDONLY)) {
+    archive_error("archive-read-only");
   }
 
   struct stat status;
@@ -914,6 +1236,14 @@ static sqlite3 *open_archive(
   }
   active_archive = database;
   sqlite3_busy_handler(database, archive_busy_wait, NULL);
+  /* An archive from a newer helper, or one this helper cannot place, is
+     refused before anything here writes to it or takes its write lock: not
+     even the switch to WAL may touch a layout this helper does not know. */
+  int found_version = archive_schema_version(database);
+  if (found_version < 0 || found_version > ARCHIVE_SCHEMA_VERSION) {
+    close_archive(database);
+    archive_error("schema-version");
+  }
   /* Turning a new archive to WAL needs the exclusive lock, and SQLite answers
      a Run that meets another one mid-switch with SQLITE_BUSY at once rather
      than through the busy handler, so it waits here on the same budget. */
@@ -934,7 +1264,8 @@ static sqlite3 *open_archive(
   /* An already-current archive needs no write lock. Anything older takes one
      and re-reads the version under it, so two Runs opening the same schema-1
      archive cannot both replay the migration onto an upgraded file. */
-  if (archive_schema_version(database) != 2) {
+  bool migrated = false;
+  if (archive_schema_version(database) != ARCHIVE_SCHEMA_VERSION) {
     archive_sql(database, "BEGIN IMMEDIATE");
     int schema_version = archive_schema_version(database);
     if (schema_version == 0) {
@@ -974,16 +1305,10 @@ static sqlite3 *open_archive(
         TIMELINE_EVENTS_DDL
         "PRAGMA user_version=2;"
       );
-    } else if (schema_version == 1) {
-      /* The one declared upgrade: schema 1 gained the non-prompt Timeline
-         Event table. It only adds a table, so it preserves every archived row
-         and the shared sequence allocator untouched. */
-      archive_sql(
-        database,
-        TIMELINE_EVENTS_DDL
-        "PRAGMA user_version=2;"
-      );
-    } else if (schema_version != 2) {
+    } else if (schema_version > 0 && schema_version < ARCHIVE_SCHEMA_VERSION) {
+      migrate_archive(database, database_root, database_path, schema_version);
+      migrated = true;
+    } else if (schema_version != ARCHIVE_SCHEMA_VERSION) {
       archive_sql(database, "ROLLBACK");
       close_archive(database);
       archive_error("schema-version");
@@ -991,26 +1316,26 @@ static sqlite3 *open_archive(
     archive_sql(database, "COMMIT");
   }
 
-  sqlite3_stmt *metadata = archive_prepare(
-    database,
-    "INSERT INTO metadata(project_id, policy_version, next_sequence) "
-    "VALUES(?1, 1, 0) ON CONFLICT(project_id) DO NOTHING"
-  );
-  archive_bind_text(database, metadata, 1, project_id);
-  if (sqlite3_step(metadata) != SQLITE_DONE) archive_error("archive-sqlite");
-  sqlite3_finalize(metadata);
-  metadata = archive_prepare(
-    database,
-    "SELECT policy_version FROM metadata WHERE project_id=?1"
-  );
-  archive_bind_text(database, metadata, 1, project_id);
-  if (sqlite3_step(metadata) != SQLITE_ROW
-      || sqlite3_column_int(metadata, 0) != 1) {
+  /* The project row is written only when it is missing, so a read of an
+     archive that already has one never takes the write lock and never waits
+     behind another Run's write. */
+  int policy = archive_policy_version(database, project_id);
+  if (policy == 0) {
+    sqlite3_stmt *metadata = archive_prepare(
+      database,
+      "INSERT INTO metadata(project_id, policy_version, next_sequence) "
+      "VALUES(?1, 1, 0) ON CONFLICT(project_id) DO NOTHING"
+    );
+    archive_bind_text(database, metadata, 1, project_id);
+    if (sqlite3_step(metadata) != SQLITE_DONE) archive_error("archive-sqlite");
     sqlite3_finalize(metadata);
+    policy = archive_policy_version(database, project_id);
+  }
+  if (policy != 1) {
     close_archive(database);
     archive_error("project-identity");
   }
-  sqlite3_finalize(metadata);
+  if (!migrated) settle_migration_backups(database, database_root, database_path);
   return database;
 }
 
