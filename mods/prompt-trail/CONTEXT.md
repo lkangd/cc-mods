@@ -77,7 +77,7 @@ A private copy of an archive taken just before a schema migration, kept beside i
 _Avoid_: Quarantined archive, archive generation
 
 **Integrity gap**:
-A detected interval where Prompt Trail cannot prove that its Prompt Entries and lifecycle boundaries match the Claude Code conversation, typically after a host-level fail-open or unrecoverable lifecycle write. It is shown explicitly and never treated as a complete timeline.
+A detected interval where Prompt Trail cannot prove that one Run's Prompt Entries and lifecycle boundaries match the Claude Code conversation, typically after a host-level fail-open or unrecoverable lifecycle write. It belongs to that Run and is deleted with that Run's records. It is shown explicitly and never treated as a complete timeline.
 _Avoid_: Archive unavailable, silent omission, disabled collection interval
 
 **Integrity recovery boundary**:

@@ -89,6 +89,8 @@ export type TargetOptions = {
   beginRejects?: boolean
   abortFails?: boolean | string
   boundaryFails?: boolean | string
+  /* `boundary-append` of this kind fails with `archive-busy`. */
+  boundaryFailsFor?: { kind: string }
   listFails?: boolean | string
   /* What a successful `capture-begin` says about the archive's disk; absent,
      it says nothing, as a helper that could not ask the disk does. */
@@ -801,6 +803,7 @@ export function installSupportedTarget(
       if (options.boundaryFails) {
         return failure(options.boundaryFails, generation.value)
       }
+      if (options.boundaryFailsFor?.kind === argv[7]) return failure('archive-busy')
       if (argv[10] !== '-' && argv[10] !== generation.value) return failure('archive-generation')
       /* As strict as the helper: a repeated id answers the stored sequence
          only when every recorded fact matches, and a changed one is refused. */

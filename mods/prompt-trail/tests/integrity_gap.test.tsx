@@ -393,6 +393,8 @@ test('a hook that fails after staging keeps its marker, and the next submission 
 
   expect(captureCalls(calls, 'capture-list').length).toBeGreaterThan(listed)
   expect(kinds(archive)).not.toContain('integrity-gap')
+  /* The failed call stopped being live, so its marker was judged and went. */
+  expect(inflightKeys(store)).toEqual([])
 })
 
 test('a marker that cannot be written holds the submission', async ($, on) => {
@@ -657,4 +659,71 @@ test('status says so when the gap count cannot be read', async ($, on) => {
   const status = await promptHistory($, 'status')
 
   expect(statusLine(status.text, 'integrity gaps:')).toBe('integrity gaps: unknown')
+})
+
+/* Regressions from the Issue 26 mutation check. */
+
+test('a loss found before the owed gap lands is one more reason for the same gap', async ($, on) => {
+  const owed = {
+    eventId: 'a1a1a1a1-b2b2-4c3c-8d4d-e5e5e5e5e5e5', runId, segmentId: sessionId,
+    branchId: 'b2b2b2b2-c3c3-4d4d-8e5e-f6f6f6f6f6f6', occurredAt: 1_794_000_000_000,
+    generation: null, reasons: ['fail-open'],
+  }
+  const store = storeWith({ gap: owed, overflowed: true })
+  installSupportedTarget(on, { store, boundaryFails: 'archive-busy' })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  expect((store[lifecycleKey()] as { gap?: unknown }).gap).toEqual({
+    ...owed, reasons: ['fail-open', 'queue-overflow'],
+  })
+})
+
+test('a recovery that does not land is retried dated as first formed', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const store = storeWith({ overflowed: true })
+  let clock: import('claude-code/testing').MockClock | undefined
+  const options = {
+    store, archive,
+    boundaryFailsFor: { kind: 'integrity-recovery' } as { kind: string } | undefined,
+    onClock: (mocked: import('claude-code/testing').MockClock) => { clock = mocked },
+  }
+  installSupportedTarget(on, options)
+
+  await $.session.start(session)
+  await composerPrompt($)
+  const owed = (store[lifecycleKey()] as { gap?: { landed?: boolean; recoveryAt?: number } }).gap
+  expect(owed?.landed).toBe(true)
+  expect(kinds(archive)).toEqual(['integrity-gap'])
+
+  await clock?.advance(60_000)
+  options.boundaryFailsFor = undefined
+  await composerPrompt($)
+
+  expect(kinds(archive)).toEqual(['integrity-gap', 'integrity-recovery', 'prompt'])
+  const recovery = archive.find(row => row.kind === 'integrity-recovery')
+  expect(recovery?.occurredAt).toBe(owed?.recoveryAt)
+})
+
+test('a gap owed to a generation since cleared goes with it and blocks nothing', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const store = storeWith({
+    overflowed: true,
+    gap: {
+      eventId: 'a1a1a1a1-b2b2-4c3c-8d4d-e5e5e5e5e5e5', runId, segmentId: sessionId,
+      branchId: 'b2b2b2b2-c3c3-4d4d-8e5e-f6f6f6f6f6f6', occurredAt: 1_794_000_000_000,
+      generation: 'gen-0', reasons: ['queue-overflow'],
+    },
+  })
+  installSupportedTarget(on, { store, archive })
+
+  await $.session.start(session)
+  const result = await composerPrompt($)
+
+  expect(result.drop).toBeUndefined()
+  expect(kinds(archive)).toEqual(['prompt'])
+  const left = store[lifecycleKey()] as Record<string, unknown>
+  expect(left.gap).toBeUndefined()
+  expect(left.overflowed).toBeUndefined()
 })
