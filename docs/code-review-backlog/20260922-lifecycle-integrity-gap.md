@@ -1,6 +1,6 @@
 ---
 id: lifecycle-integrity-gap
-status: open
+status: resolved
 severity: major
 found: 2026-09-22
 source: /code-review, round 1
@@ -63,3 +63,14 @@ MVP 当前的取舍是**可见但不阻塞**：损失如实写进 status，不�
   `LIFECYCLE_QUEUE_LIMIT + 1` 条 `LifecycleWrite`，断言 `overflowed` 为 true。
 - 改了 `src/*.c` 后必须跑 `mods/prompt-trail/scripts/build-artifacts.sh`，
   再跑 `mods/prompt-trail/scripts/verify-startup.sh`。
+
+## Resolved 2026-09-29 (Issue 26, `b7fb479`, `9791236`)
+
+`boundary_kind_valid()` accepts `integrity-gap` and `integrity-recovery`, both belonging to the Run
+that lost the fact. `overflowed`, `damaged` (including a whole record that cannot be read) and
+`unobservedClear` are no longer only status lines: the Run owes an Integrity gap, written once
+everything it owes ahead of the loss has landed and before the next Prompt Entry, followed by
+its recovery boundary; only then are the flags cleared. `deferredClear` lost with its process is
+found through the in-flight marker a `/clear` leaves until it is queued. The plugin tests in
+`tests/integrity_gap.test.tsx` cover each path.
+
