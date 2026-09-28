@@ -4223,7 +4223,7 @@ async function askClear(
         ...(others ? [others] : []),
         '正在提交中的 prompt 也会被清除。Collection consent 与当前 Run 的采集模式不变。',
         CLEAR_BOUNDARY,
-        `确认删除请在“Other”中输入：${CLEAR_PHRASE}`,
+        `确认删除请选对话框的自由输入项，输入：${CLEAR_PHRASE}`,
       ].join('\n'),
       { header: '清除档案', options: ['取消', '返回'] },
     )
@@ -4255,22 +4255,30 @@ type Cleared = {
 }
 
 /* What the store kept about the cleared history goes with it: the pending
-   owed, the failure on record and every lifecycle write still owed. Consent,
-   each Run's collection mode and its branch stay; a branch names the
-   generation it was in, so the next capture starts over in the new one. */
+   owed, the failure on record, every lifecycle write still owed and the
+   Collection Boundary each Run last wrote. Consent, each Run's collection
+   mode and its branch stay; a branch names the generation it was in, so the
+   next capture starts over in the new one. */
 async function forgetClearedHistory($: EngineInterface, currentProject: ProjectState): Promise<void> {
   await clearReconcile($, currentProject)
   await archiveRecovered($, currentProject)
   damagedGeneration = undefined
   archiveStatus = undefined
+  if (runMode) runMode = { ...runMode, value: { version: 1, mode: runMode.value.mode } }
   try {
     for (const key of await $.store.keys()) {
-      if (!key.startsWith(lifecyclePrefix(currentProject.id))) continue
-      const value = storedLifecycle(await $.store.get(key))
-      if (value && value.queue.length > 0) await $.store.set(key, { ...value, queue: [] })
+      if (key.startsWith(lifecyclePrefix(currentProject.id))) {
+        const value = storedLifecycle(await $.store.get(key))
+        if (value && value.queue.length > 0) await $.store.set(key, { ...value, queue: [] })
+      } else if (key.startsWith(`prompt-trail:run-mode:${currentProject.id}:`)) {
+        const value = storedRunMode(await $.store.get(key))
+        if (value && (value.boundary || value.stopBoundaryMissing)) {
+          await $.store.set(key, { version: 1, mode: value.mode })
+        }
+      }
     }
   } catch {
-    // What is left owes a generation that is gone, and is dropped on replay.
+    // What is left names a history that is gone; nothing reads it back there.
   }
   lifecycleFailure = undefined
   resetWindow()
@@ -4853,7 +4861,7 @@ function statusText(): string {
       ? `ready · ${statusValue(project.databasePath)}`
       : 'not created'
   const damageChoices = archiveFailure && DAMAGE_FAILURES.has(archiveFailure.category)
-    ? ['choices: 重新检查完整性 / 隔离并开始新档案 / 禁用当前 Run 后继续（在下一次提交时选择）']
+    ? ['choices: 重新检查完整性 / 隔离并开始新档案 / 清除全部档案 / 禁用当前 Run 后继续（在下一次提交时选择）']
     : []
   return [
     'Prompt Trail status',

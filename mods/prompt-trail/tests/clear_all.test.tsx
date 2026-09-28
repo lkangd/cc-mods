@@ -162,6 +162,10 @@ test('clear-all shows what it removes and clears only on the exact phrase', asyn
   expect(asked).toContain('正在提交中的 prompt 也会被清除')
   expect(asked).toContain('Claude Code 的 transcript')
   expect(asked).toContain(PHRASE)
+  /* The host names its free-text entry itself ("Type something." on this
+     build): the text points at it without naming a label it may not show. */
+  expect(asked).toContain('自由输入')
+  expect(asked).not.toContain('Other')
   expect(asked).not.toContain('PT-SECRET')
   const clearing = captureCalls(calls, 'clear-all')
   expect(clearing).toHaveLength(1)
@@ -307,4 +311,21 @@ test('opening the timeline after another Run cleared it shows nothing cleared', 
   await promptHistory($, '')
 
   expect(JSON.stringify(await renderBand($))).not.toContain('PT-SECRET-BEFORE')
+})
+
+test('after a clear status names no boundary of the cleared history', async ($, on) => {
+  const store = collectingStore()
+  store[runModeKey] = {
+    version: 1,
+    mode: 'enabled',
+    boundary: { kind: 'collection-started', eventId: 'eeeeeeee-0000-4000-8000-000000000009', sequence: 2 },
+  }
+  installSupportedTarget(on, { store, archive: archivedBefore(), clearAnswers: [PHRASE] })
+  await $.session.start(session)
+  expect((await promptHistory($, 'status')).text).toContain('latest collection boundary: collection-started · sequence 2')
+
+  await promptHistory($, 'clear-all')
+
+  expect((await promptHistory($, 'status')).text).toContain('latest collection boundary: none')
+  expect(store[runModeKey]).toEqual({ version: 1, mode: 'enabled' })
 })

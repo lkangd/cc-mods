@@ -4395,5 +4395,28 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertIsNone(other_live_runs(via_child=True))
 
 
+    def test_an_unfinished_clear_is_listed_without_reading_what_it_cut(self) -> None:
+        # Found in the terminal: listing what a stopped clear left behind
+        # opened the cut archive and brought its WAL and index back.
+        project_id = "bc" * 32
+        self.current_archive(project_id, count=3)
+        path = self.archive_path(project_id)
+        subprocess.run(["/usr/bin/chflags", "uchg", str(path)], check=True)
+        self.addCleanup(subprocess.run, ["/usr/bin/chflags", "nouchg", str(path)], check=False)
+        stopped = self.run_helper(*self.clear_argv(project_id=project_id), input_text="")
+        self.assertEqual(json.loads(stopped.stderr), {"category": "clear-unfinished"})
+        left = self.project_files(project_id)
+
+        listed = self.inventory(project_id)
+
+        self.assertEqual(self.project_files(project_id), left)
+        self.assertEqual(
+            {key: listed[key] for key in ("present", "clearUnderway", "generation", "entries", "pending", "otherLiveRuns")},
+            {"present": True, "clearUnderway": True, "generation": None, "entries": None, "pending": None,
+             "otherLiveRuns": None},
+        )
+        self.assertEqual([file["name"] for file in listed["files"]], [f"{project_id}.sqlite3"])
+
+
 if __name__ == "__main__":
     unittest.main()
