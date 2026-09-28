@@ -176,6 +176,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
    - `source=compact`、Pre/PostCompact、function-hook `session.start`、plugin reload、`ui.render` 重放和非 clear SessionEnd 都不得创建 Clear Boundary。
    - 正常 SessionEnd 写进程离开 Run（`run-detached`）；进程内 `/resume` 只在新会话属于另一个 Run 时补写原 Run 的离开，回到同一 Run 则什么都不写（2026-09-23 Issue 32 修订。）。无法阻止的 lifecycle 事件写入失败时，使用不含原文的小型 `$.store` 恢复队列和幂等 ID，在下一次 composer submission 前清空。
    - 无法唯一恢复 lifecycle 事实时创建 Integrity gap，不猜测或静默忽略。
+   - 恢复队列溢出、队列行或整条记录无法读取、见到 `source=clear` 的 SessionStart 却没有对应 SessionEnd，以及 `/clear` 记录途中进程离开，都记为该 Run 的 Integrity gap。每个队列项记下事实发生时的 Archive generation；generation 无法确定的项（查询失败、早于 generation 的旧版本队列项）不回放，同样记为 gap。未完成的 clear 转换、「Run 未记录离开」与已退役 generation 的写入被丢弃都不是 gap。（2026-09-29 Issue 26 修订。）
 
 10. **SQLite helper 与档案协议**
     - helper 提供 schema-opaque 的语义操作：只读 preflight/health、创建或打开 generation、预写/确认/丢弃 Pending Capture、追加幂等 Timeline Event、有界范围读取、Run/Branch 对账、状态统计、迁移、完整性检查、隔离、`clear-run` 和 `clear-all`。
@@ -210,6 +211,8 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
     - 禁用后写 Collection Boundary 并允许 Claude Code 继续；它不伪装为连续采集。
     - plugin 自身崩溃导致宿主 fail-open 时，恢复阶段先用 transcript、pending 和 lifecycle 队列对账；无法证明的区间创建不可变 Integrity gap。
     - 健康恢复时写 Integrity recovery boundary 并允许当前状态回到 healthy；既有 Gap 永久可见且跨 Gap 历史不得称为完整。
+    - fail-open 由 `$.store` 里不含原文的在途标记发现：已启用、已同意的 Run 在对账前写下标记，预写 Pending Capture 后改为 pending 阶段，hook 结束时删除；`/clear` 从观察到入队期间同样留标记。下一次提交（或 `enable`）判定不属于任何运行中调用的标记：pending 之前或 `/clear` 途中的记为该 Run 的 gap，pending 阶段的交给 Pending Capture 对账。别的 Run 的标记只在该 Run 没有存活进程时判定。标记写不进或读不出时拦下提交。
+    - gap 与恢复边界是两种按 Run 归属、不含原文的 Timeline Event。gap 在该 Run 欠下的 lifecycle 写入全部落档后、下一个 Prompt Entry 之前写入，恢复边界紧随其后；停用中的 Run 只写 gap，恢复边界在 `collection-resumed` 之后写。band 以警示色显示两者且从不折叠，`status` 显示当前是否欠 gap 及原因，以及档案中的 gap 数。（2026-09-29 Issue 26 修订。）
     - 损坏时不自动修复、覆盖或重建。选择为：重试完整性检查、原样保留为 Quarantined Archive 后开启新 generation，或强确认 `clear-all`。
       当前实现状态：[Issue 28](issues/28-quarantine-corrupt-archive.md) 已落实只读重新检查与隔离后新 generation，
       隔离档案位于 `archives/quarantine/<projectId>/`；[Issue 30](issues/30-clear-project-timeline.md) 加入了强确认 `clear-all`。
@@ -226,7 +229,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 
 15. **并发与删除**
     - `clear-all` 使用线性化切点和新 Archive generation：切点前记录全部删除，切点后的新提交只写新 generation，旧 writer 被拒绝。切点是项目独占锁下写入的清除意向；意向存在期间一切打开都失败关闭，删完后原路径留空，下一次写入才建出新 generation。（2026-09-28 Issue 30 修订。）
-    - `clear-run` 删除当前 Run（整条会话谱系，跨越其所有进程接入）的 Prompt Entries、Pending Captures、相关原文和可关联的敏感元数据；其他 Run 保持不变。`clear-run` 在原档案内删除（Archive generation 不变）：先在项目独占锁下写入按 Run 清除意向作为切点，意向存在期间一切打开都失败关闭；再删除三张表里该 Run 的全部行，并把其他 Run 指向被删条目的父链接置空；sequence 留空洞，不回退；`capture-begin` 在预写前校验父条目，分支停在被清除条目上的 Run 改从新根继续。（2026-09-28 Issue 29 修订。）
+    - `clear-run` 删除当前 Run（整条会话谱系，跨越其所有进程接入）的 Prompt Entries、Pending Captures、相关原文和可关联的敏感元数据；其他 Run 保持不变。`clear-run` 在原档案内删除（Archive generation 不变）：先在项目独占锁下写入按 Run 清除意向作为切点，意向存在期间一切打开都失败关闭；再删除三张表里该 Run 的全部行，并把其他 Run 指向被删条目的父链接置空；sequence 留空洞，不回退；`capture-begin` 在预写前校验父条目，分支停在被清除条目上的 Run 改从新根继续。（2026-09-28 Issue 29 修订。）Run 的 Integrity gap 与恢复边界随该 Run 一起删除，欠着的 gap、丢失标志和在途标记一并清掉；`clear-all` 对所有 Run 如此，只保留仍有存活进程的 Run 的在途标记。（2026-09-29 Issue 26 修订。）
     - 存在无法安全打开的 Quarantined Archive 时，`clear-run` 不得声称完整按 Run 删除，必须拒绝并引导 `clear-all`。
     - `clear-all` 删除活动数据库、WAL/SHM、迁移备份、Quarantined Archives 和 prompt 元数据，并删除会话索引里指向该项目档案中出现过的 Run 的记录（索引不记项目，只能按 Run 找回），之后 resume 这些会话会新建 Run 而不是回到旧 generation 的 Run；locator 生命周期独立，consent 与当前 Run mode 保留。（2026-09-23 Issue 32 修订。）仍在运行、会在新 generation 继续的 Run 保留索引记录。（2026-09-28 Issue 30 修订。）
     - 删除使用 `secure_delete`、WAL checkpoint/truncate 和必要空间回收；`clear-all` 删的是整个文件，只做 `unlink` 与目录 `fsync`，不覆写（写时复制文件系统上覆写不擦除旧块）。（2026-09-28 Issue 30 修订。）事务删除成功但残留清理失败时报告“逻辑删除完成、物理清除未完成”，列出残留并保持 Archive unavailable。`clear-run` 以 checkpoint(TRUNCATE)、`VACUUM`、空 WAL 与迁移备份已删除作为物理完成的判据，任何一步失败都保留意向。（2026-09-28 Issue 29 修订。）

@@ -1,6 +1,6 @@
 ---
 id: unknown-generation-lifecycle-writes-replay-unchecked
-status: open
+status: resolved
 severity: minor
 found: 2026-09-28
 source: /code-review, round 1
@@ -52,3 +52,15 @@ when it is queued.
 `grep -n "generation" mods/prompt-trail/hooks/register.tsx | grep -n "lifecycle\|appendBoundary\|saveLifecycle"`;
 the plugin tests in `mods/prompt-trail/tests/clear_all.test.tsx` ("a boundary owed to a cleared
 generation is dropped") show how to seed a stamped queue; run `claude plugin test mods/prompt-trail`.
+
+## Resolved 2026-09-29 (Issue 26, `b7fb479`)
+
+Decided: drop. A queued write that names no generation (queued before Issue 30) or was stamped
+while `archive-status` failed carries `generation: 'unknown'`, distinct from `null` ("no archive
+then", still replayed unchecked). The drain drops it and records an Integrity gap for the Run that
+owed it, whether it is this Run's record or another Run's. A `/clear` held in memory is stamped
+when it is seen, not when it is later queued. Plugin tests: `an owed boundary that names no
+generation is dropped and recorded as a gap`, `a fact stamped while the archive could not say its
+generation is recorded as unknown`, `another Run’s unknown-generation boundary becomes that Run’s
+gap`, `a clear held in memory is owed to the generation it was seen in`.
+
