@@ -329,3 +329,138 @@ test('after a clear status names no boundary of the cleared history', async ($, 
   expect((await promptHistory($, 'status')).text).toContain('latest collection boundary: none')
   expect(store[runModeKey]).toEqual({ version: 1, mode: 'enabled' })
 })
+
+/* Found in review (Issue 30, round 1). */
+
+function nextGenerationRow(): ArchiveRow {
+  return {
+    kind: 'prompt',
+    eventId: 'eeeeeeee-0000-4000-8000-0000000000a1',
+    sequence: 1,
+    runId: otherRun,
+    segmentId: sessionId,
+    branchId: 'bbbbbbbb-0000-4000-8000-000000000002',
+    parentEventId: null,
+    text: 'PT-SECRET-NEXT-GENERATION',
+  }
+}
+
+test('continuing a clear another Run finished meanwhile removes nothing new', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const clearUnderway = { value: true }
+  const calls = installSupportedTarget(on, {
+    store: collectingStore(), archive, clearUnderway, clearLeaves: [],
+    unavailableAnswers: ['继续清除'],
+    /* While this Run's dialog is up, another finishes the clear and goes
+       on collecting in the next generation. */
+    duringAsk: () => {
+      if (!clearUnderway.value) return
+      clearUnderway.value = false
+      archive.push(nextGenerationRow())
+    },
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($, { text: 'PT-SECRET-AFTER' })
+
+  expect(captureCalls(calls, 'clear-all').map(call => call.argv[8])).toEqual(['--continue'])
+  expect(archive.map(row => row.text)).toContain('PT-SECRET-NEXT-GENERATION')
+  expect(result.drop).toBeUndefined()
+})
+
+test('clear-all says so when the clear it would continue has finished elsewhere', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const clearUnderway = { value: true }
+  installSupportedTarget(on, {
+    store: collectingStore(), archive, clearUnderway, clearLeaves: [],
+    clearAnswers: ['继续清除'],
+    duringAsk: () => {
+      clearUnderway.value = false
+      archive.push(nextGenerationRow())
+    },
+  })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-all')
+
+  expect(answer.text).toBe('上一次清除已由其他 Run 完成，未删除任何新记录。')
+  expect(archive).toHaveLength(1)
+})
+
+test('a clear the host cut short after the cut is reported as unfinished', async ($, on) => {
+  const store = collectingStore()
+  const clearUnderway = { value: false }
+  installSupportedTarget(on, {
+    store, archive: archivedBefore(), clearUnderway, clearRejects: true,
+    clearLeaves: [{ name: `${projectId}.sqlite3`, bytes: 8192 }],
+    clearAnswers: [PHRASE],
+  })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-all')
+
+  expect(answer.text).toContain('切点已生效')
+  expect(answer.text).not.toContain('未删除任何内容')
+  expect(store[`prompt-trail:archive-state:${projectId}`]).toMatchObject({ category: 'clear-unfinished' })
+})
+
+test('counts the archive cannot give are said to be unknown, not zero', async ($, on) => {
+  const clearAsked: string[] = []
+  installSupportedTarget(on, {
+    store: collectingStore(), archive: archivedBefore(), pendingUnknown: true, clearAsked,
+    clearAnswers: [PHRASE],
+  })
+  await $.session.start(session)
+
+  const cleared = await promptHistory($, 'clear-all')
+
+  expect(clearAsked[0]).toContain('Pending Capture 数量无法读取')
+  expect(clearAsked[0]).not.toContain('0 个 Pending Capture')
+  expect(cleared.text).not.toContain('0 个 Pending Capture')
+})
+
+test('what a clear could not forget is reported, not passed over', async ($, on) => {
+  const store = collectingStore()
+  store[runModeKey] = {
+    version: 1,
+    mode: 'enabled',
+    boundary: { kind: 'collection-started', eventId: 'eeeeeeee-0000-4000-8000-000000000009', sequence: 2 },
+  }
+  installSupportedTarget(on, {
+    store, archive: archivedBefore(), clearAnswers: [PHRASE],
+    storeSetFailsFor: 'prompt-trail:run-mode:', sessionsFailed: 2,
+  })
+  await $.session.start(session)
+
+  const cleared = await promptHistory($, 'clear-all')
+
+  expect(cleared.text).toContain('2 条会话索引记录未能删除')
+  expect(cleared.text).toContain('部分 Prompt Trail 状态未能清理')
+  expect(cleared.text).not.toContain('PT-SECRET')
+})
+
+test('a clear this Run saw but could not record does not reach the next generation', async ($, on) => {
+  /* The 2.1.273 test kit, whose types this repository checks against, cannot
+     raise a classic hook event; the gate's current version covers this. */
+  const classic = ($ as unknown as {
+    classic?: { SessionEnd: (e: { reason: string }) => Promise<unknown> }
+  }).classic
+  if (!classic) return
+  const archive = archivedBefore()
+  const options = {
+    store: collectingStore(), archive, clearAnswers: [PHRASE],
+    storeSetFailsFor: 'prompt-trail:lifecycle:' as string | undefined,
+  }
+  installSupportedTarget(on, options)
+  on('classic.SessionEnd', () => ({}))
+  await $.session.start(session)
+  /* A `/clear` whose boundary cannot even be queued is held in memory. */
+  await classic.SessionEnd({ reason: 'clear' })
+
+  await promptHistory($, 'clear-all')
+  options.storeSetFailsFor = undefined
+  const result = await composerPrompt($, { text: 'PT-SECRET-AFTER' })
+
+  expect(result.drop).toBeUndefined()
+  expect(archive.map(row => row.kind)).not.toContain('clear')
+})

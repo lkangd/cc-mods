@@ -3979,7 +3979,9 @@ class HelperProtocolTests(unittest.TestCase):
     # Clearing a Project Timeline (Issue 30). Everything the project archived
     # goes, quarantined archives included; nothing but its lock stays.
 
-    def clear_argv(self, *, project_id: str, keep_run: str | None = None) -> tuple[str, ...]:
+    def clear_argv(
+        self, *, project_id: str, keep_run: str | None = None, only_continue: bool = False,
+    ) -> tuple[str, ...]:
         return (
             "clear-all",
             str(self.plugin_data / "archives"),
@@ -3988,6 +3990,7 @@ class HelperProtocolTests(unittest.TestCase):
             json.loads(MANIFEST.read_text())["sha256"],
             "1",
             "--stdin",
+            *(("--continue",) if only_continue else ()),
         )
 
     def clear(self, project_id: str, *, runs: list[str] = (), keep_run: str | None = None) -> dict[str, object]:
@@ -4248,19 +4251,19 @@ class HelperProtocolTests(unittest.TestCase):
         self.fold_wal(self.archive_path(project_id))
         before = self.evidence(project_id)
         kept = self.quarantined(project_id)
+        archives = self.plugin_data / "archives"
+        names = {path.name for path in archives.iterdir() if path.name.startswith(f"{project_id}.sqlite3")}
 
         listed = self.inventory(project_id)
 
-        archives = self.plugin_data / "archives"
+        self.assertEqual({file["name"] for file in listed["files"]}, names)
         self.assertEqual(listed["generation"], self.check(project_id)["generation"])
         self.assertEqual(
             {key: listed[key] for key in ("present", "clearUnderway", "entries", "pending")},
             {"present": True, "clearUnderway": False, "entries": 2, "pending": 1},
         )
-        self.assertEqual(
-            {file["name"] for file in listed["files"]},
-            {f"{project_id}.sqlite3", f"{project_id}.sqlite3.pre-migration-v1"}
-            | {path.name for path in archives.glob(f"{project_id}.sqlite3-*")},
+        self.assertLessEqual(
+            {f"{project_id}.sqlite3", f"{project_id}.sqlite3.pre-migration-v1"}, names,
         )
         self.assertEqual(
             next(file["bytes"] for file in listed["files"] if file["name"].endswith("-v1")),
@@ -4416,6 +4419,43 @@ class HelperProtocolTests(unittest.TestCase):
              "otherLiveRuns": None},
         )
         self.assertEqual([file["name"] for file in listed["files"]], [f"{project_id}.sqlite3"])
+
+
+    def test_continuing_a_clear_another_run_finished_removes_nothing(self) -> None:
+        # Found in review: a person answering "continue" after another Run
+        # had finished the clear would start a new one, unconfirmed, over
+        # whatever the next generation already held.
+        project_id = "bd" * 32
+        self.capture("PT-SECRET-NEXT-GENERATION", identity=self.identity(project_id))
+        before = self.project_files(project_id)
+
+        result = self.run_helper(*self.clear_argv(project_id=project_id, only_continue=True), input_text="")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(json.loads(result.stdout)["cleared"])
+        self.assertEqual(self.project_files(project_id), before)
+        self.assertEqual(self.read(project_id=project_id)["events"][-1]["text"], "PT-SECRET-NEXT-GENERATION")
+
+        # Under way, the same call finishes it.
+        intent = self.plugin_data / "archives" / f"{project_id}.clearing"
+        intent.write_text("clear\n")
+        intent.chmod(0o600)
+        finished = self.run_helper(*self.clear_argv(project_id=project_id, only_continue=True), input_text="")
+        self.assertTrue(json.loads(finished.stdout)["cleared"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+
+    def test_a_clear_inventory_of_a_folded_archive_creates_no_wal(self) -> None:
+        # Found in review: counting opened the archive in a way that put a
+        # WAL beside one whose WAL had been folded away.
+        project_id = "be" * 32
+        self.current_archive(project_id, count=3)
+        self.fold_wal(self.archive_path(project_id))
+        before = self.project_files(project_id)
+
+        listed = self.inventory(project_id)
+
+        self.assertEqual(self.project_files(project_id), before)
+        self.assertEqual((listed["entries"], listed["pending"]), (3, 1))
 
 
 if __name__ == "__main__":

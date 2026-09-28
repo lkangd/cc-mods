@@ -4012,18 +4012,25 @@ async function answerClear(
   failure: Blocked,
 ): Promise<boolean> {
   let currentProject: ProjectState
+  let onlyContinue = choice === 'continue-clear'
   try {
     currentProject = await prepareProject($)
     if (choice === 'clear') {
       const inventory = await readClearInventory($, currentProject)
       if (inventory.present && await askClear($, currentProject, inventory) !== 'clear') return false
+      onlyContinue = inventory.clearUnderway
     }
   } catch {
     return false
   }
   try {
-    await clearTimeline($, currentProject)
-    $.ui.toast('Prompt Trail 已清除本项目的全部档案，新时间线从这次提交开始。')
+    const cleared = await clearTimeline($, currentProject, onlyContinue)
+    if (cleared.cleared) {
+      $.ui.toast('Prompt Trail 已清除本项目的全部档案，新时间线从这次提交开始。')
+    } else {
+      /* Another Run finished it: the archive is usable again. */
+      await archiveRecovered($, currentProject)
+    }
     return true
   } catch (error) {
     Object.assign(failure, await markUnavailable($, currentProject, failureCategory(error, 'clear-all')))
@@ -4207,7 +4214,7 @@ async function askClear(
     }
     const counts = inventory.entries === null
       ? '活动档案已损坏，无法读取条数'
-      : `活动档案：${inventory.entries} 条 Prompt Entry、${inventory.pending ?? 0} 个 Pending Capture`
+      : `活动档案：${inventory.entries} 条 Prompt Entry、${pendingCount(inventory.pending)}`
     const others = inventory.otherLiveRuns === null
       ? '无法确定是否还有其他正在运行的 Run 使用本项目；若有，它们在下次读取前仍可能显示旧内容。'
       : inventory.otherLiveRuns > 0
@@ -4249,9 +4256,14 @@ async function projectRuns($: EngineInterface, currentProject: ProjectState): Pr
 }
 
 type Cleared = {
+  /* False when only continuing, and the clear had finished elsewhere. */
+  cleared: boolean
   entries: number | null
   pending: number | null
   quarantined: number
+  sessionsFailed: number
+  /* Whether the store forgot everything it kept of the cleared history. */
+  forgotten: boolean
 }
 
 /* What the store kept about the cleared history goes with it: the pending
@@ -4259,12 +4271,16 @@ type Cleared = {
    Collection Boundary each Run last wrote. Consent, each Run's collection
    mode and its branch stay; a branch names the generation it was in, so the
    next capture starts over in the new one. */
-async function forgetClearedHistory($: EngineInterface, currentProject: ProjectState): Promise<void> {
+async function forgetClearedHistory($: EngineInterface, currentProject: ProjectState): Promise<boolean> {
   await clearReconcile($, currentProject)
   await archiveRecovered($, currentProject)
   damagedGeneration = undefined
   archiveStatus = undefined
+  /* A `/clear` this Run saw and never recorded belongs to the cleared
+     history too. */
+  deferredClear = undefined
   if (runMode) runMode = { ...runMode, value: { version: 1, mode: runMode.value.mode } }
+  let forgotten = true
   try {
     for (const key of await $.store.keys()) {
       if (key.startsWith(lifecyclePrefix(currentProject.id))) {
@@ -4278,12 +4294,13 @@ async function forgetClearedHistory($: EngineInterface, currentProject: ProjectS
       }
     }
   } catch {
-    // What is left names a history that is gone; nothing reads it back there.
+    forgotten = false
   }
   lifecycleFailure = undefined
   resetWindow()
   timelineLoaded = undefined
   $.ui.invalidate('ui.render')
+  return forgotten
 }
 
 /* Runs the clear the person confirmed. Answers what it removed, or the
@@ -4291,49 +4308,81 @@ async function forgetClearedHistory($: EngineInterface, currentProject: ProjectS
 async function clearTimeline(
   $: EngineInterface,
   currentProject: ProjectState,
+  onlyContinue = false,
 ): Promise<Cleared> {
   if (!startup.helperPath || !startup.databaseRoot || !startup.runId) {
     throw new Error('capture-identity')
   }
   const runs = await projectRuns($, currentProject)
-  const result = await runArchive(
-    $,
-    [
-      startup.helperPath,
-      'clear-all',
-      startup.databaseRoot,
-      currentProject.id,
-      startup.runId,
-      EXPECTED_HELPER_SHA256,
-      String(HELPER_PROTOCOL),
-      '--stdin',
-    ],
-    30_000,
-    runs.map(owner => `${owner}\n`).join(''),
-  )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'clear-all'))
+  let result: Awaited<ReturnType<typeof runArchive>>
+  try {
+    result = await runArchive(
+      $,
+      [
+        startup.helperPath,
+        'clear-all',
+        startup.databaseRoot,
+        currentProject.id,
+        startup.runId,
+        EXPECTED_HELPER_SHA256,
+        String(HELPER_PROTOCOL),
+        '--stdin',
+        ...(onlyContinue ? ['--continue'] : []),
+      ],
+      30_000,
+      runs.map(owner => `${owner}\n`).join(''),
+    )
+    if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'clear-all'))
+  } catch (error) {
+    /* A clear stopped past its cut, whatever stopped it, is unfinished:
+       the archive stays unavailable and nothing may call it undone. */
+    if (failureCategory(error, 'clear-all') !== 'clear-unfinished') {
+      let underway = false
+      try {
+        underway = (await readClearInventory($, currentProject)).clearUnderway
+      } catch {
+        // Not known to be under way; the failure stands as it came.
+      }
+      if (underway) throw new Error('clear-unfinished')
+    }
+    throw error
+  }
   const value: unknown = JSON.parse(result.stdout)
   if (
     !isRecord(value) ||
     value.projectId !== currentProject.id ||
     typeof value.cleared !== 'boolean' ||
-    !Number.isSafeInteger(value.quarantined)
+    !Number.isSafeInteger(value.quarantined) ||
+    !Number.isSafeInteger(value.sessionsFailed)
   ) throw new Error('clear-all')
-  await forgetClearedHistory($, currentProject)
+  const forgotten = value.cleared ? await forgetClearedHistory($, currentProject) : true
   return {
+    cleared: value.cleared,
     entries: nullableCount(value.entries),
     pending: nullableCount(value.pending),
     quarantined: value.quarantined as number,
+    sessionsFailed: value.sessionsFailed as number,
+    forgotten,
   }
+}
+
+function pendingCount(pending: number | null): string {
+  return pending === null ? 'Pending Capture 数量无法读取' : `${pending} 个 Pending Capture`
 }
 
 function clearedText(cleared: Cleared): string {
   const counts = cleared.entries === null
     ? '损坏的活动档案（条数无法读取）'
-    : `${cleared.entries} 条 Prompt Entry、${cleared.pending ?? 0} 个 Pending Capture`
+    : `${cleared.entries} 条 Prompt Entry、${pendingCount(cleared.pending)}`
   return [
     `已清除本项目的 Prompt Trail 档案：${counts}、${cleared.quarantined} 个隔离档案。`,
     'Collection consent 与当前 Run 的采集模式未改变；新时间线从下一次提交开始。',
+    ...(cleared.sessionsFailed > 0
+      ? [`有 ${cleared.sessionsFailed} 条会话索引记录未能删除；恢复这些会话时可能接回旧 Run。`]
+      : []),
+    ...(cleared.forgotten
+      ? []
+      : ['部分 Prompt Trail 状态未能清理（不含 prompt 原文）；status 可能仍显示旧的 Collection Boundary 或待写边界。']),
     CLEAR_BOUNDARY,
   ].join('\n')
 }
@@ -4373,7 +4422,12 @@ async function clearAllCommand($: EngineInterface): Promise<string> {
   if (answer === 'cancelled') return '已取消，未删除任何内容。'
   if (answer === 'mistyped') return '确认短语不符，未删除任何内容。'
   try {
-    return clearedText(await clearTimeline($, currentProject))
+    const cleared = await clearTimeline($, currentProject, inventory.clearUnderway)
+    if (!cleared.cleared && inventory.clearUnderway) {
+      await archiveRecovered($, currentProject)
+      return '上一次清除已由其他 Run 完成，未删除任何新记录。'
+    }
+    return clearedText(cleared)
   } catch (error) {
     const category = failureCategory(error, 'clear-all')
     if (category !== 'clear-unfinished') {
