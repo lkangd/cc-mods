@@ -4501,7 +4501,7 @@ class HelperProtocolTests(unittest.TestCase):
 
         self.assertEqual(
             answer,
-            {"projectId": project_id, "cleared": True, "continued": False, "entries": 2, "pending": 1,
+            {"projectId": project_id, "cleared": True, "continued": False, "ownRun": True, "entries": 2, "pending": 1,
              "events": 1, "unlinked": 1},
         )
         self.assertEqual(self.markers_left(b"PT-SECRET-GONE"), [])
@@ -4526,7 +4526,7 @@ class HelperProtocolTests(unittest.TestCase):
     def test_a_run_clear_with_nothing_of_that_run_does_nothing(self) -> None:
         project_id = "b1" * 32
         run_id = str(uuid.uuid4())
-        nothing = {"projectId": project_id, "cleared": False, "continued": False, "entries": 0,
+        nothing = {"projectId": project_id, "cleared": False, "continued": False, "ownRun": False, "entries": 0,
                    "pending": 0, "events": 0, "unlinked": 0}
 
         self.assertEqual(self.clear_run(project_id, run_id), nothing)
@@ -4611,8 +4611,8 @@ class HelperProtocolTests(unittest.TestCase):
                 finished = self.clear_run(project_id, kept["run_id"], only_continue=True)
 
                 self.assertEqual(
-                    (finished["cleared"], finished["continued"], finished["entries"]),
-                    (True, True, 0 if deleted else 1),
+                    (finished["cleared"], finished["continued"], finished["ownRun"], finished["entries"]),
+                    (True, True, False, 0 if deleted else 1),
                 )
                 self.assertEqual(self.markers_left(b"PT-SECRET-GONE"), [])
                 self.assertNotEqual(self.markers_left(b"PT-SECRET-KEPT"), [])
@@ -4777,7 +4777,7 @@ class HelperProtocolTests(unittest.TestCase):
         writer.rollback()
         writer.close()
         finished = self.clear_run(project_id, cleared["run_id"], only_continue=True)
-        self.assertEqual((finished["continued"], finished["entries"]), (True, 1))
+        self.assertEqual((finished["continued"], finished["ownRun"], finished["entries"]), (True, True, 1))
         self.assertEqual(self.markers_left(b"PT-SECRET-GONE"), [])
 
 
