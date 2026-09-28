@@ -3545,6 +3545,11 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(checked["result"], "ok")
         self.assertEqual(checked["generation"], answer["generation"])
         self.assertNotEqual(answer["generation"], damaged)
+        # Nothing the quarantine built its generation with is left behind.
+        self.assertLessEqual(
+            {path.name for path in (self.plugin_data / "archives").iterdir() if path.name.startswith(project_id)},
+            {f"{prefix}", f"{prefix}-wal", f"{prefix}-shm", f"{project_id}.lock"},
+        )
         # Another project's archive is none of this quarantine's business.
         self.assertEqual(self.evidence(other_id), other_before)
         self.assert_legacy_intact(other_id, other)
@@ -3757,12 +3762,14 @@ class HelperProtocolTests(unittest.TestCase):
                 before,
             )
             self.assertEqual([kind for _, _, kind, _ in self.timeline(project_id)], ["archive-quarantined"])
-            self.assertEqual(
-                sorted(
-                    path.name for path in archives.iterdir()
-                    if path.name.startswith(project_id) and not path.name.endswith(("-wal", "-shm"))
-                ),
-                [f"{project_id}.lock", f"{project_id}.sqlite3"],
+            self.assertLessEqual(
+                {path.name for path in archives.iterdir() if path.name.startswith(project_id)},
+                {
+                    f"{project_id}.lock",
+                    f"{project_id}.sqlite3",
+                    f"{project_id}.sqlite3-wal",
+                    f"{project_id}.sqlite3-shm",
+                },
             )
 
         # Kills landed before the quarantine began, while it was under way,

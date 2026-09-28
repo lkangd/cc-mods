@@ -3532,7 +3532,21 @@ static void quarantine(int argc, char **argv) {
     if (sqlite3_step(insert) != SQLITE_DONE) archive_error("archive-sqlite");
     sqlite3_finalize(insert);
     archive_sql(database, "COMMIT");
+    /* The system SQLite keeps a WAL after the last close, so the new
+       generation is folded into its file here, and its WAL, emptied, and
+       index go rather than stay behind under a name nothing opens. */
+    archive_sql(database, "PRAGMA wal_checkpoint(TRUNCATE)");
     close_archive(database);
+    char fresh_wal[PATH_MAX];
+    char fresh_index[PATH_MAX];
+    snprintf(fresh_wal, PATH_MAX, "%s-wal", fresh);
+    snprintf(fresh_index, PATH_MAX, "%s-shm", fresh);
+    struct stat wal_status;
+    if (lstat(fresh_wal, &wal_status) == 0
+        && (wal_status.st_size != 0 || unlink(fresh_wal) != 0)) {
+      quarantine_error();
+    }
+    if (unlink(fresh_index) != 0 && errno != ENOENT) quarantine_error();
     if (!sync_file(fresh) || rename(fresh, database_path) != 0) quarantine_error();
   }
   if (unlink(intent) != 0 || !sync_directory(database_root)) quarantine_error();
