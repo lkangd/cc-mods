@@ -94,6 +94,7 @@ type BoundaryKind =
   | 'run-started'
   | 'run-attached'
   | 'run-detached'
+  | 'archive-quarantined'
 
 /* The Run-level switch, persisted per project and Run so an explicit disable
    survives a module reload. A Run with no record collects by default; only
@@ -211,6 +212,7 @@ const SAFE_ERROR_CATEGORIES = new Set([
   'architecture',
   'archive-busy',
   'archive-full',
+  'archive-generation',
   'archive-integrity',
   'archive-read-only',
   'archive-sqlite',
@@ -270,6 +272,7 @@ const SAFE_ERROR_CATEGORIES = new Set([
   'project-identity',
   'read-input',
   'protocol-mismatch',
+  'quarantine-failed',
   'schema-version',
   'sqlite-capability',
 ])
@@ -292,8 +295,12 @@ const SHARED_FAILURES = new Set([
   'migration-backup-cleanup',
   'migration-verify',
   'project-identity',
+  'quarantine-failed',
   'schema-version',
 ])
+/* Damage to the archive, or a quarantine of it left unfinished: beside
+   disabling the Run, the person may check it again or quarantine it. */
+const DAMAGE_FAILURES = new Set(['archive-integrity', 'quarantine-failed'])
 /* What the plugin itself names a failure it met, beside the helper's own
    categories. Nothing else a failure carries is ever shown. */
 const PLUGIN_FAILURES = new Set([
@@ -396,11 +403,19 @@ type Unavailable = {
   category: string
   elsewhere: boolean
   blocking: boolean
+  /* The generation found damaged, when the failure is damage. */
+  generation?: string
+  /* What the latest recheck of a damaged archive found. */
+  recheck?: string
   /* The Run a Run-local failure belongs to; another Run this process moves
      to does not inherit it. */
   runId?: string
 }
 let archiveFailure: Unavailable | undefined
+/* The generation the latest `archive-integrity` failure named. */
+let damagedGeneration: string | undefined
+/* What `archive-status` last said of the project's archive, for `status`. */
+let archiveStatus: ArchiveStatus | undefined
 /* What the latest staged capture said about the archive's disk. */
 let diskSpace: 'low' | 'ok' | 'unknown' = 'unknown'
 /* Runs this module instance has warned of low disk space. */
@@ -454,6 +469,8 @@ const compactedSessions = new Set<string>()
 const recompacted = new Set<string>()
 /* The project whose archived events this module instance has read back, and
    the session it already waited on for a late locator. */
+/* The generation the window's events were read from. */
+let viewGeneration: string | null | undefined
 let timelineLoaded: string | undefined
 let locatorAwaited: string | undefined
 /* The current session's Active Branch as last read or written, which is what
@@ -681,7 +698,14 @@ function safeCategory(stderr: string, fallback: string): string {
       isRecord(parsed) &&
       typeof parsed.category === 'string' &&
       SAFE_ERROR_CATEGORIES.has(parsed.category)
-    ) return parsed.category
+    ) {
+      /* Damage names the generation it was met in, which is the one a
+         quarantine may move; it travels with the failure from here. */
+      if (parsed.category === 'archive-integrity') {
+        damagedGeneration = isSafeId(parsed.generation) ? parsed.generation : undefined
+      }
+      return parsed.category
+    }
   } catch {
     // Diagnostics never repeat untrusted helper output.
   }
@@ -1162,6 +1186,7 @@ function storedBranch(value: unknown): BranchState | undefined {
     parentEventId: value.parentEventId,
     ...(value.explicitRoot === true ? { explicitRoot: true as const } : {}),
     ...(value.rootReason === 'ambiguous-prefix' ? { rootReason: 'ambiguous-prefix' as const } : {}),
+    ...(isSafeId(value.generation) ? { generation: value.generation } : {}),
   }
 }
 
@@ -1617,7 +1642,15 @@ async function readArchiveRecord($: EngineInterface, currentProject: ProjectStat
       ? stored.category
       : 'category-unrecorded'
     const elsewhere = typeof stored.runId === 'string' && stored.runId !== startup.runId
-    archiveFailure = { scope: 'archive', category, elsewhere, blocking: true }
+    const recheck = archiveFailure?.scope === 'archive' ? archiveFailure.recheck : undefined
+    archiveFailure = {
+      scope: 'archive',
+      category,
+      elsewhere,
+      blocking: true,
+      ...(isSafeId(stored.generation) ? { generation: stored.generation } : {}),
+      ...(recheck ? { recheck } : {}),
+    }
     return
   }
   if (archiveFailure?.scope === 'archive') archiveFailure = undefined
@@ -1660,8 +1693,13 @@ async function markUnavailable(
   category: string,
   scope: 'run' | 'archive' = SHARED_FAILURES.has(category) ? 'archive' : 'run',
 ): Promise<Unavailable> {
+  /* Damage met again keeps the generation already on record when this
+     failure could not name one. */
+  const generation = category === 'archive-integrity'
+    ? damagedGeneration ?? archiveFailure?.generation
+    : undefined
   archiveFailure = scope === 'archive'
-    ? { scope, category, elsewhere: false, blocking: true }
+    ? { scope, category, elsewhere: false, blocking: true, ...(generation ? { generation } : {}) }
     : runLocal(category, false)
   $.ui.invalidate('ui.render')
   if (scope === 'archive' && currentProject) {
@@ -1672,6 +1710,7 @@ async function markUnavailable(
         category,
         since: await $.clock.now(),
         ...(startup.runId ? { runId: startup.runId } : {}),
+        ...(generation ? { generation } : {}),
       })
     } catch {
       // The in-memory block remains active for this module instance.
@@ -1810,21 +1849,25 @@ async function branchState(
   return { key, value }
 }
 
-/* Whether the archive's disk is low on space, when the helper could ask it. */
+/* The generation the capture was staged in, and whether the archive's disk
+   is low on space, when the helper could ask it. */
+type Staged = { generation: string; lowSpace: boolean | undefined }
+
 function parsePendingResponse(
   text: string,
   eventId: string,
   projectId: string,
-): boolean | undefined {
+): Staged {
   const value: unknown = JSON.parse(text)
   if (
     !isRecord(value) ||
     value.eventId !== eventId ||
     value.projectId !== projectId ||
     value.pending !== true ||
+    !isSafeId(value.generation) ||
     (value.lowSpace !== undefined && typeof value.lowSpace !== 'boolean')
   ) throw new Error('capture-response')
-  return value.lowSpace as boolean | undefined
+  return { generation: value.generation, lowSpace: value.lowSpace as boolean | undefined }
 }
 
 type Confirmed = { sequence: number; ordinal: number }
@@ -1855,7 +1898,7 @@ async function beginCapture(
   occurredAt: number,
   text: string,
   attachmentKinds: readonly string[],
-): Promise<boolean | undefined> {
+): Promise<Staged> {
   if (!startup.helperPath || !startup.databaseRoot || !startup.runId || !startup.sessionId) {
     throw new Error('capture-identity')
   }
@@ -1874,6 +1917,7 @@ async function beginCapture(
       String(occurredAt),
       String(attachmentKinds.length),
       attachmentKinds.length > 0 ? attachmentKinds.join(',') : '-',
+      branch.generation ?? '-',
       EXPECTED_HELPER_SHA256,
       String(HELPER_PROTOCOL),
       '--stdin',
@@ -1882,10 +1926,10 @@ async function beginCapture(
     text,
   )
   if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-begin'))
-  const lowSpace = parsePendingResponse(result.stdout, eventId, currentProject.id)
+  const staged = parsePendingResponse(result.stdout, eventId, currentProject.id)
   currentProject.archiveReady = true
   await archiveRecovered($, currentProject)
-  return lowSpace
+  return staged
 }
 
 /* `text` is the text `next(e)` returned. Without it — a reconciliation after a
@@ -1979,6 +2023,7 @@ const TIMELINE_KINDS = new Set<string>([
   'run-started',
   'run-attached',
   'run-detached',
+  'archive-quarantined',
 ])
 
 /* What an archive written before a Run became a conversation's lineage called
@@ -2049,6 +2094,8 @@ const TIMELINE_BATCH = 128
 const WINDOW_LIMIT = 2 * TIMELINE_BATCH + 1
 
 type TimelineBatch = {
+  /* The generation the batch was read from; `null` before there is one. */
+  generation: string | null
   items: TimelineItem[]
   earlier: boolean
   later: boolean
@@ -2070,7 +2117,9 @@ function parseContext(value: unknown): Map<string, string> {
 function parseBatch(text: string, projectId: string, tip: string | undefined): TimelineBatch {
   const value: unknown = JSON.parse(text)
   if (!isRecord(value)) throw new Error('timeline-read')
+  if (value.generation !== null && !isSafeId(value.generation)) throw new Error('timeline-read')
   const batch: TimelineBatch = {
+    generation: value.generation as string | null,
     items: parseTimeline(value, projectId),
     earlier: value.earlier as boolean,
     later: value.later as boolean,
@@ -2125,6 +2174,7 @@ async function readBatch(
 }
 
 function resetWindow(): void {
+  viewGeneration = undefined
   timeline = []
   timelineEdges = { earlier: false, later: false }
   parentRuns = new Map()
@@ -2156,6 +2206,10 @@ function boundWindow(grew: 'earlier' | 'later'): void {
 }
 
 function mergeBatch(batch: TimelineBatch, at: 'latest' | 'earlier' | 'later'): void {
+  /* Another generation stands at the archive's path now: nothing the window
+     holds belongs to it, whatever its sequence. */
+  if (viewGeneration !== undefined && batch.generation !== viewGeneration) resetWindow()
+  viewGeneration = batch.generation
   const known = new Set(batch.items.map(item => item.eventId))
   if (at === 'latest') {
     /* What this module instance appended while the read was in flight is
@@ -2227,7 +2281,13 @@ async function extendWindow($: EngineInterface, edge: 'earlier' | 'later'): Prom
       project,
       edge === 'earlier' ? ['before', edgeItem.sequence] : ['after', edgeItem.sequence],
     )
-    mergeBatch(batch, edge)
+    /* A cursor means nothing in another generation: the view starts again
+       from that generation's latest events. */
+    if (batch.generation !== viewGeneration) {
+      mergeBatch(await readBatch($, project), 'latest')
+    } else {
+      mergeBatch(batch, edge)
+    }
     $.ui.invalidate('ui.render')
     return true
   } catch {
@@ -2657,15 +2717,19 @@ function parseBranchMatch(text: string, projectId: string): BranchMatch {
     !Number.isSafeInteger(preferred.sequence) ||
     !Number.isSafeInteger(preferred.ordinal)
   )) throw new Error('branch-match')
-  const prefer = preferred === undefined
-    ? {}
-    : {
-        prefer: {
-          eventId: preferred.eventId as string,
-          sequence: preferred.sequence as number,
-          ordinal: preferred.ordinal as number,
-        },
-      }
+  if (value.generation !== null && !isSafeId(value.generation)) throw new Error('branch-match')
+  const prefer = {
+    generation: value.generation as string | null,
+    ...(preferred === undefined
+      ? {}
+      : {
+          prefer: {
+            eventId: preferred.eventId as string,
+            sequence: preferred.sequence as number,
+            ordinal: preferred.ordinal as number,
+          },
+        }),
+  }
   if (value.match === 'unique' && isSafeId(value.eventId)) {
     return { match: 'unique', eventId: value.eventId, candidates, candidateCount, ...prefer }
   }
@@ -2987,6 +3051,15 @@ async function settleAlignment(
     }
     const compacted = await sessionCompacted($, currentProject.id, startup.sessionId)
     found = await matchBranch($, currentProject, stored, compacted, messages)
+    /* The branch was staged in a generation since replaced: nothing in the
+       one now in place is its lineage, so it starts over there rather than
+       be matched, or put to the person, against it. */
+    if (stored?.generation && found.generation !== stored.generation) {
+      const root = await enterNewGeneration($, currentProject, stored.generation)
+      settled()
+      rememberBranch(root.key, root.value)
+      return { messages }
+    }
     settlement = settleBranch(stored, found, crypto.randomUUID(), compacted)
     if (settlement.kind === 'set') {
       await $.store.set(key, settlement.state)
@@ -3605,7 +3678,164 @@ async function drainLifecycle(
    reports it, and what went wrong in words. */
 type Blocked = Unavailable & { reason: string }
 
+type ArchiveStatus = {
+  generation: string | null
+  quarantineUnderway: boolean
+  quarantined: { name: string; path: string; bytes: number }[]
+}
+
 type SubmitOutcome = { done: PromptSubmitResult } | { blocked: Blocked }
+
+/* The archive this Run was writing to was replaced by a quarantine, this
+   Run's or another's, so what the Run knew of it names events that are not
+   there. It starts over in the generation now in place: an attach saying
+   where it took that generation up, a new root branch no transcript may
+   overrule, and nothing owed to the archive it left, whose pending went
+   with it into quarantine. */
+async function enterNewGeneration(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  left: string,
+): Promise<{ key: string; value: BranchState }> {
+  if (!startup.runId || !startup.sessionId) throw new Error('capture-identity')
+  const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
+  const root: BranchState = {
+    version: 1,
+    branchId: crypto.randomUUID(),
+    parentEventId: null,
+    explicitRoot: true,
+  }
+  /* Derived from the generation left, so a retry writes the same attach. */
+  const attached = await appendBoundary($, currentProject, root.branchId, 'run-attached', {
+    eventId: await sha256(`prompt-trail:run-attached:generation:1:${currentProject.id}:${startup.runId}:${left}`),
+  })
+  await $.store.set(key, root)
+  rememberBranch(key, root)
+  await clearReconcile($, currentProject)
+  resetWindow()
+  timelineLoaded = undefined
+  recordBoundary($, 'run-attached', attached)
+  $.ui.invalidate('ui.render')
+  return { key, value: root }
+}
+
+/* The retry a damaged archive offers: a full check on a connection that only
+   reads. Only an archive found sound lifts the report. */
+async function recheckArchive(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<{ result: string; problems: number; generation: string | null }> {
+  if (!startup.helperPath || !startup.databaseRoot) throw new Error('capture-identity')
+  const result = await runArchive(
+    $,
+    [
+      startup.helperPath,
+      'integrity-check',
+      startup.databaseRoot,
+      currentProject.id,
+      EXPECTED_HELPER_SHA256,
+      String(HELPER_PROTOCOL),
+    ],
+    10_000,
+  )
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'integrity-check'))
+  const value: unknown = JSON.parse(result.stdout)
+  if (
+    !isRecord(value) ||
+    value.projectId !== currentProject.id ||
+    !['ok', 'damaged', 'unreadable', 'absent'].includes(value.result as string) ||
+    !Number.isSafeInteger(value.problems) ||
+    (value.generation !== null && !isSafeId(value.generation))
+  ) throw new Error('integrity-check')
+  return {
+    result: value.result as string,
+    problems: value.problems as number,
+    generation: value.generation as string | null,
+  }
+}
+
+/* Moves the damaged generation aside unchanged and starts an empty one. The
+   helper moves only the generation named; one another Run has replaced
+   already answers with the generation now in place. */
+async function quarantineArchive(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  damaged: string,
+): Promise<{ generation: string; moved: string | null }> {
+  if (!startup.helperPath || !startup.databaseRoot || !startup.runId || !startup.sessionId) {
+    throw new Error('capture-identity')
+  }
+  const branch = await branchState($, currentProject)
+  const result = await runArchive(
+    $,
+    [
+      startup.helperPath,
+      'quarantine',
+      startup.databaseRoot,
+      currentProject.id,
+      damaged,
+      startup.runId,
+      startup.sessionId,
+      branch.value.branchId,
+      crypto.randomUUID(),
+      String(await $.clock.now()),
+      EXPECTED_HELPER_SHA256,
+      String(HELPER_PROTOCOL),
+    ],
+    10_000,
+  )
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'quarantine'))
+  const value: unknown = JSON.parse(result.stdout)
+  if (
+    !isRecord(value) ||
+    value.projectId !== currentProject.id ||
+    !isSafeId(value.generation) ||
+    (value.moved !== null && !isSafeId(value.moved))
+  ) throw new Error('quarantine')
+  return { generation: value.generation, moved: value.moved as string | null }
+}
+
+/* What `status` shows of the archive without opening it. */
+async function readArchiveStatus(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<ArchiveStatus> {
+  if (!startup.helperPath || !startup.databaseRoot) throw new Error('capture-identity')
+  const result = await runArchive(
+    $,
+    [
+      startup.helperPath,
+      'archive-status',
+      startup.databaseRoot,
+      currentProject.id,
+      EXPECTED_HELPER_SHA256,
+      String(HELPER_PROTOCOL),
+    ],
+    10_000,
+  )
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'archive-status'))
+  const value: unknown = JSON.parse(result.stdout)
+  if (
+    !isRecord(value) ||
+    value.projectId !== currentProject.id ||
+    (value.generation !== null && !isSafeId(value.generation)) ||
+    typeof value.quarantineUnderway !== 'boolean' ||
+    !Array.isArray(value.quarantined)
+  ) throw new Error('archive-status')
+  return {
+    generation: value.generation as string | null,
+    quarantineUnderway: value.quarantineUnderway,
+    quarantined: value.quarantined.map((kept: unknown) => {
+      if (
+        !isRecord(kept) ||
+        !isSafeId(kept.name) ||
+        typeof kept.path !== 'string' ||
+        !Number.isSafeInteger(kept.bytes)
+      ) throw new Error('archive-status')
+      return { name: kept.name, path: kept.path, bytes: kept.bytes as number }
+    }),
+  }
+}
 
 /* What the submission met, recorded for this Run (and, for a failure of the
    archive itself, for the project's other Runs). */
@@ -3620,13 +3850,18 @@ async function holdSubmission(
 }
 
 /* The dialog a held submission waits on. It offers only what spec §13 allows:
-   try again, or stop collecting this Run and let the prompt through. Closing
-   it keeps the submission held. */
+   try again, or stop collecting this Run and let the prompt through; a
+   damaged archive is never retried by writing to it, but checked again or
+   quarantined. Closing it keeps the submission held. */
 async function askUnavailable(
   $: EngineInterface,
   failure: Blocked,
-): Promise<'retry' | 'disable' | undefined> {
+): Promise<'retry' | 'recheck' | 'quarantine' | 'disable' | undefined> {
   const scope = failure.scope === 'archive' ? '本项目所有 Run' : '本 Run（其他 Run 不受影响）'
+  const damaged = DAMAGE_FAILURES.has(failure.category)
+  const choices = damaged
+    ? ['重新检查完整性', '隔离并开始新档案', '禁用当前 Run 后继续']
+    : ['重试', '禁用当前 Run 后继续']
   let answer: string | undefined
   try {
     answer = await $.ui.ask(
@@ -3634,14 +3869,80 @@ async function askUnavailable(
         `Prompt Trail ${failure.reason}，无法证明这次提交能被正确保存；本次提交尚未进入会话。`,
         `范围：${scope}`,
         `类别：${failure.category}${failure.elsewhere ? '（由另一个 Run 报告）' : ''}`,
-        '“重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。',
+        ...(failure.recheck ? [failure.recheck] : []),
+        damaged
+          ? '“重新检查完整性”只读检查档案，通过后提交；“隔离并开始新档案”把旧记录原样保留在隔离目录，新时间线从空开始，之后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。Prompt Trail 不会修复或覆盖损坏的档案。'
+          : '“重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。',
       ].join('\n'),
-      { header: '档案不可用', options: ['重试', '禁用当前 Run 后继续'] },
+      { header: '档案不可用', options: choices },
     )
   } catch {
     return undefined
   }
-  return answer === '重试' ? 'retry' : answer === '禁用当前 Run 后继续' ? 'disable' : undefined
+  if (answer === '重试') return 'retry'
+  if (answer === '重新检查完整性') return 'recheck'
+  if (answer === '隔离并开始新档案') return 'quarantine'
+  return answer === '禁用当前 Run 后继续' ? 'disable' : undefined
+}
+
+/* The person's answer to damage, before the submission is tried again.
+   Answers whether it may be: a recheck that found the archive sound, or a
+   quarantine that put an empty generation in place. Otherwise the failure
+   says what was found and the dialog asks again. */
+async function answerDamage(
+  $: EngineInterface,
+  choice: 'recheck' | 'quarantine',
+  failure: Blocked,
+): Promise<boolean> {
+  let currentProject: ProjectState
+  try {
+    currentProject = await prepareProject($)
+  } catch {
+    return false
+  }
+  try {
+    if (choice === 'recheck') {
+      const found = await recheckArchive($, currentProject)
+      if (found.result === 'ok' || found.result === 'absent') {
+        await archiveRecovered($, currentProject)
+        return true
+      }
+      failure.recheck = found.result === 'unreadable'
+        ? '完整性检查未通过（档案已无法作为数据库读取）'
+        : `完整性检查未通过（${found.problems} 个问题）`
+      if (archiveFailure) archiveFailure.recheck = failure.recheck
+      return false
+    }
+    let damaged = failure.generation ?? damagedGeneration
+    if (!damaged) {
+      /* Nothing named the damaged generation; only one found damaged now
+         may be moved. */
+      const found = await recheckArchive($, currentProject)
+      if (found.result === 'ok' || found.result === 'absent' || !found.generation) {
+        await archiveRecovered($, currentProject)
+        return true
+      }
+      damaged = found.generation
+    }
+    const moved = await quarantineArchive($, currentProject, damaged)
+    await archiveRecovered($, currentProject)
+    damagedGeneration = undefined
+    await enterNewGeneration($, currentProject, damaged)
+    try {
+      const branch = await branchState($, currentProject)
+      const next = { ...branch.value, generation: moved.generation }
+      await $.store.set(branch.key, next)
+      rememberBranch(branch.key, next)
+    } catch {
+      // The next capture names no generation and learns it.
+    }
+    if (moved.moved) $.ui.toast('Prompt Trail 已把损坏的档案原样隔离，新时间线从空开始；/prompt-history status 可查看隔离位置。')
+    return true
+  } catch (error) {
+    const category = failureCategory(error, choice === 'recheck' ? 'integrity-check' : 'quarantine')
+    Object.assign(failure, await markUnavailable($, currentProject, category))
+    return false
+  }
 }
 
 /* Once the low-space warning has been shown to a Run: it spans the Run's
@@ -3817,10 +4118,10 @@ async function submitCollected(
   let branch: { key: string; value: BranchState }
   const eventId = crypto.randomUUID()
   const attachmentKinds = e.attachments?.map(attachment => attachment.type) ?? []
-  let lowSpace: boolean | undefined
+  let staged: Staged
   try {
     branch = await branchState($, currentProject)
-    lowSpace = await beginCapture(
+    const begin = async () => beginCapture(
       $,
       currentProject,
       branch.value,
@@ -3829,6 +4130,14 @@ async function submitCollected(
       e.text,
       attachmentKinds,
     )
+    try {
+      staged = await begin()
+    } catch (error) {
+      const left = branch.value.generation
+      if (failureCategory(error, 'capture-begin') !== 'archive-generation' || !left) throw error
+      branch = await enterNewGeneration($, currentProject, left)
+      staged = await begin()
+    }
   } catch (error) {
     /* The helper may have committed the pending row and died before saying
        so, so this Run stops trusting its earlier "nothing owed" answer and
@@ -3836,7 +4145,16 @@ async function submitCollected(
     pendingDiscovered = false
     return holdSubmission($, currentProject, failureCategory(error, 'capture-begin'), '无法预写 Pending Capture')
   }
-  await noteDiskSpace($, currentProject, lowSpace)
+  if (branch.value.generation !== staged.generation) {
+    branch = { key: branch.key, value: { ...branch.value, generation: staged.generation } }
+    try {
+      await $.store.set(branch.key, branch.value)
+      rememberBranch(branch.key, branch.value)
+    } catch {
+      // Unrecorded, the next capture names no generation and learns it again.
+    }
+  }
+  await noteDiskSpace($, currentProject, staged.lowSpace)
 
   let result: PromptSubmitResult
   try {
@@ -3966,6 +4284,9 @@ function boundaryLine(kind: BoundaryKind | 'run-unclosed', splitFrom?: string): 
     return splitFrom ? `—— Run 开始（从 Run ${splitFrom.slice(0, 8)} 分出）——` : '—— Run 开始 ——'
   }
   if (kind === 'run-attached') return '—— Run 续接 ——'
+  /* The first event of a generation a quarantine started: what came before
+     is kept, unchanged, outside this timeline. */
+  if (kind === 'archive-quarantined') return '—— 此前的记录已隔离（原样保留，不在本时间线中）——'
   if (kind === 'run-detached') return '—— Run 离开 ——'
   /* Drawn, never archived: the archive cannot tell a process that crashed from
      one still running elsewhere, and this claims only what it knows. */
@@ -4095,10 +4416,13 @@ function statusText(): string {
      Run that is switched on but not collecting never reads as collecting. */
   const collectionMode = collectionModeText()
   const archive = archiveFailure
-    ? `unavailable · 范围 ${archiveFailure.scope} · 类别 ${archiveFailure.category}${archiveFailure.elsewhere ? ' · 由另一个 Run 报告' : ''}`
+    ? `unavailable · 范围 ${archiveFailure.scope} · 类别 ${archiveFailure.category}${archiveFailure.elsewhere ? ' · 由另一个 Run 报告' : ''}${archiveFailure.recheck ? ` · ${archiveFailure.recheck}` : ''}`
     : project?.archiveReady && project.databasePath
       ? `ready · ${statusValue(project.databasePath)}`
       : 'not created'
+  const damageChoices = archiveFailure && DAMAGE_FAILURES.has(archiveFailure.category)
+    ? ['choices: 重新检查完整性 / 隔离并开始新档案 / 禁用当前 Run 后继续（在下一次提交时选择）']
+    : []
   return [
     'Prompt Trail status',
     `support: ${startup.support}`,
@@ -4111,6 +4435,8 @@ function statusText(): string {
     `pending reconciliation: ${reconcileSummary()}`,
     `clear transition: ${clearSummary()}`,
     `archive: ${archive}`,
+    ...damageChoices,
+    ...quarantineLines(),
     `disk space: ${diskSpace}`,
     `project: ${startup.projectPath ? statusValue(startup.projectPath) : 'unavailable'}`,
     `database root: ${startup.databaseRoot ? statusValue(startup.databaseRoot) : 'unavailable'}`,
@@ -4118,6 +4444,18 @@ function statusText(): string {
     `locator: ${startup.locatorPath ? statusValue(startup.locatorPath) : 'unavailable'}`,
     `run: ${startup.runId ?? 'unavailable'}`,
   ].join('\n')
+}
+
+/* The generation in place and every quarantined archive, by place and size
+   only; `unknown` when the helper could not be asked. */
+function quarantineLines(): string[] {
+  if (!archiveStatus) return ['Archive generation: unknown']
+  return [
+    `Archive generation: ${archiveStatus.generation ? archiveStatus.generation.slice(0, 12) : 'none'}`,
+    ...(archiveStatus.quarantineUnderway ? ['quarantine: 未完成（再次选择“隔离并开始新档案”会接着完成）'] : []),
+    `Quarantined archives: ${archiveStatus.quarantined.length}`,
+    ...archiveStatus.quarantined.map(kept => `  ${statusValue(kept.path)}（${kept.bytes} bytes）`),
+  ]
 }
 
 async function refreshStartup($: EngineInterface): Promise<void> {
@@ -4323,7 +4661,10 @@ async function enableCollection($: EngineInterface): Promise<string> {
     appended = await appendBoundary($, currentProject, branchId, kind)
   } catch (error) {
     const failure = await markUnavailable($, currentProject, failureCategory(error, 'boundary-append'))
-    return `Prompt Trail 无法写入 Collection Boundary（${failure.category}），未启用采集。`
+    const damage = DAMAGE_FAILURES.has(failure.category)
+      ? '档案已损坏：下一次提交时可选择重新检查完整性、隔离并开始新档案，或禁用当前 Run 后继续。'
+      : ''
+    return `Prompt Trail 无法写入 Collection Boundary（${failure.category}），未启用采集。${damage}`
   }
 
   try {
@@ -4759,6 +5100,12 @@ export const register: Register = on => {
           await loadRunMode($, currentProject)
           await loadLifecycle($, currentProject)
           await foreignLifecycles($, currentProject)
+          try {
+            archiveStatus = undefined
+            archiveStatus = await readArchiveStatus($, currentProject)
+          } catch {
+            // Reported as unknown; the rest of the report stands.
+          }
           /* Best effort: a pending this Run has not met yet still blocks it,
              so status says so rather than reading as healthy. A failure here
              never costs the rest of the report. */
@@ -4800,8 +5147,12 @@ export const register: Register = on => {
       const outcome = await submitCollected($, e, next, retrying)
       if ('done' in outcome) return outcome.done
       const failure = outcome.blocked
-      const choice = await askUnavailable($, failure)
-      if (choice === 'retry') continue
+      let choice = await askUnavailable($, failure)
+      while (choice === 'recheck' || choice === 'quarantine') {
+        if (await answerDamage($, choice, failure)) break
+        choice = await askUnavailable($, failure)
+      }
+      if (choice === 'retry' || choice === 'recheck' || choice === 'quarantine') continue
       if (choice === 'disable') {
         const note = await disableCollection($)
         if (runMode?.value.mode === 'disabled') {

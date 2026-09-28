@@ -70,6 +70,7 @@ class HelperProtocolTests(unittest.TestCase):
         occurred_at: str = "1795000000000",
         attachment_count: str = "1",
         attachment_kinds: str = "image",
+        generation: str = "-",
     ) -> tuple[str, ...]:
         return (
             "capture-begin",
@@ -83,6 +84,7 @@ class HelperProtocolTests(unittest.TestCase):
             occurred_at,
             attachment_count,
             attachment_kinds,
+            generation,
             json.loads(MANIFEST.read_text())["sha256"],
             "1",
             "--stdin",
@@ -469,6 +471,7 @@ class HelperProtocolTests(unittest.TestCase):
             "1795000000000",
             "1",
             "image",
+            "-",
             manifest["sha256"],
             "1",
             "--stdin",
@@ -676,6 +679,7 @@ class HelperProtocolTests(unittest.TestCase):
             str(uuid.uuid4()),
             "1795000000000",
             "0",
+            "-",
             "-",
             "0" * 64,
             "1",
@@ -2193,6 +2197,7 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(read.returncode, 0, read.stderr)
         self.assertEqual(json.loads(read.stdout), {
             "projectId": project_id,
+            "generation": None,
             "events": [],
             "earlier": False,
             "later": False,
@@ -2677,6 +2682,7 @@ class HelperProtocolTests(unittest.TestCase):
 
         self.assertEqual(payload, {
             "projectId": project_id,
+            "generation": None,
             "match": "none",
             "candidates": [],
             "candidateCount": 0,
@@ -3301,6 +3307,617 @@ class HelperProtocolTests(unittest.TestCase):
 
         for result in [*file_results, directory_result]:
             self.assert_refused_untouched(result, "archive-read-only", project_id, before)
+
+
+    # Corrupt archives (Issue 28). A damaged archive is found where SQLite
+    # itself meets the damage; nothing here repairs, rewrites or replaces it.
+
+    def current_archive(self, project_id: str, count: int = 60) -> dict[str, object]:
+        """A current-schema archive of `count` sizeable Prompt Entries, its
+        WAL folded into the file, and no migration backup beside it."""
+        legacy = self.schema_1_archive(project_id, count, text_bytes=2000)
+        self.assertEqual(self.migrate(legacy).returncode, 0)
+        self.assert_legacy_intact(project_id, legacy)
+        self.assertEqual(list(self.archive_files(project_id)), [f"{project_id}.sqlite3"])
+        return legacy
+
+    @staticmethod
+    def overwrite_header(path: pathlib.Path) -> None:
+        """Leave the file no longer recognisable as a SQLite database."""
+        with path.open("r+b") as database:
+            database.write(b"\xa5" * 100)
+
+    def test_damage_an_ordinary_command_meets_is_named_archive_integrity(self) -> None:
+        # A damaged page is met only by what reads it; a file that is no
+        # longer a database is met by anything that opens it.
+        damages = {
+            "damaged-page": (lambda path: self.corrupt_page(path), ("timeline-read",)),
+            "not-a-database": (self.overwrite_header, ("timeline-read", "boundary-append")),
+        }
+        for index, (name, (damage, commands)) in enumerate(damages.items()):
+            project_id = f"e{index}" * 32
+            legacy = self.current_archive(project_id)
+            damage(legacy["path"])
+            damaged = self.check(project_id)["generation"]
+            before = self.archive_files(project_id)
+            argvs = {
+                "timeline-read": self.read_argv(project_id=project_id),
+                "boundary-append": self.boundary_argv(
+                    str(uuid.uuid4()), kind="collection-stopped", **legacy["identity"]
+                ),
+            }
+            for command in commands:
+                with self.subTest(damage=name, command=command):
+                    result = self.run_helper(*argvs[command])
+                    # A read may have streamed part of a batch before it met
+                    # the damage; the exit status is what the caller trusts.
+                    self.assertEqual(result.returncode, 25, result.stderr)
+                    # The failure names the generation it met, which is
+                    # the one a quarantine may then move.
+                    self.assertEqual(
+                        json.loads(result.stderr),
+                        {"category": "archive-integrity", "generation": damaged},
+                    )
+                    self.assertNotIn("PT-SECRET", result.stderr)
+                    self.assertEqual(self.archive_files(project_id), before)
+
+    def check_argv(self, *, project_id: str) -> tuple[str, ...]:
+        return (
+            "integrity-check",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+    def check(self, project_id: str) -> dict[str, object]:
+        result = self.run_helper(*self.check_argv(project_id=project_id))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertNotIn("PT-SECRET", result.stdout)
+        return json.loads(result.stdout)
+
+    def leave_wal_unfolded(self, path: pathlib.Path) -> None:
+        """Commit one more write that stays in the WAL: the writer exits
+        without closing, so nothing folds it back into the file."""
+        subprocess.run(
+            ["python3", "-c",
+             "import os, sqlite3, sys\n"
+             "c = sqlite3.connect(sys.argv[1])\n"
+             "c.execute('PRAGMA wal_autocheckpoint=0')\n"
+             "c.execute('CREATE TABLE unfolded(x)')\n"
+             "c.execute('INSERT INTO unfolded VALUES(randomblob(8000))')\n"
+             "c.commit()\n"
+             "os._exit(0)\n",
+             str(path)],
+            check=True,
+        )
+        self.assertTrue(path.with_name(path.name + "-wal").stat().st_size > 0)
+
+    @staticmethod
+    def fold_wal(path: pathlib.Path) -> None:
+        """Close the archive the way a last connection does: the WAL folded
+        into the file and removed."""
+        database = sqlite3.connect(path)
+        database.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        database.close()
+        assert not path.with_name(path.name + "-wal").exists()
+
+    def evidence(self, project_id: str) -> dict[str, bytes]:
+        """Every file of the archive byte for byte, its WAL included; only
+        SQLite's shared-memory index, which any reader rebuilds, and an empty
+        WAL, which holds nothing, are left out."""
+        prefix = f"{project_id}.sqlite3"
+        return {
+            path.name: path.read_bytes()
+            for path in (self.plugin_data / "archives").iterdir()
+            if path.name.startswith(prefix)
+            and not path.name.endswith("-shm")
+            and not (path.name.endswith("-wal") and path.stat().st_size == 0)
+        }
+
+    def test_an_integrity_check_reads_without_changing_a_byte(self) -> None:
+        damages = {
+            "sound": (lambda path: None, "ok"),
+            # Closed cleanly, its WAL folded back and removed: a reader that
+            # may not write cannot open that on its own.
+            "folded": (self.fold_wal, "ok"),
+            "damaged-page": (lambda path: self.corrupt_page(path, fraction=0.3), "damaged"),
+            "stale-index": (self.redefine_index, "damaged"),
+            "not-a-database": (self.overwrite_header, "unreadable"),
+        }
+        for index, (name, (damage, expected)) in enumerate(damages.items()):
+            with self.subTest(damage=name):
+                project_id = f"e{index + 2}" * 32
+                legacy = self.current_archive(project_id)
+                damage(legacy["path"])
+                if name not in ("folded", "not-a-database"):
+                    self.leave_wal_unfolded(legacy["path"])
+                before = self.evidence(project_id)
+
+                first = self.check(project_id)
+                second = self.check(project_id)
+
+                self.assertEqual(first["result"], expected)
+                self.assertRegex(first["generation"], r"^[A-Za-z0-9_-]{1,128}$")
+                self.assertEqual(first, second)
+                self.assertEqual(first["problems"] > 0, expected == "damaged")
+                self.assertEqual(self.evidence(project_id), before)
+
+    def test_an_integrity_check_of_an_absent_archive_creates_nothing(self) -> None:
+        project_id = "e6" * 32
+
+        checked = self.check(project_id)
+
+        self.assertEqual((checked["result"], checked["generation"]), ("absent", None))
+
+        self.assertFalse((self.plugin_data / "archives").exists())
+
+
+    def quarantine_argv(
+        self, *, project_id: str, generation: str, identity: dict[str, str] | None = None,
+        event_id: str | None = None,
+    ) -> tuple[str, ...]:
+        identity = identity or self.identity(project_id)
+        return (
+            "quarantine",
+            str(self.plugin_data / "archives"),
+            project_id,
+            generation,
+            identity["run_id"],
+            identity["segment_id"],
+            identity["branch_id"],
+            event_id or str(uuid.uuid4()),
+            "1795000100000",
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+    def quarantine(self, project_id: str, generation: str, **argv: object) -> dict[str, object]:
+        result = self.run_helper(
+            *self.quarantine_argv(project_id=project_id, generation=generation, **argv)  # type: ignore[arg-type]
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertNotIn("PT-SECRET", result.stdout)
+        return json.loads(result.stdout)
+
+    def quarantined(self, project_id: str) -> dict[str, dict[str, bytes]]:
+        """Each quarantined archive of the project by its directory's name,
+        every file in it byte for byte."""
+        root = self.plugin_data / "archives" / "quarantine" / project_id
+        if not root.exists():
+            return {}
+        return {
+            directory.name: {path.name: path.read_bytes() for path in directory.iterdir()}
+            for directory in root.iterdir()
+        }
+
+    def damaged_archive_with_companions(self, project_id: str) -> dict[str, object]:
+        """A damaged current archive with everything that travels with it: an
+        unfolded WAL, its `-shm`, and a migration backup."""
+        legacy = self.current_archive(project_id)
+        self.corrupt_page(legacy["path"], fraction=0.3)
+        self.leave_wal_unfolded(legacy["path"])
+        backup = self.backup_path(project_id)
+        backup.write_bytes(b"PT-SECRET-BACKUP")
+        backup.chmod(0o600)
+        return legacy
+
+    def test_a_quarantine_keeps_every_file_unchanged_and_starts_an_empty_generation(self) -> None:
+        project_id = "e7" * 32
+        other_id = "e8" * 32
+        self.damaged_archive_with_companions(project_id)
+        other = self.current_archive(other_id, count=3)
+        other_before = self.evidence(other_id)
+        # The check reads first: a reader may rebuild `-shm`, which the
+        # quarantine then moves as it finds it.
+        damaged = self.check(project_id)["generation"]
+        prefix = f"{project_id}.sqlite3"
+        files = {
+            path.name: path.read_bytes()
+            for path in (self.plugin_data / "archives").iterdir()
+            if path.name.startswith(prefix)
+        }
+        self.assertEqual(
+            sorted(files),
+            sorted([prefix, f"{prefix}-wal", f"{prefix}-shm", f"{prefix}.pre-migration-v1"]),
+        )
+        identity = self.identity(project_id)
+        event_id = str(uuid.uuid4())
+
+        answer = self.quarantine(project_id, damaged, identity=identity, event_id=event_id)
+
+        kept = self.quarantined(project_id)
+        self.assertEqual(list(kept), [answer["moved"]])
+        self.assertEqual(kept[answer["moved"]], files)
+        for directory in (
+            self.plugin_data / "archives" / "quarantine",
+            self.plugin_data / "archives" / "quarantine" / project_id,
+            self.plugin_data / "archives" / "quarantine" / project_id / answer["moved"],
+        ):
+            self.assertEqual(stat.S_IMODE(directory.lstat().st_mode), 0o700)
+        for path in (self.plugin_data / "archives" / "quarantine" / project_id / answer["moved"]).iterdir():
+            self.assertEqual(stat.S_IMODE(path.lstat().st_mode), 0o600)
+        # The new generation begins with the quarantine and holds nothing else.
+        self.assertEqual(self.timeline(project_id), [(event_id, 1, "archive-quarantined", None)])
+        checked = self.check(project_id)
+        self.assertEqual(checked["result"], "ok")
+        self.assertEqual(checked["generation"], answer["generation"])
+        self.assertNotEqual(answer["generation"], damaged)
+        # Another project's archive is none of this quarantine's business.
+        self.assertEqual(self.evidence(other_id), other_before)
+        self.assert_legacy_intact(other_id, other)
+        self.assertEqual(self.quarantined(other_id), {})
+
+
+    def test_a_quarantine_of_a_generation_already_replaced_moves_nothing(self) -> None:
+        project_id = "e9" * 32
+        self.damaged_archive_with_companions(project_id)
+        damaged = self.check(project_id)["generation"]
+        first = self.quarantine(project_id, damaged)
+        kept = self.quarantined(project_id)
+        timeline = self.timeline(project_id)
+
+        again = self.quarantine(project_id, damaged)
+
+        self.assertEqual(again, {"projectId": project_id, "generation": first["generation"], "moved": None})
+        self.assertEqual(self.quarantined(project_id), kept)
+        self.assertEqual(self.timeline(project_id), timeline)
+
+    def test_runs_that_quarantine_at_once_make_one_quarantined_archive(self) -> None:
+        project_id = "ea" * 32
+        self.damaged_archive_with_companions(project_id)
+        damaged = self.check(project_id)["generation"]
+        processes = [
+            subprocess.Popen(
+                [str(HELPER), *self.quarantine_argv(project_id=project_id, generation=damaged)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=self.environment,
+            )
+            for _ in range(6)
+        ]
+        answers = []
+        for process in processes:
+            stdout, stderr = process.communicate(timeout=30)
+            self.assertEqual(process.returncode, 0, stderr)
+            answers.append(json.loads(stdout))
+
+        moved = [answer["moved"] for answer in answers if answer["moved"]]
+        self.assertEqual(len(moved), 1)
+        self.assertEqual(list(self.quarantined(project_id)), moved)
+        self.assertEqual({answer["generation"] for answer in answers}, {self.check(project_id)["generation"]})
+        self.assertEqual([kind for _, _, kind, _ in self.timeline(project_id)], ["archive-quarantined"])
+
+
+    def test_a_quarantine_waits_for_a_command_already_using_the_archive(self) -> None:
+        project_id = "eb" * 32
+        legacy = self.current_archive(project_id, count=3)
+        sound = self.check(project_id)["generation"]
+        holder = subprocess.Popen(
+            ["python3", "-c",
+             "import sqlite3, sys, time\n"
+             "c = sqlite3.connect(sys.argv[1], isolation_level=None)\n"
+             "c.execute('BEGIN IMMEDIATE')\n"
+             "print('held', flush=True)\n"
+             "time.sleep(1.5)\n"
+             "c.execute('ROLLBACK')\n",
+             str(legacy["path"])],
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        self.assertEqual(holder.stdout.readline().strip(), "held")
+        boundary_id = str(uuid.uuid4())
+        writer = subprocess.Popen(
+            [str(HELPER), *self.boundary_argv(boundary_id, kind="collection-stopped", **legacy["identity"])],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self.environment,
+        )
+        time.sleep(0.4)
+        mover = subprocess.Popen(
+            [str(HELPER), *self.quarantine_argv(project_id=project_id, generation=sound)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self.environment,
+        )
+
+        moved_out, moved_err = mover.communicate(timeout=30)
+        self.assertEqual(mover.returncode, 0, moved_err)
+        kept = self.quarantined(project_id)
+        written_out, written_err = writer.communicate(timeout=30)
+        holder.wait(timeout=30)
+
+        # The write already under way went into the archive before it moved,
+        # and nothing reached the moved files afterwards.
+        self.assertEqual(writer.returncode, 0, written_err)
+        self.assertEqual(self.quarantined(project_id), kept)
+        self.assertNotIn(boundary_id, [event_id for event_id, *_ in self.timeline(project_id)])
+        copy = pathlib.Path(self.temporary.name) / "copy"
+        shutil.copytree(
+            self.plugin_data / "archives" / "quarantine" / project_id / json.loads(moved_out)["moved"],
+            copy,
+        )
+        database = sqlite3.connect(copy / f"{project_id}.sqlite3")
+        try:
+            self.assertEqual(
+                database.execute("SELECT kind FROM timeline_events WHERE event_id=?", (boundary_id,)).fetchall(),
+                [("collection-stopped",)],
+            )
+        finally:
+            database.close()
+
+    def test_an_unfinished_quarantine_refuses_the_archive_until_one_finishes_it(self) -> None:
+        project_id = "ec" * 32
+        legacy = self.damaged_archive_with_companions(project_id)
+        damaged = self.check(project_id)["generation"]
+        wal = legacy["path"].with_name(legacy["path"].name + "-wal")
+        before = {
+            path.name: path.read_bytes()
+            for path in (self.plugin_data / "archives").iterdir()
+            if path.name.startswith(f"{project_id}.sqlite3") and not path.name.endswith("-shm")
+        }
+        # The owner may not move a file flagged immutable, so the quarantine
+        # stops after the archive itself has gone.
+        subprocess.run(["/usr/bin/chflags", "uchg", str(wal)], check=True)
+        self.addCleanup(subprocess.run, ["/usr/bin/chflags", "nouchg", str(wal)], check=False)
+
+        stopped = self.run_helper(*self.quarantine_argv(project_id=project_id, generation=damaged))
+
+        self.assertEqual(stopped.returncode, 25, stopped.stderr)
+        self.assertEqual(json.loads(stopped.stderr)["category"], "quarantine-failed")
+        self.assertFalse(legacy["path"].exists())
+        refused = {
+            "timeline-read": self.read_argv(project_id=project_id),
+            "capture-list": self.list_argv(project_id=project_id),
+            "integrity-check": self.check_argv(project_id=project_id),
+            "boundary-append": self.boundary_argv(
+                str(uuid.uuid4()), kind="collection-stopped", **legacy["identity"]
+            ),
+            "capture-begin": self.begin_argv(str(uuid.uuid4()), **legacy["identity"]),
+        }
+        for command, argv in refused.items():
+            with self.subTest(command=command):
+                result = self.run_helper(*argv, input_text="PT-SECRET-REFUSED")
+                self.assertEqual(result.returncode, 25, result.stderr)
+                self.assertEqual(json.loads(result.stderr)["category"], "quarantine-failed")
+        self.assertFalse(legacy["path"].exists())
+
+        subprocess.run(["/usr/bin/chflags", "nouchg", str(wal)], check=True)
+        # Whoever runs it next finishes the quarantine that was begun,
+        # whatever generation it thought it was replacing.
+        finished = self.quarantine(project_id, "stale")
+
+        kept = self.quarantined(project_id)
+        self.assertEqual(list(kept), [finished["moved"]])
+        self.assertEqual(
+            {name: data for name, data in kept[finished["moved"]].items() if not name.endswith("-shm")},
+            before,
+        )
+        self.assertEqual([kind for _, _, kind, _ in self.timeline(project_id)], ["archive-quarantined"])
+
+
+    def test_a_quarantine_killed_at_any_moment_is_finished_by_the_next(self) -> None:
+        project_id = "ed" * 32
+        self.damaged_archive_with_companions(project_id)
+        archives = self.plugin_data / "archives"
+        template = {
+            path.name: path.read_bytes()
+            for path in archives.iterdir()
+            if path.name.startswith(f"{project_id}.sqlite3")
+        }
+        intent = archives / f"{project_id}.quarantine"
+
+        def restore() -> str:
+            shutil.rmtree(archives / "quarantine", ignore_errors=True)
+            for leftover in archives.iterdir():
+                if leftover.name.startswith(project_id) and not leftover.name.endswith(".lock"):
+                    leftover.unlink()
+            for name, data in template.items():
+                (archives / name).write_bytes(data)
+                (archives / name).chmod(0o600)
+            return self.check(project_id)["generation"]
+
+        def start(generation: str) -> subprocess.Popen[str]:
+            return subprocess.Popen(
+                [str(HELPER), *self.quarantine_argv(project_id=project_id, generation=generation)],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=self.environment,
+            )
+
+        generation = restore()
+        started = time.monotonic()
+        start(generation).wait(timeout=10)
+        whole = time.monotonic() - started
+
+        import random
+        chooser = random.Random(28)
+        phases = {"before": 0, "during": 0, "after": 0}
+        for _ in range(30):
+            generation = restore()
+            before = self.evidence(project_id)
+            helper = start(generation)
+            time.sleep(chooser.uniform(0, whole * 1.2))
+            helper.kill()
+            helper.wait(timeout=10)
+            phases[
+                "during" if intent.exists()
+                else "after" if self.quarantined(project_id)
+                else "before"
+            ] += 1
+
+            again = self.run_helper(*self.quarantine_argv(project_id=project_id, generation=generation))
+            self.assertEqual(again.returncode, 0, again.stderr)
+
+            kept = self.quarantined(project_id)
+            self.assertEqual(len(kept), 1)
+            self.assertEqual(
+                {
+                    name: data for name, data in next(iter(kept.values())).items()
+                    if not name.endswith("-shm")
+                    and not (name.endswith("-wal") and not data)
+                },
+                before,
+            )
+            self.assertEqual([kind for _, _, kind, _ in self.timeline(project_id)], ["archive-quarantined"])
+            self.assertEqual(
+                sorted(
+                    path.name for path in archives.iterdir()
+                    if path.name.startswith(project_id) and not path.name.endswith(("-wal", "-shm"))
+                ),
+                [f"{project_id}.lock", f"{project_id}.sqlite3"],
+            )
+
+        # Kills landed before the quarantine began, while it was under way,
+        # and after it finished.
+        self.assertTrue(all(phases.values()), phases)
+
+
+    def test_a_capture_names_the_generation_it_was_staged_in(self) -> None:
+        project_id = "ee" * 32
+        legacy = self.current_archive(project_id, count=3)
+        generation = self.check(project_id)["generation"]
+
+        unnamed = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), **legacy["identity"]), input_text="PT-SECRET-A"
+        )
+        named = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), generation=generation, **legacy["identity"]),
+            input_text="PT-SECRET-B",
+        )
+
+        for result in (unnamed, named):
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)["generation"], generation)
+
+    def test_a_capture_meant_for_a_replaced_generation_stages_nothing(self) -> None:
+        project_id = "ef" * 32
+        legacy = self.damaged_archive_with_companions(project_id)
+        damaged = self.check(project_id)["generation"]
+        self.quarantine(project_id, damaged)
+        timeline = self.timeline(project_id)
+
+        result = self.run_helper(
+            *self.begin_argv(
+                str(uuid.uuid4()),
+                generation=damaged,
+                parent=legacy["entries"][-1][0],
+                **legacy["identity"],
+            ),
+            input_text="PT-SECRET-STALE",
+        )
+
+        self.assertEqual(result.returncode, 25, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(json.loads(result.stderr)["category"], "archive-generation")
+        listed = self.run_helper(*self.list_argv(project_id=project_id, run_id=legacy["identity"]["run_id"]))
+        self.assertEqual(json.loads(listed.stdout)["pending"], [])
+        self.assertEqual(self.timeline(project_id), timeline)
+
+
+    def status_argv(self, *, project_id: str) -> tuple[str, ...]:
+        return (
+            "archive-status",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+    def archive_status(self, project_id: str) -> dict[str, object]:
+        result = self.run_helper(*self.status_argv(project_id=project_id))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertNotIn("PT-SECRET", result.stdout)
+        return json.loads(result.stdout)
+
+    def test_archive_status_names_the_generation_and_each_quarantined_archive(self) -> None:
+        project_id = "f0" * 32
+        self.assertEqual(
+            self.archive_status(project_id),
+            {"projectId": project_id, "generation": None, "quarantined": [], "quarantineUnderway": False},
+        )
+        self.assertFalse((self.plugin_data / "archives").exists())
+
+        legacy = self.damaged_archive_with_companions(project_id)
+        damaged = self.check(project_id)["generation"]
+        self.assertEqual(self.archive_status(project_id)["generation"], damaged)
+        first = self.quarantine(project_id, damaged)
+        self.corrupt_page(legacy["path"], fraction=0.0)
+        second = self.quarantine(project_id, first["generation"])
+        before = self.evidence(project_id)
+
+        status = self.archive_status(project_id)
+
+        root = self.plugin_data / "archives" / "quarantine" / project_id
+        self.assertEqual(status["generation"], second["generation"])
+        self.assertFalse(status["quarantineUnderway"])
+        self.assertEqual(
+            sorted(status["quarantined"], key=lambda kept: kept["name"]),
+            sorted(
+                [
+                    {
+                        "name": name,
+                        "path": str(root / name),
+                        "bytes": sum(path.stat().st_size for path in (root / name).iterdir()),
+                    }
+                    for name in (first["moved"], second["moved"])
+                ],
+                key=lambda kept: kept["name"],
+            ),
+        )
+        self.assertEqual(self.evidence(project_id), before)
+
+    def test_archive_status_says_a_quarantine_is_under_way(self) -> None:
+        project_id = "f1" * 32
+        legacy = self.damaged_archive_with_companions(project_id)
+        wal = legacy["path"].with_name(legacy["path"].name + "-wal")
+        subprocess.run(["/usr/bin/chflags", "uchg", str(wal)], check=True)
+        self.addCleanup(subprocess.run, ["/usr/bin/chflags", "nouchg", str(wal)], check=False)
+        self.run_helper(*self.quarantine_argv(project_id=project_id, generation=self.check(project_id)["generation"]))
+
+        status = self.archive_status(project_id)
+
+        self.assertTrue(status["quarantineUnderway"])
+        self.assertIsNone(status["generation"])
+
+    def test_timeline_read_names_the_generation_it_read(self) -> None:
+        project_id = "f2" * 32
+        self.assertIsNone(self.read(project_id=project_id)["generation"])
+        legacy = self.current_archive(project_id, count=3)
+
+        self.assertEqual(self.read(project_id=project_id)["generation"], self.check(project_id)["generation"])
+
+
+    def test_branch_match_names_the_generation_it_matched_against(self) -> None:
+        project_id = "f3" * 32
+        legacy = self.current_archive(project_id, count=3)
+        generation = self.check(project_id)["generation"]
+
+        for rows in ([legacy["entries"][0][2]], []):
+            with self.subTest(rows=len(rows)):
+                self.assertEqual(self.match(rows, project_id=project_id)["generation"], generation)
+
+
+    def test_a_quarantine_cut_short_after_the_new_generation_moves_nothing_more(self) -> None:
+        # The state a kill leaves between putting the new generation in
+        # place and removing the intent: finishing it must not take the new
+        # archive for the old one.
+        project_id = "f4" * 32
+        self.damaged_archive_with_companions(project_id)
+        answer = self.quarantine(project_id, self.check(project_id)["generation"])
+        kept = self.quarantined(project_id)
+        timeline = self.timeline(project_id)
+        # Nothing opens the new generation while the intent stands, so it
+        # is as its builder closed it.
+        self.fold_wal(self.archive_path(project_id))
+        intent = self.plugin_data / "archives" / f"{project_id}.quarantine"
+        intent.write_text(answer["moved"])
+        intent.chmod(0o600)
+
+        finished = self.quarantine(project_id, "stale")
+
+        self.assertFalse(intent.exists())
+        self.assertEqual(self.quarantined(project_id), kept)
+        self.assertEqual(finished["generation"], answer["generation"])
+        self.assertEqual(self.timeline(project_id), timeline)
 
 
 if __name__ == "__main__":
