@@ -49,8 +49,8 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 - [跨 reload 与重启维护 Run 身份](issues/17-run-identity-reload-restart.md)：
   Run = 随机 Run UUID + 宿主进程世代；reload 复用 Run，退出/重启/`startup`/`fork` 开新 Run，
   进程内 `/resume` 只在同一进程世代有前驱 locator 时继承 Run——**但 `/resume` 后的新 session
-  仍拿到新根分支，分支重建归 Issue 18**。`archiveGeneration` 仍是占位，每个新 Run 随机生成，
-  档案侧没有 generation（归 Issue 30）；Issue 28 起档案侧 generation 取活动文件身份；Issue 30 定下 locator 里这个字段只是不校验的 Run 令牌。Run 边界是惰性的，event id 由 `sha256(kind:project:run)`
+  仍拿到新根分支，分支重建归 Issue 18**。`archiveGeneration` 是每个新 Run 随机生成的令牌
+  （后续：Issue 28 起档案侧 generation 取活动文件身份；Issue 30 定下 locator 里这个字段只是不校验的 Run 令牌）。Run 边界是惰性的，event id 由 `sha256(kind:project:run)`
   派生；恢复队列的 16 条上限只约束 `clear`。`timeline-read` 是唯一可在 stdout 返回原文的子命令，
   固定只回最新 128 条、带 `truncated`；游标、窗口和 `truncated` 的 UI 归 Issue 21（backlog
   `20260922-bounded-persisted-timeline-view.md`）。只经 classic 事件到达的逻辑，`2.1.273` 的
@@ -60,7 +60,7 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   `/resume`）按 bridge 的会话索引找回 Run，找不到就新开；普通启动和 fork 仍开新 Run；进程内 `/resume`
   到别的 Run 的会话时，进程改绑到那个 Run。locator 按进程命名，并发 resume 同一会话时后到的进程
   新开 Run，「从 Run X 分出」由 `segmentId` 推导。边界是 `run-started/attached/detached`，且仍然惰性：
-  不归档的进程（含已停用采集的）不留痕迹。恢复队列总上限 64。`clear-all` 必须一并删除会话索引记录（Issue 30）。
+  不归档的进程（含已停用采集的）不留痕迹。恢复队列总上限 64。`clear-all` 一并删除不再继续的 Run 的会话索引记录，当前 Run 与仍在运行的 Run 保留（Issue 30）。
   Issue 18 现在只剩分支重建和视图折叠（离开活动路径的条目折叠成「另一分支 · N 条」）。
 - [在 resume 与 fork 中重建 Conversation Branch](issues/18-resume-fork-branches.md)：
   session 首次采集前用 transcript 的 `user` 行经 helper `branch-match` 对齐 Active Branch（只回 event id）；

@@ -3767,19 +3767,61 @@ static void clear_collect_runs(sqlite3 *database, const char *sql, ClearFindings
   sqlite3_finalize(statement);
 }
 
+/* The archive for counting, on a connection that neither writes nor makes
+   anything beside it: a WAL archive whose WAL was folded away is read as the
+   file alone, which then holds every record. NULL when SQLite cannot open
+   it, which leaves the counts unknown rather than stopping the listing. */
+static sqlite3 *clear_open_archive(const char *database_path) {
+  unsigned char header[20];
+  int descriptor = open(database_path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+  if (descriptor < 0) return NULL;
+  bool wal = read(descriptor, header, sizeof(header)) == (ssize_t)sizeof(header)
+    && memcmp(header, "SQLite format 3", 16) == 0
+    && header[18] == 2;
+  close(descriptor);
+  char wal_path[PATH_MAX];
+  int length = snprintf(wal_path, sizeof(wal_path), "%s-wal", database_path);
+  if (length < 0 || (size_t)length >= sizeof(wal_path)) return NULL;
+  struct stat status;
+  bool folded = wal && lstat(wal_path, &status) != 0 && errno == ENOENT;
+  char name[3 * PATH_MAX + 32];
+  int flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX;
+  if (folded) {
+    /* A URI names the file; its reserved characters are escaped. */
+    size_t at = (size_t)snprintf(name, sizeof(name), "file:");
+    for (const char *next = database_path; *next && at + 4 < sizeof(name); next += 1) {
+      at += strchr("%?#", *next)
+        ? (size_t)snprintf(name + at, sizeof(name) - at, "%%%02X", (unsigned char)*next)
+        : (size_t)snprintf(name + at, sizeof(name) - at, "%c", *next);
+    }
+    snprintf(name + at, sizeof(name) - at, "?immutable=1");
+    flags |= SQLITE_OPEN_URI;
+  } else {
+    snprintf(name, sizeof(name), "%s", database_path);
+  }
+  sqlite3 *database = NULL;
+  if (sqlite3_open_v2(name, &database, flags, NULL) != SQLITE_OK) {
+    sqlite3_close(database);
+    return NULL;
+  }
+  sqlite3_busy_handler(database, archive_busy_wait, NULL);
+  return database;
+}
+
 /* Read from the archive in place as far as it still reads; a damaged one
    leaves its counts unknown. */
 static void clear_read_archive(const char *database_path, ClearFindings *found) {
   struct stat status;
   if (lstat(database_path, &status) != 0 || !pt_path_is_private_file(database_path)) return;
-  sqlite3 *database = open_read_only(database_path);
+  sqlite3 *database = clear_open_archive(database_path);
+  if (!database) return;
   sqlite3_exec(database, "PRAGMA temp_store=MEMORY", NULL, NULL, NULL);
   found->entries = clear_count(database, "SELECT count(*) FROM prompt_entries");
   found->pending = clear_count(database, "SELECT count(*) FROM pending_captures");
   clear_collect_runs(database, "SELECT DISTINCT run_id FROM prompt_entries", found);
   clear_collect_runs(database, "SELECT DISTINCT run_id FROM pending_captures", found);
   clear_collect_runs(database, "SELECT DISTINCT run_id FROM timeline_events", found);
-  close_archive(database);
+  sqlite3_close(database);
 }
 
 /* Whether `name` in the archive root is one of the project's files the
@@ -3807,6 +3849,9 @@ static long long clear_remove(const char *path, int depth) {
     left += length < 0 || length >= PATH_MAX ? 1 : clear_remove(child, depth - 1);
   }
   closedir(directory);
+  /* What left the directory stays gone before the directory itself goes;
+     its own removal is made durable by the directory above it. */
+  if (left == 0 && !sync_directory(path)) left = 1;
   if (left == 0 && rmdir(path) != 0 && errno != ENOENT) left = 1;
   return left;
 }
@@ -3895,11 +3940,19 @@ static void clear_session_index(
   }
   closedir(directory);
   free(live.run_ids);
-  (void)sync_directory(directory_path);
+  /* Removals a crash could bring back are not claimed as removed. */
+  if (*removed > 0 && !sync_directory(directory_path)) {
+    *failed += *removed;
+    *removed = 0;
+  }
 }
 
 static void clear_all(int argc, char **argv) {
-  if (argc != 8 || strcmp(argv[7], "--stdin") != 0) usage();
+  if ((argc != 8 && argc != 9) || strcmp(argv[7], "--stdin") != 0) usage();
+  /* Only finishing a clear already under way, which the person agreed to
+     when it began: one that has meanwhile finished starts no new clear. */
+  bool only_continue = argc == 9;
+  if (only_continue && strcmp(argv[8], "--continue") != 0) usage();
   const char *database_root = argv[2];
   const char *project_id = argv[3];
   const char *keep_run = argv[4];
@@ -3925,7 +3978,7 @@ static void clear_all(int argc, char **argv) {
   char intent[PATH_MAX];
   if (!clear_intent_path(database_root, project_id, intent)) archive_error("database-path");
   bool resuming = root_present && intent_present(intent);
-  if (!root_present || (!resuming && !clear_has_files(database_root, project_id))) {
+  if (!root_present || (!resuming && (only_continue || !clear_has_files(database_root, project_id)))) {
     write_status_string("{\"projectId\":", project_id);
     fputs(
       ",\"cleared\":false,\"entries\":0,\"pending\":0,\"quarantined\":0,"
@@ -3953,10 +4006,13 @@ static void clear_all(int argc, char **argv) {
     bool written = write(descriptor, "clear\n", 6) == 6
       && (fcntl(descriptor, F_FULLFSYNC) == 0 || fsync(descriptor) == 0);
     close(descriptor);
-    if (!written || rename(staged, intent) != 0 || !sync_directory(database_root)) {
+    if (!written || rename(staged, intent) != 0) {
       unlink(staged);
       archive_error("database-unavailable");
     }
+    /* In place, the intent already refuses every command: the clear has
+       begun, and only a clear finishes it. */
+    if (!sync_directory(database_root)) json_error(EXIT_ARCHIVE_UNAVAILABLE, "clear-unfinished");
   }
 
   long long removed = 0;
@@ -3976,6 +4032,11 @@ static void clear_all(int argc, char **argv) {
   length = snprintf(kept, PATH_MAX, "%s/quarantine/%s", database_root, project_id);
   if (length < 0 || length >= PATH_MAX) archive_error("database-path");
   left += clear_remove(kept, 3);
+  char quarantine_root[PATH_MAX];
+  length = snprintf(quarantine_root, PATH_MAX, "%s/quarantine", database_root);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  struct stat quarantine_status;
+  if (lstat(quarantine_root, &quarantine_status) == 0 && !sync_directory(quarantine_root)) left += 1;
   if (!sync_directory(database_root) || left > 0) json_error(EXIT_ARCHIVE_UNAVAILABLE, "clear-unfinished");
   if (unlink(intent) != 0 && errno != ENOENT) json_error(EXIT_ARCHIVE_UNAVAILABLE, "clear-unfinished");
   (void)sync_directory(database_root);

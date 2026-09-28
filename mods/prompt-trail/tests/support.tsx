@@ -112,6 +112,13 @@ export type TargetOptions = {
   clearLeaves?: { name: string; bytes: number }[]
   /* Runs of the project a live process elsewhere is attached to. */
   otherLiveRuns?: number | null
+  /* The archive can no longer count its Pending Captures. */
+  pendingUnknown?: boolean
+  /* The host kills `clear-all` after its cut: the call rejects and the
+     clear is left under way. */
+  clearRejects?: boolean
+  /* Session index records `clear-all` could not remove. */
+  sessionsFailed?: number
   /* The options each Archive unavailable dialog offered, in order. */
   unavailableOffered?: string[][]
   /* The Archive generation standing at the archive's path; a quarantine puts
@@ -553,7 +560,7 @@ export function installSupportedTarget(
             clearUnderway: underway,
             generation: held ? generation.value : null,
             entries: archive.filter(row => row.kind === 'prompt').length,
-            pending: staged.size,
+            pending: options.pendingUnknown ? null : staged.size,
             otherLiveRuns: options.otherLiveRuns === undefined ? 0 : options.otherLiveRuns,
             files,
             quarantined,
@@ -563,6 +570,24 @@ export function installSupportedTarget(
       }
     }
     if (argv[0] === helperPath && argv[1] === 'clear-all') {
+      /* Only finishing a clear under way: one that has finished starts
+         nothing new. */
+      if (argv[8] === '--continue' && !options.clearUnderway?.value) {
+        return {
+          value: {
+            exitCode: 0,
+            stdout: JSON.stringify({
+              projectId, cleared: false, entries: 0, pending: 0, quarantined: 0,
+              sessionsRemoved: 0, sessionsFailed: 0,
+            }),
+            stderr: '',
+          },
+        }
+      }
+      if (options.clearRejects) {
+        if (options.clearUnderway) options.clearUnderway.value = true
+        throw new Error('killed at the time limit: PT-SECRET-KILLED')
+      }
       const entries = archive.filter(row => row.kind === 'prompt').length
       const pending = staged.size
       const moved = quarantined.length
@@ -583,8 +608,8 @@ export function installSupportedTarget(
         value: {
           exitCode: 0,
           stdout: JSON.stringify({
-            projectId, cleared: true, entries, pending, quarantined: moved,
-            sessionsRemoved: 0, sessionsFailed: 0,
+            projectId, cleared: true, entries, pending: options.pendingUnknown ? null : pending,
+            quarantined: moved, sessionsRemoved: 0, sessionsFailed: options.sessionsFailed ?? 0,
           }),
           stderr: '',
         },

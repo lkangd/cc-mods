@@ -61,7 +61,7 @@ with tempfile.TemporaryDirectory() as temporary:
     archives = str(plugin_data / "archives")
     helper_call(
         "boundary-append", archives, project, str(uuid.uuid4()), str(uuid.uuid4()),
-        str(uuid.uuid4()), "run-started", str(uuid.uuid4()), "1795000000000", sha, "1",
+        str(uuid.uuid4()), "run-started", str(uuid.uuid4()), "1795000000000", "-", sha, "1",
     )
     built = time.perf_counter()
     events = timeline_fixture.build(

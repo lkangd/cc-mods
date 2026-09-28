@@ -8,9 +8,9 @@
 
 - [x] 当前 Project Timeline 没有任何活动、备份或隔离档案时，`/prompt-history clear-all` 返回 no-op 且不询问。
 - [x] 有数据时显示项目范围、活动/备份/隔离文件和记录数，并要求输入固定确认短语；提示不展示 prompt。
-- [x] `clear-all` 建立线性化切点和新的 Archive generation；切点前记录全部删除，切点后已接受的新提交只进入新 generation。
+- [x] `clear-all` 建立线性化切点和新的 Archive generation；切点前记录全部删除，切点后已接受的新提交只进入新 generation。（按 Q1：清除后原路径留空，新 generation 由下一次写入建出。）
 - [x] 旧 generation 的并发 writer、重试或陈旧 locator 无法向新 generation 写入或复活记录。
-- [x] 删除范围覆盖活动数据库、WAL/SHM、迁移备份、Quarantined Archives 及全部 prompt 元数据，以及会话索引（`<plugin data>/sessions/`）里指向本项目档案中出现过的 Run 的记录；之后 resume 这些会话会新建 Run。（Issue 32 新增。）
+- [x] 删除范围覆盖活动数据库、WAL/SHM、迁移备份、Quarantined Archives 及全部 prompt 元数据，以及会话索引（`<plugin data>/sessions/`）里指向本项目档案中出现过的 Run 的记录；之后 resume 这些会话会新建 Run。（Issue 32 新增。按 Q6：当前 Run 与仍在运行的 Run 保留索引，它们在新 generation 继续。）
 - [x] locator 生命周期保持独立；Collection consent 与当前 Run collection mode 保留，并在空的新 generation 中继续工作。
 - [x] secure delete、checkpoint/truncate、空间回收和文件删除完成后，byte marker 扫描确认所有项目 prompt 标记消失。
 - [x] 逻辑删除成功但任何敏感残留清理失败时，准确报告部分物理失败并保持 Archive unavailable，直到清理成功或使用者明确禁用。
@@ -80,3 +80,21 @@
 - **Q13 其他运行中 Run 的视图**：沿用现有换代路径（下一次提交、翻页到边缘、reload），另外 `/prompt-history` 展开时调一次 `archive-status`，generation 变了就重置窗口。不做定期轮询。
 - **Q14 当前 Run 的反馈**：立即重置视图、清对账状态。成功回复列出清掉的 Prompt Entry、Pending Capture 与隔离档案数，说明 Collection consent 与当前 Run 采集模式未变、新时间线从下一次提交开始，并附边界声明。部分失败回复「切点已生效，旧记录不会再被读写」、列出残留路径、说明清除完成前档案不可用、可再次执行 `/prompt-history clear-all` 续做。`status` 增加 `clear: unfinished · N residual`。文字不含 prompt 原文或文本哈希。
 - **默认项**：clear-all 不看 Collection consent 状态，有档案文件就可执行；helper 新增 `clear-inventory` 与 `clear-all`，`boundary-append` argv 多一个参数，helper protocol 加一，plugin test 假 helper 同步；验收沿用 helper 黑盒（generation 竞争、陈旧 lifecycle 回放、构造 `.clearing` 残留的各崩溃点、残留删除失败、byte marker 扫描）、plugin test（两个对话框、短语、no-op）、双 Run 真人 PTY（实现后另行征得授权），逐条变异检查。
+
+### Code review 修复（2026-09-28，round 1）
+
+产物在 `.code-review/runs/20260928-164931/round-1/`（已 gitignore）。26 条中修 20 条，6 条进 backlog（记为 4 个条目：其中 3 条是同一问题），无驳回。
+
+- **续做只续做**：`clear-all` 新增 `--continue`，意向已不在时什么都不删、答 `cleared:false`。「继续清除」（命令、损坏对话框、`clear-unfinished` 对话框）都走它；另一个 Run 已完成清除时，命令回复「上一次清除已由其他 Run 完成，未删除任何新记录。」，被挡住的提交直接放行。此前会在不要短语的情况下删除新 generation 的记录。
+- **删除可持久**：隔离子树里每一级目录在删除前先 `fsync`，`archives/quarantine/` 本身也同步；会话索引目录同步失败时，删除计为失败；意向 rename 成功后目录同步失败时报 `clear-unfinished`（此前报 `database-unavailable`）。
+- **清单真正只读**：计数改用不写任何东西的连接，WAL 已合并的档案以 `immutable=1` 只读主文件，SQLite 打不开时计数为未知而不是中止清单。
+- **插件**：
+  - 清除后同时丢弃本 Run 内存里没能记下的 `/clear`（`deferredClear`）；
+  - 宿主在切点之后终止 `clear-all` 时，按未完成清除报告，而不是「未删除任何内容」；
+  - Pending Capture 数量读不到时显示「无法读取」；
+  - 会话索引删除失败和插件状态清理失败都写进完成报告。
+- **其他**：`scripts/benchmark-timeline.sh` 补上 `boundary-append` 的 generation 参数；Issue 04、17、32、地图和本票的相关表述加了 Issue 30 修订说明。
+- **backlog**：
+  - `20260928-unknown-generation-lifecycle-writes-replay-unchecked.md`：generation 未知的 lifecycle 写入仍会不经校验地回放，要丢弃还是保留需要决定；
+  - `20260928-shared-intent-writer.md`、`20260928-quarantined-listing-parsed-twice.md`、`20260928-inventory-scans-twice.md`：清理项。
+- **测试**：helper 新增 2 项（共 130），plugin test 新增 6 项（共 380），新增的 9 条变异全部被抓到。「本 Run 没能记下的 `/clear`」这项在 2.1.273 的测试套件里无法触发 classic 事件，只在 2.1.283 上执行。

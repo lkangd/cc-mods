@@ -34,7 +34,7 @@
 
 ### 2026-09-23 · 实现前的两处设计（与使用者对齐）
 
-9. **会话 → Run 索引由 bridge 维护**：plugin data 下每个会话一个私有小文件，只存 session id、Run id 与 archiveGeneration，不含 prompt；每次发布 locator 时为新会话写入，resume 时查它。Run 仍只在 bridge 一处决定。副作用（已接受）：从未产生事件的会话被 resume 时也续接原 Run，比第 1 条「档案里无事件就新建」略宽。索引随 `clear-all`（Issue 30）一并删除。
+9. **会话 → Run 索引由 bridge 维护**：plugin data 下每个会话一个私有小文件，只存 session id、Run id 与 archiveGeneration，不含 prompt；每次发布 locator 时为新会话写入，resume 时查它。Run 仍只在 bridge 一处决定。副作用（已接受）：从未产生事件的会话被 resume 时也续接原 Run，比第 1 条「档案里无事件就新建」略宽。索引随 `clear-all`（Issue 30）一并删除。（2026-09-28 Issue 30 修订：仍在运行、会在新 generation 继续的 Run 保留索引。）
 10. **locator 按进程命名**：`<session_id>.<hostPid>-<启动秒>-<启动微秒>.json`，修复并发 resume 同一会话时后到进程覆盖先到进程 locator 的既有缺陷；hook 列出 `<session_id>.*.json`，选 helper preflight 通过的那一个。
 
 ### 2026-09-23 · 实现（TDD，未提交）
@@ -111,7 +111,7 @@ Run 现在是一条会话谱系，不再等于一个进程。`claude --resume`�
 - **给后续实现者**：
   - Run collection mode、UI 展开状态、`clear-run` 都跟着谱系走。
   - 恢复队列的总上限是 64 条（`LIFECYCLE_QUEUE_CAPACITY`），其中 clear 另有 16 条的上限。
-  - `clear-all`（Issue 30）必须删除会话索引里指向本项目 Run 的记录。
+  - `clear-all`（Issue 30）必须删除会话索引里指向本项目 Run 的记录。（2026-09-28 Issue 30 修订：当前 Run 与仍在运行的 Run 除外，见 Issue 30 的 Q6。）
   - 进程内 `/resume` 的 SessionEnd 接线只能用 PTY 验证。
 
 一轮 `/code-review` 找到 22 条：修了 13 条，4 条进 backlog（其中每次提交都要扫描全部 Run 生命周期记录那条归入 `20260923-lifecycle-store-scan-per-submission.md`），3 条按「边界惰性」驳回，理由见 Comments。门禁：`2.1.273`/`2.1.278` 各 **143** 项 plugin tests、8 静态、**22** bridge、**44** helper，TypeScript 与确定性重建全部通过；真人 PTY 在两个版本上都通过，review 修复后也复验了。已提交到 `prompt-trail/issue-32-run-lineage-across-resume`（`6e6cf1a`），未合并进 `main`。

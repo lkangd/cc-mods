@@ -61,5 +61,5 @@ Blocked by: 01, 02, 09
 - 有数据时，`clear-run` 先显示当前 Run、记录数和副本边界并要求一次确认；`clear-all` 显示项目范围、文件与记录数，并要求输入固定确认短语。无目标记录时返回 no-op，不询问。
 - `clear-run` 删除当前 Run 的 Prompt Entries、Pending Captures 和相关原文。若存在无法安全打开的 Quarantined Archive，则不得宣称已完整按 Run 删除，应拒绝并引导使用 `clear-all`。
 - `clear-all` 删除当前项目的活动 DB、WAL/SHM、迁移备份、隔离档案及所有 prompt 元数据；不删除 locator，也不撤销项目 consent 或当前 Run 模式，随后建立空的新 Archive generation。
-- 使用 `secure_delete`、WAL checkpoint/truncate 和必要的空间回收。若事务删除已完成但 WAL、备份或残留文件清理失败，必须报告“逻辑删除完成、物理清除未完成”、列出残留并保持 Archive unavailable，直到清理成功或用户明确选择禁用后继续。
+- 使用 `secure_delete`、WAL checkpoint/truncate 和必要的空间回收。若事务删除已完成但 WAL、备份或残留文件清理失败，必须报告“逻辑删除完成、物理清除未完成”、列出残留并保持 Archive unavailable，直到清理成功或用户明确选择禁用后继续。（2026-09-28 Issue 30 修订：`clear-all` 删除的是整个文件，只做 `unlink` 与目录 `fsync`，不覆写；写时复制文件系统与 SSD 上不保证物理不可恢复，确认界面会声明这一边界。）
 - 所有删除提示都必须重申：不删除 Claude Code 自身 transcript/history、文件系统快照、系统或第三方备份中的副本，也不保证 SSD 物理介质上的不可恢复擦除。
