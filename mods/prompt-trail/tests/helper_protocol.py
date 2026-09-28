@@ -627,21 +627,17 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(self_parent.returncode, 25)
         self.assertEqual(json.loads(self_parent.stderr)["category"], "capture-input")
 
-        staged = self.run_helper(
+        # Refused before anything is staged (Issue 29).
+        orphan = self.run_helper(
             *self.begin_argv(event_id, parent=str(uuid.uuid4()), **identity),
             input_text="PT-SECRET-ORPHAN",
         )
-        self.assertEqual(staged.returncode, 0, staged.stderr)
-
-        confirmed = self.run_helper(
-            *self.confirm_argv(event_id, project_id=project_id),
-            input_text="PT-SECRET-ORPHAN",
-        )
-        self.assertEqual(confirmed.returncode, 25)
+        self.assertEqual(orphan.returncode, 25)
         self.assertEqual(
-            json.loads(confirmed.stderr)["category"], "capture-parent-unknown"
+            json.loads(orphan.stderr)["category"], "capture-parent-unknown"
         )
-        self.assertNotIn("PT-SECRET", confirmed.stderr)
+        self.assertNotIn("PT-SECRET", orphan.stderr)
+        self.assertEqual(self.markers_left(b"PT-SECRET-ORPHAN"), [])
 
     def test_capture_rejects_prompt_bytes_that_are_not_valid_utf8(self) -> None:
         project_id = "d" * 64
@@ -4818,6 +4814,22 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(writer.returncode, 0, writer.stderr.read())
         self.assertEqual((answer["entries"], answer["pending"]), (3, 2))
         self.assertEqual(self.markers_left(b"PT-SECRET-UNDER-WAY"), [])
+
+
+    def test_a_capture_begun_on_an_entry_a_run_clear_removed_stages_nothing(self) -> None:
+        project_id = "c3" * 32
+        cleared = self.identity(project_id)
+        kept = self.identity(project_id)
+        tip = self.capture("PT-SECRET-GONE", identity=cleared)
+        self.clear_run(project_id, cleared["run_id"])
+
+        refused = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), parent=tip, **kept), input_text="PT-SECRET-ON-GONE"
+        )
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr), {"category": "capture-parent-unknown"})
+        self.assertEqual(self.markers_left(b"PT-SECRET-ON-GONE"), [])
 
 
 if __name__ == "__main__":
