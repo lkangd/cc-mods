@@ -4325,13 +4325,22 @@ static bool clear_run_wal_empty(const char *database_path) {
   return status.st_size == 0;
 }
 
-static void write_clear_run(const char *project_id, bool cleared, bool continued, ClearRunCounts counts) {
+/* `own` says whether the Run cleared is the caller's: one that only
+   continued may have cleared another's. */
+static void write_clear_run(
+  const char *project_id,
+  bool cleared,
+  bool continued,
+  bool own,
+  ClearRunCounts counts
+) {
   write_status_string("{\"projectId\":", project_id);
   printf(
-    ",\"cleared\":%s,\"continued\":%s,\"entries\":%lld,\"pending\":%lld,"
+    ",\"cleared\":%s,\"continued\":%s,\"ownRun\":%s,\"entries\":%lld,\"pending\":%lld,"
     "\"events\":%lld,\"unlinked\":%lld}\n",
     cleared ? "true" : "false",
     continued ? "true" : "false",
+    own ? "true" : "false",
     counts.entries,
     counts.pending,
     counts.events,
@@ -4351,7 +4360,7 @@ static void clear_run(int argc, char **argv) {
   if (!pt_is_safe_identifier(argv[4])) archive_error("clear-input");
   ClearRunCounts counts = { 0, 0, 0, 0, 0, 0 };
   if (!capture_runtime(database_root, argv[5], argv[6], PT_ROOT_OPTIONAL)) {
-    write_clear_run(project_id, false, false, counts);
+    write_clear_run(project_id, false, false, false, counts);
     return;
   }
   lock_project(database_root, project_id, true);
@@ -4364,7 +4373,7 @@ static void clear_run(int argc, char **argv) {
   bool resuming = clear_run_intended(intent, run_id);
   if (!resuming) {
     if (only_continue) {
-      write_clear_run(project_id, false, false, counts);
+      write_clear_run(project_id, false, false, false, counts);
       return;
     }
     snprintf(run_id, sizeof(run_id), "%s", argv[4]);
@@ -4383,7 +4392,7 @@ static void clear_run(int argc, char **argv) {
   bool archived = lstat(database_path, &status) == 0;
   if (!archived && errno != ENOENT) archive_error("database-unavailable");
   if (!archived && !resuming) {
-    write_clear_run(project_id, false, false, counts);
+    write_clear_run(project_id, false, false, false, counts);
     return;
   }
   sqlite3 *database = archived
@@ -4397,7 +4406,7 @@ static void clear_run(int argc, char **argv) {
   if (!resuming) {
     if (counts.entries + counts.pending + counts.events == 0) {
       close_archive(database);
-      write_clear_run(project_id, false, false, counts);
+      write_clear_run(project_id, false, false, false, counts);
       return;
     }
     /* The cut. */
@@ -4439,7 +4448,7 @@ static void clear_run(int argc, char **argv) {
   if (!sync_directory(database_root) || !physical) archive_error("clear-run-unfinished");
   if (unlink(intent) != 0 && errno != ENOENT) archive_error("clear-run-unfinished");
   (void)sync_directory(database_root);
-  write_clear_run(project_id, true, resuming, counts);
+  write_clear_run(project_id, true, resuming, strcmp(run_id, argv[4]) == 0, counts);
 }
 
 static void usage(void) {
