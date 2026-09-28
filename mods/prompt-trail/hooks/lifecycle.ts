@@ -65,6 +65,87 @@ export type LifecycleState = {
   /* The latest process to take the Run up. Its opening boundary — the Run's
      start, or an attach — has been formed; `closed` once its detach has. */
   attachment?: Attachment
+  /* The Integrity gap this Run owes: the archive cannot show that its records
+     match the conversation, and says so before it records anything more. */
+  gap?: OwedGap
+}
+
+/* Why a Run's records can no longer be proven to match its conversation. */
+export type GapReason =
+  /* A submission's hook failed and the host let the prompt through. */
+  | 'fail-open'
+  /* The process went while a `/clear` was being recorded. */
+  | 'clear-unrecorded'
+  | 'queue-overflow'
+  | 'queue-damaged'
+  | 'clear-unobserved'
+  /* An owed boundary whose Archive generation could not be told apart from a
+     cleared one, dropped rather than replayed into whichever stands. */
+  | 'generation-unknown'
+
+/* An Integrity gap owed to the archive, with the recovery boundary that
+   follows it. Its fields are fixed when the loss is found, so every replay
+   names the same event; the recovery is dated when the gap lands, and `landed`
+   says the gap is in the archive and only the recovery is still owed. */
+export type OwedGap = {
+  eventId: string
+  runId: string
+  segmentId: string
+  branchId: string
+  occurredAt: number
+  generation: string | null
+  reasons: GapReason[]
+  landed?: true
+  recoveryAt?: number
+}
+
+/* The losses a Run's record already carries as flags: each is a gap to
+   record, not only a line in the status report. */
+export function lossReasons(state: LifecycleState): GapReason[] {
+  return [
+    ...(state.overflowed ? ['queue-overflow' as const] : []),
+    ...(state.damaged ? ['queue-damaged' as const] : []),
+    ...(state.unobservedClear ? ['clear-unobserved' as const] : []),
+  ]
+}
+
+/* Owing a gap for these losses. Before the owed gap lands, a new loss is one
+   more reason for the same gap; once it has landed, a new loss follows it and
+   is a gap of its own. */
+export function oweGap(
+  state: LifecycleState,
+  reasons: readonly GapReason[],
+  fields: Omit<OwedGap, 'reasons' | 'landed' | 'recoveryAt'>,
+): LifecycleState {
+  const owed = state.gap
+  if (owed && !owed.landed) {
+    const merged = [...owed.reasons, ...reasons.filter(reason => !owed.reasons.includes(reason))]
+    return merged.length === owed.reasons.length ? state : { ...state, gap: { ...owed, reasons: merged } }
+  }
+  return { ...state, gap: { ...fields, reasons: [...reasons] } }
+}
+
+/* The gap is in the archive; its recovery is dated now and replayed as such. */
+export function landGap(state: LifecycleState, recoveryAt: number): LifecycleState {
+  const owed = state.gap
+  if (!owed || owed.landed) return state
+  return { ...state, gap: { ...owed, landed: true, recoveryAt } }
+}
+
+/* The gap and its recovery are both in the archive: nothing is owed, and the
+   losses it records are no longer reported as current. A loss found after it
+   landed is not among them, and stays to be recorded by a gap of its own. */
+export function settleGap(state: LifecycleState): LifecycleState {
+  const owed = state.gap
+  if (!owed) return state
+  const recorded = new Set(owed.reasons)
+  const { gap: _gap, overflowed, damaged, unobservedClear, ...rest } = state
+  return {
+    ...rest,
+    ...(overflowed && !recorded.has('queue-overflow') ? { overflowed } : {}),
+    ...(damaged && !recorded.has('queue-damaged') ? { damaged } : {}),
+    ...(unobservedClear && !recorded.has('clear-unobserved') ? { unobservedClear } : {}),
+  }
 }
 
 /* One process generation's stretch of a Run. `id` makes the attach and detach

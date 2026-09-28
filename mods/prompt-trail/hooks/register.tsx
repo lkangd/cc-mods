@@ -26,12 +26,18 @@ import {
 import { gitToplevelArgv, projectRootFrom } from './project'
 import type {
   Attachment,
+  GapReason,
   LifecycleEvent,
   LifecycleState,
   LifecycleWrite,
+  OwedGap,
 } from './lifecycle'
 import {
   LIFECYCLE_QUEUE_CAPACITY,
+  landGap,
+  lossReasons,
+  oweGap,
+  settleGap,
   attachRun,
   attachmentOpening,
   clearTransitionState,
@@ -85,9 +91,10 @@ type CollectionBoundaryKind =
 /* Every non-prompt Timeline Event the plugin writes. A Clear Boundary is not a
    Collection Boundary: it records where a Conversation Segment ended, not
    whether a Run was recording; a Run boundary records where a Run first
-   appeared, or where a process took it up again or left it. They share the
-   table, the project-level sequence and the drawing of one dim row, and
-   nothing else. */
+   appeared, or where a process took it up again or left it; an Integrity gap
+   where a Run's records stopped being provable, and its recovery where they
+   became provable again. They share the table, the project-level sequence and
+   the drawing of one row, and nothing else. */
 type BoundaryKind =
   | CollectionBoundaryKind
   | 'clear'
@@ -95,6 +102,8 @@ type BoundaryKind =
   | 'run-attached'
   | 'run-detached'
   | 'archive-quarantined'
+  | 'integrity-gap'
+  | 'integrity-recovery'
 
 /* The Run-level switch, persisted per project and Run so an explicit disable
    survives a module reload. A Run with no record collects by default; only
@@ -460,7 +469,7 @@ let lifecycleFailure: string | undefined
    is taken once and kept, so completing it later replays the same boundary
    rather than a drifted one. It blocks this Run's next composer submission,
    and every drain tries to finish it. */
-let deferredClear: { sessionId: string; occurredAt: number } | undefined
+let deferredClear: { sessionId: string; occurredAt: number; generation: string | null } | undefined
 /* What the project's other Runs still owe, as the last enumeration found it.
    Kept for the report only; the drain always re-enumerates. */
 /* The Run and classic session whose Active Branch this module instance has
@@ -1269,7 +1278,11 @@ function storedReconcile(value: unknown): ReconcileState | undefined {
    a single changed field fails the whole retry as `boundary-conflict`. So the
    record is accepted only when every field it will replay is intact; a damaged
    one is dropped rather than retried into a permanent refusal. */
-function storedLifecycleWrite(value: unknown): LifecycleWrite | undefined {
+/* A queued write that names no generation was queued by a build from before
+   writes named one: which generation it belongs to cannot be recovered. */
+const UNKNOWN_GENERATION = 'unknown'
+
+function storedLifecycleWrite(value: unknown, queued: boolean): LifecycleWrite | undefined {
   if (!isRecord(value)) return undefined
   /* An end a build from before Runs were lineages still owes: it is the same
      fact, a process leaving the Run, and is replayed under its original id. */
@@ -1295,7 +1308,7 @@ function storedLifecycleWrite(value: unknown): LifecycleWrite | undefined {
     occurredAt: value.occurredAt as number,
     ...(value.generation === null || isSafeId(value.generation)
       ? { generation: value.generation }
-      : {}),
+      : queued ? { generation: UNKNOWN_GENERATION } : {}),
   }
 }
 
@@ -1326,13 +1339,52 @@ function storedAttachment(value: unknown): Attachment | undefined {
     !/^\d+-\d+-\d+$/.test(value.host) ||
     !isSafeId(value.segmentId)
   ) return undefined
-  const leaving = value.leaving === undefined ? undefined : storedLifecycleWrite(value.leaving)
+  const leaving = value.leaving === undefined ? undefined : storedLifecycleWrite(value.leaving, false)
   return {
     id: value.id,
     host: value.host,
     segmentId: value.segmentId,
     ...(value.closed === true ? { closed: true as const } : {}),
     ...(leaving?.kind === 'run-detached' ? { leaving } : {}),
+  }
+}
+
+const GAP_REASONS = new Set<string>([
+  'fail-open',
+  'clear-unrecorded',
+  'queue-overflow',
+  'queue-damaged',
+  'clear-unobserved',
+  'generation-unknown',
+])
+
+/* An owed gap is replayed only when every field it names is intact; one that
+   is not is still a loss, and is owed again from what can be read. */
+function storedGap(value: unknown): OwedGap | undefined {
+  if (
+    !isRecord(value) ||
+    !isSafeId(value.eventId) ||
+    !isSafeId(value.runId) ||
+    !isSafeId(value.segmentId) ||
+    !isSafeId(value.branchId) ||
+    !Number.isSafeInteger(value.occurredAt) ||
+    (value.occurredAt as number) < 0 ||
+    !(value.generation === null || isSafeId(value.generation)) ||
+    !Array.isArray(value.reasons) ||
+    !value.reasons.every(reason => typeof reason === 'string' && GAP_REASONS.has(reason))
+  ) return undefined
+  const landed = value.landed === true
+    && Number.isSafeInteger(value.recoveryAt)
+    && (value.recoveryAt as number) >= 0
+  return {
+    eventId: value.eventId,
+    runId: value.runId,
+    segmentId: value.segmentId,
+    branchId: value.branchId,
+    occurredAt: value.occurredAt as number,
+    generation: value.generation as string | null,
+    reasons: value.reasons as GapReason[],
+    ...(landed ? { landed: true as const, recoveryAt: value.recoveryAt as number } : {}),
   }
 }
 
@@ -1343,7 +1395,7 @@ function storedLifecycle(value: unknown): LifecycleState | undefined {
   const queue: LifecycleWrite[] = []
   let damaged = value.damaged === true
   for (const row of value.queue.slice(0, LIFECYCLE_QUEUE_CAPACITY)) {
-    const write = storedLifecycleWrite(row)
+    const write = storedLifecycleWrite(row, true)
     if (write) queue.push(write)
     /* Replaying a row whose fields no longer hold would fail as a
        `boundary-conflict` forever, so it is dropped — and the loss recorded,
@@ -1353,6 +1405,8 @@ function storedLifecycle(value: unknown): LifecycleState | undefined {
   if (value.queue.length > LIFECYCLE_QUEUE_CAPACITY) damaged = true
   const clear = storedClearTransition(value.clear)
   const attachment = storedAttachment(value.attachment)
+  const gap = storedGap(value.gap)
+  if (value.gap !== undefined && !gap) damaged = true
   return {
     version: 1,
     queue,
@@ -1362,6 +1416,7 @@ function storedLifecycle(value: unknown): LifecycleState | undefined {
     ...(damaged ? { damaged: true as const } : {}),
     ...(value.started === true ? { started: true as const } : {}),
     ...(attachment ? { attachment } : {}),
+    ...(gap ? { gap } : {}),
   }
 }
 
@@ -1420,7 +1475,11 @@ async function loadLifecycle(
   const key = lifecycleKey(currentProject.id, startup.runId)
   let value: LifecycleState
   try {
-    value = storedLifecycle(await $.store.get(key)) ?? emptyLifecycle()
+    const stored = await $.store.get(key)
+    /* A record that is there and cannot be read lost whatever it owed: that
+       is a loss to record, not an empty queue. */
+    value = storedLifecycle(stored)
+      ?? (stored === undefined ? emptyLifecycle() : { ...emptyLifecycle(), damaged: true })
   } catch (error) {
     /* Not knowing is reported as not knowing, never as an empty queue. */
     lifecycle = undefined
@@ -1437,23 +1496,32 @@ async function saveLifecycle(
 ): Promise<void> {
   if (!startup.runId) throw new Error('capture-identity')
   const key = lifecycleKey(currentProject.id, startup.runId)
-  /* A fact is owed to the generation in place as it happens, so a clear or a
-     quarantine before it lands retires it with the rest of that history. */
-  if (value.queue.some(write => write.generation === undefined)) {
-    let generation: string | null = null
-    try {
-      generation = (await readArchiveStatus($, currentProject)).generation
-    } catch {
-      // Unknown, it is replayed into whichever generation stands then.
-    }
-    value = {
-      ...value,
-      queue: value.queue.map(write =>
-        write.generation === undefined ? { ...write, generation } : write),
-    }
-  }
+  value = await stampGenerations($, currentProject, value)
   lifecycle = { key, value }
   await $.store.set(key, value)
+}
+
+/* A fact is owed to the generation in place as it happens, so a clear or a
+   quarantine before it lands retires it with the rest of that history. One
+   stamped while the archive cannot say is unknown, and is never replayed
+   into whichever generation stands by then. */
+async function stampGenerations(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  value: LifecycleState,
+): Promise<LifecycleState> {
+  if (!value.queue.some(write => write.generation === undefined)) return value
+  let generation: string | null = UNKNOWN_GENERATION
+  try {
+    generation = (await readArchiveStatus($, currentProject)).generation
+  } catch {
+    // Left unknown.
+  }
+  return {
+    ...value,
+    queue: value.queue.map(write =>
+      write.generation === undefined ? { ...write, generation } : write),
+  }
 }
 
 /* What the project's other Runs left behind. A Run that crashed mid-`/clear`
@@ -2078,6 +2146,8 @@ const TIMELINE_KINDS = new Set<string>([
   'run-attached',
   'run-detached',
   'archive-quarantined',
+  'integrity-gap',
+  'integrity-recovery',
 ])
 
 /* What an archive written before a Run became a conversation's lineage called
@@ -3361,7 +3431,7 @@ async function detachAbandonedRuns(
           occurredAt: await $.clock.now(),
         },
       )
-      await $.store.set(record.key, decision.state)
+      await $.store.set(record.key, await stampGenerations($, currentProject, decision.state))
     }
     return true
   } catch {
@@ -3443,6 +3513,16 @@ async function flushOwnLifecycle(
   }
   let settled = own
   for (const write of own.queue) {
+    if (write.generation === UNKNOWN_GENERATION) {
+      try {
+        settled = oweGap(settled, ['generation-unknown'], await gapFields($, currentProject))
+      } catch {
+        break
+      }
+      settled = dequeueLifecycleWrite(settled, write.eventId)
+      announceGap($, ['generation-unknown'])
+      continue
+    }
     try {
       await writeBoundary($, currentProject, write)
     } catch (error) {
@@ -3476,16 +3556,62 @@ async function flushForeignLifecycles(
     return false
   }
   let settledAll = true
+  let live: string[] | null | undefined
   for (const record of foreign) {
-    if (record.value.queue.length === 0) continue
+    if (record.value.queue.length === 0 && !record.value.gap) continue
     let settled = record.value
     for (const write of record.value.queue) {
+      if (write.generation === UNKNOWN_GENERATION) {
+        /* Derived from the write, so two Runs finding it at once owe the
+           same gap. */
+        try {
+          settled = oweGap(settled, ['generation-unknown'], {
+            eventId: await sha256(`prompt-trail:integrity-gap:generation:1:${write.eventId}`),
+            runId: write.runId,
+            segmentId: write.segmentId,
+            branchId: write.branchId,
+            occurredAt: write.occurredAt,
+            generation: null,
+          })
+        } catch {
+          break
+        }
+        settled = dequeueLifecycleWrite(settled, write.eventId)
+        continue
+      }
       try {
         await writeBoundary($, currentProject, write)
       } catch (error) {
         if (!retiredWrite(error)) break
       }
       settled = dequeueLifecycleWrite(settled, write.eventId)
+    }
+    /* The gap another Run owes is written for it once what it follows has
+       landed. Its recovery says that Run's collection is provable again,
+       which only holds once that Run is gone: a live one writes its own. */
+    const owed = settled.queue.length === 0 ? settled.gap : undefined
+    if (owed) {
+      try {
+        if (!owed.landed) {
+          await writeIntegrity($, currentProject, owed, 'integrity-gap')
+          settled = landGap(settled, await $.clock.now())
+        }
+        if (live === undefined) {
+          try {
+            live = (await readArchiveStatus($, currentProject)).liveRuns
+          } catch {
+            live = null
+          }
+        }
+        const landed = settled.gap
+        if (landed && live !== null && !live.includes(landed.runId)) {
+          await writeIntegrity($, currentProject, landed, 'integrity-recovery')
+          settled = settleGap(settled)
+        }
+      } catch (error) {
+        if (retiredWrite(error)) settled = settleGap(settled)
+        else settledAll = false
+      }
     }
     if (settled !== record.value) {
       try {
@@ -3497,7 +3623,7 @@ async function flushForeignLifecycles(
         continue
       }
     }
-    if (settled.queue.length > 0) settledAll = false
+    if (settled.queue.length > 0 || (settled.gap !== undefined && !settled.gap.landed)) settledAll = false
   }
   return settledAll
 }
@@ -3531,13 +3657,23 @@ async function applyLifecycle(
      taken now, because a boundary written later must still say when the
      segment actually ended. An exit has no next submission to block: a Run
      end that cannot be recorded leaves the Run unclosed, which is what it is. */
-  const defer = async () => {
+  const defer = async (seenIn?: ProjectState) => {
     if (!isClearEnd || deferredClear) return
+    let occurredAt = 0
     try {
-      deferredClear = { sessionId: input.sessionId, occurredAt: await $.clock.now() }
+      occurredAt = await $.clock.now()
     } catch {
-      deferredClear = { sessionId: input.sessionId, occurredAt: 0 }
+      // Dated as unknown.
     }
+    /* Owed to the generation it was seen in, so a clear or quarantine before
+       it lands retires it with that history. */
+    let generation: string | null = UNKNOWN_GENERATION
+    try {
+      if (seenIn) generation = (await readArchiveStatus($, seenIn)).generation
+    } catch {
+      // Left unknown.
+    }
+    deferredClear = { sessionId: input.sessionId, occurredAt, generation }
   }
 
   let currentProject: ProjectState
@@ -3551,7 +3687,7 @@ async function applyLifecycle(
      and nothing to owe. */
   if (currentProject.consent !== 'enabled') return
   if (!startup.runId) {
-    await defer()
+    await defer(currentProject)
     return
   }
 
@@ -3566,7 +3702,7 @@ async function applyLifecycle(
     try {
       mode = (await loadRunMode($, currentProject)).value
     } catch {
-      await defer()
+      await defer(currentProject)
       return
     }
     if (mode.mode === 'disabled') return
@@ -3576,7 +3712,7 @@ async function applyLifecycle(
      ahead of it. Leaving never opens one: a process that archived nothing has
      nothing to leave. */
   if (isClearEnd && !await ensureRunAttached($, currentProject, input.sessionId)) {
-    await defer()
+    await defer(currentProject)
     return
   }
 
@@ -3584,7 +3720,7 @@ async function applyLifecycle(
   try {
     state = await loadLifecycle($, currentProject)
   } catch {
-    await defer()
+    await defer(currentProject)
     return
   }
 
@@ -3603,7 +3739,7 @@ async function applyLifecycle(
           : await $.clock.now(),
       }
     } catch {
-      await defer()
+      await defer(currentProject)
       return
     }
   } else if ((isRunEnd || isResumeEnd)
@@ -3632,7 +3768,7 @@ async function applyLifecycle(
     ...(end ? { end } : {}),
   })
   if (decision.note === 'clear-deferred') {
-    await defer()
+    await defer(currentProject)
     return
   }
 
@@ -3642,7 +3778,7 @@ async function applyLifecycle(
     try {
       await saveLifecycle($, currentProject, queued)
     } catch {
-      await defer()
+      await defer(currentProject)
       return
     }
     if (isClearEnd) deferredClear = undefined
@@ -3706,6 +3842,120 @@ async function writeBoundary(
   }
 }
 
+/* What each loss is called where the person reads it. */
+const GAP_REASON_TEXT: Record<GapReason, string> = {
+  'fail-open': '上次提交时 Prompt Trail 出错，那条 prompt 未被记录',
+  'clear-unrecorded': '/clear 未能记录',
+  'queue-overflow': '恢复队列已溢出，部分 Clear Boundary 或 Run 边界未记录',
+  'queue-damaged': '恢复队列有无法重放的记录',
+  'clear-unobserved': '观察到无对应 SessionEnd 的 /clear',
+  'generation-unknown': '有 Clear Boundary 或 Run 边界无法确定所属的档案，已丢弃',
+}
+
+function gapReasonsText(reasons: readonly GapReason[]): string {
+  return reasons.map(reason => GAP_REASON_TEXT[reason]).join('；')
+}
+
+function announceGap($: EngineInterface, reasons: readonly GapReason[]): void {
+  $.ui.toast(`Prompt Trail 无法证明此前的记录与对话一致（${gapReasonsText(reasons)}），已在时间线中标记 Integrity gap。`)
+}
+
+/* The fields of a gap found now, in this Run's current segment and branch,
+   owed to the generation standing now: one a clear or quarantine retires
+   before it lands goes with the history it described. */
+async function gapFields(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<Omit<OwedGap, 'reasons' | 'landed' | 'recoveryAt'>> {
+  if (!startup.runId || !startup.sessionId) throw new Error('capture-identity')
+  let generation: string | null = null
+  try {
+    generation = (await readArchiveStatus($, currentProject)).generation
+  } catch {
+    // Unknown, the gap is written into whichever generation stands.
+  }
+  return {
+    eventId: crypto.randomUUID(),
+    runId: startup.runId,
+    segmentId: startup.sessionId,
+    branchId: (await branchState($, currentProject)).value.branchId,
+    occurredAt: await $.clock.now(),
+    generation,
+  }
+}
+
+/* One of the two integrity boundaries of an owed gap. */
+async function writeIntegrity(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  owed: OwedGap,
+  kind: 'integrity-gap' | 'integrity-recovery',
+): Promise<void> {
+  const eventId = kind === 'integrity-gap'
+    ? owed.eventId
+    : await sha256(`prompt-trail:integrity-recovery:1:${owed.eventId}`)
+  try {
+    const appended = await appendBoundary($, currentProject, owed.branchId, kind, {
+      eventId,
+      segmentId: owed.segmentId,
+      occurredAt: kind === 'integrity-gap' ? owed.occurredAt : owed.recoveryAt ?? owed.occurredAt,
+      runId: owed.runId,
+      generation: owed.generation,
+    })
+    recordBoundary($, kind, appended, owed.runId, owed.segmentId)
+    lifecycleFailure = undefined
+    $.ui.invalidate('ui.render')
+  } catch (error) {
+    lifecycleFailure = failureCategory(error, 'boundary-append')
+    throw error
+  }
+}
+
+/* Recording what this Run lost, once everything it owes ahead of the loss has
+   landed: the Integrity gap first, then — unless the caller has more to write
+   before collection is provable again — the recovery boundary that starts a
+   new verifiable interval. Answers whether nothing is left owed that must
+   land before the next Prompt Entry. */
+async function recordIntegrityGap(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  recover: boolean,
+): Promise<boolean> {
+  let state: LifecycleState
+  try {
+    state = await loadLifecycle($, currentProject)
+    const fresh = lossReasons(state).filter(reason => !state.gap?.reasons.includes(reason))
+    if (fresh.length > 0) {
+      state = oweGap(state, fresh, await gapFields($, currentProject))
+      await saveLifecycle($, currentProject, state)
+      announceGap($, fresh)
+    }
+  } catch {
+    return false
+  }
+  const owed = state.gap
+  if (!owed) return true
+  try {
+    if (!owed.landed) {
+      await writeIntegrity($, currentProject, owed, 'integrity-gap')
+      state = landGap(state, await $.clock.now())
+      await saveLifecycle($, currentProject, state)
+    }
+    if (!recover) return true
+    const landed = state.gap
+    if (landed) await writeIntegrity($, currentProject, landed, 'integrity-recovery')
+  } catch (error) {
+    if (!retiredWrite(error)) return false
+    /* Owed to history since cleared or quarantined: it went with it. */
+  }
+  try {
+    await saveLifecycle($, currentProject, settleGap(state))
+  } catch {
+    return false
+  }
+  return true
+}
+
 /* Emptying the lifecycle recovery queue, which spec §9 requires before the next
    composer submission: a prompt archived ahead of the Clear Boundary that
    precedes it would put the segment break in the wrong place, so a queue that
@@ -3717,6 +3967,7 @@ async function writeBoundary(
 async function drainLifecycle(
   $: EngineInterface,
   currentProject: ProjectState,
+  recover = true,
 ): Promise<'clear' | 'blocked'> {
   /* Every caller is about to write for this Run, so its start is owed first. */
   if (!await ensureRunAttached($, currentProject)) return 'blocked'
@@ -3733,6 +3984,7 @@ async function drainLifecycle(
         segmentId: owed.sessionId,
         branchId: (await branchState($, currentProject, owed.sessionId)).value.branchId,
         occurredAt: owed.occurredAt,
+        generation: owed.generation,
       }
       const state = await loadLifecycle($, currentProject)
       await saveLifecycle($, currentProject, queueLifecycleWrite(state, write))
@@ -3746,7 +3998,8 @@ async function drainLifecycle(
      gone, and this Run's own start is not ordered ahead of them. */
   const foreignSettled = await flushForeignLifecycles($, currentProject)
   const ownSettled = await flushOwnLifecycle($, currentProject)
-  return foreignSettled && ownSettled ? 'clear' : 'blocked'
+  if (!foreignSettled || !ownSettled) return 'blocked'
+  return await recordIntegrityGap($, currentProject, recover) ? 'clear' : 'blocked'
 }
 
 /* Why a collecting Run is holding a submission: the failure as `status`
@@ -3778,6 +4031,10 @@ type ArchiveStatus = {
   clearRunUnderway: boolean
   clearRunResidual?: number
   quarantined: { name: string; path: string; bytes: number }[]
+  /* How many Integrity gaps the archive holds; null when it cannot say. */
+  integrityGaps: number | null
+  /* The Runs other live processes hold; null when that cannot be read. */
+  liveRuns: string[] | null
 }
 
 type SubmitOutcome = { done: PromptSubmitResult } | { blocked: Blocked }
@@ -3930,6 +4187,12 @@ async function readArchiveStatus(
     quarantineUnderway: value.quarantineUnderway,
     clearUnderway: value.clearUnderway === true,
     clearRunUnderway: value.clearRunUnderway === true,
+    integrityGaps: Number.isSafeInteger(value.integrityGaps) && (value.integrityGaps as number) >= 0
+      ? value.integrityGaps as number
+      : null,
+    liveRuns: Array.isArray(value.liveRuns) && value.liveRuns.every(isSafeId)
+      ? value.liveRuns as string[]
+      : null,
     quarantined: value.quarantined.map((kept: unknown) => {
       if (
         !isRecord(kept) ||
@@ -4825,6 +5088,8 @@ function boundaryLine(kind: BoundaryKind | 'run-unclosed', splitFrom?: string): 
   /* Drawn, never archived: the archive cannot tell a process that crashed from
      one still running elsewhere, and this claims only what it knows. */
   if (kind === 'run-unclosed') return '—— Run 未记录离开 ——'
+  if (kind === 'integrity-gap') return '—— Integrity gap：此前的记录无法证明与对话一致 ——'
+  if (kind === 'integrity-recovery') return '—— 已恢复可验证采集（此前的缺口不会补齐）——'
   if (kind === 'collection-started') return '—— 采集已开始 ——'
   if (kind === 'collection-stopped') {
     return '—— 采集已停止（其后的 prompt 未记录）——'
@@ -5334,7 +5599,21 @@ async function saveExpanded($: EngineInterface): Promise<void> {
 
 /* One row of the expanded band, a line each: a Prompt Entry (a stop for the
    focus ring), a fold, or a line of text. */
-type BandRow = { key: string; text: string; dim: boolean; fold?: string; entry?: true; eventId?: string }
+type BandRow = {
+  key: string
+  text: string
+  dim: boolean
+  /* A row that says the history around it cannot be proven complete. */
+  warn?: true
+  fold?: string
+  entry?: true
+  eventId?: string
+}
+
+function isIntegrityRow(item: TimelineItem): boolean {
+  return item.kind === 'boundary'
+    && (item.boundary === 'integrity-gap' || item.boundary === 'integrity-recovery')
+}
 
 /* Every row the band's window holds, in order; the view shows a stretch of
    them under the title. */
@@ -5374,7 +5653,16 @@ function bandRows(): BandRow[] {
       })
     }
     if (fold !== undefined && !openFolds.has(fold)) {
-      /* A Run left unrecorded is never hidden inside a fold. */
+      /* Neither a Run left unrecorded nor an Integrity gap is ever hidden
+         inside a fold. */
+      if (isIntegrityRow(item) && item.kind === 'boundary') {
+        before.push({
+          key: `prompt-trail:boundary:${item.eventId}`,
+          text: boundaryLine(item.boundary),
+          dim: false,
+          warn: true,
+        })
+      }
       return unclosed.has(item.eventId)
         ? [...before, { key: `prompt-trail:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
         : before
@@ -5404,7 +5692,7 @@ function bandRows(): BandRow[] {
               ? forks.get(item.runId) ?? segmentOrigins.get(item.eventId) ?? origins.get(item.eventId)
               : origins.get(item.eventId),
           ),
-          dim: true,
+          ...(isIntegrityRow(item) ? { dim: false, warn: true as const } : { dim: true }),
         }
       : jumpTable.has(item.eventId)
         ? {
@@ -6409,6 +6697,7 @@ export const register: Register = on => {
             key={row.key}
             wrap="truncate-end"
             {...(row.dim ? { dimColor: true } : {})}
+            {...(row.warn ? { color: 'yellow' } : {})}
           >
             {row.text}
           </Text>

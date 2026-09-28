@@ -540,6 +540,7 @@ test('a detach an exiting process could not write is landed by the next Run, ahe
     segmentId: earlierSessionId,
     branchId,
     occurredAt: 1_794_000_000_000,
+    generation: null,
   }
   const store: Record<string, unknown> = {
     ...consentedStore(),
@@ -575,6 +576,7 @@ test('a stop that is a new Run\'s first write lands after the detach another Run
     segmentId: earlierSessionId,
     branchId,
     occurredAt: 1_794_000_000_000,
+    generation: null,
   }
   const store: Record<string, unknown> = {
     ...consentedStore(),
@@ -795,7 +797,7 @@ test('an in-process resume out of a disabled Run collects in the Run it moved to
   ])
 })
 
-test('a detach an older build still owed under its old name is replayed as a leaving', async ($, on) => {
+test('a detach an older build still owed under its old name is recorded as that Run’s gap', async ($, on) => {
   const owedEnd = {
     kind: 'run-ended',
     eventId: 'e'.repeat(64),
@@ -814,7 +816,11 @@ test('a detach an older build still owed under its old name is replayed as a lea
 
   await composerPrompt($)
 
-  expect(archive[2]).toMatchObject({ kind: 'run-detached', eventId: 'e'.repeat(64), runId: earlierRunId })
+  /* It predates boundaries naming their Archive generation, so which history
+     it belongs to cannot be recovered (Issue 26): the leaving is not
+     replayed, and its loss is recorded against the Run that left. */
+  expect(archive[2]).toMatchObject({ kind: 'integrity-gap', runId: earlierRunId })
+  expect(archive.some(row => row.eventId === 'e'.repeat(64))).toBe(false)
   expect(store[lifecycleKey(earlierRunId)]).not.toHaveProperty('damaged')
 })
 
