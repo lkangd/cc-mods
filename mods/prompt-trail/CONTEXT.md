@@ -57,8 +57,8 @@ A non-prompt timeline marker recording that one Run's collection began, ended, o
 _Avoid_: Clear boundary, inferred history
 
 **Archive generation**:
-The incarnation of a Project Timeline created by the latest clear-all or quarantine. A clear-all atomically retires the previous generation so concurrent Runs cannot restore deleted records; a quarantine retires it into a Quarantined archive and starts an empty one.
-_Avoid_: Run, conversation segment
+The incarnation of a Project Timeline created by the latest clear-all or quarantine, identified by the archive file itself. A clear-all atomically retires and deletes the previous generation so concurrent Runs cannot restore deleted records, and the next write starts an empty one; a quarantine retires it into a Quarantined archive and starts an empty one at once.
+_Avoid_: Run, conversation segment, the `archiveGeneration` token in locators and the session index
 
 **Pending capture**:
 A durably staged composer submission whose final entry into the Claude Code conversation has not yet been confirmed. It is not a Prompt Entry until confirmed and must be explicitly reconciled after an interrupted submission.
