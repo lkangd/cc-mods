@@ -111,6 +111,7 @@ class HelperProtocolTests(unittest.TestCase):
         branch_id: str,
         kind: str,
         occurred_at: str = "1795000000000",
+        generation: str = "-",
     ) -> tuple[str, ...]:
         return (
             "boundary-append",
@@ -122,6 +123,7 @@ class HelperProtocolTests(unittest.TestCase):
             kind,
             event_id,
             occurred_at,
+            generation,
             json.loads(MANIFEST.read_text())["sha256"],
             "1",
         )
@@ -1742,7 +1744,9 @@ class HelperProtocolTests(unittest.TestCase):
 
         database.unlink()
         gone = self.run_helper(*self.confirm_argv(str(uuid.uuid4()), project_id=broken_id), input_text="PT-SECRET-X")
-        self.assertEqual(json.loads(gone.stderr)["category"], "database-unavailable")
+        # No archive holds no pending, however it went: a clear-all leaves the
+        # same empty path (Issue 30).
+        self.assertEqual(json.loads(gone.stderr)["category"], "capture-not-found")
         healthy_still_works("AFTER-DELETION")
 
     def hold_write_lock(self, project_id: str) -> sqlite3.Connection:
@@ -3883,7 +3887,8 @@ class HelperProtocolTests(unittest.TestCase):
         project_id = "f0" * 32
         self.assertEqual(
             self.archive_status(project_id),
-            {"projectId": project_id, "generation": None, "quarantined": [], "quarantineUnderway": False},
+            {"projectId": project_id, "generation": None, "quarantined": [], "quarantineUnderway": False,
+             "clearUnderway": False},
         )
         self.assertFalse((self.plugin_data / "archives").exists())
 
@@ -3969,6 +3974,399 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(self.quarantined(project_id), kept)
         self.assertEqual(finished["generation"], answer["generation"])
         self.assertEqual(self.timeline(project_id), timeline)
+
+
+    # Clearing a Project Timeline (Issue 30). Everything the project archived
+    # goes, quarantined archives included; nothing but its lock stays.
+
+    def clear_argv(self, *, project_id: str, keep_run: str | None = None) -> tuple[str, ...]:
+        return (
+            "clear-all",
+            str(self.plugin_data / "archives"),
+            project_id,
+            keep_run or str(uuid.uuid4()),
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+            "--stdin",
+        )
+
+    def clear(self, project_id: str, *, runs: list[str] = (), keep_run: str | None = None) -> dict[str, object]:
+        result = self.run_helper(
+            *self.clear_argv(project_id=project_id, keep_run=keep_run),
+            input_text="".join(f"{run}\n" for run in runs),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertNotIn("PT-SECRET", result.stdout)
+        return json.loads(result.stdout)
+
+    def markers_left(self, marker: bytes = b"PT-SECRET") -> list[str]:
+        """Every file under the plugin's data that still holds `marker`."""
+        return sorted(
+            str(path.relative_to(self.plugin_data))
+            for path in self.plugin_data.rglob("*")
+            if path.is_file() and not path.is_symlink() and marker in path.read_bytes()
+        )
+
+    def project_files(self, project_id: str) -> list[str]:
+        archives = self.plugin_data / "archives"
+        found = [path.name for path in archives.iterdir() if path.name.startswith(project_id)]
+        if (archives / "quarantine" / project_id).exists():
+            found.append(f"quarantine/{project_id}")
+        return sorted(found)
+
+    def test_a_clear_removes_every_file_the_project_archived_and_nothing_else(self) -> None:
+        project_id = "a0" * 32
+        other_id = "a1" * 32
+        self.damaged_archive_with_companions(project_id)
+        self.quarantine(project_id, self.check(project_id)["generation"])
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-KEPT-IN-NEW", identity=identity)
+        staged = self.run_helper(*self.begin_argv(str(uuid.uuid4()), **identity), input_text="PT-SECRET-STAGED")
+        self.assertEqual(staged.returncode, 0, staged.stderr)
+        self.leave_wal_unfolded(self.archive_path(project_id))
+        other = self.current_archive(other_id, count=3)
+        other_before = self.evidence(other_id)
+
+        answer = self.clear(project_id)
+
+        self.assertEqual(
+            answer,
+            {"projectId": project_id, "cleared": True, "entries": 1, "pending": 1,
+             "quarantined": 1, "sessionsRemoved": 0, "sessionsFailed": 0},
+        )
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(
+            [path for path in self.markers_left() if project_id in path], []
+        )
+        self.assertEqual(self.evidence(other_id), other_before)
+        self.assert_legacy_intact(other_id, other)
+
+
+    def test_a_clear_with_nothing_archived_does_nothing(self) -> None:
+        project_id = "a2" * 32
+        nothing = {"projectId": project_id, "cleared": False, "entries": 0, "pending": 0,
+                   "quarantined": 0, "sessionsRemoved": 0, "sessionsFailed": 0}
+
+        self.assertEqual(self.clear(project_id), nothing)
+        self.assertFalse((self.plugin_data / "archives").exists())
+
+        # A root that holds only another project's archive, or this one's
+        # lock, holds nothing of this project's to clear.
+        self.current_archive("a3" * 32, count=1)
+        lock = self.plugin_data / "archives" / f"{project_id}.lock"
+        lock.touch(mode=0o600)
+        self.assertEqual(self.clear(project_id), nothing)
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+
+
+    def test_a_clear_that_leaves_a_file_behind_refuses_the_archive_until_one_finishes(self) -> None:
+        project_id = "a4" * 32
+        legacy = self.damaged_archive_with_companions(project_id)
+        self.quarantine(project_id, self.check(project_id)["generation"])
+        kept = self.plugin_data / "archives" / "quarantine" / project_id
+        stuck = next(next(kept.iterdir()).iterdir())
+        # The owner may not remove a file flagged immutable.
+        subprocess.run(["/usr/bin/chflags", "uchg", str(stuck)], check=True)
+        self.addCleanup(subprocess.run, ["/usr/bin/chflags", "nouchg", str(stuck)], check=False)
+
+        stopped = self.run_helper(*self.clear_argv(project_id=project_id), input_text="")
+
+        self.assertEqual(stopped.returncode, 25, stopped.stderr)
+        self.assertEqual(json.loads(stopped.stderr), {"category": "clear-unfinished"})
+        self.assertFalse(self.archive_path(project_id).exists())
+        refused = {
+            "timeline-read": self.read_argv(project_id=project_id),
+            "capture-list": self.list_argv(project_id=project_id),
+            "integrity-check": self.check_argv(project_id=project_id),
+            "boundary-append": self.boundary_argv(
+                str(uuid.uuid4()), kind="collection-stopped", **legacy["identity"]
+            ),
+            "capture-begin": self.begin_argv(str(uuid.uuid4()), **legacy["identity"]),
+            "quarantine": self.quarantine_argv(project_id=project_id, generation="stale"),
+        }
+        for command, argv in refused.items():
+            with self.subTest(command=command):
+                result = self.run_helper(*argv, input_text="PT-SECRET-REFUSED")
+                self.assertEqual(result.returncode, 25, result.stderr)
+                self.assertEqual(json.loads(result.stderr)["category"], "clear-unfinished")
+        self.assertEqual(
+            self.project_files(project_id),
+            [f"{project_id}.clearing", f"{project_id}.lock", f"quarantine/{project_id}"],
+        )
+        self.assertTrue(self.archive_status(project_id)["clearUnderway"])
+
+        subprocess.run(["/usr/bin/chflags", "nouchg", str(stuck)], check=True)
+        finished = self.clear(project_id)
+
+        self.assertTrue(finished["cleared"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertFalse(self.archive_status(project_id)["clearUnderway"])
+        self.assertEqual([path for path in self.markers_left() if project_id in path], [])
+
+
+    def abort_argv(self, event_id: str, *, project_id: str) -> tuple[str, ...]:
+        return (
+            "capture-abort",
+            str(self.plugin_data / "archives"),
+            project_id,
+            event_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+    def test_writers_of_a_cleared_generation_leave_nothing_behind(self) -> None:
+        project_id = "a5" * 32
+        legacy = self.current_archive(project_id, count=3)
+        identity = legacy["identity"]
+        cleared = self.check(project_id)["generation"]
+        pending = str(uuid.uuid4())
+        staged = self.run_helper(*self.begin_argv(pending, **identity), input_text="PT-SECRET-IN-FLIGHT")
+        self.assertEqual(staged.returncode, 0, staged.stderr)
+        self.clear(project_id)
+
+        stale = {
+            "capture-begin": (
+                self.begin_argv(str(uuid.uuid4()), generation=cleared, **identity),
+                "archive-generation",
+            ),
+            "boundary-append": (
+                self.boundary_argv(str(uuid.uuid4()), kind="clear", generation=cleared, **identity),
+                "archive-generation",
+            ),
+            # The submission staged before the clear went with it.
+            "capture-confirm": (self.confirm_argv(pending, project_id=project_id), "capture-not-found"),
+        }
+        for command, (argv, category) in stale.items():
+            with self.subTest(command=command):
+                result = self.run_helper(*argv, input_text="PT-SECRET-IN-FLIGHT")
+                self.assertEqual(result.returncode, 25, result.stderr)
+                self.assertEqual(json.loads(result.stderr)["category"], category)
+        aborted = self.run_helper(*self.abort_argv(pending, project_id=project_id))
+        self.assertEqual(aborted.returncode, 0, aborted.stderr)
+        self.assertEqual(json.loads(aborted.stdout), {"aborted": False})
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+
+        # What arrives after the clear without a generation begins the next.
+        attached, _ = self.boundary(identity=identity, kind="run-attached")
+        fresh = self.check(project_id)["generation"]
+        self.assertNotEqual(fresh, cleared)
+        self.assertEqual([(event_id, kind) for event_id, _, kind, _ in self.timeline(project_id)],
+                         [(attached, "run-attached")])
+        named = self.run_helper(
+            *self.boundary_argv(str(uuid.uuid4()), kind="clear", generation=fresh, **identity)
+        )
+        self.assertEqual(named.returncode, 0, named.stderr)
+        replayed = self.run_helper(
+            *self.boundary_argv(str(uuid.uuid4()), kind="clear", generation=cleared, **identity)
+        )
+        self.assertEqual(json.loads(replayed.stderr)["category"], "archive-generation")
+        self.assertEqual(len(self.timeline(project_id)), 2)
+
+
+    def index_session(self, run_id: str) -> str:
+        """A session index record the bridge would have written, answering
+        its session."""
+        session_id = str(uuid.uuid4())
+        directory = self.plugin_data / "sessions"
+        directory.mkdir(mode=0o700, exist_ok=True)
+        path = directory / f"{session_id}.json"
+        path.write_text(json.dumps({
+            "indexVersion": 1, "sessionId": session_id, "runId": run_id,
+            "archiveGeneration": str(uuid.uuid4()),
+        }) + "\n")
+        path.chmod(0o600)
+        return session_id
+
+    def indexed_sessions(self) -> set[str]:
+        return {path.stem for path in (self.plugin_data / "sessions").glob("*.json")}
+
+    def test_a_clear_forgets_the_sessions_of_runs_that_do_not_go_on(self) -> None:
+        # This test process stands for a live Run: its locator is published
+        # and the helper runs for another host.
+        self.publish_locator()
+        live_run = json.loads(self.locator.read_text())["runId"]
+        project_id = "a6" * 32
+        archived = self.identity(project_id)
+        self.capture("PT-SECRET-ARCHIVED", identity=archived)
+        this_run = self.identity(project_id)
+        self.capture("PT-SECRET-THIS-RUN", identity=this_run)
+        self.capture("PT-SECRET-LIVE", identity=self.identity(project_id, run_id=live_run))
+        remembered = str(uuid.uuid4())
+        unrelated = self.index_session(str(uuid.uuid4()))
+        gone = {
+            self.index_session(archived["run_id"]),
+            self.index_session(archived["run_id"]),
+            self.index_session(remembered),
+        }
+        staying = {self.index_session(this_run["run_id"]), self.session_id, unrelated}
+
+        result = self.run_helper(
+            *self.clear_argv(project_id=project_id, keep_run=this_run["run_id"]),
+            input_text=f"{remembered}\n{this_run['run_id']}\n",
+            via_child=True,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        answer = json.loads(result.stdout)
+        self.assertEqual((answer["sessionsRemoved"], answer["sessionsFailed"]), (3, 0))
+        self.assertEqual(self.indexed_sessions(), staying)
+
+
+    def inventory(self, project_id: str) -> dict[str, object]:
+        result = self.run_helper(
+            "clear-inventory",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertNotIn("PT-SECRET", result.stdout)
+        return json.loads(result.stdout)
+
+    def test_a_clear_inventory_lists_what_a_clear_would_remove_without_changing_it(self) -> None:
+        project_id = "a7" * 32
+        nothing = {"projectId": project_id, "present": False, "clearUnderway": False,
+                   "generation": None, "entries": 0, "pending": 0, "files": [], "quarantined": []}
+        self.assertEqual(self.inventory(project_id), nothing)
+        self.assertFalse((self.plugin_data / "archives").exists())
+
+        self.damaged_archive_with_companions(project_id)
+        moved = self.quarantine(project_id, self.check(project_id)["generation"])["moved"]
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-ONE", identity=identity)
+        self.capture("PT-SECRET-TWO", identity=identity)
+        self.assertEqual(
+            self.run_helper(*self.begin_argv(str(uuid.uuid4()), **identity), input_text="PT-SECRET-3").returncode, 0
+        )
+        backup = self.backup_path(project_id)
+        backup.write_bytes(b"PT-SECRET-BACKUP")
+        backup.chmod(0o600)
+        self.fold_wal(self.archive_path(project_id))
+        before = self.evidence(project_id)
+        kept = self.quarantined(project_id)
+
+        listed = self.inventory(project_id)
+
+        archives = self.plugin_data / "archives"
+        self.assertEqual(listed["generation"], self.check(project_id)["generation"])
+        self.assertEqual(
+            {key: listed[key] for key in ("present", "clearUnderway", "entries", "pending")},
+            {"present": True, "clearUnderway": False, "entries": 2, "pending": 1},
+        )
+        self.assertEqual(
+            {file["name"] for file in listed["files"]},
+            {f"{project_id}.sqlite3", f"{project_id}.sqlite3.pre-migration-v1"}
+            | {path.name for path in archives.glob(f"{project_id}.sqlite3-*")},
+        )
+        self.assertEqual(
+            next(file["bytes"] for file in listed["files"] if file["name"].endswith("-v1")),
+            len(b"PT-SECRET-BACKUP"),
+        )
+        root = archives / "quarantine" / project_id
+        self.assertEqual(
+            listed["quarantined"],
+            [{"name": moved, "path": str(root / moved),
+              "bytes": sum(path.stat().st_size for path in (root / moved).iterdir())}],
+        )
+        self.assertEqual(self.evidence(project_id), before)
+        self.assertEqual(self.quarantined(project_id), kept)
+
+        # A damaged archive is listed with counts it cannot give.
+        self.corrupt_page(self.archive_path(project_id), fraction=0.0)
+        damaged = self.inventory(project_id)
+        self.assertEqual((damaged["entries"], damaged["pending"]), (None, None))
+
+
+    def test_a_clear_waits_for_a_command_already_using_the_archive(self) -> None:
+        project_id = "a8" * 32
+        legacy = self.current_archive(project_id, count=3)
+        holder = subprocess.Popen(
+            ["python3", "-c",
+             "import sqlite3, sys, time\n"
+             "c = sqlite3.connect(sys.argv[1], isolation_level=None)\n"
+             "c.execute('BEGIN IMMEDIATE')\n"
+             "print('held', flush=True)\n"
+             "time.sleep(1.5)\n"
+             "c.execute('ROLLBACK')\n",
+             str(legacy["path"])],
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        self.assertEqual(holder.stdout.readline().strip(), "held")
+        writer = subprocess.Popen(
+            [str(HELPER), *self.begin_argv(str(uuid.uuid4()), **legacy["identity"])],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, env=self.environment,
+        )
+        writer.stdin.write("PT-SECRET-UNDER-WAY")
+        writer.stdin.close()
+        self.await_project_lock_held(project_id)
+
+        answer = self.clear(project_id)
+        writer.wait(timeout=30)
+        holder.wait(timeout=30)
+
+        # The write under way landed before the cut and went with the rest.
+        self.assertEqual(writer.returncode, 0, writer.stderr.read())
+        self.assertEqual((answer["entries"], answer["pending"]), (3, 2))
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(self.markers_left(b"PT-SECRET-UNDER-WAY"), [])
+
+    def test_a_clear_cut_short_is_finished_by_the_next(self) -> None:
+        # The states a kill leaves once the intent stands: nothing removed
+        # yet, the archive gone and its quarantined copies still there, or
+        # everything gone but the intent itself.
+        archives = self.plugin_data / "archives"
+        for index, removed in enumerate(([], ["archive"], ["archive", "quarantine"])):
+            with self.subTest(removed=removed):
+                project_id = ("a9", "b8", "b7")[index] * 32
+                legacy = self.damaged_archive_with_companions(project_id)
+                self.quarantine(project_id, self.check(project_id)["generation"])
+                self.capture("PT-SECRET-NEW", identity=legacy["identity"])
+                intent = archives / f"{project_id}.clearing"
+                intent.write_text("clear\n")
+                intent.chmod(0o600)
+                if "archive" in removed:
+                    for path in archives.glob(f"{project_id}.sqlite3*"):
+                        path.unlink()
+                if "quarantine" in removed:
+                    shutil.rmtree(archives / "quarantine" / project_id)
+                refused = self.run_helper(*self.read_argv(project_id=project_id))
+                self.assertEqual(json.loads(refused.stderr)["category"], "clear-unfinished")
+
+                finished = self.clear(project_id)
+
+                self.assertTrue(finished["cleared"])
+                self.assertEqual(finished["entries"], None if removed else 1)
+                self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+                self.assertEqual([path for path in self.markers_left() if project_id in path], [])
+
+    def test_a_staged_intent_left_by_a_clear_that_never_began_refuses_nothing(self) -> None:
+        project_id = "b9" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-KEPT", identity=identity)
+        staged = self.plugin_data / "archives" / f"{project_id}.clearing.partial"
+        staged.write_text("clear\n")
+        staged.chmod(0o600)
+
+        self.assertEqual(self.read(project_id=project_id)["events"][-1]["text"], "PT-SECRET-KEPT")
+        self.assertTrue(self.clear(project_id)["cleared"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+
+    def test_a_clear_refuses_a_run_it_cannot_name_and_removes_nothing(self) -> None:
+        project_id = "ba" * 32
+        self.capture("PT-SECRET-KEPT", identity=self.identity(project_id))
+        before = self.project_files(project_id)
+
+        for listed in ("../escape\n", "a b\n", "\u0000\n"):
+            with self.subTest(listed=listed):
+                result = self.run_helper(*self.clear_argv(project_id=project_id), input_text=listed)
+                self.assertEqual(result.returncode, 25, result.stderr)
+                self.assertEqual(json.loads(result.stderr)["category"], "clear-input")
+                self.assertEqual(self.project_files(project_id), before)
 
 
 if __name__ == "__main__":

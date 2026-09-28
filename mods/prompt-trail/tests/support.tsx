@@ -592,6 +592,7 @@ export function installSupportedTarget(
       if (options.boundaryFails) {
         return failure(options.boundaryFails, generation.value)
       }
+      if (argv[10] !== '-' && argv[10] !== generation.value) return failure('archive-generation')
       /* As strict as the helper: a repeated id answers the stored sequence
          only when every recorded fact matches, and a changed one is refused. */
       const [runField, segmentId, branchId, kind, eventId, occurredAt] = argv.slice(4, 10)

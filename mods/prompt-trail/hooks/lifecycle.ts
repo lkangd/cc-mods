@@ -23,6 +23,10 @@ export type LifecycleWrite = {
   segmentId: string
   branchId: string
   occurredAt: number
+  /* The Archive generation in place when the fact happened, stamped as it is
+     first saved; `null` when there was none or it could not be asked. A
+     write owed to a generation since cleared or quarantined is dropped. */
+  generation?: string | null
 }
 
 /* One `/clear` as the two classic events describe it: the end that wrote the

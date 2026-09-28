@@ -290,6 +290,8 @@ test('a queued Clear Boundary is written before the next Prompt Entry', async ($
     'clear',
     clearEventId,
     '1794000000000',
+    /* Queued before entries named their generation: replayed unchecked. */
+    '-',
     expect.any(String),
     '1',
   ])

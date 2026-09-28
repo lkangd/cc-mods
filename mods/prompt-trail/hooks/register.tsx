@@ -1284,6 +1284,9 @@ function storedLifecycleWrite(value: unknown): LifecycleWrite | undefined {
     segmentId: value.segmentId,
     branchId: value.branchId,
     occurredAt: value.occurredAt as number,
+    ...(value.generation === null || isSafeId(value.generation)
+      ? { generation: value.generation }
+      : {}),
   }
 }
 
@@ -1425,6 +1428,21 @@ async function saveLifecycle(
 ): Promise<void> {
   if (!startup.runId) throw new Error('capture-identity')
   const key = lifecycleKey(currentProject.id, startup.runId)
+  /* A fact is owed to the generation in place as it happens, so a clear or a
+     quarantine before it lands retires it with the rest of that history. */
+  if (value.queue.some(write => write.generation === undefined)) {
+    let generation: string | null = null
+    try {
+      generation = (await readArchiveStatus($, currentProject)).generation
+    } catch {
+      // Unknown, it is replayed into whichever generation stands then.
+    }
+    value = {
+      ...value,
+      queue: value.queue.map(write =>
+        write.generation === undefined ? { ...write, generation } : write),
+    }
+  }
   lifecycle = { key, value }
   await $.store.set(key, value)
 }
@@ -1490,6 +1508,7 @@ async function appendBoundary(
     segmentId?: string
     occurredAt?: number
     runId?: string
+    generation?: string | null
   } = {},
 ): Promise<{ eventId: string; sequence: number }> {
   const segmentId = overrides.segmentId ?? startup.sessionId
@@ -1515,6 +1534,7 @@ async function appendBoundary(
       kind,
       eventId,
       String(overrides.occurredAt ?? await $.clock.now()),
+      overrides.generation ?? '-',
       EXPECTED_HELPER_SHA256,
       String(HELPER_PROTOCOL),
     ],
@@ -3391,6 +3411,14 @@ async function ensureRunAttached(
   }
 }
 
+/* A write owed to a generation since cleared or quarantined: it belongs to
+   that history, which is gone, and is dropped rather than carried over. */
+function retiredWrite(error: unknown): boolean {
+  if (failureCategory(error, 'boundary-append') !== 'archive-generation') return false
+  lifecycleFailure = undefined
+  return true
+}
+
 /* Writing what this Run owes, oldest first, and stopping at the first write
    that does not land so nothing is ordered ahead of a fact it follows. Answers
    whether the Run owes nothing more. */
@@ -3408,8 +3436,8 @@ async function flushOwnLifecycle(
   for (const write of own.queue) {
     try {
       await writeBoundary($, currentProject, write)
-    } catch {
-      break
+    } catch (error) {
+      if (!retiredWrite(error)) break
     }
     settled = dequeueLifecycleWrite(settled, write.eventId)
   }
@@ -3445,8 +3473,8 @@ async function flushForeignLifecycles(
     for (const write of record.value.queue) {
       try {
         await writeBoundary($, currentProject, write)
-      } catch {
-        break
+      } catch (error) {
+        if (!retiredWrite(error)) break
       }
       settled = dequeueLifecycleWrite(settled, write.eventId)
     }
@@ -3655,6 +3683,7 @@ async function writeBoundary(
         segmentId: write.segmentId,
         occurredAt: write.occurredAt,
         runId: write.runId,
+        generation: write.generation,
       },
     )
     recordBoundary($, write.kind, appended, write.runId, write.segmentId)
