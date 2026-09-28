@@ -1299,8 +1299,8 @@ static void lock_project(const char *database_root, const char *project_id, bool
 }
 
 /* A quarantine that has begun and not finished leaves its intent beside the
-   archive, naming where the files go. Until one finishes it, nothing opens
-   the archive or answers that there is none. */
+   archive, naming where the files go; a clear-all leaves its own. Until one
+   finishes, nothing opens the archive or answers that there is none. */
 static bool quarantine_intent_path(
   const char *database_root,
   const char *project_id,
@@ -1310,14 +1310,31 @@ static bool quarantine_intent_path(
   return length >= 0 && length < PATH_MAX;
 }
 
-static void refuse_unfinished_quarantine(const char *database_root, const char *project_id) {
+static bool clear_intent_path(
+  const char *database_root,
+  const char *project_id,
+  char path[PATH_MAX]
+) {
+  int length = snprintf(path, PATH_MAX, "%s/%s.clearing", database_root, project_id);
+  return length >= 0 && length < PATH_MAX;
+}
+
+/* Whether an intent stands at `path`; anything but a clear answer fails. */
+static bool intent_present(const char *path) {
+  struct stat status;
+  if (lstat(path, &status) == 0) return true;
+  if (errno != ENOENT) archive_error("database-unavailable");
+  return false;
+}
+
+static void refuse_unfinished_replacement(const char *database_root, const char *project_id) {
   char intent[PATH_MAX];
+  if (!clear_intent_path(database_root, project_id, intent)) archive_error("database-path");
+  if (intent_present(intent)) archive_error("clear-unfinished");
   if (!quarantine_intent_path(database_root, project_id, intent)) {
     archive_error("database-path");
   }
-  struct stat status;
-  if (lstat(intent, &status) == 0) archive_error("quarantine-failed");
-  if (errno != ENOENT) archive_error("database-unavailable");
+  if (intent_present(intent)) archive_error("quarantine-failed");
 }
 
 /* An Archive generation's identity: the file it lives in. A quarantine or a
@@ -1360,6 +1377,16 @@ static sqlite3 *open_archive_at(
   bool create
 );
 
+/* Whether the project has an archive at all, asked under the project's lock
+   and after any unfinished quarantine or clear has refused. */
+static bool archive_in_place(const char *database_root, const char *project_id) {
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  lock_project(database_root, project_id, false);
+  refuse_unfinished_replacement(database_root, project_id);
+  char generation[129];
+  return project_generation(database_root, project_id, generation);
+}
+
 static sqlite3 *open_archive(
   const char *database_root,
   const char *project_id,
@@ -1378,7 +1405,7 @@ static sqlite3 *open_archive(
     archive_error("database-path");
   }
   lock_project(database_root, project_id, false);
-  refuse_unfinished_quarantine(database_root, project_id);
+  refuse_unfinished_replacement(database_root, project_id);
   if (!archive_generation(database_path, opened_generation)) opened_generation[0] = '\0';
   return open_archive_at(database_root, project_id, database_path, create);
 }
@@ -1667,7 +1694,7 @@ static void capture_begin(int argc, char **argv) {
   /* A generation that is no longer there is not created again for it. */
   if (expected_generation) {
     lock_project(database_root, project_id, false);
-    refuse_unfinished_quarantine(database_root, project_id);
+    refuse_unfinished_replacement(database_root, project_id);
     if (!project_generation(database_root, project_id, generation)) {
       archive_error("archive-generation");
     }
@@ -1796,6 +1823,8 @@ static void capture_confirm(int argc, char **argv) {
 
   size_t prompt_length = 0;
   char *prompt = from_stdin ? read_prompt_text(&prompt_length) : NULL;
+  /* A clear took the archive and every pending in it. */
+  if (!archive_in_place(database_root, project_id)) archive_error("capture-not-found");
   sqlite3 *database = open_archive(database_root, project_id, false);
   archive_sql(database, "BEGIN IMMEDIATE");
   long long sequence = existing_sequence(database, event_id);
@@ -1879,6 +1908,11 @@ static void capture_abort(int argc, char **argv) {
   const char *event_id = argv[4];
   if (!pt_is_safe_identifier(event_id)) archive_error("capture-input");
   capture_runtime(database_root, argv[5], argv[6], PT_ROOT_REQUIRE);
+  /* A clear took the archive and every pending in it: nothing to abort. */
+  if (!archive_in_place(database_root, project_id)) {
+    puts("{\"aborted\":false}");
+    return;
+  }
   sqlite3 *database = open_archive(database_root, project_id, false);
   archive_sql(database, "BEGIN IMMEDIATE");
   if (existing_sequence(database, event_id) > 0) {
@@ -2023,7 +2057,7 @@ static void capture_list(int argc, char **argv) {
     /* Held before the archive is looked for, so a quarantine moving it
        cannot pass for an archive that was never there. */
     lock_project(database_root, project_id, false);
-    refuse_unfinished_quarantine(database_root, project_id);
+    refuse_unfinished_replacement(database_root, project_id);
     struct stat status;
     if (lstat(database_path, &status) == 0) {
       archived = true;
@@ -2162,7 +2196,7 @@ static long long existing_boundary_sequence(
 }
 
 static void boundary_append(int argc, char **argv) {
-  if (argc != 12) usage();
+  if (argc != 13) usage();
   const char *database_root = argv[2];
   const char *project_id = argv[3];
   const char *run_id = argv[4];
@@ -2171,15 +2205,28 @@ static void boundary_append(int argc, char **argv) {
   const char *kind = argv[7];
   const char *event_id = argv[8];
   long long occurred_at = nonnegative_integer(argv[9]);
-  if (!pt_is_safe_identifier(run_id)
+  const char *expected_generation = strcmp(argv[10], "-") == 0 ? NULL : argv[10];
+  if ((expected_generation && !pt_is_safe_identifier(expected_generation))
+      || !pt_is_safe_identifier(run_id)
       || !pt_is_safe_identifier(segment_id)
       || !pt_is_safe_identifier(branch_id)
       || !pt_is_safe_identifier(event_id)
       || !boundary_kind_valid(kind)) {
     archive_error("boundary-input");
   }
-  capture_runtime(database_root, argv[10], argv[11], PT_ROOT_CREATE);
+  capture_runtime(database_root, argv[11], argv[12], PT_ROOT_CREATE);
 
+  /* A boundary owed to a generation since cleared or quarantined belongs to
+     that generation's history, and is not carried into the next. */
+  char generation[129];
+  if (expected_generation) {
+    lock_project(database_root, project_id, false);
+    refuse_unfinished_replacement(database_root, project_id);
+    if (!project_generation(database_root, project_id, generation)
+        || strcmp(generation, expected_generation) != 0) {
+      archive_error("archive-generation");
+    }
+  }
   sqlite3 *database = open_archive(database_root, project_id, true);
   archive_sql(database, "BEGIN IMMEDIATE");
   if (existing_sequence(database, event_id) > 0
@@ -2478,7 +2525,7 @@ static void timeline_read(int argc, char **argv) {
     /* Held before the archive is looked for, so a quarantine moving it
        cannot pass for an archive that was never there. */
     lock_project(database_root, project_id, false);
-    refuse_unfinished_quarantine(database_root, project_id);
+    refuse_unfinished_replacement(database_root, project_id);
     struct stat status;
     if (lstat(database_path, &status) == 0) {
       archived = true;
@@ -3041,7 +3088,7 @@ static void branch_match(int argc, char **argv) {
     /* Held before the archive is looked for, so a quarantine moving it
        cannot pass for an archive that was never there. */
     lock_project(database_root, project_id, false);
-    refuse_unfinished_quarantine(database_root, project_id);
+    refuse_unfinished_replacement(database_root, project_id);
     struct stat status;
     if (lstat(database_path, &status) == 0) {
       archived = true;
@@ -3284,6 +3331,46 @@ static bool count_problems(sqlite3 *database, const char *sql, long long *proble
   return false;
 }
 
+/* The archive on a connection that only reads. It never folds the WAL back
+   into the file; SQLite may still rebuild its `-shm` index. */
+static sqlite3 *open_read_only(const char *database_path) {
+  if (!pt_path_is_private_file(database_path)) archive_error("database-permissions");
+  /* A connection that may not write cannot open a WAL archive whose WAL
+     was folded back and removed, the state every clean close leaves. An
+     empty WAL holds nothing, so one is put there instead. */
+  unsigned char header[20];
+  int descriptor = open(database_path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+  if (descriptor < 0) archive_error("database-unavailable");
+  bool wal = read(descriptor, header, sizeof(header)) == (ssize_t)sizeof(header)
+    && memcmp(header, "SQLite format 3", 16) == 0
+    && header[18] == 2;
+  close(descriptor);
+  if (wal) {
+    char wal_path[PATH_MAX];
+    int length = snprintf(wal_path, sizeof(wal_path), "%s-wal", database_path);
+    if (length < 0 || (size_t)length >= sizeof(wal_path)) archive_error("database-path");
+    descriptor = open(wal_path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+    if (descriptor >= 0) {
+      close(descriptor);
+    } else if (errno != EEXIST) {
+      archive_error(errno == ENOSPC ? "archive-full" : "database-unavailable");
+    }
+  }
+  sqlite3 *database = NULL;
+  if (sqlite3_open_v2(
+        database_path,
+        &database,
+        SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX,
+        NULL
+      ) != SQLITE_OK) {
+    close_archive(database);
+    archive_error("database-unavailable");
+  }
+  active_archive = database;
+  sqlite3_busy_handler(database, archive_busy_wait, NULL);
+  return database;
+}
+
 /* The retry a damaged archive offers: the full check, run on a read-only
    connection, so neither the file nor its WAL changes and no Run's writes
    resume on the strength of it alone. A connection that only reads never
@@ -3311,46 +3398,13 @@ static void integrity_check(int argc, char **argv) {
   bool archived = false;
   if (root_present) {
     lock_project(database_root, project_id, false);
-    refuse_unfinished_quarantine(database_root, project_id);
+    refuse_unfinished_replacement(database_root, project_id);
     archived = archive_generation(database_path, generation);
   }
   const char *result = "absent";
   long long problems = 0;
   if (archived) {
-    if (!pt_path_is_private_file(database_path)) archive_error("database-permissions");
-    /* A connection that may not write cannot open a WAL archive whose WAL
-       was folded back and removed, the state every clean close leaves. An
-       empty WAL holds nothing, so one is put there instead. */
-    unsigned char header[20];
-    int descriptor = open(database_path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
-    if (descriptor < 0) archive_error("database-unavailable");
-    bool wal = read(descriptor, header, sizeof(header)) == (ssize_t)sizeof(header)
-      && memcmp(header, "SQLite format 3", 16) == 0
-      && header[18] == 2;
-    close(descriptor);
-    if (wal) {
-      char wal_path[PATH_MAX];
-      length = snprintf(wal_path, sizeof(wal_path), "%s-wal", database_path);
-      if (length < 0 || (size_t)length >= sizeof(wal_path)) archive_error("database-path");
-      descriptor = open(wal_path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
-      if (descriptor >= 0) {
-        close(descriptor);
-      } else if (errno != EEXIST) {
-        archive_error(errno == ENOSPC ? "archive-full" : "database-unavailable");
-      }
-    }
-    sqlite3 *database = NULL;
-    if (sqlite3_open_v2(
-          database_path,
-          &database,
-          SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX,
-          NULL
-        ) != SQLITE_OK) {
-      close_archive(database);
-      archive_error("database-unavailable");
-    }
-    active_archive = database;
-    sqlite3_busy_handler(database, archive_busy_wait, NULL);
+    sqlite3 *database = open_read_only(database_path);
     sqlite3_exec(database, "PRAGMA temp_store=MEMORY", NULL, NULL, NULL);
     if (!count_problems(database, "PRAGMA integrity_check", &problems)) {
       result = "unreadable";
@@ -3425,6 +3479,9 @@ static void quarantine(int argc, char **argv) {
   }
   capture_runtime(database_root, argv[10], argv[11], PT_ROOT_REQUIRE);
   lock_project(database_root, project_id, true);
+  char clearing[PATH_MAX];
+  if (!clear_intent_path(database_root, project_id, clearing)) archive_error("database-path");
+  if (intent_present(clearing)) archive_error("clear-unfinished");
 
   char database_path[PATH_MAX];
   char intent[PATH_MAX];
@@ -3585,41 +3642,19 @@ static void quarantine(int argc, char **argv) {
   fputs("}\n", stdout);
 }
 
-/* What `status` shows of a project's archive without opening it: the
-   generation in place, whether a quarantine is under way, and each
-   quarantined archive with its place and size. */
-static void archive_status(int argc, char **argv) {
-  if (argc != 6) usage();
-  const char *database_root = argv[2];
-  const char *project_id = argv[3];
-  if (!lowercase_sha256(project_id)) archive_error("project-identity");
-  bool root_present =
-    capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
-  char generation[129];
-  bool generated = root_present && project_generation(database_root, project_id, generation);
-  bool underway = false;
-  if (root_present) {
-    char intent[PATH_MAX];
-    if (!quarantine_intent_path(database_root, project_id, intent)) {
-      archive_error("database-path");
-    }
-    struct stat status;
-    underway = lstat(intent, &status) == 0;
-    if (!underway && errno != ENOENT) archive_error("database-unavailable");
-  }
-  write_status_string("{\"projectId\":", project_id);
-  if (generated) {
-    write_status_string(",\"generation\":", generation);
-  } else {
-    fputs(",\"generation\":null", stdout);
-  }
-  fputs(underway ? ",\"quarantineUnderway\":true" : ",\"quarantineUnderway\":false", stdout);
+/* Each archive quarantined from the project, with its place and size, as
+   the `quarantined` member of an answer. No root, no quarantined archives. */
+static void write_quarantined(const char *database_root, const char *project_id) {
   fputs(",\"quarantined\":[", stdout);
+  if (!database_root) {
+    fputs("]", stdout);
+    return;
+  }
   char project_root[PATH_MAX];
   int length = snprintf(project_root, PATH_MAX, "%s/quarantine/%s", database_root, project_id);
   if (length < 0 || length >= PATH_MAX) archive_error("database-path");
-  DIR *directory = root_present ? opendir(project_root) : NULL;
-  if (root_present && !directory && errno != ENOENT) archive_error("database-unavailable");
+  DIR *directory = opendir(project_root);
+  if (!directory && errno != ENOENT) archive_error("database-unavailable");
   bool first = true;
   for (struct dirent *entry; directory && (entry = readdir(directory)) != NULL;) {
     if (entry->d_name[0] == '.') continue;
@@ -3646,7 +3681,385 @@ static void archive_status(int argc, char **argv) {
     first = false;
   }
   if (directory) closedir(directory);
-  fputs("]}\n", stdout);
+  fputs("]", stdout);
+}
+
+/* What `status` shows of a project's archive without opening it: the
+   generation in place, whether a quarantine is under way, and each
+   quarantined archive with its place and size. */
+static void archive_status(int argc, char **argv) {
+  if (argc != 6) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  bool root_present =
+    capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
+  char generation[129];
+  bool generated = root_present && project_generation(database_root, project_id, generation);
+  bool underway = false;
+  bool clearing = false;
+  if (root_present) {
+    char intent[PATH_MAX];
+    if (!quarantine_intent_path(database_root, project_id, intent)) {
+      archive_error("database-path");
+    }
+    underway = intent_present(intent);
+    if (!clear_intent_path(database_root, project_id, intent)) archive_error("database-path");
+    clearing = intent_present(intent);
+  }
+  write_status_string("{\"projectId\":", project_id);
+  if (generated) {
+    write_status_string(",\"generation\":", generation);
+  } else {
+    fputs(",\"generation\":null", stdout);
+  }
+  fputs(underway ? ",\"quarantineUnderway\":true" : ",\"quarantineUnderway\":false", stdout);
+  fputs(clearing ? ",\"clearUnderway\":true" : ",\"clearUnderway\":false", stdout);
+  write_quarantined(root_present ? database_root : NULL, project_id);
+  fputs("}\n", stdout);
+}
+
+/* Clearing a Project Timeline. Everything the project archived goes: the
+   archive and whatever lies beside it under the project's name, and every
+   archive quarantined from it. Only the lock stays, which no command must
+   find replaced while another still waits on it. */
+
+/* What a clear finds before it deletes: the counts, when the archive can
+   still be read, and every Run whose session index records go with it. */
+typedef struct {
+  long long entries;
+  long long pending;
+  char (*run_ids)[129];
+  size_t run_count;
+} ClearFindings;
+
+static void clear_add_run(ClearFindings *found, const char *run_id) {
+  if (!run_id || !pt_is_safe_identifier(run_id)) return;
+  for (size_t index = 0; index < found->run_count; index += 1) {
+    if (strcmp(found->run_ids[index], run_id) == 0) return;
+  }
+  char (*grown)[129] = realloc(found->run_ids, (found->run_count + 1) * sizeof(*grown));
+  if (!grown) archive_error("clear-input");
+  found->run_ids = grown;
+  snprintf(found->run_ids[found->run_count], sizeof(found->run_ids[found->run_count]), "%s", run_id);
+  found->run_count += 1;
+}
+
+/* A count, or -1 when the archive cannot answer it. */
+static long long clear_count(sqlite3 *database, const char *sql) {
+  sqlite3_stmt *statement = NULL;
+  long long count = -1;
+  if (sqlite3_prepare_v2(database, sql, -1, &statement, NULL) == SQLITE_OK
+      && sqlite3_step(statement) == SQLITE_ROW) {
+    count = sqlite3_column_int64(statement, 0);
+  }
+  sqlite3_finalize(statement);
+  return count;
+}
+
+static void clear_collect_runs(sqlite3 *database, const char *sql, ClearFindings *found) {
+  sqlite3_stmt *statement = NULL;
+  if (sqlite3_prepare_v2(database, sql, -1, &statement, NULL) == SQLITE_OK) {
+    while (sqlite3_step(statement) == SQLITE_ROW) {
+      clear_add_run(found, (const char *)sqlite3_column_text(statement, 0));
+    }
+  }
+  sqlite3_finalize(statement);
+}
+
+/* Read from the archive in place as far as it still reads; a damaged one
+   leaves its counts unknown. */
+static void clear_read_archive(const char *database_path, ClearFindings *found) {
+  struct stat status;
+  if (lstat(database_path, &status) != 0 || !pt_path_is_private_file(database_path)) return;
+  sqlite3 *database = open_read_only(database_path);
+  sqlite3_exec(database, "PRAGMA temp_store=MEMORY", NULL, NULL, NULL);
+  found->entries = clear_count(database, "SELECT count(*) FROM prompt_entries");
+  found->pending = clear_count(database, "SELECT count(*) FROM pending_captures");
+  clear_collect_runs(database, "SELECT DISTINCT run_id FROM prompt_entries", found);
+  clear_collect_runs(database, "SELECT DISTINCT run_id FROM pending_captures", found);
+  clear_collect_runs(database, "SELECT DISTINCT run_id FROM timeline_events", found);
+  close_archive(database);
+}
+
+/* Whether `name` in the archive root is one of the project's files the
+   clear removes: anything under its name but its lock and the intent. */
+static bool clear_owns_name(const char *name, const char *project_id) {
+  size_t length = strlen(project_id);
+  if (strncmp(name, project_id, length) != 0 || name[length] != '.') return false;
+  return strcmp(name + length, ".lock") != 0 && strcmp(name + length, ".clearing") != 0;
+}
+
+/* Removes `path`, and what a directory holds down to `depth` levels,
+   without following a link. Answers how many entries are still there. */
+static long long clear_remove(const char *path, int depth) {
+  struct stat status;
+  if (lstat(path, &status) != 0) return errno == ENOENT ? 0 : 1;
+  if (!S_ISDIR(status.st_mode)) return unlink(path) == 0 || errno == ENOENT ? 0 : 1;
+  if (depth <= 0) return 1;
+  long long left = 0;
+  DIR *directory = opendir(path);
+  if (!directory) return 1;
+  for (struct dirent *entry; (entry = readdir(directory)) != NULL;) {
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+    char child[PATH_MAX];
+    int length = snprintf(child, PATH_MAX, "%s/%s", path, entry->d_name);
+    left += length < 0 || length >= PATH_MAX ? 1 : clear_remove(child, depth - 1);
+  }
+  closedir(directory);
+  if (left == 0 && rmdir(path) != 0 && errno != ENOENT) left = 1;
+  return left;
+}
+
+static bool clear_has_files(const char *database_root, const char *project_id) {
+  DIR *directory = opendir(database_root);
+  if (!directory) archive_error("database-unavailable");
+  bool found = false;
+  for (struct dirent *entry; !found && (entry = readdir(directory)) != NULL;) {
+    found = clear_owns_name(entry->d_name, project_id);
+  }
+  closedir(directory);
+  char kept[PATH_MAX];
+  int length = snprintf(kept, PATH_MAX, "%s/quarantine/%s", database_root, project_id);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  struct stat status;
+  if (!found && lstat(kept, &status) == 0) found = true;
+  return found;
+}
+
+static long long clear_count_quarantined(const char *database_root, const char *project_id) {
+  char kept[PATH_MAX];
+  int length = snprintf(kept, PATH_MAX, "%s/quarantine/%s", database_root, project_id);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  DIR *directory = opendir(kept);
+  if (!directory) return 0;
+  long long count = 0;
+  for (struct dirent *entry; (entry = readdir(directory)) != NULL;) {
+    if (entry->d_name[0] != '.') count += 1;
+  }
+  closedir(directory);
+  return count;
+}
+
+/* The session index records of the Runs a clear retires, so resuming one of
+   their sessions starts a new Run rather than one whose history is gone. A
+   Run still going on in this project keeps its records: it carries on in the
+   next generation. The records hold identifiers only; one that cannot be
+   removed is counted, not waited on. */
+static void clear_session_index(
+  const char *database_root,
+  const ClearFindings *found,
+  const char *keep_run,
+  long long *removed,
+  long long *failed
+) {
+  if (found->run_count == 0) return;
+  char directory_path[PATH_MAX];
+  const char *slash = strrchr(database_root, '/');
+  int length = snprintf(
+    directory_path,
+    PATH_MAX,
+    "%.*s/sessions",
+    (int)(slash - database_root),
+    database_root
+  );
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  DIR *directory = opendir(directory_path);
+  if (!directory) {
+    if (errno != ENOENT) *failed += 1;
+    return;
+  }
+  LiveRuns live = live_runs_elsewhere();
+  for (struct dirent *entry; (entry = readdir(directory)) != NULL;) {
+    size_t name_length = strlen(entry->d_name);
+    if (name_length < 6 || strcmp(entry->d_name + name_length - 5, ".json") != 0) continue;
+    char path[PATH_MAX];
+    length = snprintf(path, PATH_MAX, "%s/%s", directory_path, entry->d_name);
+    if (length < 0 || length >= PATH_MAX || !pt_path_is_private_file(path)) continue;
+    char *record = NULL;
+    char run_id[129];
+    bool named = pt_read_file(path, &record, NULL)
+      && pt_json_get_string(record, "runId", run_id, sizeof(run_id));
+    free(record);
+    if (!named || strcmp(run_id, keep_run) == 0 || live_runs_hold(&live, run_id)) continue;
+    bool retired = false;
+    for (size_t index = 0; !retired && index < found->run_count; index += 1) {
+      retired = strcmp(found->run_ids[index], run_id) == 0;
+    }
+    if (!retired) continue;
+    if (unlink(path) == 0) {
+      *removed += 1;
+    } else if (errno != ENOENT) {
+      *failed += 1;
+    }
+  }
+  closedir(directory);
+  free(live.run_ids);
+  (void)sync_directory(directory_path);
+}
+
+static void clear_all(int argc, char **argv) {
+  if (argc != 8 || strcmp(argv[7], "--stdin") != 0) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  const char *keep_run = argv[4];
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  if (!pt_is_safe_identifier(keep_run)) archive_error("clear-input");
+  ClearFindings found = { -1, -1, NULL, 0 };
+  char *listed = NULL;
+  size_t listed_length = 0;
+  if (!pt_read_fd_limited(STDIN_FILENO, &listed, &listed_length, PT_TEXT_LIMIT)
+      || strlen(listed) != listed_length) {
+    archive_error("clear-input");
+  }
+  for (char *line = listed, *next; line && *line; line = next) {
+    next = strchr(line, '\n');
+    if (next) *next++ = '\0';
+    if (!pt_is_safe_identifier(line)) archive_error("clear-input");
+    clear_add_run(&found, line);
+  }
+  free(listed);
+  bool root_present =
+    capture_runtime(database_root, argv[5], argv[6], PT_ROOT_OPTIONAL);
+  if (root_present) lock_project(database_root, project_id, true);
+  char intent[PATH_MAX];
+  if (!clear_intent_path(database_root, project_id, intent)) archive_error("database-path");
+  bool resuming = root_present && intent_present(intent);
+  if (!root_present || (!resuming && !clear_has_files(database_root, project_id))) {
+    write_status_string("{\"projectId\":", project_id);
+    fputs(
+      ",\"cleared\":false,\"entries\":0,\"pending\":0,\"quarantined\":0,"
+      "\"sessionsRemoved\":0,\"sessionsFailed\":0}\n",
+      stdout
+    );
+    return;
+  }
+
+  char database_path[PATH_MAX];
+  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  clear_read_archive(database_path, &found);
+  long long quarantined = clear_count_quarantined(database_root, project_id);
+
+  /* The cut. Once the intent stands, no command opens the archive or makes
+     a new one until a clear has removed everything and the intent with it. */
+  if (!resuming) {
+    char staged[PATH_MAX];
+    length = snprintf(staged, PATH_MAX, "%s.partial", intent);
+    if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+    unlink(staged);
+    int descriptor = open(staged, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+    if (descriptor < 0) archive_error(errno == ENOSPC ? "archive-full" : "database-unavailable");
+    bool written = write(descriptor, "clear\n", 6) == 6
+      && (fcntl(descriptor, F_FULLFSYNC) == 0 || fsync(descriptor) == 0);
+    close(descriptor);
+    if (!written || rename(staged, intent) != 0 || !sync_directory(database_root)) {
+      unlink(staged);
+      archive_error("database-unavailable");
+    }
+  }
+
+  long long removed = 0;
+  long long failed = 0;
+  clear_session_index(database_root, &found, keep_run, &removed, &failed);
+  long long left = 0;
+  DIR *directory = opendir(database_root);
+  if (!directory) archive_error("database-unavailable");
+  for (struct dirent *entry; (entry = readdir(directory)) != NULL;) {
+    if (!clear_owns_name(entry->d_name, project_id)) continue;
+    char path[PATH_MAX];
+    length = snprintf(path, PATH_MAX, "%s/%s", database_root, entry->d_name);
+    left += length < 0 || length >= PATH_MAX ? 1 : clear_remove(path, 0);
+  }
+  closedir(directory);
+  char kept[PATH_MAX];
+  length = snprintf(kept, PATH_MAX, "%s/quarantine/%s", database_root, project_id);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  left += clear_remove(kept, 3);
+  if (!sync_directory(database_root) || left > 0) json_error(EXIT_ARCHIVE_UNAVAILABLE, "clear-unfinished");
+  if (unlink(intent) != 0 && errno != ENOENT) json_error(EXIT_ARCHIVE_UNAVAILABLE, "clear-unfinished");
+  (void)sync_directory(database_root);
+
+  write_status_string("{\"projectId\":", project_id);
+  fputs(",\"cleared\":true", stdout);
+  if (found.entries >= 0) printf(",\"entries\":%lld", found.entries);
+  else fputs(",\"entries\":null", stdout);
+  if (found.pending >= 0) printf(",\"pending\":%lld", found.pending);
+  else fputs(",\"pending\":null", stdout);
+  printf(
+    ",\"quarantined\":%lld,\"sessionsRemoved\":%lld,\"sessionsFailed\":%lld}\n",
+    quarantined,
+    removed,
+    failed
+  );
+  free(found.run_ids);
+}
+
+/* What a clear-all would remove, for the person to see before confirming:
+   the counts the archive can still give, each of the project's files with
+   its size, and each quarantined archive. It holds the lock shared and
+   answers even while a quarantine or a clear is unfinished, whose leftovers
+   are then what it lists. */
+static void clear_inventory(int argc, char **argv) {
+  if (argc != 6) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  bool root_present =
+    capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
+  write_status_string("{\"projectId\":", project_id);
+  if (!root_present) {
+    fputs(
+      ",\"present\":false,\"clearUnderway\":false,\"generation\":null,"
+      "\"entries\":0,\"pending\":0,\"files\":[],\"quarantined\":[]}\n",
+      stdout
+    );
+    return;
+  }
+  lock_project(database_root, project_id, false);
+  char intent[PATH_MAX];
+  if (!clear_intent_path(database_root, project_id, intent)) archive_error("database-path");
+  bool clearing = intent_present(intent);
+  char database_path[PATH_MAX];
+  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  char generation[129];
+  bool archived = archive_generation(database_path, generation);
+  ClearFindings found = { archived ? -1 : 0, archived ? -1 : 0, NULL, 0 };
+  if (archived) clear_read_archive(database_path, &found);
+  free(found.run_ids);
+
+  printf(",\"present\":%s", clearing || clear_has_files(database_root, project_id) ? "true" : "false");
+  printf(",\"clearUnderway\":%s", clearing ? "true" : "false");
+  if (archived) {
+    write_status_string(",\"generation\":", generation);
+  } else {
+    fputs(",\"generation\":null", stdout);
+  }
+  if (found.entries >= 0) printf(",\"entries\":%lld", found.entries);
+  else fputs(",\"entries\":null", stdout);
+  if (found.pending >= 0) printf(",\"pending\":%lld", found.pending);
+  else fputs(",\"pending\":null", stdout);
+  fputs(",\"files\":[", stdout);
+  DIR *directory = opendir(database_root);
+  if (!directory) archive_error("database-unavailable");
+  bool first = true;
+  for (struct dirent *entry; (entry = readdir(directory)) != NULL;) {
+    if (!clear_owns_name(entry->d_name, project_id)) continue;
+    char path[PATH_MAX];
+    struct stat status;
+    length = snprintf(path, PATH_MAX, "%s/%s", database_root, entry->d_name);
+    if (length < 0 || length >= PATH_MAX || lstat(path, &status) != 0) {
+      archive_error("database-unavailable");
+    }
+    write_status_string(first ? "{\"name\":" : ",{\"name\":", entry->d_name);
+    printf(",\"bytes\":%llu}", (unsigned long long)status.st_size);
+    first = false;
+  }
+  closedir(directory);
+  fputs("]", stdout);
+  write_quarantined(database_root, project_id);
+  fputs("}\n", stdout);
 }
 
 static void usage(void) {
@@ -3706,6 +4119,14 @@ int main(int argc, char **argv) {
   }
   if (argc > 1 && strcmp(argv[1], "quarantine") == 0) {
     quarantine(argc, argv);
+    return 0;
+  }
+  if (argc > 1 && strcmp(argv[1], "clear-inventory") == 0) {
+    clear_inventory(argc, argv);
+    return 0;
+  }
+  if (argc > 1 && strcmp(argv[1], "clear-all") == 0) {
+    clear_all(argc, argv);
     return 0;
   }
   if (argc > 1 && strcmp(argv[1], "archive-status") == 0) {
