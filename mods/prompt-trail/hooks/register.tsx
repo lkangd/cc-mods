@@ -481,6 +481,9 @@ let deferredClear: {
 /* The calls of this module instance still running: an in-flight marker of any
    other call is one whose hook stopped without clearing it. */
 const liveCalls = new Set<string>()
+/* How many of this Run's calls stopped without clearing their marker, as
+   status last counted them. */
+let unsettledCalls = 0
 /* What the project's other Runs still owe, as the last enumeration found it.
    Kept for the report only; the drain always re-enumerates. */
 /* The Run and classic session whose Active Branch this module instance has
@@ -4770,6 +4773,16 @@ async function forgetClearedHistory($: EngineInterface, currentProject: ProjectS
         await forgetCollectionBoundary($, key)
       }
     }
+    /* A Run live elsewhere may still be submitting: its marker stays with it.
+       Not knowing which are live, only this Run's are taken. */
+    let live: string[] | null = null
+    try {
+      live = (await readArchiveStatus($, currentProject)).liveRuns
+    } catch {
+      // Unknown.
+    }
+    await forgetMarkers($, currentProject, runOf =>
+      runOf === startup.runId || (live !== null && !live.includes(runOf)))
   } catch {
     forgotten = false
   }
@@ -4780,10 +4793,34 @@ async function forgetClearedHistory($: EngineInterface, currentProject: ProjectS
   return forgotten
 }
 
-/* A Run's lifecycle writes still owed to cleared history. */
+/* A Run's lifecycle writes still owed to cleared history, and the gap it owed
+   with the losses it recorded: what they described is gone. */
 async function forgetOwedLifecycle($: EngineInterface, key: string): Promise<void> {
   const value = storedLifecycle(await $.store.get(key))
-  if (value && value.queue.length > 0) await $.store.set(key, { ...value, queue: [] })
+  if (value && (value.queue.length > 0 || value.gap || lossReasons(value).length > 0)) {
+    await $.store.set(key, withoutOwed(value))
+  }
+}
+
+function withoutOwed(value: LifecycleState): LifecycleState {
+  const { gap: _gap, overflowed: _overflowed, damaged: _damaged, unobservedClear: _unobserved, ...kept } = value
+  return { ...kept, queue: [] }
+}
+
+/* The in-flight markers of cleared history: every one no running call of
+   this module holds, of the Runs `forRun` accepts. */
+async function forgetMarkers(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  forRun: (runId: string) => boolean,
+): Promise<void> {
+  const prefix = inflightPrefix(currentProject.id)
+  for (const key of await $.store.keys()) {
+    if (!key.startsWith(prefix)) continue
+    const runOf = key.slice(prefix.length).split(':')[0] ?? ''
+    if (liveCalls.has(markerCall(key)) || !forRun(runOf)) continue
+    await $.store.delete(key)
+  }
 }
 
 /* The Collection Boundary a Run last wrote into cleared history; its mode stays. */
@@ -5416,13 +5453,10 @@ function clearSummary(): string {
     )
     if (clear.priorUnfinished) parts.push('上一次转换未完成')
   }
-  if (state.unobservedClear) parts.push('观察到无对应 SessionEnd 的 source=clear')
   if (state.queue.length > 0) {
     parts.push(owedText(state.queue))
     if (lifecycleFailure) parts.push(`上次补写失败：${statusValue(lifecycleFailure)}`)
   }
-  if (state.overflowed) parts.push('恢复队列已溢出，部分 Clear Boundary 未记录')
-  if (state.damaged) parts.push('恢复队列有无法重放的记录，其 Clear Boundary 或 Run 边界已丢失')
   if (lifecycleOthers?.queue.length) {
     parts.push(`其他 Run 遗留 ${owedText(lifecycleOthers.queue)}`)
   }
@@ -5459,6 +5493,30 @@ function statusValue(value: string): string {
     /[\u0000-\u001f\u007f]/g,
     character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
   )
+}
+
+/* Whether this Run's records are provable now, and what it still owes when
+   they are not. */
+function integritySummary(): string {
+  const state = lifecycle?.value
+  if (!state) return 'unknown · lifecycle 记录不可读'
+  const owed = state.gap && !state.gap.landed ? state.gap.reasons : []
+  const losses = [...owed, ...lossReasons(state).filter(reason => !owed.includes(reason))]
+  const parts = losses.length > 0
+    ? [`gap owed · ${gapReasonsText(losses)}（下一次提交前写入时间线）`]
+    : state.gap?.landed
+      ? ['gap recorded · 恢复边界待写入']
+      : ['healthy']
+  if (unsettledCalls > 0) {
+    parts.push(`${unsettledCalls} 次提交未正常结束，下一次提交时判定是否形成 Integrity gap`)
+  }
+  return parts.join(' · ')
+}
+
+function integrityGapsSummary(): string {
+  const gaps = archiveStatus?.integrityGaps
+  if (gaps === undefined || gaps === null) return 'unknown'
+  return gaps > 0 ? `${gaps} · 本项目的时间线跨越这些 Integrity gap 的部分不完整` : '0'
 }
 
 function statusText(): string {
@@ -5500,6 +5558,8 @@ function statusText(): string {
     `latest collection boundary: ${boundarySummary(runMode?.value)}`,
     `pending reconciliation: ${reconcileSummary()}`,
     `clear transition: ${clearSummary()}`,
+    `integrity: ${integritySummary()}`,
+    `integrity gaps: ${integrityGapsSummary()}`,
     `archive: ${archive}`,
     ...damageChoices,
     ...quarantineLines(),
@@ -5684,7 +5744,7 @@ async function enableCollection($: EngineInterface): Promise<string> {
   /* A resume boundary written ahead of a Clear Boundary that is still owed
      would order the segment break after the interval it precedes, so the queue
      is emptied first and enable refuses while anything is left in it. */
-  if (await drainLifecycle($, currentProject) === 'blocked') {
+  if (await drainLifecycle($, currentProject, false) === 'blocked') {
     const failure = lifecycleFailure
       ? `（${(await markUnavailable($, currentProject, lifecycleFailure)).category}）`
       : ''
@@ -5764,6 +5824,9 @@ async function enableCollection($: EngineInterface): Promise<string> {
 
   recordBoundary($, kind, appended)
   $.ui.invalidate('ui.render')
+  /* Collection is provable again from here. Left unwritten, the next
+     submission's drain writes it before anything is staged. */
+  await recordIntegrityGap($, currentProject, true)
   return kind === 'collection-resumed'
     ? '当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。'
     : '当前 Run 已开始采集，并从新的根 Conversation Branch 开始。'
@@ -5815,6 +5878,9 @@ async function disableCollection($: EngineInterface): Promise<string> {
       if (!await ensureRunAttached($, currentProject)) throw new Error('lifecycle-owed')
       await flushForeignLifecycles($, currentProject)
       if (!await flushOwnLifecycle($, currentProject)) throw new Error('lifecycle-owed')
+      /* A gap it owes lands ahead of the stop; its recovery waits for a
+         resume, since nothing is collected in between to prove. */
+      if (!await recordIntegrityGap($, currentProject, false)) throw new Error('lifecycle-owed')
       const branch = await branchState($, currentProject)
       appended = await appendBoundary($, currentProject, branch.value.branchId, kind)
     } catch {
@@ -6190,7 +6256,7 @@ async function forgetClearedRun($: EngineInterface, currentProject: ProjectState
   transcriptMark = undefined
   if (runMode) runMode = { ...runMode, value: { version: 1, mode: runMode.value.mode } }
   const lifecycleOwn = lifecycleKey(currentProject.id, own)
-  if (lifecycle?.key === lifecycleOwn) lifecycle = { key: lifecycleOwn, value: { ...lifecycle.value, queue: [] } }
+  if (lifecycle?.key === lifecycleOwn) lifecycle = { key: lifecycleOwn, value: withoutOwed(lifecycle.value) }
   let forgotten = true
   try {
     if (reconcile?.state.runId === own
@@ -6208,6 +6274,7 @@ async function forgetClearedRun($: EngineInterface, currentProject: ProjectState
         if (value) await rootAfterRunClear($, { key, value })
       }
     }
+    await forgetMarkers($, currentProject, runOf => runOf === own)
   } catch {
     forgotten = false
   }
@@ -6574,6 +6641,11 @@ export const register: Register = on => {
           await loadRunMode($, currentProject)
           await loadLifecycle($, currentProject)
           await foreignLifecycles($, currentProject)
+          unsettledCalls = 0
+          const markers = startup.runId ? `${inflightPrefix(currentProject.id)}${startup.runId}:` : undefined
+          for (const key of markers ? await $.store.keys() : []) {
+            if (markers && key.startsWith(markers) && !liveCalls.has(markerCall(key))) unsettledCalls += 1
+          }
           try {
             archiveStatus = undefined
             archiveStatus = await readArchiveStatus($, currentProject)
