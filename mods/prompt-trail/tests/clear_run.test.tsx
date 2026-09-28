@@ -366,3 +366,55 @@ test('a branch standing on an entry a Run clear took starts a new root and goes 
   expect(store[branchKey]).toMatchObject({ explicitRoot: true })
   expect((store[branchKey] as { branchId: string }).branchId).not.toBe('bbbbbbbb-0000-4000-8000-000000000001')
 })
+
+/* Found in review (Issue 29, round 1). */
+
+test('a Run clear left unfinished here forgets what this Run kept of the cleared records', async ($, on) => {
+  const store = collectingStore()
+  installSupportedTarget(on, {
+    store, archive: archivedBefore(), clearRunUnderway: { value: false },
+    clearRunLeaves: [{ name: `${projectId}.sqlite3-wal`, bytes: 4096 }],
+    clearAnswers: ['清除当前 Run'],
+  })
+  await $.session.start(session)
+
+  await promptHistory($, 'clear-run')
+
+  /* Whoever finishes the clear, nothing this Run owed of it may come back. */
+  expect((store[lifecycleKey] as { queue: unknown[] }).queue).toEqual([])
+  expect(store[branchKey]).toMatchObject({ parentEventId: null, explicitRoot: true })
+  expect(store[runModeKey]).toEqual({ version: 1, mode: 'enabled' })
+})
+
+test('a Run clear whose answer was lost after it finished says what the archive shows', async ($, on) => {
+  const store = collectingStore()
+  const archive = archivedBefore()
+  installSupportedTarget(on, {
+    store, archive, clearRunAnswerLost: true, clearAnswers: ['清除当前 Run'],
+  })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-run')
+
+  expect(archive.filter(row => row.runId === runId)).toEqual([])
+  expect(answer.text).toContain('当前 Run 的记录已不在档案中')
+  expect(answer.text).not.toContain('未删除任何内容')
+  expect(store[branchKey]).toMatchObject({ parentEventId: null, explicitRoot: true })
+})
+
+test('clear-run lifts the unavailable record when the Run clear finished elsewhere', async ($, on) => {
+  const store = collectingStore()
+  store[archiveStateKey] = { version: 2, state: 'unavailable', category: 'clear-run-unfinished', since: 1 }
+  const clearRunUnderway = { value: true, runId: otherRun }
+  installSupportedTarget(on, {
+    store, archive: archivedBefore(), clearRunUnderway, clearAnswers: ['继续清除'],
+    duringAsk: () => {
+      clearRunUnderway.value = false
+    },
+  })
+  await $.session.start(session)
+
+  await promptHistory($, 'clear-run')
+
+  expect(store[archiveStateKey]).toBeUndefined()
+})

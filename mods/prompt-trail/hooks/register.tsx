@@ -4306,13 +4306,9 @@ async function forgetClearedHistory($: EngineInterface, currentProject: ProjectS
   try {
     for (const key of await $.store.keys()) {
       if (key.startsWith(lifecyclePrefix(currentProject.id))) {
-        const value = storedLifecycle(await $.store.get(key))
-        if (value && value.queue.length > 0) await $.store.set(key, { ...value, queue: [] })
+        await forgetOwedLifecycle($, key)
       } else if (key.startsWith(`prompt-trail:run-mode:${currentProject.id}:`)) {
-        const value = storedRunMode(await $.store.get(key))
-        if (value && (value.boundary || value.stopBoundaryMissing)) {
-          await $.store.set(key, { version: 1, mode: value.mode })
-        }
+        await forgetCollectionBoundary($, key)
       }
     }
   } catch {
@@ -4323,6 +4319,20 @@ async function forgetClearedHistory($: EngineInterface, currentProject: ProjectS
   timelineLoaded = undefined
   $.ui.invalidate('ui.render')
   return forgotten
+}
+
+/* A Run's lifecycle writes still owed to cleared history. */
+async function forgetOwedLifecycle($: EngineInterface, key: string): Promise<void> {
+  const value = storedLifecycle(await $.store.get(key))
+  if (value && value.queue.length > 0) await $.store.set(key, { ...value, queue: [] })
+}
+
+/* The Collection Boundary a Run last wrote into cleared history; its mode stays. */
+async function forgetCollectionBoundary($: EngineInterface, key: string): Promise<void> {
+  const value = storedRunMode(await $.store.get(key))
+  if (value && (value.boundary || value.stopBoundaryMissing)) {
+    await $.store.set(key, { version: 1, mode: value.mode })
+  }
 }
 
 /* Runs the clear the person confirmed. Answers what it removed, or the
@@ -5627,13 +5637,9 @@ async function forgetClearedRun($: EngineInterface, currentProject: ProjectState
     const branches = `prompt-trail:branch:${currentProject.id}:${own}:`
     for (const key of await $.store.keys()) {
       if (key === lifecycleOwn) {
-        const value = storedLifecycle(await $.store.get(key))
-        if (value && value.queue.length > 0) await $.store.set(key, { ...value, queue: [] })
+        await forgetOwedLifecycle($, key)
       } else if (key === runModeKey(currentProject.id, own)) {
-        const value = storedRunMode(await $.store.get(key))
-        if (value && (value.boundary || value.stopBoundaryMissing)) {
-          await $.store.set(key, { version: 1, mode: value.mode })
-        }
+        await forgetCollectionBoundary($, key)
       } else if (key.startsWith(branches)) {
         const value = storedBranch(await $.store.get(key))
         if (value) await rootAfterRunClear($, { key, value })
@@ -5792,16 +5798,52 @@ async function clearRunCommand($: EngineInterface): Promise<string> {
     if (scope.entries + scope.pending + scope.events === 0) return '当前 Run 没有可清除的 Prompt Trail 记录。'
   }
   if (await askClearRun($, inventory) !== 'clear') return '已取消，未删除任何内容。'
+  /* A clear begun here, not one taken up: it is this Run's records. */
+  const own = !inventory.clearRunUnderway
   try {
     const cleared = await clearRun($, currentProject, inventory.clearRunUnderway)
-    if (!cleared.cleared) return '之前的按 Run 清除已由其他 Run 完成，未删除任何新记录。'
+    if (!cleared.cleared) {
+      await archiveRecovered($, currentProject)
+      return '之前的按 Run 清除已由其他 Run 完成，未删除任何新记录。'
+    }
     return runClearedText(cleared)
   } catch (error) {
     const category = failureCategory(error, 'clear-run')
-    if (category !== 'clear-run-unfinished') return runClearRefusal(category)
+    if (category !== 'clear-run-unfinished') {
+      if (own && (category === 'helper-call-failed' || category === 'clear-run')
+          && await runClearFinished($, currentProject)) {
+        return [
+          `没有收到清除的回答（${category}），但当前 Run 的记录已不在档案中，清除已完成。`,
+          'Collection consent 与当前 Run 的采集模式未改变；下一次提交开始新的根。',
+          CLEAR_BOUNDARY,
+        ].join('\n')
+      }
+      return runClearRefusal(category)
+    }
     await markUnavailable($, currentProject, category)
+    /* Past its cut the Run's records are gone, whoever finishes the clear:
+       nothing this Run kept of them may be written back meanwhile. */
+    if (own) await forgetClearedRun($, currentProject)
     return unfinishedRunClearText($, currentProject)
   }
+}
+
+/* Whether a Run clear whose answer never came finished: no clear under way,
+   and nothing of this Run left in the archive. It then forgets what this Run
+   kept, as a clear that answered would have. */
+async function runClearFinished($: EngineInterface, currentProject: ProjectState): Promise<boolean> {
+  try {
+    const after = await readClearInventory($, currentProject, startup.runId)
+    const scope = after.run
+    if (after.clearRunUnderway || !scope || scope.entries + scope.pending + scope.events > 0) return false
+  } catch {
+    return false
+  }
+  await forgetClearedRun($, currentProject)
+  resetWindow()
+  timelineLoaded = undefined
+  $.ui.invalidate('ui.render')
+  return true
 }
 
 /* A held submission's choice to finish a Run clear under way: nothing is

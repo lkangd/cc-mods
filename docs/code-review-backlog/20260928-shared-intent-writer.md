@@ -16,6 +16,9 @@ creating a `.partial`, writing, `F_FULLFSYNC`/`fsync`, `rename` and syncing the 
 `quarantine` inlines the same sequence for `<projectId>.quarantine`. A change to how intents are
 made durable has to be made twice.
 
+Update (Issue 29 review, 2026-09-28): `clear_all` and the new `clear_run` now share
+`place_intent()`; only `quarantine` still inlines the sequence.
+
 ## Why deferred
 
 Cleanup finding (unverified by policy); touching the quarantine path is outside what the review

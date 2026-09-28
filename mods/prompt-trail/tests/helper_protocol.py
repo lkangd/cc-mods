@@ -4832,5 +4832,42 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(self.markers_left(b"PT-SECRET-ON-GONE"), [])
 
 
+    # Found in review (Issue 29, round 1).
+
+    def test_a_run_clear_refuses_when_the_quarantine_cannot_be_listed(self) -> None:
+        project_id = "c4" * 32
+        legacy = self.damaged_archive_with_companions(project_id)
+        self.quarantine(project_id, self.check(project_id)["generation"])
+        identity = legacy["identity"]
+        self.capture("PT-SECRET-AFTER-QUARANTINE", identity=identity)
+        kept = self.plugin_data / "archives" / "quarantine" / project_id
+        kept.chmod(0o000)
+        self.addCleanup(kept.chmod, 0o700)
+        before = self.archive_files(project_id)
+
+        refused = self.run_helper(*self.clear_run_argv(project_id=project_id, run_id=identity["run_id"]))
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr), {"category": "database-unavailable"})
+        self.assertEqual(self.archive_files(project_id), before)
+        self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
+
+    def test_a_clear_all_over_an_unfinished_run_clear_forgets_that_runs_sessions(self) -> None:
+        project_id = "c5" * 32
+        cleared = self.identity(project_id)
+        self.capture("PT-SECRET-KEPT", identity=self.identity(project_id))
+        gone = self.index_session(cleared["run_id"])
+        # The Run clear deleted its rows and stopped before it finished.
+        intent = self.plugin_data / "archives" / f"{project_id}.clearing-run"
+        intent.write_text(f"{cleared['run_id']}\n")
+        intent.chmod(0o600)
+
+        answer = self.clear(project_id)
+
+        self.assertTrue(answer["cleared"])
+        self.assertEqual(answer["sessionsRemoved"], 1)
+        self.assertNotIn(gone, self.indexed_sessions())
+
+
 if __name__ == "__main__":
     unittest.main()
