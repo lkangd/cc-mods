@@ -123,6 +123,13 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   `quick_check` 通过才删除备份，删不掉就保持 Archive unavailable。helper 从不用备份覆盖活动库，中断靠事务回滚。读命令不再
   拿写锁。新增 `archive-read-only`、`archive-integrity`、`migration-backup`、`migration-verify`、`migration-backup-cleanup`
   五个共享故障类别。100k 条目、403 MiB 的档案迁移耗时 2.61 秒。
+- [隔离损坏的 Archive generation](issues/28-quarantine-corrupt-archive.md)：
+  SQLite 撞上的损坏一律报 `archive-integrity`，并带上那份档案的 generation（活动文件的 dev/ino/birthtime，不改 schema）。
+  被挡住的提交给三项：只读重新检查（主库和 WAL 字节不变）、把整组文件原样搬进 `archives/quarantine/<projectId>/<时间戳>-<随机>/`
+  后在原路径换上只含 `archive-quarantined` 边界的新 generation，或禁用当前 Run。项目锁让隔离等在途命令结束；意向文件让中断的隔离
+  拒绝一切打开，直到下一次隔离续做完成；多 Run 同时隔离只产生一个副本。`capture-begin` 带预期 generation，与
+  `branch-match`、`timeline-read` 一起让别的 Run 在新 generation 里补写 `run-attached` 并从新根分支重来。`status` 列出隔离目录。
+  `clear-run` 的拒绝与强确认清除转交 29、30。
 
 ## Not yet specified
 

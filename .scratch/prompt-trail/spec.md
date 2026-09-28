@@ -114,7 +114,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 
 2. **领域模型**
    - Project Timeline 是一个规范项目根对应的永久时间线；不同 worktree、移动后的项目路径和不同规范根彼此隔离。
-   - Archive generation 是最近一次 `clear-all` 建立的档案世代；旧 generation 的 writer 不能向新 generation 写入或复活记录。
+   - Archive generation 是最近一次 `clear-all` 或隔离建立的档案世代；旧 generation 的 writer 不能向新 generation 写入或复活记录。（2026-09-28 Issue 28 修订。）
    - Timeline Event 是不可变事件，以随机 `event_id` 幂等，并在事务中取得项目级单调 `sequence`；时间戳只用于展示。
    - Run 是一条会话谱系：普通启动创建新 Run，经 `/clear` 与 module reload 延续；`claude --resume`、`--continue` 与会话内 `/resume` 按 classic session id 找回所属 Run 并续接（档案中无该会话时新建）；后台 `/fork` 与 `--fork-session` 创建新 Run。进程只是接入或离开 Run，同一 Run 同一时刻至多一个存活进程接入；并发 resume 同一会话的后到进程新建 Run 并记录来源 Run。（2026-09-23 Issue 32 修订。）
    - Conversation Segment 是一个 Run 内由启动或 Clear Boundary 划分的连续区间。
@@ -211,6 +211,8 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
     - plugin 自身崩溃导致宿主 fail-open 时，恢复阶段先用 transcript、pending 和 lifecycle 队列对账；无法证明的区间创建不可变 Integrity gap。
     - 健康恢复时写 Integrity recovery boundary 并允许当前状态回到 healthy；既有 Gap 永久可见且跨 Gap 历史不得称为完整。
     - 损坏时不自动修复、覆盖或重建。选择为：重试完整性检查、原样保留为 Quarantined Archive 后开启新 generation，或强确认 `clear-all`。
+      当前实现状态：[Issue 28](issues/28-quarantine-corrupt-archive.md) 已落实只读重新检查与隔离后新 generation，
+      隔离档案位于 `archives/quarantine/<projectId>/`；强确认 `clear-all` 随 Issue 30 加入。
 
 14. **迁移、更新与制品信任**
     - 只执行 manifest 声明的已知单向 schema 迁移；高于 helper 支持版本的数据库拒绝打开。
