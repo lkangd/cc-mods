@@ -51,7 +51,7 @@
   - B 下一次提交进入新 generation（`run-attached`、prompt），没有复活任何旧记录；A 的 band 只显示新记录；
   - 故障注入（`chflags uchg` 锁住主库）：A 得到残留报告，B 的提交被「继续清除 / 禁用」对话框挡住；解锁后在 B 选「继续清除」，清除完成，提交进入新 generation；
   - PTY 发现并修复了三处：未完成清除的残留报告曾重新打开被切断的档案，带回 `-wal`/`-shm`；确认文字写的是宿主并不显示的「Other」；清除后 `status` 仍列出旧历史的 Collection Boundary。修复后复验：残留只剩被锁的文件，`status` 为 `clear: unfinished · 1 residual`，命令续做只问「继续清除 / 取消」，完成后只剩 `.lock`。
-  - 从对话框续做成功后的 toast 在 `read-screen` 里读不到，未经目视确认。
+  - 从对话框续做成功后的 toast 在 `read-screen` 里读不到，由使用者目视确认。
 - **未覆盖**：
   - 刚启动的会话立刻执行 `/prompt-history disable` 时，曾答「无法读取当前 Run collection mode」，稍后重试正常。这看起来是启动期的时序问题，与本票无关，未深入。
   - 续做清除时，完成报告里的条数来自切点后对残留档案的只读计数（helper 内部读取，不经任何 Run）。
