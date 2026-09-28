@@ -226,7 +226,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 
 15. **并发与删除**
     - `clear-all` 使用线性化切点和新 Archive generation：切点前记录全部删除，切点后的新提交只写新 generation，旧 writer 被拒绝。切点是项目独占锁下写入的清除意向；意向存在期间一切打开都失败关闭，删完后原路径留空，下一次写入才建出新 generation。（2026-09-28 Issue 30 修订。）
-    - `clear-run` 删除当前 Run（整条会话谱系，跨越其所有进程接入）的 Prompt Entries、Pending Captures、相关原文和可关联的敏感元数据；其他 Run 保持不变。`clear-run` 在原档案内删除（Archive generation 不变）：先在项目独占锁下写入按 Run 清除意向作为切点，意向存在期间一切打开都失败关闭；再删除三张表里该 Run 的全部行，并把其他 Run 指向被删条目的父链接置空；sequence 留空洞，不回退。（2026-09-28 Issue 29 修订。）
+    - `clear-run` 删除当前 Run（整条会话谱系，跨越其所有进程接入）的 Prompt Entries、Pending Captures、相关原文和可关联的敏感元数据；其他 Run 保持不变。`clear-run` 在原档案内删除（Archive generation 不变）：先在项目独占锁下写入按 Run 清除意向作为切点，意向存在期间一切打开都失败关闭；再删除三张表里该 Run 的全部行，并把其他 Run 指向被删条目的父链接置空；sequence 留空洞，不回退；`capture-begin` 在预写前校验父条目，分支停在被清除条目上的 Run 改从新根继续。（2026-09-28 Issue 29 修订。）
     - 存在无法安全打开的 Quarantined Archive 时，`clear-run` 不得声称完整按 Run 删除，必须拒绝并引导 `clear-all`。
     - `clear-all` 删除活动数据库、WAL/SHM、迁移备份、Quarantined Archives 和 prompt 元数据，并删除会话索引里指向该项目档案中出现过的 Run 的记录（索引不记项目，只能按 Run 找回），之后 resume 这些会话会新建 Run 而不是回到旧 generation 的 Run；locator 生命周期独立，consent 与当前 Run mode 保留。（2026-09-23 Issue 32 修订。）仍在运行、会在新 generation 继续的 Run 保留索引记录。（2026-09-28 Issue 30 修订。）
     - 删除使用 `secure_delete`、WAL checkpoint/truncate 和必要空间回收；`clear-all` 删的是整个文件，只做 `unlink` 与目录 `fsync`，不覆写（写时复制文件系统上覆写不擦除旧块）。（2026-09-28 Issue 30 修订。）事务删除成功但残留清理失败时报告“逻辑删除完成、物理清除未完成”，列出残留并保持 Archive unavailable。`clear-run` 以 checkpoint(TRUNCATE)、`VACUUM`、空 WAL 与迁移备份已删除作为物理完成的判据，任何一步失败都保留意向。（2026-09-28 Issue 29 修订。）

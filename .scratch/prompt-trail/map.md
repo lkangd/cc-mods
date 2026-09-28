@@ -136,6 +136,12 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   除 `.lock` 外的全部档案文件和隔离目录，原路径留空到下一次写入。删不掉就保持 `clear-unfinished`，下一次续做，不再要求短语。
   `boundary-append` 带预期 generation，lifecycle 队列记下事实发生时的 generation，旧 generation 的写入被丢弃。
   locator 与会话索引里的 `archiveGeneration` 只是历史遗留的 Run 令牌，不是 Archive generation。
+- [物理清除当前 Run](issues/29-clear-run.md)：
+  `/prompt-history clear-run` 展示当前 Run（整条会话谱系、接入次数、最早时间、条数、会断开的其他 Run 父链接），确认一次即清除。
+  helper 在项目独占锁下写 `.clearing-run`（内含 Run id）作为切点，在原档案内删除三张表里该 Run 的全部行、把其他 Run 指向它的
+  父链接置空，再 `VACUUM` 和 checkpoint(TRUNCATE)，WAL 为空、迁移备份删除后才删意向；generation 不变，sequence 留空洞。
+  失败保持 `clear-run-unfinished`，任何 Run 可续做。有隔离档案时拒绝。`capture-begin` 预写前即校验父条目，插件遇到
+  `capture-parent-unknown` 改新根重试。
 
 ## Not yet specified
 
