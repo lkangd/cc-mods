@@ -224,6 +224,8 @@ const SAFE_ERROR_CATEGORIES = new Set([
   'capture-input',
   'clear-input',
   'clear-unfinished',
+  'clear-run-quarantined',
+  'clear-run-unfinished',
   'match-input',
   'archive-memory',
   'capture-not-found',
@@ -301,6 +303,7 @@ const SHARED_FAILURES = new Set([
   'project-identity',
   'quarantine-failed',
   'clear-unfinished',
+  'clear-run-unfinished',
   'schema-version',
 ])
 /* Damage to the archive, or a quarantine of it left unfinished: beside
@@ -311,6 +314,7 @@ const DAMAGE_FAILURES = new Set(['archive-integrity', 'quarantine-failed'])
 const PLUGIN_FAILURES = new Set([
   'clear-all',
   'clear-inventory',
+  'clear-run',
   'boundary-append',
   'boundary-response',
   'branch-match',
@@ -3771,6 +3775,8 @@ type ArchiveStatus = {
   clearUnderway: boolean
   /* What an unfinished clear has still to remove, when it could be listed. */
   clearResidual?: number
+  clearRunUnderway: boolean
+  clearRunResidual?: number
   quarantined: { name: string; path: string; bytes: number }[]
 }
 
@@ -3923,6 +3929,7 @@ async function readArchiveStatus(
     generation: nullableGeneration(value.generation, 'archive-status'),
     quarantineUnderway: value.quarantineUnderway,
     clearUnderway: value.clearUnderway === true,
+    clearRunUnderway: value.clearRunUnderway === true,
     quarantined: value.quarantined.map((kept: unknown) => {
       if (
         !isRecord(kept) ||
@@ -3957,7 +3964,8 @@ async function askUnavailable(
 ): Promise<'retry' | 'recheck' | 'quarantine' | 'clear' | 'continue-clear' | 'disable' | undefined> {
   const scope = failure.scope === 'archive' ? '本项目所有 Run' : '本 Run（其他 Run 不受影响）'
   const damaged = DAMAGE_FAILURES.has(failure.category)
-  const clearing = failure.category === 'clear-unfinished'
+  const clearingRun = failure.category === 'clear-run-unfinished'
+  const clearing = failure.category === 'clear-unfinished' || clearingRun
   const choices = damaged
     ? ['重新检查完整性', '隔离并开始新档案', '清除全部档案', '禁用当前 Run 后继续']
     : clearing
@@ -3968,7 +3976,8 @@ async function askUnavailable(
   let leftovers: string[] = []
   if (clearing) {
     try {
-      leftovers = clearLeftovers(await readClearInventory($, await prepareProject($)))
+      const inventory = await readClearInventory($, await prepareProject($))
+      leftovers = clearingRun ? runLeftovers(inventory) : clearLeftovers(inventory)
     } catch {
       leftovers = ['（无法列出残留）']
     }
@@ -3981,12 +3990,16 @@ async function askUnavailable(
         `范围：${scope}`,
         `类别：${failure.category}${failure.elsewhere ? '（由另一个 Run 报告）' : ''}`,
         ...(failure.recheck ? [recheckNote(failure.recheck)] : []),
-        ...(clearing
-          ? ['本项目的清除已切断旧记录，但以下文件还未删除：', ...leftovers.map(line => `- ${line}`)]
-          : []),
+        ...(clearingRun
+          ? ['之前确认过的一次按 Run 清除已删除记录，但物理清除未完成，以下残留还在：', ...leftovers.map(line => `- ${line}`)]
+          : clearing
+            ? ['本项目的清除已切断旧记录，但以下文件还未删除：', ...leftovers.map(line => `- ${line}`)]
+            : []),
         damaged
           ? '“重新检查完整性”只读检查档案，通过后提交；“隔离并开始新档案”把旧记录原样保留在隔离目录，新时间线从空开始，之后提交；“清除全部档案”在输入确认短语后永久删除本项目的全部档案，之后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。Prompt Trail 不会修复或覆盖损坏的档案。'
-          : clearing
+          : clearingRun
+            ? '“继续清除”完成那次按 Run 清除，之后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。'
+            : clearing
             ? '“继续清除”删除剩下的文件，完成后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。'
             : '“重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。',
       ].join('\n'),
@@ -4011,6 +4024,7 @@ async function answerClear(
   choice: 'clear' | 'continue-clear',
   failure: Blocked,
 ): Promise<boolean> {
+  if (failure.category === 'clear-run-unfinished') return continueRunClear($, failure)
   let currentProject: ProjectState
   let onlyContinue = choice === 'continue-clear'
   try {
@@ -4118,6 +4132,10 @@ const CLEAR_PHRASE = 'delete all prompts'
 type ClearInventory = {
   present: boolean
   clearUnderway: boolean
+  clearRunUnderway: boolean
+  /* What a Run clear of the Run asked about would remove; absent when no
+     Run was named, null when the archive could not say. */
+  run?: RunInventory | null
   entries: number | null
   pending: number | null
   otherLiveRuns: number | null
@@ -4134,6 +4152,7 @@ function nullableCount(value: unknown): number | null {
 async function readClearInventory(
   $: EngineInterface,
   currentProject: ProjectState,
+  forRun?: string,
 ): Promise<ClearInventory> {
   if (!startup.helperPath || !startup.databaseRoot) throw new Error('capture-identity')
   const result = await runArchive(
@@ -4145,6 +4164,7 @@ async function readClearInventory(
       currentProject.id,
       EXPECTED_HELPER_SHA256,
       String(HELPER_PROTOCOL),
+      ...(forRun ? [forRun] : []),
     ],
     10_000,
   )
@@ -4161,6 +4181,8 @@ async function readClearInventory(
   return {
     present: value.present,
     clearUnderway: value.clearUnderway,
+    clearRunUnderway: value.clearRunUnderway === true,
+    ...(forRun ? { run: runInventory(value.run) } : {}),
     entries: nullableCount(value.entries),
     pending: nullableCount(value.pending),
     otherLiveRuns: nullableCount(value.otherLiveRuns),
@@ -4626,9 +4648,17 @@ async function submitCollected(
     try {
       staged = await begin()
     } catch (error) {
+      const category = failureCategory(error, 'capture-begin')
       const left = branch.value.generation
-      if (failureCategory(error, 'capture-begin') !== 'archive-generation' || !left) throw error
-      branch = await enterNewGeneration($, currentProject, left)
+      if (category === 'capture-parent-unknown' && branch.value.parentEventId) {
+        /* A Run clear took the entry this branch stood on: what follows
+           starts a new root rather than chaining onto nothing. */
+        branch = await rootAfterRunClear($, branch)
+      } else if (category === 'archive-generation' && left) {
+        branch = await enterNewGeneration($, currentProject, left)
+      } else {
+        throw error
+      }
       staged = await begin()
     }
   } catch (error) {
@@ -4949,6 +4979,9 @@ function quarantineLines(): string[] {
     ...(archiveStatus.quarantineUnderway ? ['quarantine: 未完成（再次选择“隔离并开始新档案”会接着完成）'] : []),
     ...(archiveStatus.clearUnderway
       ? [`clear: unfinished · ${archiveStatus.clearResidual ?? 'unknown'} residual（/prompt-history clear-all 可继续）`]
+      : []),
+    ...(archiveStatus.clearRunUnderway
+      ? [`clear-run: unfinished · ${archiveStatus.clearRunResidual ?? 'unknown'} residual（/prompt-history clear-run 可继续）`]
       : []),
     `Quarantined archives: ${archiveStatus.quarantined.length}`,
     ...archiveStatus.quarantined.map(kept => `  ${statusValue(kept.path)}（${kept.bytes} bytes）`),
@@ -5452,6 +5485,345 @@ function splitOrigins(items: readonly TimelineItem[]): Map<string, string> {
   return origins
 }
 
+/* Clearing the current Run (Issue 29). The helper deletes the Run's rows from
+   the archive in place, under an intent that refuses every other command
+   until the WAL is emptied and the file compacted; links other Runs' entries
+   had to the Run go with them. The person sees the scope once and confirms. */
+type RunInventory = {
+  entries: number
+  pending: number
+  events: number
+  attaches: number
+  startedAt: number | null
+  unlinked: number
+}
+
+function runInventory(value: unknown): RunInventory | null {
+  if (value === null) return null
+  const count = (field: unknown) => {
+    if (!Number.isSafeInteger(field) || (field as number) < 0) throw new Error('clear-inventory')
+    return field as number
+  }
+  if (!isRecord(value)) throw new Error('clear-inventory')
+  return {
+    entries: count(value.entries),
+    pending: count(value.pending),
+    events: count(value.events),
+    attaches: count(value.attaches),
+    startedAt: value.startedAt === null ? null : count(value.startedAt),
+    unlinked: count(value.unlinked),
+  }
+}
+
+/* The files an unfinished Run clear leaves holding what it deleted: a WAL
+   not yet emptied, and any migration backup. */
+function runResidue(inventory: ClearInventory): { name: string; bytes: number }[] {
+  return inventory.files.filter(file =>
+    (file.name.endsWith('-wal') && file.bytes > 0) || file.name.includes('.pre-migration-'))
+}
+
+function runLeftovers(inventory: ClearInventory): string[] {
+  const residue = runResidue(inventory)
+  return residue.length > 0
+    ? residue.map(file => `${startup.databaseRoot ?? ''}/${file.name}（${file.bytes} 字节）`)
+    : ['（没有可列出的残留文件；档案的空间回收或 WAL 清理未完成）']
+}
+
+function localTime(at: number): string {
+  const date = new Date(at)
+  const two = (value: number) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())} ${two(date.getHours())}:${two(date.getMinutes())}`
+}
+
+/* The person's answer to a Run clear: one confirmation, or a Run clear
+   already under way taken up. */
+async function askClearRun(
+  $: EngineInterface,
+  inventory: ClearInventory,
+): Promise<'clear' | 'cancelled'> {
+  try {
+    if (inventory.clearRunUnderway) {
+      const answer = await $.ui.ask(
+        [
+          '之前确认过的一次按 Run 清除尚未完成：记录已不会再被读写，但物理清除未完成，以下残留还在：',
+          ...runLeftovers(inventory).map(line => `- ${line}`),
+          '清除完成前，本项目的档案不可用。',
+        ].join('\n'),
+        { header: '继续清除', options: ['继续清除', '取消'] },
+      )
+      return answer === '继续清除' ? 'clear' : 'cancelled'
+    }
+    const scope = inventory.run
+    if (!scope) return 'cancelled'
+    const answer = await $.ui.ask(
+      [
+        'Prompt Trail 将永久删除当前 Run 的全部记录。',
+        `范围：当前 Run 的整条会话谱系，包括它此前所有进程接入（共 ${scope.attaches} 次）中的记录${scope.startedAt === null ? '' : `，最早一条在 ${localTime(scope.startedAt)}`}。`,
+        `${scope.entries} 条 Prompt Entry、${scope.pending} 个 Pending Capture、${scope.events} 条边界事件。`,
+        ...(scope.unlinked > 0
+          ? [`其他 Run 有 ${scope.unlinked} 条记录以本 Run 的条目为父节点；它们会断开这条父链接，成为新的根，内容不变。`]
+          : []),
+        '其他 Run 的记录保持不变，但其后条目的编号可能前移。Collection consent 与当前 Run 的采集模式不变。',
+        CLEAR_BOUNDARY,
+      ].join('\n'),
+      { header: '清除当前 Run', options: ['清除当前 Run', '取消'] },
+    )
+    return answer === '清除当前 Run' ? 'clear' : 'cancelled'
+  } catch {
+    return 'cancelled'
+  }
+}
+
+type RunCleared = {
+  /* False when only continuing, and the clear had finished elsewhere. */
+  cleared: boolean
+  continued: boolean
+  /* Whether the Run cleared is this one: a continuation may finish another's. */
+  ownRun: boolean
+  entries: number
+  pending: number
+  events: number
+  unlinked: number
+  /* Whether the store forgot what it kept of this Run's cleared history. */
+  forgotten: boolean
+}
+
+/* A new root for a branch whose entry a Run clear took. Only the branch
+   this session is on is remembered as its own. */
+async function rootAfterRunClear(
+  $: EngineInterface,
+  branch: { key: string; value: BranchState },
+): Promise<{ key: string; value: BranchState }> {
+  const root: BranchState = {
+    version: 1,
+    branchId: crypto.randomUUID(),
+    parentEventId: null,
+    explicitRoot: true,
+    ...(branch.value.generation ? { generation: branch.value.generation } : {}),
+  }
+  await $.store.set(branch.key, root)
+  if (branch.key.endsWith(`:${startup.runId}:${startup.sessionId}`)) rememberBranch(branch.key, root)
+  return { key: branch.key, value: root }
+}
+
+/* What the store kept about this Run's cleared history goes with it: the
+   pending it owed, the lifecycle writes still owed, the Collection Boundary it
+   last wrote, and every branch of its sessions, which start new roots.
+   Consent and its collection mode stay; other Runs' records are theirs. */
+async function forgetClearedRun($: EngineInterface, currentProject: ProjectState): Promise<boolean> {
+  const own = startup.runId
+  if (!own) return false
+  deferredClear = undefined
+  transcriptMark = undefined
+  if (runMode) runMode = { ...runMode, value: { version: 1, mode: runMode.value.mode } }
+  const lifecycleOwn = lifecycleKey(currentProject.id, own)
+  if (lifecycle?.key === lifecycleOwn) lifecycle = { key: lifecycleOwn, value: { ...lifecycle.value, queue: [] } }
+  let forgotten = true
+  try {
+    if (reconcile?.state.runId === own
+        || storedReconcile(await $.store.get(reconcileKey(currentProject.id)))?.runId === own) {
+      await clearReconcile($, currentProject)
+    }
+    const branches = `prompt-trail:branch:${currentProject.id}:${own}:`
+    for (const key of await $.store.keys()) {
+      if (key === lifecycleOwn) {
+        const value = storedLifecycle(await $.store.get(key))
+        if (value && value.queue.length > 0) await $.store.set(key, { ...value, queue: [] })
+      } else if (key === runModeKey(currentProject.id, own)) {
+        const value = storedRunMode(await $.store.get(key))
+        if (value && (value.boundary || value.stopBoundaryMissing)) {
+          await $.store.set(key, { version: 1, mode: value.mode })
+        }
+      } else if (key.startsWith(branches)) {
+        const value = storedBranch(await $.store.get(key))
+        if (value) await rootAfterRunClear($, { key, value })
+      }
+    }
+  } catch {
+    forgotten = false
+  }
+  lifecycleFailure = undefined
+  return forgotten
+}
+
+/* Runs the Run clear the person confirmed, or only finishes one under way.
+   Answers what it removed, or the category it stopped at. */
+async function clearRun(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  onlyContinue: boolean,
+): Promise<RunCleared> {
+  if (!startup.helperPath || !startup.databaseRoot || !startup.runId) {
+    throw new Error('capture-identity')
+  }
+  let result: Awaited<ReturnType<typeof runArchive>>
+  try {
+    result = await runArchive(
+      $,
+      [
+        startup.helperPath,
+        'clear-run',
+        startup.databaseRoot,
+        currentProject.id,
+        startup.runId,
+        EXPECTED_HELPER_SHA256,
+        String(HELPER_PROTOCOL),
+        ...(onlyContinue ? ['--continue'] : []),
+      ],
+      30_000,
+    )
+    if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'clear-run'))
+  } catch (error) {
+    /* A Run clear stopped past its cut, whatever stopped it, is unfinished. */
+    if (failureCategory(error, 'clear-run') !== 'clear-run-unfinished') {
+      let underway = false
+      try {
+        underway = (await readClearInventory($, currentProject)).clearRunUnderway
+      } catch {
+        // Not known to be under way; the failure stands as it came.
+      }
+      if (underway) throw new Error('clear-run-unfinished')
+    }
+    throw error
+  }
+  const value: unknown = JSON.parse(result.stdout)
+  const counted = (field: unknown) => Number.isSafeInteger(field) && (field as number) >= 0
+  if (
+    !isRecord(value) ||
+    value.projectId !== currentProject.id ||
+    typeof value.cleared !== 'boolean' ||
+    typeof value.continued !== 'boolean' ||
+    typeof value.ownRun !== 'boolean' ||
+    ![value.entries, value.pending, value.events, value.unlinked].every(counted)
+  ) throw new Error('clear-run')
+  let forgotten = true
+  if (value.cleared) {
+    await archiveRecovered($, currentProject)
+    if (value.ownRun) forgotten = await forgetClearedRun($, currentProject)
+    /* What the view drew of the cleared Run is read again. */
+    resetWindow()
+    timelineLoaded = undefined
+    $.ui.invalidate('ui.render')
+  }
+  return {
+    cleared: value.cleared,
+    continued: value.continued,
+    ownRun: value.ownRun,
+    entries: value.entries as number,
+    pending: value.pending as number,
+    events: value.events as number,
+    unlinked: value.unlinked as number,
+    forgotten,
+  }
+}
+
+function runClearedText(cleared: RunCleared): string {
+  const kept = cleared.forgotten
+    ? []
+    : ['部分 Prompt Trail 状态未能清理（不含 prompt 原文）；status 可能仍显示旧的 Collection Boundary 或待写边界。']
+  if (cleared.continued && !cleared.ownRun) {
+    return [
+      '之前确认过的按 Run 清除已完成。当前 Run 的记录未清除；如需清除，请再执行一次 /prompt-history clear-run。',
+      CLEAR_BOUNDARY,
+    ].join('\n')
+  }
+  return [
+    cleared.continued
+      ? '之前确认过的当前 Run 清除已完成。'
+      : `已清除当前 Run 的 Prompt Trail 记录：${cleared.entries} 条 Prompt Entry、${cleared.pending} 个 Pending Capture、${cleared.events} 条边界事件。`,
+    ...(cleared.unlinked > 0 && !cleared.continued
+      ? [`其他 Run 的 ${cleared.unlinked} 条记录断开了与本 Run 的父链接，内容不变。`]
+      : []),
+    '其他 Run 的记录不变，其条目编号可能前移。Collection consent 与当前 Run 的采集模式未改变；下一次提交开始新的根。',
+    ...kept,
+    CLEAR_BOUNDARY,
+  ].join('\n')
+}
+
+async function unfinishedRunClearText($: EngineInterface, currentProject: ProjectState): Promise<string> {
+  let leftovers = ['（无法列出残留）']
+  try {
+    leftovers = runLeftovers(await readClearInventory($, currentProject))
+  } catch {
+    // The listing is best effort; the state it describes is on record.
+  }
+  return [
+    '逻辑删除已完成（被清除的记录不会再被读写），但物理清除未完成；以下残留未能清理：',
+    ...leftovers.map(line => `- ${line}`),
+    '清除完成前，本项目的档案不可用；可再次执行 /prompt-history clear-run 继续。',
+  ].join('\n')
+}
+
+function runClearRefusal(category: string): string {
+  if (category === 'clear-run-quarantined') return quarantinedRefusal()
+  if (category === 'archive-integrity') {
+    return 'Prompt Trail 的档案已损坏，无法按 Run 删除，未删除任何内容。请在下一次提交时的档案不可用对话框中处理，或使用 /prompt-history clear-all 清除本项目的全部档案。'
+  }
+  if (category === 'clear-unfinished') {
+    return '本项目的 clear-all 尚未完成，档案不可用；请执行 /prompt-history clear-all 继续，未删除任何内容。'
+  }
+  return `Prompt Trail 未能开始清除当前 Run（${category}），未删除任何内容。`
+}
+
+function quarantinedRefusal(): string {
+  return '本项目有隔离档案，Prompt Trail 从不打开它们，无法保证按 Run 完整删除，未删除任何内容。如需删除，请使用 /prompt-history clear-all 清除本项目的全部档案。'
+}
+
+async function clearRunCommand($: EngineInterface): Promise<string> {
+  if (!runtimeTarget) return 'Prompt Trail 尚未确定运行目标，无法清除当前 Run。'
+  await refreshStartup($)
+  if (startup.support !== 'supported') {
+    return `Prompt Trail 在当前环境不可用（${startup.support}：${startup.reason}），未清除任何内容。`
+  }
+  if (!startup.runId) return 'Prompt Trail 无法确定当前 Run，未清除任何内容。'
+  let currentProject: ProjectState
+  let inventory: ClearInventory
+  try {
+    currentProject = await prepareProject($)
+    inventory = await readClearInventory($, currentProject, startup.runId)
+  } catch (error) {
+    return `Prompt Trail 无法列出当前 Run 的记录（${failureCategory(error, 'clear-inventory')}），未清除任何内容。`
+  }
+  if (inventory.clearUnderway) return runClearRefusal('clear-unfinished')
+  if (!inventory.clearRunUnderway) {
+    if (inventory.quarantined.length > 0) return quarantinedRefusal()
+    const scope = inventory.run
+    if (!scope) return runClearRefusal('archive-integrity')
+    if (scope.entries + scope.pending + scope.events === 0) return '当前 Run 没有可清除的 Prompt Trail 记录。'
+  }
+  if (await askClearRun($, inventory) !== 'clear') return '已取消，未删除任何内容。'
+  try {
+    const cleared = await clearRun($, currentProject, inventory.clearRunUnderway)
+    if (!cleared.cleared) return '之前的按 Run 清除已由其他 Run 完成，未删除任何新记录。'
+    return runClearedText(cleared)
+  } catch (error) {
+    const category = failureCategory(error, 'clear-run')
+    if (category !== 'clear-run-unfinished') return runClearRefusal(category)
+    await markUnavailable($, currentProject, category)
+    return unfinishedRunClearText($, currentProject)
+  }
+}
+
+/* A held submission's choice to finish a Run clear under way: nothing is
+   confirmed again, the person agreed when it began. */
+async function continueRunClear($: EngineInterface, failure: Blocked): Promise<boolean> {
+  let currentProject: ProjectState
+  try {
+    currentProject = await prepareProject($)
+  } catch {
+    return false
+  }
+  try {
+    const cleared = await clearRun($, currentProject, true)
+    if (cleared.cleared) $.ui.toast('Prompt Trail 已完成之前确认的按 Run 清除，这次提交继续。')
+    else await archiveRecovered($, currentProject)
+    return true
+  } catch (error) {
+    Object.assign(failure, await markUnavailable($, currentProject, failureCategory(error, 'clear-run')))
+    return false
+  }
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     runtimeTarget = {
@@ -5604,6 +5976,9 @@ export const register: Register = on => {
               const left = await readClearInventory($, currentProject)
               archiveStatus.clearResidual = left.files.length + left.quarantined.length
             }
+            if (archiveStatus.clearRunUnderway) {
+              archiveStatus.clearRunResidual = runResidue(await readClearInventory($, currentProject)).length
+            }
           } catch {
             // Reported as unknown; the rest of the report stands.
           }
@@ -5634,7 +6009,8 @@ export const register: Register = on => {
     if (args === 'enable') return { text: await enableCollection($) }
     if (args === 'disable') return { text: await disableCollection($) }
     if (args === 'clear-all') return { text: await clearAllCommand($) }
-    return { text: '用法：/prompt-history [enable|disable|status|clear-all]' }
+    if (args === 'clear-run') return { text: await clearRunCommand($) }
+    return { text: '用法：/prompt-history [enable|disable|status|clear-run|clear-all]' }
   })
 
   on('prompt.submit', async ($, e, next) => {

@@ -119,6 +119,18 @@ export type TargetOptions = {
   clearRejects?: boolean
   /* Session index records `clear-all` could not remove. */
   sessionsFailed?: number
+  /* A Run clear begun and not finished, for the Run named: every command
+     that opens the archive is refused as `clear-run-unfinished` until a
+     Run clear finishes it. */
+  clearRunUnderway?: { value: boolean; runId?: string }
+  /* `clear-run` deletes but cannot empty these files, and stops unfinished;
+     `clear-inventory` lists them while it is. */
+  clearRunLeaves?: { name: string; bytes: number }[]
+  /* The host kills `clear-run` after its cut. */
+  clearRunRejects?: boolean
+  /* `capture-begin` refuses a parent the archive does not hold, as the
+     helper does; off, any parent is staged. */
+  parentsChecked?: boolean
   /* The options each Archive unavailable dialog offered, in order. */
   unavailableOffered?: string[][]
   /* The Archive generation standing at the archive's path; a quarantine puts
@@ -540,6 +552,11 @@ export function installSupportedTarget(
         },
       }
     }
+    /* So does an unfinished Run clear. */
+    if (argv[0] === helperPath && options.clearRunUnderway?.value
+        && !['preflight', 'archive-status', 'clear-inventory', 'clear-all', 'clear-run'].includes(argv[1] ?? '')) {
+      return failure('clear-run-unfinished')
+    }
     /* An unfinished clear refuses every command that opens the archive. */
     if (argv[0] === helperPath && options.clearUnderway?.value
         && !['preflight', 'archive-status', 'clear-inventory', 'clear-all'].includes(argv[1] ?? '')) {
@@ -548,9 +565,17 @@ export function installSupportedTarget(
     if (argv[0] === helperPath && argv[1] === 'clear-inventory') {
       const underway = options.clearUnderway?.value === true
       const held = archive.length > 0 || staged.size > 0
+      const runUnderway = options.clearRunUnderway?.value === true
       const files = underway
         ? options.clearLeaves ?? []
-        : held ? [{ name: `${projectId}.sqlite3`, bytes: 8192 }] : []
+        : [
+            ...(held ? [{ name: `${projectId}.sqlite3`, bytes: 8192 }] : []),
+            ...(runUnderway ? options.clearRunLeaves ?? [] : []),
+          ]
+      const forRun = argv[6]
+      const own = archive.filter(row => row.runId === forRun)
+      const ownIds = new Set(own.map(row => row.eventId))
+      const ownStaged = [...staged.values()].filter(row => row.runId === forRun)
       return {
         value: {
           exitCode: 0,
@@ -558,12 +583,80 @@ export function installSupportedTarget(
             projectId,
             present: underway || held || quarantined.length > 0,
             clearUnderway: underway,
+            clearRunUnderway: runUnderway,
+            ...(forRun === undefined
+              ? {}
+              : {
+                  run: underway || runUnderway
+                    ? null
+                    : {
+                        entries: own.filter(row => row.kind === 'prompt').length,
+                        pending: ownStaged.length,
+                        events: own.filter(row => row.kind !== 'prompt').length,
+                        attaches: own.filter(row => row.kind === 'run-started' || row.kind === 'run-attached').length,
+                        startedAt: own.length > 0 ? Math.min(...own.map(row => row.occurredAt ?? 1_795_000_000_000)) : null,
+                        unlinked: [...archive, ...staged.values()].filter(row =>
+                          row.runId !== forRun && ownIds.has(row.parentEventId ?? '')).length,
+                      },
+                }),
             generation: held ? generation.value : null,
             entries: archive.filter(row => row.kind === 'prompt').length,
             pending: options.pendingUnknown ? null : staged.size,
             otherLiveRuns: options.otherLiveRuns === undefined ? 0 : options.otherLiveRuns,
             files,
             quarantined,
+          }),
+          stderr: '',
+        },
+      }
+    }
+    if (argv[0] === helperPath && argv[1] === 'clear-run') {
+      const underway = options.clearRunUnderway?.value === true
+      const nothing = {
+        value: {
+          exitCode: 0,
+          stdout: JSON.stringify({
+            projectId, cleared: false, continued: false, ownRun: false,
+            entries: 0, pending: 0, events: 0, unlinked: 0,
+          }),
+          stderr: '',
+        },
+      }
+      if (!underway && argv[7] === '--continue') return nothing
+      if (!underway && quarantined.length > 0) return failure('clear-run-quarantined')
+      const cleared = underway ? options.clearRunUnderway?.runId ?? argv[4] : argv[4]
+      const own = archive.filter(row => row.runId === cleared)
+      const ownIds = new Set(own.map(row => row.eventId))
+      const ownStaged = [...staged].filter(([, row]) => row.runId === cleared)
+      if (!underway && own.length + ownStaged.length === 0) return nothing
+      if (options.clearRunRejects) {
+        if (options.clearRunUnderway) Object.assign(options.clearRunUnderway, { value: true, runId: cleared })
+        throw new Error('killed at the time limit: PT-SECRET-KILLED')
+      }
+      let unlinked = 0
+      for (const row of [...archive, ...staged.values()]) {
+        if (row.runId !== cleared && ownIds.has(row.parentEventId ?? '')) {
+          row.parentEventId = null
+          unlinked += 1
+        }
+      }
+      const kept = archive.filter(row => row.runId !== cleared)
+      archive.splice(0, archive.length, ...kept)
+      for (const [eventId] of ownStaged) staged.delete(eventId)
+      if (options.clearRunLeaves?.length) {
+        if (options.clearRunUnderway) Object.assign(options.clearRunUnderway, { value: true, runId: cleared })
+        return failure('clear-run-unfinished')
+      }
+      if (options.clearRunUnderway) options.clearRunUnderway.value = false
+      return {
+        value: {
+          exitCode: 0,
+          stdout: JSON.stringify({
+            projectId, cleared: true, continued: underway, ownRun: cleared === argv[4],
+            entries: own.filter(row => row.kind === 'prompt').length,
+            pending: ownStaged.length,
+            events: own.filter(row => row.kind !== 'prompt').length,
+            unlinked,
           }),
           stderr: '',
         },
@@ -626,6 +719,10 @@ export function installSupportedTarget(
         return failure(options.beginFails, generation.value)
       }
       if (argv[12] !== '-' && argv[12] !== generation.value) return failure('archive-generation')
+      if (options.parentsChecked && argv[7] !== '-'
+          && !archive.some(row => row.kind === 'prompt' && row.eventId === argv[7])) {
+        return failure('capture-parent-unknown')
+      }
       if (options.beginRejects) throw new Error('timed out: PT-SECRET-KILLED')
       if (eventId && !archive.some(row => row.eventId === eventId)) {
         staged.set(eventId, {
@@ -870,6 +967,7 @@ export function installSupportedTarget(
             quarantineUnderway: options.quarantineUnderway?.value
               ?? options.quarantineFails === 'quarantine-failed',
             clearUnderway: options.clearUnderway?.value === true,
+            clearRunUnderway: options.clearRunUnderway?.value === true,
             quarantined,
           }),
           stderr: '',
