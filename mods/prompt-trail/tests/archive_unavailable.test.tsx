@@ -552,3 +552,28 @@ test('status names what the pending listing met', async ($, on) => {
   expect(status.text).toContain('pending reconciliation: unknown · 未决 Pending Capture 不可读（archive-busy）')
   expect(status.text).toContain('Run collection mode: unknown · 未决 Pending Capture 不可读（archive-busy）')
 })
+
+/* Issue 27: what a schema migration meets is the archive's own failure, named
+   as the helper names it and shared with every Run of the project. */
+for (const category of [
+  'archive-read-only',
+  'archive-integrity',
+  'migration-backup',
+  'migration-verify',
+  'migration-backup-cleanup',
+]) {
+  test(`a migration that meets ${category} stops every Run of the project`, async ($, on) => {
+    const store = consentedStore()
+    const unavailableAsked: string[] = []
+    installSupportedTarget(on, { store, beginFails: category, fills: [], unavailableAsked })
+    await $.session.start(session)
+
+    await composerPrompt($)
+
+    expect(unavailableAsked[0]).toContain('本项目所有 Run')
+    expect(unavailableAsked[0]).toContain(category)
+    expect(store[archiveStateKey]).toMatchObject({ state: 'unavailable', category })
+    expect((await promptHistory($, 'status')).text)
+      .toContain(`archive: unavailable · 范围 archive · 类别 ${category}`)
+  })
+}
