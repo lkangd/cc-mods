@@ -1,6 +1,6 @@
 ---
 id: read-commands-take-the-write-lock
-status: open
+status: resolved
 severity: minor
 found: 2026-09-27
 source: Issue 25 PTY acceptance
@@ -37,3 +37,12 @@ at once.
 
 `grep -n "INSERT INTO metadata" mods/prompt-trail/src/prompt_trail_helper.c`; reuse
 `hold_write_lock()` in `tests/helper_protocol.py`.
+
+## Resolved 2026-09-28 (Issue 27, `9c93fab`)
+
+`open_archive` now inserts the project's metadata row only when it is missing, and reads its
+policy version first. A command of any kind that opens an archive already at the current schema
+with its row present writes nothing and takes no write lock; only a missing row or an older
+schema does. The helper test `test_reads_of_a_current_archive_answer_while_another_run_holds_the_write_lock`
+holds `BEGIN IMMEDIATE` from another connection while `capture-list`, `timeline-read` and
+`branch-match` answer within three seconds.

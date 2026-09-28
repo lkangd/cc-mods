@@ -215,9 +215,9 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 14. **迁移、更新与制品信任**
     - 只执行 manifest 声明的已知单向 schema 迁移；高于 helper 支持版本的数据库拒绝打开。
     - 迁移前做完整性与空间检查，在同目录创建同权限敏感备份；迁移事务完成并复检，下一次成功打开后才删备份。
-      当前实现状态：schema 已到 2，manifest 声明 `1->2`（只新增非 prompt Timeline Event 表，
-      在一个事务内完成），完整性检查、空间检查与备份生命周期尚未实现，由
-      [Issue 27](issues/27-safe-schema-migration.md) 落实。
+      当前实现状态：schema 已到 2，manifest 声明 `1->2`（只新增非 prompt Timeline Event 表）。
+      [Issue 27](issues/27-safe-schema-migration.md) 已落实完整性检查、空间检查、同目录
+      `.pre-migration-v<来源版本>` 私有备份、迁移后复检，以及「下一次成功打开并 `quick_check` 通过后才删备份」。
     - manifest 固定 target、文件名、SHA-256、helper protocol、可读写 schema 范围、最低 SQLite 能力、编译器/SDK/链接器来源与允许动态依赖。
     - 发布检查验证 Mach-O 架构、PIE、deployment target 和动态依赖；不宣称未经证实的字节级可复现。
     - 不在运行时下载、编译、替换 helper，不修改 quarantine/xattr 或系统安全策略，也不捆绑另一份 SQLite。

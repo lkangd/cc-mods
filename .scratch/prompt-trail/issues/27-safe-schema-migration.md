@@ -4,17 +4,17 @@
 
 **Blocked by:** 25「Archive unavailable 时失败关闭」
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] helper manifest 明确声明可读写 schema 范围；高于支持版本的档案直接拒绝打开，不猜测降级。
-- [ ] 迁移前执行完整性检查和可用空间检查；任一失败都不修改活动数据库。
-- [ ] 迁移备份位于同目录、采用相同私有 owner/权限，并被视为含完整敏感原文的档案。
-- [ ] 已知升级在事务中完成，保留 Prompt Entries、Timeline Event 身份、sequence、Run/Segment/Branch 关系和 Archive generation。
-- [ ] 迁移中断或验证失败时，活动档案可恢复到迁移前状态且不会同时接受旧、新 schema writer。
-- [ ] 迁移后执行完整性与语义复检；只有下一次成功打开后才删除备份。
-- [ ] 空间不足、busy、只读、权限异常和 backup 清理失败均进入准确的 Archive unavailable 状态。
-- [ ] 新 helper 只执行 manifest 中的单向迁移；旧 helper 遇到更高 schema 时保持拒绝，不热切换制品。
-- [ ] helper black-box tests 使用旧 schema fixtures、故障点和 marker 验证原文/事件不变、回滚、权限和备份生命周期；测试不依赖当前生产表布局。
+- [x] helper manifest 明确声明可读写 schema 范围；高于支持版本的档案直接拒绝打开，不猜测降级。
+- [x] 迁移前执行完整性检查和可用空间检查；任一失败都不修改活动数据库。
+- [x] 迁移备份位于同目录、采用相同私有 owner/权限，并被视为含完整敏感原文的档案。
+- [x] 已知升级在事务中完成，保留 Prompt Entries、Timeline Event 身份、sequence、Run/Segment/Branch 关系和 Archive generation。
+- [x] 迁移中断或验证失败时，活动档案可恢复到迁移前状态且不会同时接受旧、新 schema writer。
+- [x] 迁移后执行完整性与语义复检；只有下一次成功打开后才删除备份。
+- [x] 空间不足、busy、只读、权限异常和 backup 清理失败均进入准确的 Archive unavailable 状态。
+- [x] 新 helper 只执行 manifest 中的单向迁移；旧 helper 遇到更高 schema 时保持拒绝，不热切换制品。
+- [x] helper black-box tests 使用旧 schema fixtures、故障点和 marker 验证原文/事件不变、回滚、权限和备份生命周期；测试不依赖当前生产表布局。
 
 ## Comments
 
@@ -69,3 +69,43 @@
   - 迁移前任一检查失败都不创建 `.partial`；备份写到一半失败时，先删 `.partial` 再报错。
   - 静态门禁新增：helper 源码的当前版本常量与 manifest `schemaWriteMax` 一致。
   - spec §14 的「当前实现状态」在收尾时更新。
+
+### 实现中修订（2026-09-28）
+
+- **备份改由第二个只读连接写出（修订 Q2 第 4 步）**：SQLite 不允许从持有写事务的连接做 backup，`sqlite3_backup_step` 会一直返回 locked。改为主连接持有 `BEGIN IMMEDIATE`，另开一个只读连接复制；写锁挡住其他 writer，所以复制的正是迁移要改的那一版。
+- **迁移步骤本身失败也报 `migration-verify`**：例如 DDL 撞上同名对象。Q6 只写了复检不通过，这里把「迁移没能完成、已回滚」归入同一类别，不再新增类别。回滚后同时删除刚写的备份。
+- **只读卷改为打开前查卷的挂载标志（`MNT_RDONLY`）**：只读卷上的旧档案没有遗留的 `-shm` 时，SQLite 报的是 `SQLITE_CANTOPEN`，不会报只读；它会悄悄以只读方式打开，而且是惰性打开，`sqlite3_db_readonly` 也看不出来。因此不再按 SQLite 错误码映射 `archive-read-only`。
+- **project 行只在缺失时插入**：Q9 的做法对所有命令统一生效，不按命令区分读写。
+- **`user_version` 读取失败报 `archive-sqlite`**：原来读不到按 -1 处理，会被误报成 `schema-version`。
+- **完整性 fixture 增加「索引与表不一致」**：通过 `writable_schema` 改写索引定义。页损坏时，指纹读取本身就会失败，单靠页损坏区分不出「跳过完整性检查」这种变异。
+
+## Answer
+
+已存在的 schema-1 档案升级时，会先做完整性和空间检查，写一份逐字节一致的私有备份，迁移并复检通过后才提交；下一次成功打开时再复检一次，然后删除备份。实现在 `9c93fab`（helper）和 `24f56dd`（插件）；与对齐稿不同的地方见上方「实现中修订」。
+
+- **拒绝**：
+  - 版本高于 2 或为负数：打开后第一步就报 `schema-version`，此前不切换 WAL、不拿写锁、不改文件，即使别的连接正持有写锁也立即作答；
+  - 只读卷：打开前报 `archive-read-only`。
+- **迁移**：全程在一个 `BEGIN IMMEDIATE` 里完成：
+  1. 清理上次未提交尝试留下的备份和 `.partial`，但只清理本用户私有的普通文件；备份名被目录、symlink 或权限不对的文件占着时，报 `migration-backup` 且不动它；
+  2. `integrity_check` 与 `foreign_key_check`，不通过报 `archive-integrity`；
+  3. 可用空间须 ≥ 2 × 档案 + WAL + 16 MiB，否则报 `archive-full`；
+  4. 写备份 `<projectId>.sqlite3.pre-migration-v1`（0600）：先写 `.partial`，F_FULLFSYNC 后以 `RENAME_EXCL` 改名，再 fsync 目录；
+  5. 执行迁移步骤；
+  6. 复检：完整性检查，加上指纹（条目数、sequence 之和与最大值、原文字节数、pending 数与字节数、`next_sequence`）与迁移前一致；
+  7. 通过才 COMMIT，否则回滚、删除备份，报 `migration-verify`。
+- **备份生命周期**：
+  - 任何命令以当前版本打开并通过 metadata 校验后，若看到备份，先 `quick_check`，通过才删除并 fsync 目录；
+  - 删不掉报 `migration-backup-cleanup`，档案保持不可用；复检不通过报 `archive-integrity`，保留备份；
+  - helper 从不用备份覆盖活动库；迁移中断时，活动库靠 SQLite 事务回到迁移前。
+- **读命令不再拿写锁**：档案已是当前版本且有 project 行时，`capture-list`/`timeline-read`/`branch-match` 不写入；别的 Run 持有写锁时也立即作答。
+- **插件**：五个新类别（`archive-read-only`、`archive-integrity`、`migration-backup`、`migration-verify`、`migration-backup-cleanup`）都属于共享故障，沿用 Issue 25 的对话框、共享记录和 `status`。
+- **manifest**：字段不变。静态门禁新增：helper 的 `ARCHIVE_SCHEMA_VERSION` 等于 `schemaWriteMax` 和 `schemaReadMax`，且 `schemaMigrations` 从 `schemaReadMin` 起逐级连续。
+- **耗时（Q11）**：100k 条目实测，85 MiB 档案迁移 0.65 秒，403 MiB 档案 1.89 秒，下一次打开的复检加删除分别为 0.08 秒和 0.25 秒；约每 MiB 4.7 ms，档案到约 2 GiB 才会碰到插件的 10 秒超时。测量时页缓存是热的（档案刚写完）。未做改动。
+- **测试**：
+  - helper 新增 12 项黑盒测试：高版本拒绝、读不拿锁、备份逐字一致与生命周期、遗留文件、备份名被占（目录/symlink/共享文件）、完整性失败（页损坏/索引不一致）、空间不足（4 MB 小卷）、迁移步骤失败回滚、清理失败（`chflags uchg`）、复检失败保留备份、只读卷（`hdiutil -readonly`）、随机时刻 SIGKILL 30 轮（每次运行中 kill 都同时落在提交前和提交后，每轮后原文、sequence、pending 都不变，也不留多余文件）；
+  - plugin test 新增 5 项；
+  - 变异检查：C 侧 13 条中 12 条被抓到，存活的一条是「忽略复检指纹」（Q10 已接受）；插件侧从 `SHARED_FAILURES` 删掉类别会被抓到。
+  - 门禁：两个版本各 342 项 plugin test，静态 9 项，bridge 32 项，helper 97 项，真实 git 5 项。
+  - 未覆盖：备份写到一半遇到 ENOSPC（空间检查在前，真实条件下到不了），只做了代码核对。
+- **backlog**：`20260927-read-commands-take-the-write-lock.md` 随本票解决。
