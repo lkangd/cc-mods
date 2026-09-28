@@ -519,3 +519,142 @@ test('a clear held in memory keeps its marker until the drain records it, and is
   expect(kinds(archive)).not.toContain('integrity-gap')
   expect(inflightKeys(store)).toEqual([])
 })
+
+/* Issue 26 Q14: stopping and resuming a Run that owes a gap. */
+
+test('a gap owed at disable lands ahead of the stop, and its recovery waits for the resume', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const store = storeWith({ overflowed: true })
+  installSupportedTarget(on, { store, archive })
+
+  await $.session.start(session)
+  await promptHistory($, 'disable')
+  expect(kinds(archive)).toEqual(['integrity-gap', 'collection-stopped'])
+
+  await promptHistory($, 'enable')
+  expect(kinds(archive)).toEqual([
+    'integrity-gap', 'collection-stopped', 'collection-resumed', 'integrity-recovery',
+  ])
+  expect((store[lifecycleKey()] as { gap?: unknown }).gap).toBeUndefined()
+})
+
+test('a gap found while the Run is disabled lands at enable, ahead of the resume', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  store[`prompt-trail:run-mode:${projectId}:${runId}`] = { version: 1, mode: 'disabled' }
+  store[markerKey('crashed-before-disable')] = marker('before-pending')
+  installSupportedTarget(on, { store, archive })
+
+  await $.session.start(session)
+  await composerPrompt($)
+  expect(kinds(archive)).toEqual([])
+
+  await promptHistory($, 'enable')
+  expect(kinds(archive)).toEqual(['integrity-gap', 'collection-resumed', 'integrity-recovery'])
+})
+
+/* Issue 26 Q10: clearing takes what a gap would have described. */
+
+function ownRecords(): ArchiveRow[] {
+  return [
+    { kind: 'run-started', eventId: 'e1', sequence: 1, runId, segmentId: sessionId, branchId: 'b' },
+    { kind: 'prompt', eventId: 'e2', sequence: 2, runId, segmentId: sessionId, branchId: 'b', parentEventId: null, text: 'PT-SECRET-OWN' },
+  ]
+}
+
+test('a Run clear forgets the gap the Run owed, its losses and its stale markers', async ($, on) => {
+  const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+  const archive = ownRecords()
+  const store = storeWith({ overflowed: true, damaged: true, unobservedClear: true })
+  store[markerKey('crashed-call')] = marker('before-pending')
+  store[markerKey('other-call', otherRun)] = marker('before-pending')
+  installSupportedTarget(on, { store, archive, clearAnswers: ['清除当前 Run'], liveRuns: [otherRun] })
+
+  await $.session.start(session)
+  await promptHistory($, 'clear-run')
+
+  const left = store[lifecycleKey()] as Record<string, unknown>
+  expect(left.overflowed).toBeUndefined()
+  expect(left.damaged).toBeUndefined()
+  expect(left.unobservedClear).toBeUndefined()
+  expect(left.gap).toBeUndefined()
+  /* Another Run's marker is that Run's. */
+  expect(inflightKeys(store)).toEqual([markerKey('other-call', otherRun)])
+
+  await composerPrompt($)
+  expect(kinds(archive)).not.toContain('integrity-gap')
+})
+
+test('a clear-all forgets every gap owed and every marker no live Run holds', async ($, on) => {
+  const liveRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+  const goneRun = 'cccccccc-dddd-4eee-8fff-000000000000'
+  const archive = ownRecords()
+  const store = storeWith({ overflowed: true })
+  store[lifecycleKey(goneRun)] = {
+    version: 1, queue: [],
+    gap: { eventId: 'g'.repeat(8), runId: goneRun, segmentId: goneRun, branchId: goneRun, occurredAt: 1, generation: null, reasons: ['fail-open'] },
+  }
+  store[markerKey('crashed-call')] = marker('before-pending')
+  store[markerKey('gone-call', goneRun)] = marker('before-pending')
+  store[markerKey('live-call', liveRun)] = marker('before-pending')
+  installSupportedTarget(on, { store, archive, clearAnswers: ['delete all prompts'], liveRuns: [liveRun] })
+
+  await $.session.start(session)
+  await promptHistory($, 'clear-all')
+
+  expect((store[lifecycleKey()] as Record<string, unknown>).overflowed).toBeUndefined()
+  expect((store[lifecycleKey(goneRun)] as Record<string, unknown>).gap).toBeUndefined()
+  expect(inflightKeys(store)).toEqual([markerKey('live-call', liveRun)])
+
+  await composerPrompt($)
+  expect(kinds(archive)).not.toContain('integrity-gap')
+})
+
+/* Issue 26 Q11: what status says. */
+
+function statusLine(text: string | undefined, prefix: string): string | undefined {
+  return text?.split('\n').find(line => line.startsWith(prefix))
+}
+
+test('status says a gap is owed, then that the project’s history holds one', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  installSupportedTarget(on, { store: storeWith({ overflowed: true }), archive })
+  await $.session.start(session)
+
+  const before = await promptHistory($, 'status')
+  expect(statusLine(before.text, 'integrity:')).toBe(
+    'integrity: gap owed · 恢复队列已溢出，部分 Clear Boundary 或 Run 边界未记录（下一次提交前写入时间线）',
+  )
+  expect(statusLine(before.text, 'integrity gaps:')).toBe('integrity gaps: 0')
+
+  await composerPrompt($)
+  const after = await promptHistory($, 'status')
+  expect(statusLine(after.text, 'integrity:')).toBe('integrity: healthy')
+  expect(statusLine(after.text, 'integrity gaps:')).toBe(
+    'integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整',
+  )
+  /* The losses are reported once, as the gap they became. */
+  expect(after.text).not.toContain('恢复队列已溢出')
+})
+
+test('status says an unfinished call is still to be judged', async ($, on) => {
+  const store = storeWith({})
+  store[markerKey('crashed-call')] = marker('before-pending')
+  installSupportedTarget(on, { store })
+  await $.session.start(session)
+
+  const status = await promptHistory($, 'status')
+
+  expect(statusLine(status.text, 'integrity:')).toBe(
+    'integrity: healthy · 1 次提交未正常结束，下一次提交时判定是否形成 Integrity gap',
+  )
+})
+
+test('status says so when the gap count cannot be read', async ($, on) => {
+  installSupportedTarget(on, { store: storeWith({}), statusFails: 'archive-busy' })
+  await $.session.start(session)
+
+  const status = await promptHistory($, 'status')
+
+  expect(statusLine(status.text, 'integrity gaps:')).toBe('integrity gaps: unknown')
+})

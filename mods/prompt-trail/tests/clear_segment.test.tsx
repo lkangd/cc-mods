@@ -540,7 +540,8 @@ test('an unreadable queue entry is dropped and the loss is reported', async ($, 
   const status = await promptHistory($, 'status')
 
   expect(boundaryCalls(calls)).toHaveLength(0)
-  expect(status.text).toContain('恢复队列有无法重放的记录，其 Clear Boundary 或 Run 边界已丢失')
+  /* Reported as the Integrity gap it becomes (Issue 26). */
+  expect(status.text).toContain('integrity: gap owed · 恢复队列有无法重放的记录')
   /* The loss blocks nothing: there is no boundary left to owe. */
   expect(status.text).toContain('Run collection mode: enabled')
 })
