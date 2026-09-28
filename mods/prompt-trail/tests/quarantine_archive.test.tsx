@@ -21,7 +21,7 @@ import type { ArchiveRow, TargetOptions } from './support'
 const archiveStateKey = `prompt-trail:archive-state:${projectId}`
 const branchKey = `prompt-trail:branch:${projectId}:${runId}:${sessionId}`
 const otherRun = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb'
-const DAMAGE_CHOICES = ['重新检查完整性', '隔离并开始新档案', '禁用当前 Run 后继续']
+const DAMAGE_CHOICES = ['重新检查完整性', '隔离并开始新档案', '清除全部档案', '禁用当前 Run 后继续']
 
 function consentedStore(): Record<string, unknown> {
   return { [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' } }
@@ -50,7 +50,7 @@ function onBranch(store: Record<string, unknown>, generation?: string): void {
   }
 }
 
-test('damage offers a recheck, a quarantine, or disabling the Run', async ($, on) => {
+test('damage offers a recheck, a quarantine, a clear, or disabling the Run', async ($, on) => {
   const store = consentedStore()
   const unavailableAsked: string[] = []
   const unavailableOffered: string[][] = []

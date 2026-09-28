@@ -4229,7 +4229,8 @@ class HelperProtocolTests(unittest.TestCase):
     def test_a_clear_inventory_lists_what_a_clear_would_remove_without_changing_it(self) -> None:
         project_id = "a7" * 32
         nothing = {"projectId": project_id, "present": False, "clearUnderway": False,
-                   "generation": None, "entries": 0, "pending": 0, "files": [], "quarantined": []}
+                   "generation": None, "entries": 0, "pending": 0, "otherLiveRuns": 0,
+                   "files": [], "quarantined": []}
         self.assertEqual(self.inventory(project_id), nothing)
         self.assertFalse((self.plugin_data / "archives").exists())
 
@@ -4367,6 +4368,31 @@ class HelperProtocolTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 25, result.stderr)
                 self.assertEqual(json.loads(result.stderr)["category"], "clear-input")
                 self.assertEqual(self.project_files(project_id), before)
+
+
+    def test_a_clear_inventory_counts_the_projects_runs_live_elsewhere(self) -> None:
+        # This test process stands for a live Run of the project.
+        self.publish_locator()
+        live_run = json.loads(self.locator.read_text())["runId"]
+        project_id = "bb" * 32
+        self.capture("PT-SECRET-LIVE", identity=self.identity(project_id, run_id=live_run))
+        self.capture("PT-SECRET-GONE", identity=self.identity(project_id))
+
+        def other_live_runs(**argv: bool) -> object:
+            result = self.run_helper(
+                "clear-inventory", str(self.plugin_data / "archives"), project_id,
+                json.loads(MANIFEST.read_text())["sha256"], "1", **argv,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return json.loads(result.stdout)["otherLiveRuns"]
+
+        # Asked for another process, this one's Run is live elsewhere; asked
+        # for this process itself, it is the asker's own.
+        self.assertEqual(other_live_runs(via_child=True), 1)
+        self.assertEqual(other_live_runs(), 0)
+        # An archive that cannot say which Runs it holds cannot say this.
+        self.overwrite_header(self.archive_path(project_id))
+        self.assertIsNone(other_live_runs(via_child=True))
 
 
 if __name__ == "__main__":

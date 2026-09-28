@@ -4011,7 +4011,7 @@ static void clear_inventory(int argc, char **argv) {
   if (!root_present) {
     fputs(
       ",\"present\":false,\"clearUnderway\":false,\"generation\":null,"
-      "\"entries\":0,\"pending\":0,\"files\":[],\"quarantined\":[]}\n",
+      "\"entries\":0,\"pending\":0,\"otherLiveRuns\":0,\"files\":[],\"quarantined\":[]}\n",
       stdout
     );
     return;
@@ -4027,6 +4027,17 @@ static void clear_inventory(int argc, char **argv) {
   bool archived = archive_generation(database_path, generation);
   ClearFindings found = { archived ? -1 : 0, archived ? -1 : 0, NULL, 0 };
   if (archived) clear_read_archive(database_path, &found);
+  /* Runs of this project a live process elsewhere is attached to: they go
+     on in the next generation, and meanwhile still show what they drew. */
+  long long live_here = -1;
+  if (found.entries >= 0) {
+    LiveRuns live = live_runs_elsewhere();
+    live_here = 0;
+    for (size_t index = 0; index < found.run_count; index += 1) {
+      if (live_runs_hold(&live, found.run_ids[index])) live_here += 1;
+    }
+    free(live.run_ids);
+  }
   free(found.run_ids);
 
   printf(",\"present\":%s", clearing || clear_has_files(database_root, project_id) ? "true" : "false");
@@ -4040,6 +4051,8 @@ static void clear_inventory(int argc, char **argv) {
   else fputs(",\"entries\":null", stdout);
   if (found.pending >= 0) printf(",\"pending\":%lld", found.pending);
   else fputs(",\"pending\":null", stdout);
+  if (live_here >= 0) printf(",\"otherLiveRuns\":%lld", live_here);
+  else fputs(",\"otherLiveRuns\":null", stdout);
   fputs(",\"files\":[", stdout);
   DIR *directory = opendir(database_root);
   if (!directory) archive_error("database-unavailable");

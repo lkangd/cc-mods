@@ -923,6 +923,10 @@ static void publish_locator(
     }
     if (continues) snprintf(continued_from, sizeof(continued_from), "%s", handed_from);
   }
+  /* `archiveGeneration` in the locator and the session index is a token
+     minted with each new Run and never checked. It is not the Archive
+     generation: that is the archive file itself, which the helper names and
+     checks, and which this bridge cannot see without knowing the project. */
   if (!continues) {
     pt_random_uuid(run_id);
     pt_random_uuid(archive_generation);
