@@ -4517,6 +4517,10 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual((checked["result"], checked["generation"]), ("ok", generation))
         wal = self.archive_path(project_id).with_name(f"{project_id}.sqlite3-wal")
         self.assertTrue(not wal.exists() or wal.stat().st_size == 0)
+        # Compacted: no page that held the Run lingers on the free list.
+        compacted = sqlite3.connect(f"file:{self.archive_path(project_id)}?mode=ro", uri=True)
+        self.addCleanup(compacted.close)
+        self.assertEqual(compacted.execute("PRAGMA freelist_count").fetchone(), (0,))
         self.assertLessEqual(
             set(self.project_files(project_id)),
             {f"{project_id}.lock", f"{project_id}.sqlite3", f"{project_id}.sqlite3-wal", f"{project_id}.sqlite3-shm"},
@@ -4684,6 +4688,10 @@ class HelperProtocolTests(unittest.TestCase):
         first = self.capture("PT-SECRET-GONE", identity=cleared)
         self.boundary(identity=cleared, kind="run-detached")
         self.boundary(identity=cleared, kind="run-attached")
+        # Its earliest record is a submission still staged.
+        staged = self.run_helper(*self.begin_argv(str(uuid.uuid4()), occurred_at="1794999999000", **cleared),
+                                 input_text="PT-SECRET-GONE-STAGED")
+        self.assertEqual(staged.returncode, 0, staged.stderr)
         self.capture("PT-SECRET-KEPT", identity=self.identity(project_id), parent=first)
         before = self.archive_files(project_id)
 
@@ -4691,8 +4699,8 @@ class HelperProtocolTests(unittest.TestCase):
 
         self.assertEqual(
             listed["run"],
-            {"entries": 1, "pending": 0, "events": 3, "attaches": 2,
-             "startedAt": 1795000000000, "unlinked": 1},
+            {"entries": 1, "pending": 1, "events": 3, "attaches": 2,
+             "startedAt": 1794999999000, "unlinked": 1},
         )
         self.assertFalse(listed["clearRunUnderway"])
         self.assertEqual(self.archive_files(project_id), before)
@@ -4756,6 +4764,60 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(json.loads(refused.stderr)["category"], "archive-integrity")
         self.assertEqual(self.archive_files(project_id), before)
         self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
+
+
+    def test_a_run_clear_stopped_past_its_cut_says_it_is_unfinished(self) -> None:
+        project_id = "c1" * 32
+        cleared = self.identity(project_id)
+        self.capture("PT-SECRET-GONE", identity=cleared)
+        # A writer outside every helper keeps the delete from starting.
+        writer = self.hold_write_lock(project_id)
+
+        stopped = self.run_helper(*self.clear_run_argv(project_id=project_id, run_id=cleared["run_id"]))
+
+        self.assertEqual(stopped.returncode, 25, stopped.stderr)
+        self.assertEqual(json.loads(stopped.stderr), {"category": "clear-run-unfinished"})
+        self.assertTrue(self.archive_status(project_id)["clearRunUnderway"])
+        writer.rollback()
+        writer.close()
+        finished = self.clear_run(project_id, cleared["run_id"], only_continue=True)
+        self.assertEqual((finished["continued"], finished["entries"]), (True, 1))
+        self.assertEqual(self.markers_left(b"PT-SECRET-GONE"), [])
+
+
+    def test_a_run_clear_waits_for_a_command_already_using_the_archive(self) -> None:
+        project_id = "c2" * 32
+        legacy = self.current_archive(project_id, count=3)
+        holder = subprocess.Popen(
+            ["python3", "-c",
+             "import sqlite3, sys, time\n"
+             "c = sqlite3.connect(sys.argv[1], isolation_level=None)\n"
+             "c.execute('BEGIN IMMEDIATE')\n"
+             "print('held', flush=True)\n"
+             "time.sleep(1.5)\n"
+             "c.execute('ROLLBACK')\n",
+             str(legacy["path"])],
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        self.assertEqual(holder.stdout.readline().strip(), "held")
+        writer = subprocess.Popen(
+            [str(HELPER), *self.begin_argv(str(uuid.uuid4()), **legacy["identity"])],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, env=self.environment,
+        )
+        writer.stdin.write("PT-SECRET-UNDER-WAY")
+        writer.stdin.close()
+        self.await_project_lock_held(project_id)
+
+        answer = self.clear_run(project_id, legacy["identity"]["run_id"])
+        writer.wait(timeout=30)
+        holder.wait(timeout=30)
+
+        # The write under way landed before the cut and went with the Run.
+        self.assertEqual(writer.returncode, 0, writer.stderr.read())
+        self.assertEqual((answer["entries"], answer["pending"]), (3, 2))
+        self.assertEqual(self.markers_left(b"PT-SECRET-UNDER-WAY"), [])
 
 
 if __name__ == "__main__":
