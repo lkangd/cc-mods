@@ -804,6 +804,18 @@ typedef enum {
   PT_ROOT_OPTIONAL,
 } pt_root_mode;
 
+/* A file or directory of this user's, private to it, that has only lost its
+   owner's write permission: read-only rather than exposed or foreign. */
+static bool owner_read_only(const char *path, mode_t type) {
+  struct stat status;
+  return lstat(path, &status) == 0
+    && (status.st_mode & S_IFMT) == type
+    && status.st_uid == geteuid()
+    && (status.st_mode & 077) == 0
+    && (status.st_mode & S_IWUSR) == 0
+    && !pt_has_extended_acl(path);
+}
+
 static bool capture_runtime(
   const char *database_root,
   const char *expected_sha,
@@ -860,7 +872,11 @@ static bool capture_runtime(
         && errno == ENOENT) {
       return false;
     }
-    archive_error("database-root-unavailable");
+    archive_error(
+      owner_read_only(database_root, S_IFDIR)
+        ? "archive-read-only"
+        : "database-root-unavailable"
+    );
   }
   char canonical_root[PATH_MAX];
   if (!realpath(database_root, canonical_root)
@@ -939,9 +955,11 @@ static bool archive_checks_clean(sqlite3 *database, bool quick) {
   if (sqlite3_prepare_v2(database, sql, -1, &check, NULL) != SQLITE_OK) {
     return false;
   }
-  bool clean = sqlite3_step(check) == SQLITE_ROW
-    && strcmp((const char *)sqlite3_column_text(check, 0), "ok") == 0
-    && sqlite3_step(check) == SQLITE_DONE;
+  bool clean = false;
+  if (sqlite3_step(check) == SQLITE_ROW) {
+    const char *answer = (const char *)sqlite3_column_text(check, 0);
+    clean = answer && strcmp(answer, "ok") == 0 && sqlite3_step(check) == SQLITE_DONE;
+  }
   sqlite3_finalize(check);
   if (!clean || quick) return clean;
   if (sqlite3_prepare_v2(database, "PRAGMA foreign_key_check", -1, &check, NULL)
@@ -953,39 +971,70 @@ static bool archive_checks_clean(sqlite3 *database, bool quick) {
   return clean;
 }
 
-/* What a migration must carry over unchanged, reduced to counts and sums over
-   every archived row: entries and their sequences and text, staged captures
-   and their text, and the project's sequence allocator. */
-typedef struct {
-  sqlite3_int64 values[7];
-} ArchiveFingerprint;
+/* What a migration must carry over unchanged: every archived row of the tables
+   each declared schema shares, with its identity, sequence, Run/Segment/Branch
+   relations and the byte length of its text. The rows are copied into
+   temporary tables before the upgrade and compared as sets after it; the text
+   itself stays in the archive. */
+#define MIGRATION_ENTRY_COLUMNS \
+  "event_id, sequence, run_id, segment_id, branch_id, parent_event_id," \
+  " occurred_at_ms, source, attachment_count, attachment_kinds," \
+  " length(CAST(prompt_text AS BLOB))"
+#define MIGRATION_PENDING_COLUMNS \
+  "event_id, run_id, segment_id, branch_id, parent_event_id, occurred_at_ms," \
+  " attachment_count, attachment_kinds, length(CAST(prompt_text AS BLOB))"
+#define MIGRATION_METADATA_COLUMNS "project_id, policy_version, next_sequence"
 
-static bool archive_fingerprint(sqlite3 *database, ArchiveFingerprint *fingerprint) {
-  sqlite3_stmt *select = NULL;
+static bool snapshot_archive_rows(sqlite3 *database) {
+  return sqlite3_exec(
+    database,
+    "CREATE TEMP TABLE migration_entries AS"
+    " SELECT " MIGRATION_ENTRY_COLUMNS " FROM main.prompt_entries;"
+    "CREATE TEMP TABLE migration_pending AS"
+    " SELECT " MIGRATION_PENDING_COLUMNS " FROM main.pending_captures;"
+    "CREATE TEMP TABLE migration_metadata AS"
+    " SELECT " MIGRATION_METADATA_COLUMNS " FROM main.metadata;",
+    NULL,
+    NULL,
+    NULL
+  ) == SQLITE_OK;
+}
+
+#define MIGRATION_ROWS_DIFFER(columns, table, snapshot) \
+  " EXISTS(SELECT " columns " FROM main." table \
+  " EXCEPT SELECT * FROM temp." snapshot ")" \
+  " OR EXISTS(SELECT * FROM temp." snapshot \
+  " EXCEPT SELECT " columns " FROM main." table ")"
+
+static bool archive_rows_unchanged(sqlite3 *database) {
+  sqlite3_stmt *compare = NULL;
   if (sqlite3_prepare_v2(
         database,
         "SELECT"
-        " (SELECT count(*) FROM prompt_entries),"
-        " (SELECT coalesce(sum(sequence), 0) FROM prompt_entries),"
-        " (SELECT coalesce(max(sequence), 0) FROM prompt_entries),"
-        " (SELECT coalesce(sum(length(CAST(prompt_text AS BLOB))), 0)"
-        "  FROM prompt_entries),"
-        " (SELECT count(*) FROM pending_captures),"
-        " (SELECT coalesce(sum(length(CAST(prompt_text AS BLOB))), 0)"
-        "  FROM pending_captures),"
-        " (SELECT coalesce(sum(next_sequence), 0) FROM metadata)",
+        MIGRATION_ROWS_DIFFER(MIGRATION_ENTRY_COLUMNS, "prompt_entries", "migration_entries")
+        " OR"
+        MIGRATION_ROWS_DIFFER(MIGRATION_PENDING_COLUMNS, "pending_captures", "migration_pending")
+        " OR"
+        MIGRATION_ROWS_DIFFER(MIGRATION_METADATA_COLUMNS, "metadata", "migration_metadata"),
         -1,
-        &select,
+        &compare,
         NULL
       ) != SQLITE_OK) {
     return false;
   }
-  bool read = sqlite3_step(select) == SQLITE_ROW;
-  for (int index = 0; read && index < 7; index += 1) {
-    fingerprint->values[index] = sqlite3_column_int64(select, index);
-  }
-  sqlite3_finalize(select);
-  return read;
+  bool unchanged = sqlite3_step(compare) == SQLITE_ROW
+    && sqlite3_column_int(compare, 0) == 0;
+  sqlite3_finalize(compare);
+  return unchanged
+    && sqlite3_exec(
+      database,
+      "DROP TABLE temp.migration_entries;"
+      "DROP TABLE temp.migration_pending;"
+      "DROP TABLE temp.migration_metadata;",
+      NULL,
+      NULL,
+      NULL
+    ) == SQLITE_OK;
 }
 
 /* Twice the archive, once for the backup and once for a migration that
@@ -1052,8 +1101,8 @@ static void write_migration_backup(
     written = backup_step
       && sqlite3_backup_step(backup_step, -1) == SQLITE_DONE;
     if (backup_step && sqlite3_backup_finish(backup_step) != SQLITE_OK) written = false;
-    if (!written) failure = archive_failure(copy, failure);
   }
+  if (!written) failure = archive_failure(source, archive_failure(copy, failure));
   if (sqlite3_close(source) != SQLITE_OK) written = false;
   if (sqlite3_close(copy) != SQLITE_OK) written = false;
   if (written) {
@@ -1070,17 +1119,17 @@ static void write_migration_backup(
   }
 }
 
+static bool set_schema_version(sqlite3 *database, int version) {
+  char sql[64];
+  snprintf(sql, sizeof(sql), "PRAGMA user_version=%d", version);
+  return sqlite3_exec(database, sql, NULL, NULL, NULL) == SQLITE_OK;
+}
+
 /* The declared one-way upgrades, each from the version before it. */
 static bool apply_migration_step(sqlite3 *database, int from_version) {
   if (from_version == 1) {
     /* Schema 1 gained the non-prompt Timeline Event table. */
-    return sqlite3_exec(
-      database,
-      TIMELINE_EVENTS_DDL "PRAGMA user_version=2;",
-      NULL,
-      NULL,
-      NULL
-    ) == SQLITE_OK;
+    return sqlite3_exec(database, TIMELINE_EVENTS_DDL, NULL, NULL, NULL) == SQLITE_OK;
   }
   return false;
 }
@@ -1113,22 +1162,20 @@ static void migrate_archive(
   if (!migration_space_available(database, database_root, database_path)) {
     abandon_migration(database, "archive-full");
   }
-  ArchiveFingerprint before;
-  if (!archive_fingerprint(database, &before)) {
+  if (!snapshot_archive_rows(database)) {
     abandon_migration(database, "archive-integrity");
   }
   write_migration_backup(database, database_root, database_path, backup, partial);
 
-  ArchiveFingerprint after;
   bool migrated = true;
   for (int version = from_version; migrated && version < ARCHIVE_SCHEMA_VERSION; version += 1) {
-    migrated = apply_migration_step(database, version);
+    migrated = apply_migration_step(database, version)
+      && set_schema_version(database, version + 1);
   }
   migrated = migrated
     && archive_schema_version(database) == ARCHIVE_SCHEMA_VERSION
     && archive_checks_clean(database, false)
-    && archive_fingerprint(database, &after)
-    && memcmp(before.values, after.values, sizeof(before.values)) == 0;
+    && archive_rows_unchanged(database);
   if (!migrated) {
     const char *category = archive_failure(database, "migration-verify");
     unlink(backup);
@@ -1185,6 +1232,19 @@ static int archive_policy_version(sqlite3 *database, const char *project_id) {
   return policy;
 }
 
+/* Turning an archive to WAL needs the exclusive lock, and SQLite answers a Run
+   that meets another one mid-switch with SQLITE_BUSY at once rather than
+   through the busy handler, so it waits here on the invocation's budget. */
+static void archive_use_wal(sqlite3 *database) {
+  for (int attempts = 0;; attempts += 1) {
+    int result = sqlite3_exec(database, "PRAGMA journal_mode=WAL", NULL, NULL, NULL);
+    if (result == SQLITE_OK) return;
+    if ((result & 0xff) != SQLITE_BUSY || !archive_busy_wait(NULL, attempts)) {
+      archive_error("archive-sqlite");
+    }
+  }
+}
+
 static sqlite3 *open_archive(
   const char *database_root,
   const char *project_id,
@@ -1214,7 +1274,11 @@ static sqlite3 *open_archive(
   struct stat status;
   bool existed = lstat(database_path, &status) == 0;
   if (existed && !pt_path_is_private_file(database_path)) {
-    archive_error("database-permissions");
+    archive_error(
+      owner_read_only(database_path, S_IFREG)
+        ? "archive-read-only"
+        : "database-permissions"
+    );
   }
   if (!existed && errno != ENOENT) archive_error("database-unavailable");
   if (!create && !existed) archive_error("database-unavailable");
@@ -1244,16 +1308,10 @@ static sqlite3 *open_archive(
     close_archive(database);
     archive_error("schema-version");
   }
-  /* Turning a new archive to WAL needs the exclusive lock, and SQLite answers
-     a Run that meets another one mid-switch with SQLITE_BUSY at once rather
-     than through the busy handler, so it waits here on the same budget. */
-  for (int attempts = 0;; attempts += 1) {
-    int result = sqlite3_exec(database, "PRAGMA journal_mode=WAL", NULL, NULL, NULL);
-    if (result == SQLITE_OK) break;
-    if ((result & 0xff) != SQLITE_BUSY || !archive_busy_wait(NULL, attempts)) {
-      archive_error("archive-sqlite");
-    }
-  }
+  /* An archive awaiting an upgrade is not even switched to WAL until the
+     upgrade has passed its checks and committed. */
+  bool upgrading = found_version > 0 && found_version < ARCHIVE_SCHEMA_VERSION;
+  if (!upgrading) archive_use_wal(database);
   archive_sql(database, "PRAGMA synchronous=FULL");
   archive_sql(database, "PRAGMA foreign_keys=ON");
   archive_sql(database, "PRAGMA secure_delete=ON");
@@ -1303,8 +1361,10 @@ static sqlite3 *open_archive(
         "CREATE INDEX prompt_entries_run_sequence "
         "ON prompt_entries(run_id, sequence);"
         TIMELINE_EVENTS_DDL
-        "PRAGMA user_version=2;"
       );
+      if (!set_schema_version(database, ARCHIVE_SCHEMA_VERSION)) {
+        archive_error("archive-sqlite");
+      }
     } else if (schema_version > 0 && schema_version < ARCHIVE_SCHEMA_VERSION) {
       migrate_archive(database, database_root, database_path, schema_version);
       migrated = true;
@@ -1315,6 +1375,7 @@ static sqlite3 *open_archive(
     }
     archive_sql(database, "COMMIT");
   }
+  if (upgrading) archive_use_wal(database);
 
   /* The project row is written only when it is missing, so a read of an
      archive that already has one never takes the write lock and never waits

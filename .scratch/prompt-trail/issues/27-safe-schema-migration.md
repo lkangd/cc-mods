@@ -79,20 +79,31 @@
 - **`user_version` 读取失败报 `archive-sqlite`**：原来读不到按 -1 处理，会被误报成 `schema-version`。
 - **完整性 fixture 增加「索引与表不一致」**：通过 `writable_schema` 改写索引定义。页损坏时，指纹读取本身就会失败，单靠页损坏区分不出「跳过完整性检查」这种变异。
 
+### Code review 修复（2026-09-28，round 1）
+
+- **复检改为逐行比对**：原先只比对计数、sequence 聚合和原文总字节数的指纹，没有兑现 Q2「event_id 集合一致」，也没有覆盖 Run/Segment/Branch 关系。现在迁移前把三张表每行的全部非原文列加原文字节长度复制进临时表，迁移后双向 `EXCEPT` 比对；原文不复制。成本：100k 条目的迁移从 0.65/1.89 秒升到 1.12/2.61 秒。
+- **只读文件和目录映射为 `archive-read-only`**（兑现 Q6「文件/目录不可写」）：属于本用户、对组和其他人私有、只缺属主写权限的档案文件（如 0400），或只读命令遇到的同类 archives 目录（如 0500），不再报 `database-permissions`/`database-root-unavailable`。写命令仍会把 archives 目录修复回 0700。这改变了 Issue 25 对档案文件 `chmod 400` 的类别（原为 `database-permissions`）。
+- **待升级的档案在迁移提交后才切换到 WAL**：rollback-journal 模式的 schema-1 档案（例如以其他方式恢复的副本）在预检失败时，文件头也不再被改动。新建和当前版本的档案照旧先切换。
+- **`user_version` 只有一个来源**：新建档案写 `ARCHIVE_SCHEMA_VERSION`，每个迁移步骤写 `from + 1`，DDL 里不再有字面值。
+- **备份初始化失败时按 SQLite 实际错误命名**：打开源/目标连接或设置 journal mode 时遇到写满，也报 `archive-full`。
+- **完整性检查结果判空**，避免内存不足时空指针崩溃。
+- **backlog**：`status` 自己遇到共享故障时仍显示 `archive: ready`，这是 Issue 25 起就有的行为，记为 `docs/code-review-backlog/20260928-status-reads-ready-after-a-shared-failure.md`。
+
 ## Answer
 
 已存在的 schema-1 档案升级时，会先做完整性和空间检查，写一份逐字节一致的私有备份，迁移并复检通过后才提交；下一次成功打开时再复检一次，然后删除备份。实现在 `9c93fab`（helper）和 `24f56dd`（插件）；与对齐稿不同的地方见上方「实现中修订」。
 
 - **拒绝**：
   - 版本高于 2 或为负数：打开后第一步就报 `schema-version`，此前不切换 WAL、不拿写锁、不改文件，即使别的连接正持有写锁也立即作答；
-  - 只读卷：打开前报 `archive-read-only`。
+  - 只读卷、只缺属主写权限的档案文件或（只读命令遇到的）archives 目录：报 `archive-read-only`；
+  - 待升级的档案直到迁移提交后才切换到 WAL。
 - **迁移**：全程在一个 `BEGIN IMMEDIATE` 里完成：
   1. 清理上次未提交尝试留下的备份和 `.partial`，但只清理本用户私有的普通文件；备份名被目录、symlink 或权限不对的文件占着时，报 `migration-backup` 且不动它；
   2. `integrity_check` 与 `foreign_key_check`，不通过报 `archive-integrity`；
   3. 可用空间须 ≥ 2 × 档案 + WAL + 16 MiB，否则报 `archive-full`；
   4. 写备份 `<projectId>.sqlite3.pre-migration-v1`（0600）：先写 `.partial`，F_FULLFSYNC 后以 `RENAME_EXCL` 改名，再 fsync 目录；
   5. 执行迁移步骤；
-  6. 复检：完整性检查，加上指纹（条目数、sequence 之和与最大值、原文字节数、pending 数与字节数、`next_sequence`）与迁移前一致；
+  6. 复检：完整性检查，加上 entries、pending、metadata 三张表逐行比对（全部非原文列加原文字节长度）与迁移前一致；
   7. 通过才 COMMIT，否则回滚、删除备份，报 `migration-verify`。
 - **备份生命周期**：
   - 任何命令以当前版本打开并通过 metadata 校验后，若看到备份，先 `quick_check`，通过才删除并 fsync 目录；
@@ -101,11 +112,11 @@
 - **读命令不再拿写锁**：档案已是当前版本且有 project 行时，`capture-list`/`timeline-read`/`branch-match` 不写入；别的 Run 持有写锁时也立即作答。
 - **插件**：五个新类别（`archive-read-only`、`archive-integrity`、`migration-backup`、`migration-verify`、`migration-backup-cleanup`）都属于共享故障，沿用 Issue 25 的对话框、共享记录和 `status`。
 - **manifest**：字段不变。静态门禁新增：helper 的 `ARCHIVE_SCHEMA_VERSION` 等于 `schemaWriteMax` 和 `schemaReadMax`，且 `schemaMigrations` 从 `schemaReadMin` 起逐级连续。
-- **耗时（Q11）**：100k 条目实测，85 MiB 档案迁移 0.65 秒，403 MiB 档案 1.89 秒，下一次打开的复检加删除分别为 0.08 秒和 0.25 秒；约每 MiB 4.7 ms，档案到约 2 GiB 才会碰到插件的 10 秒超时。测量时页缓存是热的（档案刚写完）。未做改动。
+- **耗时（Q11）**：100k 条目实测，85 MiB 档案迁移 1.12 秒，403 MiB 档案 2.61 秒（含逐行比对），下一次打开的复检加删除分别为 0.08 秒和 0.24 秒；按 403 MiB 的斜率约每 MiB 5 ms，档案到约 1.5 GiB 才会碰到插件的 10 秒超时。测量时页缓存是热的（档案刚写完）。未做改动。
 - **测试**：
-  - helper 新增 12 项黑盒测试：高版本拒绝、读不拿锁、备份逐字一致与生命周期、遗留文件、备份名被占（目录/symlink/共享文件）、完整性失败（页损坏/索引不一致）、空间不足（4 MB 小卷）、迁移步骤失败回滚、清理失败（`chflags uchg`）、复检失败保留备份、只读卷（`hdiutil -readonly`）、随机时刻 SIGKILL 30 轮（每次运行中 kill 都同时落在提交前和提交后，每轮后原文、sequence、pending 都不变，也不留多余文件）；
+  - helper 新增 13 项黑盒测试：高版本拒绝、读不拿锁、备份逐字一致与生命周期、遗留文件、备份名被占（目录/symlink/共享文件）、完整性失败（页损坏/索引不一致/rollback-journal 档案不被切换 WAL）、属主只读的文件与目录、空间不足（4 MB 小卷）、迁移步骤失败回滚、清理失败（`chflags uchg`）、复检失败保留备份、只读卷（`hdiutil -readonly`）、随机时刻 SIGKILL 30 轮（每次运行中 kill 都同时落在提交前和提交后，每轮后原文、sequence、pending 都不变，也不留多余文件）；
   - plugin test 新增 5 项；
-  - 变异检查：C 侧 13 条中 12 条被抓到，存活的一条是「忽略复检指纹」（Q10 已接受）；插件侧从 `SHARED_FAILURES` 删掉类别会被抓到。
-  - 门禁：两个版本各 342 项 plugin test，静态 9 项，bridge 32 项，helper 97 项，真实 git 5 项。
+  - 变异检查：C 侧 16 条中 14 条被抓到，存活的两条是「忽略复检指纹」和修复后的「忽略逐行比对」（Q10 已接受复检不通过只靠审查覆盖）；插件侧从 `SHARED_FAILURES` 删掉类别会被抓到。
+  - 门禁：两个版本各 342 项 plugin test，静态 9 项，bridge 32 项，helper 98 项，真实 git 5 项。
   - 未覆盖：备份写到一半遇到 ENOSPC（空间检查在前，真实条件下到不了），只做了代码核对。
 - **backlog**：`20260927-read-commands-take-the-write-lock.md` 随本票解决。

@@ -116,13 +116,13 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   档案本身的故障写入按项目划分的共享记录，其他 Run 每次操作都重新读取，读到就不经尝试直接拦下提交；locator、helper、preflight
   故障只影响本 Run，只记在内存。任何成功写入都会解除共享记录。被拦下的提交只给「重试」和「禁用当前 Run 后继续」两个选择，
   关闭对话框即恢复草稿。`status` 显示范围、类别和磁盘空间，band 标题显示「档案不可用」。顺带修了新档案切换 WAL、
-  并发创建 archives 目录这两个原有竞争。读命令也要拿写锁，进了 backlog。
+  并发创建 archives 目录这两个原有竞争。读命令也要拿写锁，进了 backlog（已由 Issue 27 解决）。
 - [安全迁移档案 schema](issues/27-safe-schema-migration.md)：
   高于 2 的 schema 在任何写入和加锁之前就被拒绝。`1->2` 迁移在一个写事务里依次做完整性检查、空间检查（≥ 2 × 档案 + WAL + 16 MiB），
-  在同目录写出逐字节一致、0600 的 `.pre-migration-v1` 备份，迁移后以完整性检查加指纹复检，通过才提交；下一次成功打开时
+  在同目录写出逐字节一致、0600 的 `.pre-migration-v1` 备份，迁移后以完整性检查加逐行比对复检，通过才提交；下一次成功打开时
   `quick_check` 通过才删除备份，删不掉就保持 Archive unavailable。helper 从不用备份覆盖活动库，中断靠事务回滚。读命令不再
   拿写锁。新增 `archive-read-only`、`archive-integrity`、`migration-backup`、`migration-verify`、`migration-backup-cleanup`
-  五个共享故障类别。100k 条目、403 MiB 的档案迁移耗时 1.89 秒。
+  五个共享故障类别。100k 条目、403 MiB 的档案迁移耗时 2.61 秒。
 
 ## Not yet specified
 
