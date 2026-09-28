@@ -1492,7 +1492,17 @@ class HelperProtocolTests(unittest.TestCase):
 
         self.assertEqual(listed.returncode, 0, listed.stderr)
         self.assertEqual(json.loads(listed.stdout)["pending"], [])
+        self.assertIsNone(json.loads(listed.stdout)["generation"])
         self.assertFalse((database_root / f"{project_id}.sqlite3").exists())
+
+    def test_capture_list_names_the_generation_its_pendings_are_in(self) -> None:
+        project_id = "f6" * 32
+        legacy = self.current_archive(project_id, count=3)
+
+        listed = self.run_helper(*self.list_argv(project_id=project_id, run_id=legacy["identity"]["run_id"]))
+
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(json.loads(listed.stdout)["generation"], self.check(project_id)["generation"])
 
     def test_capture_list_enforces_a_fixed_maximum_batch(self) -> None:
         project_id = "c" * 64
@@ -3597,6 +3607,22 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual([kind for _, _, kind, _ in self.timeline(project_id)], ["archive-quarantined"])
 
 
+    def await_project_lock_held(self, project_id: str) -> None:
+        """Wait until some command holds the project's lock, so what starts
+        next meets it held rather than racing it."""
+        import fcntl
+        lock = self.plugin_data / "archives" / f"{project_id}.lock"
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            with lock.open("rb") as handle:
+                try:
+                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    return
+                fcntl.flock(handle, fcntl.LOCK_UN)
+            time.sleep(0.01)
+        self.fail("no command took the project lock")
+
     def test_a_quarantine_waits_for_a_command_already_using_the_archive(self) -> None:
         project_id = "eb" * 32
         legacy = self.current_archive(project_id, count=3)
@@ -3619,7 +3645,7 @@ class HelperProtocolTests(unittest.TestCase):
             [str(HELPER), *self.boundary_argv(boundary_id, kind="collection-stopped", **legacy["identity"])],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self.environment,
         )
-        time.sleep(0.4)
+        self.await_project_lock_held(project_id)
         mover = subprocess.Popen(
             [str(HELPER), *self.quarantine_argv(project_id=project_id, generation=sound)],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self.environment,
@@ -3735,7 +3761,11 @@ class HelperProtocolTests(unittest.TestCase):
         import random
         chooser = random.Random(28)
         phases = {"before": 0, "during": 0, "after": 0}
-        for _ in range(30):
+        # At least 30 kills, and on until each moment has been hit, since
+        # how long a run takes varies from one to the next.
+        for round in range(90):
+            if round >= 30 and all(phases.values()):
+                break
             generation = restore()
             before = self.evidence(project_id)
             helper = start(generation)
@@ -3793,6 +3823,20 @@ class HelperProtocolTests(unittest.TestCase):
         for result in (unnamed, named):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout)["generation"], generation)
+
+    def test_a_capture_meant_for_a_generation_no_longer_there_creates_nothing(self) -> None:
+        project_id = "f5" * 32
+        (self.plugin_data / "archives").mkdir(mode=0o700)
+        identity = self.identity(project_id)
+
+        result = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), generation="gone", **identity),
+            input_text="PT-SECRET-GONE",
+        )
+
+        self.assertEqual(result.returncode, 25, result.stderr)
+        self.assertEqual(json.loads(result.stderr)["category"], "archive-generation")
+        self.assertFalse(self.archive_path(project_id).exists())
 
     def test_a_capture_meant_for_a_replaced_generation_stages_nothing(self) -> None:
         project_id = "ef" * 32

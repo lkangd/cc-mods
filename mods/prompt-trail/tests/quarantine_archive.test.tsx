@@ -380,3 +380,170 @@ test('enable that meets damage names the choices the next submission offers', as
   expect(enabled).toContain('下一次提交时可选择重新检查完整性、隔离并开始新档案')
   expect(store[archiveStateKey]).toMatchObject({ category: 'archive-integrity', generation: 'gen-1' })
 })
+
+test('a recheck that finds a newer generation damaged quarantines that one', async ($, on) => {
+  const store = consentedStore()
+  const generation = { value: 'gen-1' }
+  const options: TargetOptions = {
+    store,
+    generation,
+    beginFails: 'archive-integrity',
+    fills: [],
+    integrity: { result: 'damaged', problems: 2 },
+    unavailableAnswers: ['重新检查完整性', '隔离并开始新档案'],
+    /* Another Run quarantined gen-1 while the first dialog was up, and the
+       generation now in place is damaged too. */
+    duringAsk: () => {
+      if (generation.value === 'gen-1') generation.value = 'gen-5'
+      else options.beginFails = false
+    },
+  }
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(captureCalls(calls, 'quarantine').map(call => call.argv[4])).toStrictEqual(['gen-5'])
+})
+
+test('a recheck that fails is on record for status, across Runs and restarts', async ($, on) => {
+  const store = consentedStore()
+  installSupportedTarget(on, {
+    store,
+    beginFails: 'archive-integrity',
+    fills: [],
+    integrity: { result: 'damaged', problems: 4 },
+    unavailableAnswers: ['重新检查完整性'],
+  })
+  await $.session.start(session)
+  await composerPrompt($)
+
+  expect(store[archiveStateKey]).toMatchObject({ recheck: { result: 'damaged', problems: 4 } })
+  expect(store[archiveStateKey]).not.toHaveProperty('recheck.text')
+})
+
+test('a record left by another Run shows its recheck in status', async ($, on) => {
+  const store = consentedStore()
+  store[archiveStateKey] = {
+    version: 2,
+    state: 'unavailable',
+    category: 'archive-integrity',
+    since: 1_795_000_000_000,
+    runId: otherRun,
+    generation: 'gen-1',
+    recheck: { result: 'unreadable', problems: 0 },
+  }
+  installSupportedTarget(on, { store })
+  await $.session.start(session)
+
+  const status = (await promptHistory($, 'status')).text ?? ''
+
+  expect(status).toContain('完整性检查未通过（档案已无法作为数据库读取）')
+})
+
+test('a quarantine left unfinished before a restart is finished by the next choice', async ($, on) => {
+  const store = consentedStore()
+  store[archiveStateKey] = {
+    version: 2,
+    state: 'unavailable',
+    category: 'quarantine-failed',
+    since: 1_795_000_000_000,
+    runId: otherRun,
+  }
+  const quarantineUnderway = { value: true }
+  const calls = installSupportedTarget(on, {
+    store,
+    fills: [],
+    quarantineUnderway,
+    unavailableAnswers: ['隔离并开始新档案'],
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(captureCalls(calls, 'integrity-check')).toHaveLength(0)
+  expect(captureCalls(calls, 'quarantine')).toHaveLength(1)
+  expect(quarantineUnderway.value).toBe(false)
+  expect(store[archiveStateKey]).toBeUndefined()
+})
+
+test('entering a new generation again after a lost branch write replays the same attach', async ($, on) => {
+  const store = consentedStore()
+  const archive: ArchiveRow[] = []
+  const generation = { value: 'gen-1' }
+  const options: TargetOptions = {
+    store,
+    archive,
+    generation,
+    transcript: [],
+    fills: [],
+    unavailableAnswers: ['重试'],
+  }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+  expect((await composerPrompt($)).text).toBe(SECRET)
+  archive.splice(0, archive.length, {
+    kind: 'archive-quarantined',
+    eventId: 'qqqqqqqq-0000-4000-8000-000000000001',
+    sequence: 1,
+    runId: otherRun,
+    segmentId: 'ssssssss-0000-4000-8000-000000000001',
+    branchId: 'bbbbbbbb-0000-4000-8000-000000000002',
+  })
+  generation.value = 'gen-2'
+  /* The attach lands, and the new root branch cannot be saved. */
+  options.branchSetFailsAfter = 0
+  options.duringAsk = () => { options.branchSetFailsAfter = undefined }
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(archive.map(row => row.kind)).toStrictEqual(['archive-quarantined', 'run-attached', 'prompt'])
+})
+
+test('a branch the transcript settles on names the generation it was matched in', async ($, on) => {
+  const store = consentedStore()
+  const entry = earlierEntry()
+  const calls = installSupportedTarget(on, {
+    store,
+    archive: [entry],
+    messages: [{ role: 'user', text: 'PT-SECRET-EARLIER' }, { role: 'assistant', text: 'ok' }],
+    branchMatch: { match: 'unique', eventId: entry.eventId, candidates: [], candidateCount: 1 },
+  })
+  await $.session.start(session)
+
+  await composerPrompt($)
+
+  expect(captureCalls(calls, 'capture-begin').map(call => [call.argv[7], call.argv[12]])).toStrictEqual([
+    [entry.eventId, 'gen-1'],
+  ])
+})
+
+test('a reconciliation owed in a replaced generation is dropped, not asked about', async ($, on) => {
+  const store = consentedStore()
+  store[`prompt-trail:reconcile:${projectId}`] = {
+    version: 1,
+    eventId: 'pppppppp-0000-4000-8000-000000000001',
+    runId,
+    branchId: 'bbbbbbbb-0000-4000-8000-000000000001',
+    parentEventId: null,
+    attachmentCount: 0,
+    generation: 'gen-1',
+  }
+  const calls = installSupportedTarget(on, {
+    store,
+    generation: { value: 'gen-2' },
+    messages: [{ role: 'user', text: 'PT-SECRET-AMBIGUOUS' }],
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(captureCalls(calls, 'capture-confirm').map(call => call.argv[4])).not.toContain(
+    'pppppppp-0000-4000-8000-000000000001',
+  )
+  expect(store[`prompt-trail:reconcile:${projectId}`]).toBeUndefined()
+})

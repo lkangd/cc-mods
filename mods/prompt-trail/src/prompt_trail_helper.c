@@ -1663,9 +1663,17 @@ static void capture_begin(int argc, char **argv) {
 
   size_t prompt_length = 0;
   char *prompt = read_prompt_text(&prompt_length);
+  char generation[129];
+  /* A generation that is no longer there is not created again for it. */
+  if (expected_generation) {
+    lock_project(database_root, project_id, false);
+    refuse_unfinished_quarantine(database_root, project_id);
+    if (!project_generation(database_root, project_id, generation)) {
+      archive_error("archive-generation");
+    }
+  }
   sqlite3 *database = open_archive(database_root, project_id, true);
   char database_path[PATH_MAX];
-  char generation[129];
   int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
   if (length < 0 || length >= PATH_MAX || !archive_generation(database_path, generation)) {
     archive_error("database-unavailable");
@@ -2012,6 +2020,9 @@ static void capture_list(int argc, char **argv) {
     if (length < 0 || (size_t)length >= sizeof(database_path)) {
       archive_error("database-path");
     }
+    /* Held before the archive is looked for, so a quarantine moving it
+       cannot pass for an archive that was never there. */
+    lock_project(database_root, project_id, false);
     refuse_unfinished_quarantine(database_root, project_id);
     struct stat status;
     if (lstat(database_path, &status) == 0) {
@@ -2025,6 +2036,7 @@ static void capture_list(int argc, char **argv) {
      than a failure: the caller asked whether anything is unresolved. */
   if (!archived) {
     write_status_string("{\"projectId\":", project_id);
+    fputs(",\"generation\":null", stdout);
     fputs(",\"pending\":[],\"skipped\":0,\"truncated\":false}\n", stdout);
     return;
   }
@@ -2039,7 +2051,12 @@ static void capture_list(int argc, char **argv) {
   );
   sqlite3_bind_int(rows, 1, PENDING_SCAN_LIMIT + 1);
 
+  char generation[129];
+  if (!project_generation(database_root, project_id, generation)) {
+    archive_error("database-unavailable");
+  }
   write_status_string("{\"projectId\":", project_id);
+  write_status_string(",\"generation\":", generation);
   fputs(",\"pending\":[", stdout);
   int listed = 0;
   int skipped = 0;
@@ -2458,6 +2475,9 @@ static void timeline_read(int argc, char **argv) {
     if (length < 0 || (size_t)length >= sizeof(database_path)) {
       archive_error("database-path");
     }
+    /* Held before the archive is looked for, so a quarantine moving it
+       cannot pass for an archive that was never there. */
+    lock_project(database_root, project_id, false);
     refuse_unfinished_quarantine(database_root, project_id);
     struct stat status;
     if (lstat(database_path, &status) == 0) {
@@ -3018,6 +3038,9 @@ static void branch_match(int argc, char **argv) {
     if (length < 0 || (size_t)length >= sizeof(database_path)) {
       archive_error("database-path");
     }
+    /* Held before the archive is looked for, so a quarantine moving it
+       cannot pass for an archive that was never there. */
+    lock_project(database_root, project_id, false);
     refuse_unfinished_quarantine(database_root, project_id);
     struct stat status;
     if (lstat(database_path, &status) == 0) {
@@ -3549,7 +3572,10 @@ static void quarantine(int argc, char **argv) {
     if (unlink(fresh_index) != 0 && errno != ENOENT) quarantine_error();
     if (!sync_file(fresh) || rename(fresh, database_path) != 0) quarantine_error();
   }
-  if (unlink(intent) != 0 || !sync_directory(database_root)) quarantine_error();
+  /* The new generation's name is durable before the intent goes. An intent
+     that a crash brings back afterwards is finished again, moving nothing. */
+  if (!sync_directory(database_root) || unlink(intent) != 0) quarantine_error();
+  (void)sync_directory(database_root);
 
   char generation[129];
   if (!archive_generation(database_path, generation)) quarantine_error();
