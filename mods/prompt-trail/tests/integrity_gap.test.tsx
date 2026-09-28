@@ -284,3 +284,238 @@ test('a clear held in memory is owed to the generation it was seen in', async ($
 
   expect(kinds(archive)).not.toContain('clear')
 })
+
+/* Issue 26 Q4–Q7, Q12, Q13, Q16: a submission the host let through when the
+   hook failed, found by the in-flight marker it left. */
+
+const otherHost = '5151-100-200'
+
+function markerKey(call: string, forRunId: string = runId): string {
+  return `prompt-trail:inflight:${projectId}:${forRunId}:${call}`
+}
+
+function marker(stage: 'before-pending' | 'pending' | 'clear-observed', host = otherHost) {
+  return {
+    version: 1,
+    host,
+    stage,
+    segmentId: sessionId,
+    branchId: 'b2b2b2b2-c3c3-4d4d-8e5e-f6f6f6f6f6f6',
+    at: 1_794_500_000_000,
+  }
+}
+
+function inflightKeys(store: Record<string, unknown>): string[] {
+  return Object.keys(store).filter(key => key.startsWith('prompt-trail:inflight:'))
+}
+
+test('a submission that settles leaves no in-flight marker behind', async ($, on) => {
+  const store = storeWith({})
+  const written: string[] = []
+  installSupportedTarget(on, { store, afterStoreSet: key => written.push(key) })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  /* One was written while it was in flight. */
+  expect(written.some(key => key.startsWith(`prompt-trail:inflight:${projectId}:${runId}:`))).toBe(true)
+  expect(inflightKeys(store)).toEqual([])
+})
+
+test('a marker left before a pending was staged is a prompt the host let through: a gap', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const pane = parentPane()
+  const store = storeWith({})
+  store[markerKey('crashed-call')] = marker('before-pending')
+  installSupportedTarget(on, { store, archive, parentPane: pane })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  expect(kinds(archive)).toEqual(['integrity-gap', 'integrity-recovery', 'prompt'])
+  expect(pane.toasts.some(text => text.includes('上次提交时 Prompt Trail 出错'))).toBe(true)
+  expect(inflightKeys(store)).toEqual([])
+})
+
+test('a marker a reload left in this very process is stale too', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  store[markerKey('before-reload')] = marker('before-pending', '4242-100-200')
+  installSupportedTarget(on, { store, archive })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  expect(kinds(archive)).toEqual(['integrity-gap', 'integrity-recovery', 'prompt'])
+})
+
+test('a marker left after a pending was staged is settled by reconciliation, not a gap', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  const pendingList = [{ eventId: 'f'.repeat(36), runId, branchId: 'b2b2b2b2-c3c3-4d4d-8e5e-f6f6f6f6f6f6', parentEventId: null, attachmentCount: 0 }]
+  const options = { store, archive, reconcileAnswer: '未进入' as const, pendingList: [] as Record<string, unknown>[] }
+  const calls = installSupportedTarget(on, options)
+
+  await $.session.start(session)
+  /* This module has already found nothing owed. */
+  await composerPrompt($)
+  const listed = captureCalls(calls, 'capture-list').length
+  /* Then a call of this module dies after staging. */
+  store[markerKey('died-after-staging')] = marker('pending', '4242-100-200')
+  options.pendingList = pendingList
+  await composerPrompt($)
+
+  expect(captureCalls(calls, 'capture-list').length).toBeGreaterThan(listed)
+  expect(kinds(archive)).not.toContain('integrity-gap')
+  expect(inflightKeys(store)).toEqual([])
+})
+
+test('a hook that fails after staging keeps its marker, and the next submission lists the pending again', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  let fail = true
+  const calls = installSupportedTarget(on, {
+    store,
+    archive,
+    duringSubmit: async () => {
+      if (fail) throw new Error('host failed: PT-SECRET-HOST')
+    },
+  })
+
+  await $.session.start(session)
+  await composerPrompt($).catch(() => undefined)
+  expect(inflightKeys(store)).toHaveLength(1)
+  expect(Object.values(store).some(value => (value as { stage?: string }).stage === 'pending')).toBe(true)
+
+  fail = false
+  const listed = captureCalls(calls, 'capture-list').length
+  await composerPrompt($)
+
+  expect(captureCalls(calls, 'capture-list').length).toBeGreaterThan(listed)
+  expect(kinds(archive)).not.toContain('integrity-gap')
+})
+
+test('a marker that cannot be written holds the submission', async ($, on) => {
+  const fills: string[] = []
+  const store = storeWith({})
+  const calls = installSupportedTarget(on, { store, fills, storeSetFailsFor: 'prompt-trail:inflight:' })
+
+  await $.session.start(session)
+  const result = await composerPrompt($)
+
+  expect(result).toMatchObject({ drop: expect.stringContaining('inflight-unrecorded') })
+  expect(fills).toEqual([SECRET])
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+})
+
+test('a marker another Run left is that Run’s gap once that Run is gone', async ($, on) => {
+  const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+  const archive: ArchiveRow[] = []
+  const pane = parentPane()
+  const store = storeWith({})
+  store[markerKey('other-crashed', otherRun)] = { ...marker('before-pending'), segmentId: otherRun }
+  installSupportedTarget(on, { store, archive, parentPane: pane })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  const ordered = [...archive].sort((left, right) => left.sequence - right.sequence)
+  expect(ordered.map(row => [row.kind, row.runId])).toEqual([
+    ['integrity-gap', otherRun],
+    ['integrity-recovery', otherRun],
+    ['prompt', runId],
+  ])
+  /* Another Run's loss is not announced to this one. */
+  expect(pane.toasts.some(text => text.includes('Integrity gap'))).toBe(false)
+  expect(inflightKeys(store)).toEqual([])
+})
+
+test('a marker of a Run still live elsewhere is left alone', async ($, on) => {
+  const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  store[markerKey('in-flight-elsewhere', otherRun)] = marker('before-pending')
+  installSupportedTarget(on, { store, archive, liveRuns: [otherRun] })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  expect(kinds(archive)).not.toContain('integrity-gap')
+  expect(inflightKeys(store)).toEqual([markerKey('in-flight-elsewhere', otherRun)])
+})
+
+test('a clear the process went with before recording it is a gap', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const pane = parentPane()
+  const store = storeWith({})
+  store[markerKey('clear-seen')] = marker('clear-observed')
+  installSupportedTarget(on, { store, archive, parentPane: pane })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  expect(kinds(archive)).toEqual(['integrity-gap', 'integrity-recovery', 'prompt'])
+  expect(pane.toasts.some(text => text.includes('/clear 未能记录'))).toBe(true)
+})
+
+test('a disabled Run writes no marker and records no gap', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  store[`prompt-trail:run-mode:${projectId}:${runId}`] = { version: 1, mode: 'disabled' }
+  store[markerKey('crashed-call')] = marker('before-pending')
+  const written: string[] = []
+  installSupportedTarget(on, { store, archive, afterStoreSet: key => written.push(key) })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  expect(written.some(key => key.startsWith('prompt-trail:inflight:'))).toBe(false)
+  expect(kinds(archive)).toEqual([])
+})
+
+function classicOf($: unknown) {
+  /* The 2.1.273 test kit cannot raise a classic hook event; the gate's
+     current version covers these. */
+  return ($ as { classic?: { SessionEnd: (e: { reason: string }) => Promise<unknown> } }).classic
+}
+
+test('a clear being recorded leaves a marker only until it is owed on record', async ($, on) => {
+  const classic = classicOf($)
+  if (!classic) return
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  const written: string[] = []
+  installSupportedTarget(on, { store, archive, afterStoreSet: key => written.push(key) })
+  on('classic.SessionEnd', () => ({}))
+  await $.session.start(session)
+
+  await classic.SessionEnd({ reason: 'clear' })
+
+  expect(written.some(key => key.startsWith(`prompt-trail:inflight:${projectId}:${runId}:`))).toBe(true)
+  expect(inflightKeys(store)).toEqual([])
+  expect(kinds(archive)).toContain('clear')
+})
+
+test('a clear held in memory keeps its marker until the drain records it, and is no gap', async ($, on) => {
+  const classic = classicOf($)
+  if (!classic) return
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  const options = {
+    store, archive,
+    storeSetFailsFor: 'prompt-trail:lifecycle:' as string | undefined,
+  }
+  installSupportedTarget(on, options)
+  on('classic.SessionEnd', () => ({}))
+  await $.session.start(session)
+
+  await classic.SessionEnd({ reason: 'clear' })
+  expect(inflightKeys(store)).toHaveLength(1)
+
+  options.storeSetFailsFor = undefined
+  await composerPrompt($)
+
+  expect(kinds(archive)).toContain('clear')
+  expect(kinds(archive)).not.toContain('integrity-gap')
+  expect(inflightKeys(store)).toEqual([])
+})
