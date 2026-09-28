@@ -15,4 +15,5 @@
 - [ ] secure delete、checkpoint/truncate、空间回收和文件删除完成后，byte marker 扫描确认所有项目 prompt 标记消失。
 - [ ] 逻辑删除成功但任何敏感残留清理失败时，准确报告部分物理失败并保持 Archive unavailable，直到清理成功或使用者明确禁用。
 - [ ] 确认流程重申 Claude Code transcript/history、快照、备份和 SSD 介质边界。
+- [ ] 把 `clear-all` 作为强确认清除加进 `archive-integrity` 对话框，并覆盖 Issue 28 的隔离目录 `archives/quarantine/<projectId>/`。（Issue 28 转交。）
 - [ ] helper generation-race tests、双 Run PTY 与故障注入覆盖取消、成功、陈旧 writer、Quarantine、残留和清除后继续采集。

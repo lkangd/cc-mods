@@ -57,7 +57,7 @@ A non-prompt timeline marker recording that one Run's collection began, ended, o
 _Avoid_: Clear boundary, inferred history
 
 **Archive generation**:
-The incarnation of a Project Timeline created by the latest clear-all operation. A clear-all atomically retires the previous generation so concurrent Runs cannot restore deleted records.
+The incarnation of a Project Timeline created by the latest clear-all or quarantine. A clear-all atomically retires the previous generation so concurrent Runs cannot restore deleted records; a quarantine retires it into a Quarantined archive and starts an empty one.
 _Avoid_: Run, conversation segment
 
 **Pending capture**:
