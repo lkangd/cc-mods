@@ -153,8 +153,11 @@ export type TargetOptions = {
      resolved one is dropped from the front, the way the archive would. */
   pendingList?: Record<string, unknown>[]
   /* Runs a live process other than this one is attached to: `capture-list`
-     leaves their pendings out, unless the caller names that Run as its own. */
+     leaves their pendings out, unless the caller names that Run as its own,
+     and `archive-status` lists them. */
   liveRuns?: string[]
+  /* `archive-status` fails with this category. */
+  statusFails?: string
   /* Another Run settled every listed pending first: a confirmation finds it
      gone and an abort finds it confirmed, as the helper answers each. */
   settledElsewhere?: boolean
@@ -961,6 +964,7 @@ export function installSupportedTarget(
       }
     }
     if (argv[0] === helperPath && argv[1] === 'archive-status') {
+      if (options.statusFails) return failure(options.statusFails)
       return {
         value: {
           exitCode: 0,
@@ -971,6 +975,8 @@ export function installSupportedTarget(
               ?? options.quarantineFails === 'quarantine-failed',
             clearUnderway: options.clearUnderway?.value === true,
             clearRunUnderway: options.clearRunUnderway?.value === true,
+            integrityGaps: archive.filter(row => row.kind === 'integrity-gap').length,
+            liveRuns: options.liveRuns ?? [],
             quarantined,
           }),
           stderr: '',

@@ -52,6 +52,9 @@ function clearWrite(overrides: Partial<LifecycleWrite> = {}): LifecycleWrite {
     segmentId: endedSessionId,
     branchId: clearBranchId,
     occurredAt: 1_794_000_000_000,
+    /* Owed while there was no archive yet: replayed into the one that
+       stands. */
+    generation: null,
     ...overrides,
   }
 }
@@ -78,7 +81,9 @@ test('a clear end writes one boundary against the segment it closes', () => {
   )
 
   expect(decision.note).toBe('clear-boundary')
-  expect(decision.write).toEqual(clearWrite({ occurredAt: 1_795_000_000_000 }))
+  /* Its generation is stamped as it is first saved, not by the machine. */
+  const { generation: _generation, ...expected } = clearWrite({ occurredAt: 1_795_000_000_000 })
+  expect(decision.write).toEqual(expected)
   expect(decision.state.clear).toEqual({
     eventId: clearEventId,
     endedSessionId,
@@ -290,7 +295,7 @@ test('a queued Clear Boundary is written before the next Prompt Entry', async ($
     'clear',
     clearEventId,
     '1794000000000',
-    /* Queued before entries named their generation: replayed unchecked. */
+    /* Owed while there was no archive: replayed unchecked. */
     '-',
     expect.any(String),
     '1',
