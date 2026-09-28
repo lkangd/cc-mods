@@ -336,6 +336,8 @@ const PLUGIN_FAILURES = new Set([
   'category-unrecorded',
   'database-root-unproven',
   'helper-call-failed',
+  'inflight-unreadable',
+  'inflight-unrecorded',
   'lifecycle-write',
   'preflight-failed',
   'project-root-unproven',
@@ -469,7 +471,16 @@ let lifecycleFailure: string | undefined
    is taken once and kept, so completing it later replays the same boundary
    rather than a drifted one. It blocks this Run's next composer submission,
    and every drain tries to finish it. */
-let deferredClear: { sessionId: string; occurredAt: number; generation: string | null } | undefined
+let deferredClear: {
+  sessionId: string
+  occurredAt: number
+  generation: string | null
+  /* The in-flight marker that says it is held: it goes once it is queued. */
+  marker?: string
+} | undefined
+/* The calls of this module instance still running: an in-flight marker of any
+   other call is one whose hook stopped without clearing it. */
+const liveCalls = new Set<string>()
 /* What the project's other Runs still owe, as the last enumeration found it.
    Kept for the report only; the drain always re-enumerates. */
 /* The Run and classic session whose Active Branch this module instance has
@@ -1698,6 +1709,9 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
      rather than here. Left unset, status reports it as unknown rather than as
      an empty queue. */
   lifecycle = undefined
+  /* A `/clear` held for the project left behind is not recorded now: its
+     marker stays, no longer held, to say so. */
+  if (deferredClear?.marker) liveCalls.delete(markerCall(deferredClear.marker))
   deferredClear = undefined
   /* The band shows one Project Timeline: another project's rows, read back or
      recorded here, are not this one's to draw. */
@@ -3646,6 +3660,24 @@ async function applyLifecycle(
   $: EngineInterface,
   input: LifecycleEvent,
 ): Promise<void> {
+  /* A `/clear` leaves a marker while it is being recorded; it goes once the
+     boundary is owed on record, or stays held with a clear kept in memory.
+     A handler that throws leaves it for the next submission to find. */
+  const held: { key?: string } = {}
+  try {
+    await applyLifecycleEvent($, input, held)
+  } catch (error) {
+    if (held.key) liveCalls.delete(markerCall(held.key))
+    throw error
+  }
+  if (held.key && deferredClear?.marker !== held.key) await releaseMarker($, held.key)
+}
+
+async function applyLifecycleEvent(
+  $: EngineInterface,
+  input: LifecycleEvent,
+  held: { key?: string },
+): Promise<void> {
   if (!runtimeTarget) return
   const isClearEnd = input.event === 'session-end' && input.reason === 'clear'
   const isResumeEnd = input.event === 'session-end' && input.reason === 'resume'
@@ -3673,7 +3705,12 @@ async function applyLifecycle(
     } catch {
       // Left unknown.
     }
-    deferredClear = { sessionId: input.sessionId, occurredAt, generation }
+    deferredClear = {
+      sessionId: input.sessionId,
+      occurredAt,
+      generation,
+      ...(held.key ? { marker: held.key } : {}),
+    }
   }
 
   let currentProject: ProjectState
@@ -3706,6 +3743,18 @@ async function applyLifecycle(
       return
     }
     if (mode.mode === 'disabled') return
+  }
+
+  if (isClearEnd) {
+    const call = crypto.randomUUID()
+    try {
+      liveCalls.add(call)
+      held.key = await writeMarker($, currentProject, call, 'clear-observed', input.sessionId)
+    } catch {
+      /* Nothing blocks a `/clear`: recorded without a marker, it is only
+         lost unseen if the process goes before it is owed. */
+      liveCalls.delete(call)
+    }
   }
 
   /* A `/clear` is a write of this Run, so this process's attachment is opened
@@ -3781,7 +3830,14 @@ async function applyLifecycle(
       await defer(currentProject)
       return
     }
-    if (isClearEnd) deferredClear = undefined
+    if (isClearEnd) {
+      /* The clear held earlier is this one, now owed on record; another one
+         held is lost, and its marker is left, no longer held, to say so. */
+      const earlier = deferredClear
+      deferredClear = undefined
+      if (earlier?.marker && earlier.sessionId === input.sessionId) await releaseMarker($, earlier.marker)
+      else if (earlier?.marker) liveCalls.delete(markerCall(earlier.marker))
+    }
     /* A Pending Capture from before the `/clear` or the exit has not taken its
        sequence yet. Appending now would put the boundary ahead of the prompt it
        follows, so the boundary waits in the queue: the drain runs after
@@ -3839,6 +3895,144 @@ async function writeBoundary(
       ? error.message
       : 'boundary-append'
     throw error
+  }
+}
+
+/* In-flight markers. A composer submission of a collecting Run, and a `/clear`
+   being recorded, each leave one in `$.store` while they run — identity only,
+   never text — and clear it when they finish. The host lets a prompt through
+   when a hook fails or overruns, and a process can go at any point, so one
+   that is still there and belongs to no running call is how that is found. */
+type InflightStage = 'before-pending' | 'pending' | 'clear-observed'
+
+type InflightMarker = {
+  version: 1
+  host: string
+  stage: InflightStage
+  segmentId: string
+  branchId: string
+  at: number
+}
+
+function inflightPrefix(projectId: string): string {
+  return `prompt-trail:inflight:${projectId}:`
+}
+
+function inflightKey(projectId: string, runId: string, call: string): string {
+  return `${inflightPrefix(projectId)}${runId}:${call}`
+}
+
+function storedMarker(value: unknown): InflightMarker | undefined {
+  if (
+    !isRecord(value) ||
+    value.version !== 1 ||
+    typeof value.host !== 'string' ||
+    (value.stage !== 'before-pending' && value.stage !== 'pending' && value.stage !== 'clear-observed') ||
+    !isSafeId(value.segmentId) ||
+    !isSafeId(value.branchId) ||
+    !Number.isSafeInteger(value.at)
+  ) return undefined
+  return {
+    version: 1,
+    host: value.host,
+    stage: value.stage,
+    segmentId: value.segmentId,
+    branchId: value.branchId,
+    at: value.at as number,
+  }
+}
+
+async function writeMarker(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  call: string,
+  stage: InflightStage,
+  segmentId: string,
+): Promise<string> {
+  if (!startup.runId || !startup.hostGeneration) throw new Error('capture-identity')
+  const key = inflightKey(currentProject.id, startup.runId, call)
+  const value: InflightMarker = {
+    version: 1,
+    host: startup.hostGeneration,
+    stage,
+    segmentId,
+    branchId: (await branchState($, currentProject, segmentId)).value.branchId,
+    at: await $.clock.now(),
+  }
+  await $.store.set(key, value)
+  return key
+}
+
+/* The call a marker key names, which is its last field. */
+function markerCall(key: string): string {
+  return key.slice(key.lastIndexOf(':') + 1)
+}
+
+async function removeMarker($: EngineInterface, key: string | undefined): Promise<void> {
+  if (!key) return
+  try {
+    await $.store.delete(key)
+  } catch {
+    // Found again as stale; the gap it owes is derived from it and lands once.
+  }
+}
+
+/* A marker this module held and no longer needs. */
+async function releaseMarker($: EngineInterface, key: string | undefined): Promise<void> {
+  if (!key) return
+  await removeMarker($, key)
+  liveCalls.delete(markerCall(key))
+}
+
+/* What the markers no running call holds say about the project's Runs. A
+   stage before any pending was staged is a prompt the host let through with
+   no Prompt Entry, and a `/clear` still being recorded is one that went
+   unrecorded: both are gaps of the Run that left them. A pending one was
+   staged, and is settled by reconciliation. Another Run's marker is only
+   judged once no live process holds that Run. */
+async function settleInflight($: EngineInterface, currentProject: ProjectState): Promise<void> {
+  const prefix = inflightPrefix(currentProject.id)
+  let live: string[] | null | undefined
+  for (const key of await $.store.keys()) {
+    if (!key.startsWith(prefix)) continue
+    const [runOf, call] = key.slice(prefix.length).split(':')
+    if (!runOf || !call || liveCalls.has(call)) continue
+    const own = runOf === startup.runId
+    if (!own) {
+      if (live === undefined) {
+        try {
+          live = (await readArchiveStatus($, currentProject)).liveRuns
+        } catch {
+          live = null
+        }
+      }
+      if (live === null || live.includes(runOf)) continue
+    }
+    const found = storedMarker(await $.store.get(key))
+    if (found?.stage === 'pending') {
+      pendingDiscovered = false
+    } else {
+      /* One that cannot be read says a call stopped, and not where. */
+      const reason: GapReason = found?.stage === 'clear-observed' ? 'clear-unrecorded' : 'fail-open'
+      const fields = {
+        eventId: await sha256(`prompt-trail:integrity-gap:inflight:1:${key}`),
+        runId: runOf,
+        segmentId: found?.segmentId ?? call,
+        branchId: found?.branchId ?? call,
+        occurredAt: found?.at ?? await $.clock.now(),
+        generation: null,
+      }
+      if (own) {
+        const state = await loadLifecycle($, currentProject)
+        await saveLifecycle($, currentProject, oweGap(state, [reason], fields))
+        announceGap($, [reason])
+      } else {
+        const foreignKey = lifecycleKey(currentProject.id, runOf)
+        const state = storedLifecycle(await $.store.get(foreignKey)) ?? emptyLifecycle()
+        await $.store.set(foreignKey, oweGap(state, [reason], fields))
+      }
+    }
+    await $.store.delete(key)
   }
 }
 
@@ -3992,6 +4186,7 @@ async function drainLifecycle(
     } catch {
       return 'blocked'
     }
+    await releaseMarker($, owed.marker)
   }
 
   /* Another Run's debts first: they are facts of a process that has already
@@ -4563,6 +4758,7 @@ async function forgetClearedHistory($: EngineInterface, currentProject: ProjectS
   archiveStatus = undefined
   /* A `/clear` this Run saw and never recorded belongs to the cleared
      history too. */
+  await releaseMarker($, deferredClear?.marker)
   deferredClear = undefined
   if (runMode) runMode = { ...runMode, value: { version: 1, mode: runMode.value.mode } }
   let forgotten = true
@@ -4767,6 +4963,8 @@ async function submitCollected(
   e: PromptSubmitInput,
   next: (e: PromptSubmitInput) => Promise<PromptSubmitResult>,
   retrying: boolean,
+  call: string,
+  markers: Map<string, string>,
 ): Promise<SubmitOutcome> {
   if (!runtimeTarget) return { done: await next(e) }
   let currentProject: ProjectState
@@ -4842,6 +5040,22 @@ async function submitCollected(
   if (decision === 'declined') return { done: await next(e) }
   if (decision !== 'enabled') {
     return { done: { drop: '请选择“启用”或“继续但不启用”后再提交。' } }
+  }
+
+  /* What an earlier call left unfinished is judged before this one leaves
+     its own marker, and before any pending is listed: a call that died after
+     staging makes this Run list its pendings again. */
+  try {
+    await settleInflight($, currentProject)
+  } catch {
+    return holdSubmission($, currentProject, 'inflight-unreadable', '无法确认上一次提交是否完整')
+  }
+  if (!markers.has(call)) {
+    try {
+      markers.set(call, await writeMarker($, currentProject, call, 'before-pending', startup.sessionId ?? call))
+    } catch {
+      return holdSubmission($, currentProject, 'inflight-unrecorded', '无法记录在途的提交')
+    }
   }
 
   /* Anything unresolved is settled before another capture is staged, so a
@@ -4941,6 +5155,18 @@ async function submitCollected(
     pendingDiscovered = false
     return holdSubmission($, currentProject, failureCategory(error, 'capture-begin'), '无法预写 Pending Capture')
   }
+  /* Staged: from here a hook that stops leaves a pending to reconcile rather
+     than a prompt nothing records. Unrecorded, the marker still says an
+     earlier stage, which over-reports a gap and never hides one. */
+  const markerKey = markers.get(call)
+  if (markerKey) {
+    try {
+      const held = storedMarker(await $.store.get(markerKey))
+      if (held) await $.store.set(markerKey, { ...held, stage: 'pending' })
+    } catch {
+      // Left at the earlier stage.
+    }
+  }
   if (branch.value.generation !== staged.generation) {
     branch = { key: branch.key, value: { ...branch.value, generation: staged.generation } }
     try {
@@ -5039,6 +5265,47 @@ async function submitCollected(
     )
   }
   return { done: result }
+}
+
+/* One composer submission of a collecting Run, held and asked about for as
+   long as the archive cannot prove it will be kept. */
+async function collectSubmission(
+  $: EngineInterface,
+  e: PromptSubmitInput,
+  next: (e: PromptSubmitInput) => Promise<PromptSubmitResult>,
+  call: string,
+  markers: Map<string, string>,
+): Promise<PromptSubmitResult> {
+  /* A collecting Run that cannot prove this submission will be kept holds
+     it, and the person chooses: retry, or disable the Run and let it
+     through. Every retry is theirs; nothing retries in the background. */
+  for (let retrying = false; ; retrying = true) {
+    const outcome = await submitCollected($, e, next, retrying, call, markers)
+    if ('done' in outcome) return outcome.done
+    const failure = outcome.blocked
+    let choice = await askUnavailable($, failure)
+    while (choice === 'recheck' || choice === 'quarantine' || choice === 'clear' || choice === 'continue-clear') {
+      const settled = choice === 'clear' || choice === 'continue-clear'
+        ? await answerClear($, choice, failure)
+        : await answerDamage($, choice, failure)
+      if (settled) break
+      choice = await askUnavailable($, failure)
+    }
+    if (choice !== 'disable' && choice !== undefined) continue
+    if (choice === 'disable') {
+      const note = await disableCollection($)
+      if (runMode?.value.mode === 'disabled') {
+        $.ui.toast(note)
+        return next(e)
+      }
+      const restored = await restoreDraft($, e.text)
+      return { drop: `${note}${draftNote(restored)}；本次提交未进入会话。` }
+    }
+    const restored = await restoreDraft($, e.text)
+    return {
+      drop: `Prompt Trail ${failure.reason}（${failure.category}），${draftNote(restored)}；为避免漏记，本次提交已阻止。`,
+    }
+  }
 }
 
 /* The draft belongs to the person, not to the submission Prompt Trail
@@ -5398,6 +5665,13 @@ async function enableCollection($: EngineInterface): Promise<string> {
      without ever settling the last one, so enable reconciles first — ahead of
      the archive block, which an earlier uncertain failure may have raised over
      the very pending that needs settling — and refuses while anything is owed. */
+  /* What an earlier call left unfinished is judged first, so a gap it owes
+     lands ahead of the resume and a pending it staged is listed below. */
+  try {
+    await settleInflight($, currentProject)
+  } catch {
+    return 'Prompt Trail 无法确认上一次提交是否完整（inflight-unreadable），未启用采集。'
+  }
   try {
     if (await settlePending($, currentProject) === 'blocked') {
       return '仍有未决的 Pending Capture 待对账，未启用采集；请先完成对账。'
@@ -5911,6 +6185,7 @@ async function rootAfterRunClear(
 async function forgetClearedRun($: EngineInterface, currentProject: ProjectState): Promise<boolean> {
   const own = startup.runId
   if (!own) return false
+  await releaseMarker($, deferredClear?.marker)
   deferredClear = undefined
   transcriptMark = undefined
   if (runMode) runMode = { ...runMode, value: { version: 1, mode: runMode.value.mode } }
@@ -6348,37 +6623,24 @@ export const register: Register = on => {
     if (!runtimeTarget) return next(e)
     await awaitStartup($)
 
-    /* A collecting Run that cannot prove this submission will be kept holds
-       it, and the person chooses: retry, or disable the Run and let it
-       through. Every retry is theirs; nothing retries in the background. */
-    for (let retrying = false; ; retrying = true) {
-      const outcome = await submitCollected($, e, next, retrying)
-      if ('done' in outcome) return outcome.done
-      const failure = outcome.blocked
-      let choice = await askUnavailable($, failure)
-      while (choice === 'recheck' || choice === 'quarantine' || choice === 'clear' || choice === 'continue-clear') {
-        const settled = choice === 'clear' || choice === 'continue-clear'
-          ? await answerClear($, choice, failure)
-          : await answerDamage($, choice, failure)
-        if (settled) break
-        choice = await askUnavailable($, failure)
-      }
-      if (choice !== 'disable' && choice !== undefined) continue
-      if (choice === 'disable') {
-        const note = await disableCollection($)
-        if (runMode?.value.mode === 'disabled') {
-          $.ui.toast(note)
-          return next(e)
-        }
-        const restored = await restoreDraft($, e.text)
-        return { drop: `${note}${draftNote(restored)}；本次提交未进入会话。` }
-      }
-      const restored = await restoreDraft($, e.text)
-      return {
-        drop: `Prompt Trail ${failure.reason}（${failure.category}），${draftNote(restored)}；为避免漏记，本次提交已阻止。`,
-      }
+    /* This call's in-flight marker is cleared only when it finishes. One that
+       throws leaves it, and stops being live, so the next submission finds
+       what it left. */
+    const call = crypto.randomUUID()
+    const markers = new Map<string, string>()
+    liveCalls.add(call)
+    let result: PromptSubmitResult
+    try {
+      result = await collectSubmission($, e, next, call, markers)
+    } catch (error) {
+      liveCalls.delete(call)
+      throw error
     }
+    await removeMarker($, markers.get(call))
+    liveCalls.delete(call)
+    return result
   })
+
 
   /* Closing the Pane without choosing is cancelling: the draft goes back to
      the prompt box once the Pane is gone, and the next submission is judged
