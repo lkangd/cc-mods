@@ -99,8 +99,8 @@
 - **真人 PTY（cmux，2.1.283）**：
   - 首轮：R1、R2 → 改坏档案头 → R3 → 三项对话框 → 选「重新检查」→ 如实报「已无法作为数据库读取」→ 选「隔离」→ R3 进入会话；新 generation 为 `archive-quarantined`、`run-attached`、R3（无父节点）；隔离目录 0700，主库与 `-wal` 的 SHA-1 与改坏后一致；band 显示隔离边界；`status` 列出隔离目录；其他 12 个项目的档案 SHA-1 不变。发现 `.fresh-wal`/`.fresh-shm` 残留，修复后复验。
   - 次轮（修复后的 helper，`--resume` 同一会话）：R4 挂在 R3 之后 → 再次改坏 → R5 → 隔离；第二个隔离目录的证据不变，根目录没有残留，新 generation 从头开始。
+  - 隔离成功的 toast 在 `read-screen` 里读不到，由使用者目视确认。
 - **未覆盖**：
-  - toast 在 `read-screen` 里读不到，没有目视确认；
   - 在 28 之前写下、尚未记录 generation 的分支状态，如果在本 Run 下一次预写前就被别的 Run 隔离，第一次预写会以 `-` 通过，旧父节点要到确认时才报 `capture-parent-unknown`，走现有的对账路径。这只影响升级后的第一条 prompt。
 - **转交**：「存在隔离档案时 `clear-run` 拒绝」归 Issue 29；「强确认清除」归 Issue 30，30 的票据已补一条「把 `clear-all` 加进 `archive-integrity` 对话框，并覆盖隔离目录」。
 
