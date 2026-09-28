@@ -50,7 +50,7 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   Run = 随机 Run UUID + 宿主进程世代；reload 复用 Run，退出/重启/`startup`/`fork` 开新 Run，
   进程内 `/resume` 只在同一进程世代有前驱 locator 时继承 Run——**但 `/resume` 后的新 session
   仍拿到新根分支，分支重建归 Issue 18**。`archiveGeneration` 仍是占位，每个新 Run 随机生成，
-  档案侧没有 generation（归 Issue 30）；Issue 28 起档案侧 generation 取活动文件身份，locator 里这个字段的语义仍归 Issue 30。Run 边界是惰性的，event id 由 `sha256(kind:project:run)`
+  档案侧没有 generation（归 Issue 30）；Issue 28 起档案侧 generation 取活动文件身份；Issue 30 定下 locator 里这个字段只是不校验的 Run 令牌。Run 边界是惰性的，event id 由 `sha256(kind:project:run)`
   派生；恢复队列的 16 条上限只约束 `clear`。`timeline-read` 是唯一可在 stdout 返回原文的子命令，
   固定只回最新 128 条、带 `truncated`；游标、窗口和 `truncated` 的 UI 归 Issue 21（backlog
   `20260922-bounded-persisted-timeline-view.md`）。只经 classic 事件到达的逻辑，`2.1.273` 的
@@ -130,6 +130,12 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   拒绝一切打开，直到下一次隔离续做完成；多 Run 同时隔离只产生一个副本。`capture-begin` 带预期 generation，与
   `branch-match`、`timeline-read` 一起让别的 Run 在新 generation 里补写 `run-attached` 并从新根分支重来。`status` 列出隔离目录。
   `clear-run` 的拒绝与强确认清除转交 29、30。
+- [原子清除 Project Timeline](issues/30-clear-project-timeline.md)：
+  `/prompt-history clear-all` 展示范围（条数、文件、隔离档案、其他运行中的 Run、不能删除的副本），输入 `delete all prompts`
+  才清除；损坏对话框也提供它。helper 在项目独占锁下写 `.clearing` 意向作为切点，删除本项目会话索引里不再继续的 Run、
+  除 `.lock` 外的全部档案文件和隔离目录，原路径留空到下一次写入。删不掉就保持 `clear-unfinished`，下一次续做，不再要求短语。
+  `boundary-append` 带预期 generation，lifecycle 队列记下事实发生时的 generation，旧 generation 的写入被丢弃。
+  locator 与会话索引里的 `archiveGeneration` 只是历史遗留的 Run 令牌，不是 Archive generation。
 
 ## Not yet specified
 

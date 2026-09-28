@@ -4,19 +4,57 @@
 
 **Blocked by:** 24「隔离项目并支持并发 Run」、28「隔离损坏的 Archive generation」
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] 当前 Project Timeline 没有任何活动、备份或隔离档案时，`/prompt-history clear-all` 返回 no-op 且不询问。
-- [ ] 有数据时显示项目范围、活动/备份/隔离文件和记录数，并要求输入固定确认短语；提示不展示 prompt。
-- [ ] `clear-all` 建立线性化切点和新的 Archive generation；切点前记录全部删除，切点后已接受的新提交只进入新 generation。
-- [ ] 旧 generation 的并发 writer、重试或陈旧 locator 无法向新 generation 写入或复活记录。
-- [ ] 删除范围覆盖活动数据库、WAL/SHM、迁移备份、Quarantined Archives 及全部 prompt 元数据，以及会话索引（`<plugin data>/sessions/`）里指向本项目档案中出现过的 Run 的记录；之后 resume 这些会话会新建 Run。（Issue 32 新增。）
-- [ ] locator 生命周期保持独立；Collection consent 与当前 Run collection mode 保留，并在空的新 generation 中继续工作。
-- [ ] secure delete、checkpoint/truncate、空间回收和文件删除完成后，byte marker 扫描确认所有项目 prompt 标记消失。
-- [ ] 逻辑删除成功但任何敏感残留清理失败时，准确报告部分物理失败并保持 Archive unavailable，直到清理成功或使用者明确禁用。
-- [ ] 确认流程重申 Claude Code transcript/history、快照、备份和 SSD 介质边界。
-- [ ] 把 `clear-all` 作为强确认清除加进 `archive-integrity` 对话框，并覆盖 Issue 28 的隔离目录 `archives/quarantine/<projectId>/`。（Issue 28 转交。）
-- [ ] helper generation-race tests、双 Run PTY 与故障注入覆盖取消、成功、陈旧 writer、Quarantine、残留和清除后继续采集。
+- [x] 当前 Project Timeline 没有任何活动、备份或隔离档案时，`/prompt-history clear-all` 返回 no-op 且不询问。
+- [x] 有数据时显示项目范围、活动/备份/隔离文件和记录数，并要求输入固定确认短语；提示不展示 prompt。
+- [x] `clear-all` 建立线性化切点和新的 Archive generation；切点前记录全部删除，切点后已接受的新提交只进入新 generation。
+- [x] 旧 generation 的并发 writer、重试或陈旧 locator 无法向新 generation 写入或复活记录。
+- [x] 删除范围覆盖活动数据库、WAL/SHM、迁移备份、Quarantined Archives 及全部 prompt 元数据，以及会话索引（`<plugin data>/sessions/`）里指向本项目档案中出现过的 Run 的记录；之后 resume 这些会话会新建 Run。（Issue 32 新增。）
+- [x] locator 生命周期保持独立；Collection consent 与当前 Run collection mode 保留，并在空的新 generation 中继续工作。
+- [x] secure delete、checkpoint/truncate、空间回收和文件删除完成后，byte marker 扫描确认所有项目 prompt 标记消失。
+- [x] 逻辑删除成功但任何敏感残留清理失败时，准确报告部分物理失败并保持 Archive unavailable，直到清理成功或使用者明确禁用。
+- [x] 确认流程重申 Claude Code transcript/history、快照、备份和 SSD 介质边界。
+- [x] 把 `clear-all` 作为强确认清除加进 `archive-integrity` 对话框，并覆盖 Issue 28 的隔离目录 `archives/quarantine/<projectId>/`。（Issue 28 转交。）
+- [x] helper generation-race tests、双 Run PTY 与故障注入覆盖取消、成功、陈旧 writer、Quarantine、残留和清除后继续采集。
+
+## Answer
+
+`/prompt-history clear-all` 在使用者输入固定短语后永久删除本项目的全部 Prompt Trail 档案，隔离档案也在内；旧 generation 的 writer 无法再写进新档案。实现在 `739ea98`（helper 与 lifecycle 的 generation）、`8657325`（插件流程）；`4d00379` 修复了 PTY 发现的三处问题。对齐见下方「实现层面对齐」。
+
+- **helper**：
+  - 新命令 `clear-inventory`：持共享锁、只读，列出 Prompt Entry 与 Pending Capture 条数（损坏时为 `null`）、本项目其他正在运行的 Run 数（`live_runs_elsewhere()` 与档案里的 Run 取交集；档案读不出时为 `null`）、本项目在档案根下的每个文件及字节数，以及隔离档案。清除未完成时只按文件名和大小列出，不打开档案。
+  - 新命令 `clear-all <root> <project> <本 Run> <sha> <protocol> --stdin`（stdin 为插件 store 里本项目的 Run，一行一个）：
+    - 持项目独占锁，先只读读出条数和 Run，再原子写 `<projectId>.clearing`，这一步即切点；
+    - 删除会话索引里属于这些 Run 的记录（本 Run 与仍在运行的 Run 除外）；
+    - 删除 `<projectId>.` 开头的一切文件（`.lock` 除外）和 `quarantine/<projectId>/`，只 `unlink` 加目录 `fsync`，然后删除意向。
+  - 任何文件删不掉时，意向保留，报 `clear-unfinished`（共享故障），此后一切打开都报这个类别，下一次 `clear-all` 接着删。没有任何文件时 no-op，也不建目录。
+  - `boundary-append` 新增预期 generation 参数，语义与 `capture-begin` 相同。档案不存在时，`capture-confirm` 报 `capture-not-found`，`capture-abort` 答 `{"aborted":false}`，都不建库。`quarantine` 遇到未完成的清除时拒绝。`archive-status` 新增 `clearUnderway`。
+- **插件**：
+  - 确认对话框写明：项目路径、条数、文件、隔离档案、其他运行中的 Run、「正在提交中的 prompt 也会被清除」、consent 与采集模式不变，以及 transcript/快照/备份/SSD 边界。选项为「取消 / 返回」，确认短语 `delete all prompts` 在宿主的自由输入项里输入，去掉首尾空白后必须完全一致。
+  - 损坏对话框变为四项，多了「清除全部档案」；`clear-unfinished` 对话框为「继续清除 / 禁用当前 Run 后继续」并列出残留。续做不再要求短语。`status` 增加 `clear: unfinished · N residual`。
+  - 清除后删除 `reconcile:` 和共享故障记录，清空本项目各 Run 的 lifecycle 待写队列，去掉各 Run `run-mode:` 里最近的 Collection Boundary，重置时间线视图。保留 consent、采集模式和 branch；下一次预写报 `archive-generation`，走 `enterNewGeneration()`。
+  - lifecycle 写入在首次保存时记下当时的 generation（问 `archive-status`，问不到记为 `null`）。回放时带上它，遇到 `archive-generation` 就丢弃该项，不再阻塞。
+- **与对齐稿不同**：
+  - helper protocol 没有加一，理由同 Issue 28；
+  - Q7 改为清空所有 Run 的 lifecycle 队列，而不是删除已退出 Run 的整条记录，因为插件分不出哪个 Run 还活着；
+  - Q13 不必另调 `archive-status`：展开时本就重读最新批次，批次的 generation 不同时整窗重置；
+  - 档案被外部删除后，`capture-confirm` 的类别从 `database-unavailable` 改为 `capture-not-found`（与清除后的空路径分不开）；
+  - 另外清除会去掉 `run-mode:` 里的 Collection Boundary，这一条是 PTY 发现后补的。
+- **测试**：
+  - helper 新增 12 项黑盒测试：全量删除加 byte marker 扫描（其他项目不变）、no-op、残留阻塞与续做、旧 generation 的 begin/boundary/confirm/abort、会话索引（本 Run、运行中的 Run、无关 Run 保留）、inventory 只读与计数、等待在途写入、三种崩溃点状态、未开始的 `.partial`、非法 Run 输入、其他运行中 Run 的计数、未完成清除的 inventory 不读档案；
+  - plugin test 新增 12 项：lifecycle generation 的回放、丢弃与记录，no-op，短语与取消，清除后继续采集，损坏对话框里的清除，残留报告与阻塞，两种续做，另一个 Run 清除后展开，清除后的 `status`；
+  - 变异检查：helper 25 条中 24 条被抓到，存活的一条是等价变异（去掉「档案不存在」短路后，比较的是未初始化缓冲区，结果仍报 `archive-generation`）；插件 23 条全部被抓到；
+  - 门禁：两个宿主版本各 374 项 plugin test，静态 9 项，bridge 32 项，helper 128 项，真实 git 5 项。
+- **真人 PTY（cmux，2.1.283，两个 Run 同一测试项目）**：
+  - A、B 各提交一条；A 执行 `clear-all`：短语输错时如实拒绝；输对后只剩 `.lock`，两个运行中 Run 的会话索引保留，插件数据里找不到任何被清除的标记；
+  - B 下一次提交进入新 generation（`run-attached`、prompt），没有复活任何旧记录；A 的 band 只显示新记录；
+  - 故障注入（`chflags uchg` 锁住主库）：A 得到残留报告，B 的提交被「继续清除 / 禁用」对话框挡住；解锁后在 B 选「继续清除」，清除完成，提交进入新 generation；
+  - PTY 发现并修复了三处：未完成清除的残留报告曾重新打开被切断的档案，带回 `-wal`/`-shm`；确认文字写的是宿主并不显示的「Other」；清除后 `status` 仍列出旧历史的 Collection Boundary。修复后复验：残留只剩被锁的文件，`status` 为 `clear: unfinished · 1 residual`，命令续做只问「继续清除 / 取消」，完成后只剩 `.lock`。
+  - 从对话框续做成功后的 toast 在 `read-screen` 里读不到，未经目视确认。
+- **未覆盖**：
+  - 刚启动的会话立刻执行 `/prompt-history disable` 时，曾答「无法读取当前 Run collection mode」，稍后重试正常。这看起来是启动期的时序问题，与本票无关，未深入。
+  - 续做清除时，完成报告里的条数来自切点后对残留档案的只读计数（helper 内部读取，不经任何 Run）。
 
 ## Comments
 

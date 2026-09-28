@@ -212,7 +212,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
     - 健康恢复时写 Integrity recovery boundary 并允许当前状态回到 healthy；既有 Gap 永久可见且跨 Gap 历史不得称为完整。
     - 损坏时不自动修复、覆盖或重建。选择为：重试完整性检查、原样保留为 Quarantined Archive 后开启新 generation，或强确认 `clear-all`。
       当前实现状态：[Issue 28](issues/28-quarantine-corrupt-archive.md) 已落实只读重新检查与隔离后新 generation，
-      隔离档案位于 `archives/quarantine/<projectId>/`；强确认 `clear-all` 随 Issue 30 加入。
+      隔离档案位于 `archives/quarantine/<projectId>/`；[Issue 30](issues/30-clear-project-timeline.md) 加入了强确认 `clear-all`。
 
 14. **迁移、更新与制品信任**
     - 只执行 manifest 声明的已知单向 schema 迁移；高于 helper 支持版本的数据库拒绝打开。
