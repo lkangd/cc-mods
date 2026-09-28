@@ -95,7 +95,23 @@ export type TargetOptions = {
   lowSpace?: boolean
   /* The answers the Archive unavailable dialog receives, one per dialog in
      order; once they run out, a dialog is cancelled. */
-  unavailableAnswers?: ('重试' | '禁用当前 Run 后继续' | '重新检查完整性' | '隔离并开始新档案')[]
+  unavailableAnswers?: (
+    '重试' | '禁用当前 Run 后继续' | '重新检查完整性' | '隔离并开始新档案' | '清除全部档案' | '继续清除'
+  )[]
+  /* The answers the clear-all confirmation receives, one per dialog in order:
+     an option's label, or what the person typed; once they run out, a dialog
+     is cancelled. */
+  clearAnswers?: string[]
+  /* The text and options of every clear-all confirmation. */
+  clearAsked?: string[]
+  clearOffered?: string[][]
+  /* A clear begun and not finished: every command that opens the archive
+     is refused as `clear-unfinished` until a clear-all finishes it. */
+  clearUnderway?: { value: boolean }
+  /* `clear-all` cuts but cannot remove these files, and stops unfinished. */
+  clearLeaves?: { name: string; bytes: number }[]
+  /* Runs of the project a live process elsewhere is attached to. */
+  otherLiveRuns?: number | null
   /* The options each Archive unavailable dialog offered, in order. */
   unavailableOffered?: string[][]
   /* The Archive generation standing at the archive's path; a quarantine puts
@@ -364,6 +380,14 @@ export function installSupportedTarget(
     const choices = e.questions[0]?.options ?? []
     const labels = choices.map(choice => (typeof choice === 'string' ? choice : choice.label))
     const isReconcile = labels.includes('已进入')
+    if (labels.includes('取消') && !labels.includes('禁用当前 Run 后继续')) {
+      options.clearAsked?.push(question)
+      options.clearOffered?.push(labels)
+      const answer = options.clearAnswers?.shift()
+      return {
+        result: { questions: e.questions, answers: answer ? { [question]: answer } : {} },
+      }
+    }
     if (labels.includes('禁用当前 Run 后继续')) {
       options.unavailableAsked?.push(question)
       options.unavailableOffered?.push(labels)
@@ -504,6 +528,63 @@ export function installSupportedTarget(
             macosVersion: '15.8',
             sqliteVersionNumber: 3_049_001,
             sqliteReturning: true,
+          }),
+          stderr: '',
+        },
+      }
+    }
+    /* An unfinished clear refuses every command that opens the archive. */
+    if (argv[0] === helperPath && options.clearUnderway?.value
+        && !['preflight', 'archive-status', 'clear-inventory', 'clear-all'].includes(argv[1] ?? '')) {
+      return failure('clear-unfinished')
+    }
+    if (argv[0] === helperPath && argv[1] === 'clear-inventory') {
+      const underway = options.clearUnderway?.value === true
+      const held = archive.length > 0 || staged.size > 0
+      const files = underway
+        ? options.clearLeaves ?? []
+        : held ? [{ name: `${projectId}.sqlite3`, bytes: 8192 }] : []
+      return {
+        value: {
+          exitCode: 0,
+          stdout: JSON.stringify({
+            projectId,
+            present: underway || held || quarantined.length > 0,
+            clearUnderway: underway,
+            generation: held ? generation.value : null,
+            entries: archive.filter(row => row.kind === 'prompt').length,
+            pending: staged.size,
+            otherLiveRuns: options.otherLiveRuns === undefined ? 0 : options.otherLiveRuns,
+            files,
+            quarantined,
+          }),
+          stderr: '',
+        },
+      }
+    }
+    if (argv[0] === helperPath && argv[1] === 'clear-all') {
+      const entries = archive.filter(row => row.kind === 'prompt').length
+      const pending = staged.size
+      const moved = quarantined.length
+      archive.splice(0)
+      allocateSequence = sequenceAllocator(archive)
+      staged.clear()
+      quarantined.splice(0)
+      /* The path stands empty; the next write begins another generation,
+         and damage the old one had went with it. */
+      generation.value = `${generation.value}-cleared`
+      if (options.beginFails === 'archive-integrity') options.beginFails = undefined
+      if (options.clearLeaves?.length) {
+        if (options.clearUnderway) options.clearUnderway.value = true
+        return failure('clear-unfinished')
+      }
+      if (options.clearUnderway) options.clearUnderway.value = false
+      return {
+        value: {
+          exitCode: 0,
+          stdout: JSON.stringify({
+            projectId, cleared: true, entries, pending, quarantined: moved,
+            sessionsRemoved: 0, sessionsFailed: 0,
           }),
           stderr: '',
         },
@@ -763,6 +844,7 @@ export function installSupportedTarget(
             generation: generation.value,
             quarantineUnderway: options.quarantineUnderway?.value
               ?? options.quarantineFails === 'quarantine-failed',
+            clearUnderway: options.clearUnderway?.value === true,
             quarantined,
           }),
           stderr: '',

@@ -222,6 +222,8 @@ const SAFE_ERROR_CATEGORIES = new Set([
   'boundary-input',
   'capture-conflict',
   'capture-input',
+  'clear-input',
+  'clear-unfinished',
   'match-input',
   'archive-memory',
   'capture-not-found',
@@ -298,6 +300,7 @@ const SHARED_FAILURES = new Set([
   'migration-verify',
   'project-identity',
   'quarantine-failed',
+  'clear-unfinished',
   'schema-version',
 ])
 /* Damage to the archive, or a quarantine of it left unfinished: beside
@@ -306,6 +309,8 @@ const DAMAGE_FAILURES = new Set(['archive-integrity', 'quarantine-failed'])
 /* What the plugin itself names a failure it met, beside the helper's own
    categories. Nothing else a failure carries is ever shown. */
 const PLUGIN_FAILURES = new Set([
+  'clear-all',
+  'clear-inventory',
   'boundary-append',
   'boundary-response',
   'branch-match',
@@ -3763,6 +3768,9 @@ function recheckNote(recheck: Recheck): string {
 type ArchiveStatus = {
   generation: string | null
   quarantineUnderway: boolean
+  clearUnderway: boolean
+  /* What an unfinished clear has still to remove, when it could be listed. */
+  clearResidual?: number
   quarantined: { name: string; path: string; bytes: number }[]
 }
 
@@ -3914,6 +3922,7 @@ async function readArchiveStatus(
   return {
     generation: nullableGeneration(value.generation, 'archive-status'),
     quarantineUnderway: value.quarantineUnderway,
+    clearUnderway: value.clearUnderway === true,
     quarantined: value.quarantined.map((kept: unknown) => {
       if (
         !isRecord(kept) ||
@@ -3945,12 +3954,25 @@ async function holdSubmission(
 async function askUnavailable(
   $: EngineInterface,
   failure: Blocked,
-): Promise<'retry' | 'recheck' | 'quarantine' | 'disable' | undefined> {
+): Promise<'retry' | 'recheck' | 'quarantine' | 'clear' | 'continue-clear' | 'disable' | undefined> {
   const scope = failure.scope === 'archive' ? '本项目所有 Run' : '本 Run（其他 Run 不受影响）'
   const damaged = DAMAGE_FAILURES.has(failure.category)
+  const clearing = failure.category === 'clear-unfinished'
   const choices = damaged
-    ? ['重新检查完整性', '隔离并开始新档案', '禁用当前 Run 后继续']
-    : ['重试', '禁用当前 Run 后继续']
+    ? ['重新检查完整性', '隔离并开始新档案', '清除全部档案', '禁用当前 Run 后继续']
+    : clearing
+      ? ['继续清除', '禁用当前 Run 后继续']
+      : ['重试', '禁用当前 Run 后继续']
+  /* What an unfinished clear still has to remove, as far as it can be
+     listed; the dialog says so either way. */
+  let leftovers: string[] = []
+  if (clearing) {
+    try {
+      leftovers = clearLeftovers(await readClearInventory($, await prepareProject($)))
+    } catch {
+      leftovers = ['（无法列出残留）']
+    }
+  }
   let answer: string | undefined
   try {
     answer = await $.ui.ask(
@@ -3959,9 +3981,14 @@ async function askUnavailable(
         `范围：${scope}`,
         `类别：${failure.category}${failure.elsewhere ? '（由另一个 Run 报告）' : ''}`,
         ...(failure.recheck ? [recheckNote(failure.recheck)] : []),
+        ...(clearing
+          ? ['本项目的清除已切断旧记录，但以下文件还未删除：', ...leftovers.map(line => `- ${line}`)]
+          : []),
         damaged
-          ? '“重新检查完整性”只读检查档案，通过后提交；“隔离并开始新档案”把旧记录原样保留在隔离目录，新时间线从空开始，之后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。Prompt Trail 不会修复或覆盖损坏的档案。'
-          : '“重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。',
+          ? '“重新检查完整性”只读检查档案，通过后提交；“隔离并开始新档案”把旧记录原样保留在隔离目录，新时间线从空开始，之后提交；“清除全部档案”在输入确认短语后永久删除本项目的全部档案，之后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。Prompt Trail 不会修复或覆盖损坏的档案。'
+          : clearing
+            ? '“继续清除”删除剩下的文件，完成后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。'
+            : '“重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。',
       ].join('\n'),
       { header: '档案不可用', options: choices },
     )
@@ -3971,7 +3998,37 @@ async function askUnavailable(
   if (answer === '重试') return 'retry'
   if (answer === '重新检查完整性') return 'recheck'
   if (answer === '隔离并开始新档案') return 'quarantine'
+  if (answer === '清除全部档案') return 'clear'
+  if (answer === '继续清除') return 'continue-clear'
   return answer === '禁用当前 Run 后继续' ? 'disable' : undefined
+}
+
+/* A clear chosen while a submission is held: the confirmation first, unless
+   a clear already under way is only being finished. Answers whether the
+   submission may be tried again in the empty timeline. */
+async function answerClear(
+  $: EngineInterface,
+  choice: 'clear' | 'continue-clear',
+  failure: Blocked,
+): Promise<boolean> {
+  let currentProject: ProjectState
+  try {
+    currentProject = await prepareProject($)
+    if (choice === 'clear') {
+      const inventory = await readClearInventory($, currentProject)
+      if (inventory.present && await askClear($, currentProject, inventory) !== 'clear') return false
+    }
+  } catch {
+    return false
+  }
+  try {
+    await clearTimeline($, currentProject)
+    $.ui.toast('Prompt Trail 已清除本项目的全部档案，新时间线从这次提交开始。')
+    return true
+  } catch (error) {
+    Object.assign(failure, await markUnavailable($, currentProject, failureCategory(error, 'clear-all')))
+    return false
+  }
 }
 
 /* The person's answer to damage, before the submission is tried again.
@@ -4042,6 +4099,280 @@ async function answerDamage(
     const category = failureCategory(error, choice === 'recheck' ? 'integrity-check' : 'quarantine')
     Object.assign(failure, await markUnavailable($, currentProject, category))
     return false
+  }
+}
+
+/* Clearing the Project Timeline (Issue 30). The helper cuts under the
+   project's lock and removes every file the project archived; what a writer
+   of the cleared generation still owes is refused there. The person sees the
+   scope and types a fixed phrase before anything goes. */
+const CLEAR_PHRASE = 'delete all prompts'
+
+type ClearInventory = {
+  present: boolean
+  clearUnderway: boolean
+  entries: number | null
+  pending: number | null
+  otherLiveRuns: number | null
+  files: { name: string; bytes: number }[]
+  quarantined: { name: string; path: string; bytes: number }[]
+}
+
+function nullableCount(value: unknown): number | null {
+  if (value === null) return null
+  if (!Number.isSafeInteger(value) || (value as number) < 0) throw new Error('clear-inventory')
+  return value as number
+}
+
+async function readClearInventory(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<ClearInventory> {
+  if (!startup.helperPath || !startup.databaseRoot) throw new Error('capture-identity')
+  const result = await runArchive(
+    $,
+    [
+      startup.helperPath,
+      'clear-inventory',
+      startup.databaseRoot,
+      currentProject.id,
+      EXPECTED_HELPER_SHA256,
+      String(HELPER_PROTOCOL),
+    ],
+    10_000,
+  )
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'clear-inventory'))
+  const value: unknown = JSON.parse(result.stdout)
+  if (
+    !isRecord(value) ||
+    value.projectId !== currentProject.id ||
+    typeof value.present !== 'boolean' ||
+    typeof value.clearUnderway !== 'boolean' ||
+    !Array.isArray(value.files) ||
+    !Array.isArray(value.quarantined)
+  ) throw new Error('clear-inventory')
+  return {
+    present: value.present,
+    clearUnderway: value.clearUnderway,
+    entries: nullableCount(value.entries),
+    pending: nullableCount(value.pending),
+    otherLiveRuns: nullableCount(value.otherLiveRuns),
+    files: value.files.map((file: unknown) => {
+      if (!isRecord(file) || typeof file.name !== 'string' || !Number.isSafeInteger(file.bytes)) {
+        throw new Error('clear-inventory')
+      }
+      return { name: file.name, bytes: file.bytes as number }
+    }),
+    quarantined: value.quarantined.map((kept: unknown) => {
+      if (
+        !isRecord(kept) ||
+        !isSafeId(kept.name) ||
+        typeof kept.path !== 'string' ||
+        !Number.isSafeInteger(kept.bytes)
+      ) throw new Error('clear-inventory')
+      return { name: kept.name, path: kept.path, bytes: kept.bytes as number }
+    }),
+  }
+}
+
+/* Every file the clear still has to remove, by its full path. */
+function clearLeftovers(inventory: ClearInventory): string[] {
+  return [
+    ...inventory.files.map(file => `${startup.databaseRoot ?? ''}/${file.name}（${file.bytes} 字节）`),
+    ...inventory.quarantined.map(kept => `${kept.path}（隔离档案，${kept.bytes} 字节）`),
+  ]
+}
+
+const CLEAR_BOUNDARY = 'Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD 上的数据在物理上不可恢复。'
+
+/* The person's answer to a clear: the fixed phrase typed in full, a clear
+   already under way taken up, or anything else, which removes nothing. */
+async function askClear(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  inventory: ClearInventory,
+): Promise<'clear' | 'cancelled' | 'mistyped'> {
+  let answer: string | undefined
+  try {
+    if (inventory.clearUnderway) {
+      answer = await $.ui.ask(
+        [
+          '上一次清除尚未完成：切点已生效，旧记录不会再被读写，但以下文件还未删除：',
+          ...clearLeftovers(inventory).map(line => `- ${line}`),
+          '清除完成前，本项目的档案不可用。',
+        ].join('\n'),
+        { header: '继续清除', options: ['继续清除', '取消'] },
+      )
+      return answer === '继续清除' ? 'clear' : 'cancelled'
+    }
+    const counts = inventory.entries === null
+      ? '活动档案已损坏，无法读取条数'
+      : `活动档案：${inventory.entries} 条 Prompt Entry、${inventory.pending ?? 0} 个 Pending Capture`
+    const others = inventory.otherLiveRuns === null
+      ? '无法确定是否还有其他正在运行的 Run 使用本项目；若有，它们在下次读取前仍可能显示旧内容。'
+      : inventory.otherLiveRuns > 0
+        ? `另有 ${inventory.otherLiveRuns} 个正在运行的 Run 使用本项目；它们会在新的时间线中继续，但在下次读取前仍可能显示旧内容。`
+        : undefined
+    answer = await $.ui.ask(
+      [
+        'Prompt Trail 将永久删除这个 Project Timeline 的全部档案。',
+        `项目：${currentProject.root}`,
+        counts,
+        ...inventory.files.map(file => `文件：${file.name}（${file.bytes} 字节）`),
+        ...inventory.quarantined.map(kept => `隔离档案：${kept.name}（${kept.bytes} 字节）`),
+        ...(others ? [others] : []),
+        '正在提交中的 prompt 也会被清除。Collection consent 与当前 Run 的采集模式不变。',
+        CLEAR_BOUNDARY,
+        `确认删除请在“Other”中输入：${CLEAR_PHRASE}`,
+      ].join('\n'),
+      { header: '清除档案', options: ['取消', '返回'] },
+    )
+  } catch {
+    return 'cancelled'
+  }
+  if (answer === undefined || answer === '取消' || answer === '返回') return 'cancelled'
+  return answer.trim() === CLEAR_PHRASE ? 'clear' : 'mistyped'
+}
+
+/* The Runs the store knows in this project, whose session index records go
+   with the archive unless they go on. */
+async function projectRuns($: EngineInterface, currentProject: ProjectState): Promise<string[]> {
+  const runs = new Set<string>(startup.runId ? [startup.runId] : [])
+  for (const key of await $.store.keys()) {
+    for (const kind of ['branch', 'run-mode', 'lifecycle']) {
+      const head = `prompt-trail:${kind}:${currentProject.id}:`
+      const owner = key.startsWith(head) ? key.slice(head.length).split(':')[0] : undefined
+      if (isSafeId(owner)) runs.add(owner)
+    }
+  }
+  return [...runs]
+}
+
+type Cleared = {
+  entries: number | null
+  pending: number | null
+  quarantined: number
+}
+
+/* What the store kept about the cleared history goes with it: the pending
+   owed, the failure on record and every lifecycle write still owed. Consent,
+   each Run's collection mode and its branch stay; a branch names the
+   generation it was in, so the next capture starts over in the new one. */
+async function forgetClearedHistory($: EngineInterface, currentProject: ProjectState): Promise<void> {
+  await clearReconcile($, currentProject)
+  await archiveRecovered($, currentProject)
+  damagedGeneration = undefined
+  archiveStatus = undefined
+  try {
+    for (const key of await $.store.keys()) {
+      if (!key.startsWith(lifecyclePrefix(currentProject.id))) continue
+      const value = storedLifecycle(await $.store.get(key))
+      if (value && value.queue.length > 0) await $.store.set(key, { ...value, queue: [] })
+    }
+  } catch {
+    // What is left owes a generation that is gone, and is dropped on replay.
+  }
+  lifecycleFailure = undefined
+  resetWindow()
+  timelineLoaded = undefined
+  $.ui.invalidate('ui.render')
+}
+
+/* Runs the clear the person confirmed. Answers what it removed, or the
+   category it stopped at. */
+async function clearTimeline(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<Cleared> {
+  if (!startup.helperPath || !startup.databaseRoot || !startup.runId) {
+    throw new Error('capture-identity')
+  }
+  const runs = await projectRuns($, currentProject)
+  const result = await runArchive(
+    $,
+    [
+      startup.helperPath,
+      'clear-all',
+      startup.databaseRoot,
+      currentProject.id,
+      startup.runId,
+      EXPECTED_HELPER_SHA256,
+      String(HELPER_PROTOCOL),
+      '--stdin',
+    ],
+    30_000,
+    runs.map(owner => `${owner}\n`).join(''),
+  )
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'clear-all'))
+  const value: unknown = JSON.parse(result.stdout)
+  if (
+    !isRecord(value) ||
+    value.projectId !== currentProject.id ||
+    typeof value.cleared !== 'boolean' ||
+    !Number.isSafeInteger(value.quarantined)
+  ) throw new Error('clear-all')
+  await forgetClearedHistory($, currentProject)
+  return {
+    entries: nullableCount(value.entries),
+    pending: nullableCount(value.pending),
+    quarantined: value.quarantined as number,
+  }
+}
+
+function clearedText(cleared: Cleared): string {
+  const counts = cleared.entries === null
+    ? '损坏的活动档案（条数无法读取）'
+    : `${cleared.entries} 条 Prompt Entry、${cleared.pending ?? 0} 个 Pending Capture`
+  return [
+    `已清除本项目的 Prompt Trail 档案：${counts}、${cleared.quarantined} 个隔离档案。`,
+    'Collection consent 与当前 Run 的采集模式未改变；新时间线从下一次提交开始。',
+    CLEAR_BOUNDARY,
+  ].join('\n')
+}
+
+/* A clear that cut but left files behind: the archive stays unavailable
+   until one finishes, and the person sees exactly what is left. */
+async function unfinishedClearText($: EngineInterface, currentProject: ProjectState): Promise<string> {
+  let leftovers: string[] = []
+  try {
+    leftovers = clearLeftovers(await readClearInventory($, currentProject))
+  } catch {
+    // The listing is best effort; the state it describes is on record.
+  }
+  return [
+    '切点已生效，旧记录不会再被读写；但以下残留未能删除：',
+    ...(leftovers.length > 0 ? leftovers.map(line => `- ${line}`) : ['- （无法列出残留）']),
+    '清除完成前，本项目的档案不可用；可再次执行 /prompt-history clear-all 继续。',
+  ].join('\n')
+}
+
+async function clearAllCommand($: EngineInterface): Promise<string> {
+  if (!runtimeTarget) return 'Prompt Trail 尚未确定运行目标，无法清除档案。'
+  await refreshStartup($)
+  if (startup.support !== 'supported') {
+    return `Prompt Trail 在当前环境不可用（${startup.support}：${startup.reason}），未清除任何内容。`
+  }
+  let currentProject: ProjectState
+  let inventory: ClearInventory
+  try {
+    currentProject = await prepareProject($)
+    inventory = await readClearInventory($, currentProject)
+  } catch (error) {
+    return `Prompt Trail 无法列出本项目的档案（${failureCategory(error, 'clear-inventory')}），未清除任何内容。`
+  }
+  if (!inventory.present) return '没有可清除的 Prompt Trail 档案。'
+  const answer = await askClear($, currentProject, inventory)
+  if (answer === 'cancelled') return '已取消，未删除任何内容。'
+  if (answer === 'mistyped') return '确认短语不符，未删除任何内容。'
+  try {
+    return clearedText(await clearTimeline($, currentProject))
+  } catch (error) {
+    const category = failureCategory(error, 'clear-all')
+    if (category !== 'clear-unfinished') {
+      return `Prompt Trail 未能开始清除（${category}），未删除任何内容。`
+    }
+    await markUnavailable($, currentProject, category)
+    return unfinishedClearText($, currentProject)
   }
 }
 
@@ -4554,6 +4885,9 @@ function quarantineLines(): string[] {
   return [
     `Archive generation: ${archiveStatus.generation ? archiveStatus.generation.slice(0, 12) : 'none'}`,
     ...(archiveStatus.quarantineUnderway ? ['quarantine: 未完成（再次选择“隔离并开始新档案”会接着完成）'] : []),
+    ...(archiveStatus.clearUnderway
+      ? [`clear: unfinished · ${archiveStatus.clearResidual ?? 'unknown'} residual（/prompt-history clear-all 可继续）`]
+      : []),
     `Quarantined archives: ${archiveStatus.quarantined.length}`,
     ...archiveStatus.quarantined.map(kept => `  ${statusValue(kept.path)}（${kept.bytes} bytes）`),
   ]
@@ -5204,6 +5538,10 @@ export const register: Register = on => {
           try {
             archiveStatus = undefined
             archiveStatus = await readArchiveStatus($, currentProject)
+            if (archiveStatus.clearUnderway) {
+              const left = await readClearInventory($, currentProject)
+              archiveStatus.clearResidual = left.files.length + left.quarantined.length
+            }
           } catch {
             // Reported as unknown; the rest of the report stands.
           }
@@ -5233,7 +5571,8 @@ export const register: Register = on => {
     }
     if (args === 'enable') return { text: await enableCollection($) }
     if (args === 'disable') return { text: await disableCollection($) }
-    return { text: '用法：/prompt-history [enable|disable|status]' }
+    if (args === 'clear-all') return { text: await clearAllCommand($) }
+    return { text: '用法：/prompt-history [enable|disable|status|clear-all]' }
   })
 
   on('prompt.submit', async ($, e, next) => {
@@ -5249,11 +5588,14 @@ export const register: Register = on => {
       if ('done' in outcome) return outcome.done
       const failure = outcome.blocked
       let choice = await askUnavailable($, failure)
-      while (choice === 'recheck' || choice === 'quarantine') {
-        if (await answerDamage($, choice, failure)) break
+      while (choice === 'recheck' || choice === 'quarantine' || choice === 'clear' || choice === 'continue-clear') {
+        const settled = choice === 'clear' || choice === 'continue-clear'
+          ? await answerClear($, choice, failure)
+          : await answerDamage($, choice, failure)
+        if (settled) break
         choice = await askUnavailable($, failure)
       }
-      if (choice === 'retry' || choice === 'recheck' || choice === 'quarantine') continue
+      if (choice !== 'disable' && choice !== undefined) continue
       if (choice === 'disable') {
         const note = await disableCollection($)
         if (runMode?.value.mode === 'disabled') {

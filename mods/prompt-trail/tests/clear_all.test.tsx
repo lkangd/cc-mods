@@ -6,11 +6,19 @@ import {
   composerPrompt,
   installSupportedTarget,
   projectId,
+  projectRoot,
+  promptHistory,
+  renderBand,
   runId,
   session,
   sessionId,
 } from './support'
 import type { ArchiveRow } from './support'
+
+const PHRASE = 'delete all prompts'
+const branchKey = `prompt-trail:branch:${projectId}:${runId}:${sessionId}`
+const runModeKey = `prompt-trail:run-mode:${projectId}:${runId}`
+const reconcileKey = `prompt-trail:reconcile:${projectId}`
 
 /* Issue 30: clearing a Project Timeline. Everything archived before the cut
    goes, and nothing a writer of the cleared generation still owes may reach
@@ -79,4 +87,224 @@ test('a lifecycle fact is owed to the generation in place when it happens', asyn
 
   const started = captureCalls(calls, 'boundary-append').filter(call => call.argv[7] === 'run-started')
   expect(started.map(call => call.argv[10])).toEqual(['gen-7'])
+})
+
+/* An archive this Run and another have written to. */
+function archivedBefore(): ArchiveRow[] {
+  return [1, 2].map(sequence => ({
+    kind: 'prompt',
+    eventId: `eeeeeeee-0000-4000-8000-00000000000${sequence}`,
+    sequence,
+    runId: sequence === 1 ? runId : otherRun,
+    segmentId: sessionId,
+    branchId: 'bbbbbbbb-0000-4000-8000-000000000001',
+    parentEventId: null,
+    text: `PT-SECRET-BEFORE-${sequence}`,
+  }))
+}
+
+function collectingStore(): Record<string, unknown> {
+  return {
+    ...consentedStore(),
+    [branchKey]: {
+      version: 1,
+      branchId: 'bbbbbbbb-0000-4000-8000-000000000001',
+      parentEventId: 'eeeeeeee-0000-4000-8000-000000000002',
+      generation: 'gen-1',
+    },
+    [`prompt-trail:branch:${projectId}:${otherRun}:${otherRun}`]: {
+      version: 1, branchId: 'bbbbbbbb-0000-4000-8000-000000000002', parentEventId: null,
+    },
+    [runModeKey]: { version: 1, mode: 'enabled' },
+  }
+}
+
+test('clear-all with nothing archived asks nothing and removes nothing', async ($, on) => {
+  const clearAsked: string[] = []
+  const calls = installSupportedTarget(on, { store: consentedStore(), clearAsked })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-all')
+
+  expect(answer.text).toBe('没有可清除的 Prompt Trail 档案。')
+  expect(clearAsked).toEqual([])
+  expect(captureCalls(calls, 'clear-all')).toEqual([])
+})
+
+test('clear-all shows what it removes and clears only on the exact phrase', async ($, on) => {
+  const store = collectingStore()
+  const archive = archivedBefore()
+  const clearAsked: string[] = []
+  const clearOffered: string[][] = []
+  const quarantined = [{ name: '20260928T000000Z-1', path: '/q/20260928T000000Z-1', bytes: 4096 }]
+  const calls = installSupportedTarget(on, {
+    store, archive, clearAsked, clearOffered, quarantined, otherLiveRuns: 1,
+    clearAnswers: ['返回', `  ${PHRASE.toUpperCase()}  `, `  ${PHRASE} `],
+  })
+  await $.session.start(session)
+
+  const declined = await promptHistory($, 'clear-all')
+  const mistyped = await promptHistory($, 'clear-all')
+
+  expect(declined.text).toBe('已取消，未删除任何内容。')
+  expect(mistyped.text).toBe('确认短语不符，未删除任何内容。')
+  expect(captureCalls(calls, 'clear-all')).toEqual([])
+  expect(archive).toHaveLength(2)
+
+  const cleared = await promptHistory($, 'clear-all')
+
+  expect(clearOffered[0]).toEqual(['取消', '返回'])
+  const asked = clearAsked[0] ?? ''
+  expect(asked).toContain(projectRoot)
+  expect(asked).toContain('2 条 Prompt Entry')
+  expect(asked).toContain('20260928T000000Z-1')
+  expect(asked).toContain('另有 1 个正在运行的 Run')
+  expect(asked).toContain('正在提交中的 prompt 也会被清除')
+  expect(asked).toContain('Claude Code 的 transcript')
+  expect(asked).toContain(PHRASE)
+  expect(asked).not.toContain('PT-SECRET')
+  const clearing = captureCalls(calls, 'clear-all')
+  expect(clearing).toHaveLength(1)
+  /* Every Run the store knows in this project goes to the helper, which
+     keeps this one's session records: it goes on. */
+  expect(clearing[0]?.argv[4]).toBe(runId)
+  expect((clearing[0]?.stdin ?? '').split('\n').filter(Boolean).sort()).toEqual([otherRun, runId].sort())
+  expect(archive).toEqual([])
+  expect(quarantined).toEqual([])
+  expect(cleared.text).toContain('已清除本项目的 Prompt Trail 档案：2 条 Prompt Entry、0 个 Pending Capture、1 个隔离档案')
+  expect(cleared.text).toContain('Collection consent 与当前 Run 的采集模式未改变')
+  expect(cleared.text).not.toContain('PT-SECRET')
+  expect(store[`prompt-trail:consent:${projectId}`]).toBeDefined()
+  expect(store[runModeKey]).toEqual({ version: 1, mode: 'enabled' })
+})
+
+test('after a clear the Run goes on collecting in an empty timeline', async ($, on) => {
+  const store = collectingStore()
+  store[reconcileKey] = { version: 1, eventId: 'e'.repeat(64), runId: otherRun, branchId: 'b'.repeat(64), parentEventId: null, attachmentCount: 2 }
+  store[lifecycleKey(otherRun)] = { version: 1, queue: [owedClear('gen-1')] }
+  const archive = archivedBefore()
+  const calls = installSupportedTarget(on, { store, archive, clearAnswers: [PHRASE] })
+  await $.session.start(session)
+  await promptHistory($, '')
+  expect(JSON.stringify(await renderBand($))).toContain('PT-SECRET-BEFORE-2')
+
+  await promptHistory($, 'clear-all')
+
+  expect(JSON.stringify(await renderBand($))).not.toContain('PT-SECRET-BEFORE')
+  expect(store[reconcileKey]).toBeUndefined()
+  expect((store[lifecycleKey(otherRun)] as { queue: unknown[] }).queue).toEqual([])
+
+  const result = await composerPrompt($, { text: 'PT-SECRET-AFTER' })
+
+  expect(result.drop).toBeUndefined()
+  /* The Run takes the new generation up where it left the old one. */
+  expect(archive.map(row => row.kind)).toContain('run-attached')
+  expect(archive.filter(row => row.kind === 'prompt').map(row => row.text)).toEqual(['PT-SECRET-AFTER'])
+  expect(boundaryCalls(calls).map(call => call.argv[7])).not.toContain('clear')
+})
+
+test('damage offers a clear, which lets the held submission through once confirmed', async ($, on) => {
+  const store = collectingStore()
+  const archive = archivedBefore()
+  const unavailableOffered: string[][] = []
+  const clearOffered: string[][] = []
+  const calls = installSupportedTarget(on, {
+    store, archive, unavailableOffered, clearOffered,
+    unavailableAnswers: ['清除全部档案', '清除全部档案'],
+    clearAnswers: ['返回', PHRASE],
+    beginFails: 'archive-integrity',
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($, { text: 'PT-SECRET-HELD' })
+
+  expect(unavailableOffered[0]).toEqual(['重新检查完整性', '隔离并开始新档案', '清除全部档案', '禁用当前 Run 后继续'])
+  /* Going back from the confirmation returns to the damage dialog. */
+  expect(unavailableOffered).toHaveLength(2)
+  expect(clearOffered).toHaveLength(2)
+  expect(captureCalls(calls, 'clear-all')).toHaveLength(1)
+  expect(result.drop).toBeUndefined()
+})
+
+test('a clear that leaves files behind says what is left and holds the archive', async ($, on) => {
+  const store = collectingStore()
+  const archive = archivedBefore()
+  const clearUnderway = { value: false }
+  const clearLeaves = [{ name: `${projectId}.sqlite3-wal`, bytes: 0 }]
+  const unavailableOffered: string[][] = []
+  const unavailableAsked: string[] = []
+  const calls = installSupportedTarget(on, {
+    store, archive, clearUnderway, clearLeaves, unavailableOffered, unavailableAsked,
+    clearAnswers: [PHRASE], fills: [],
+  })
+  await $.session.start(session)
+
+  const stopped = await promptHistory($, 'clear-all')
+
+  expect(stopped.text).toContain('切点已生效，旧记录不会再被读写')
+  expect(stopped.text).toContain(`${projectId}.sqlite3-wal`)
+  expect(stopped.text).toContain('可再次执行 /prompt-history clear-all 继续')
+  /* On record for every Run of the project, not only the one that cleared. */
+  expect(store[`prompt-trail:archive-state:${projectId}`]).toMatchObject({
+    state: 'unavailable',
+    category: 'clear-unfinished',
+  })
+  const status = await promptHistory($, 'status')
+  expect(status.text).toContain('clear: unfinished · 1 residual')
+
+  const held = await composerPrompt($, { text: 'PT-SECRET-HELD' })
+
+  expect(unavailableOffered).toEqual([['继续清除', '禁用当前 Run 后继续']])
+  expect(unavailableAsked[0]).toContain(`${projectId}.sqlite3-wal`)
+  expect(held.drop).toContain('草稿已恢复')
+  expect(captureCalls(calls, 'capture-begin')).toEqual([])
+})
+
+test('an unfinished clear is finished from the held submission without the phrase again', async ($, on) => {
+  const store = collectingStore()
+  const clearUnderway = { value: true }
+  const clearOffered: string[][] = []
+  const calls = installSupportedTarget(on, {
+    store, clearUnderway, clearOffered, clearLeaves: [],
+    unavailableAnswers: ['继续清除'],
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($, { text: 'PT-SECRET-AFTER' })
+
+  expect(clearOffered).toEqual([])
+  expect(captureCalls(calls, 'clear-all')).toHaveLength(1)
+  expect(result.drop).toBeUndefined()
+})
+
+test('clear-all takes up an unfinished clear with one confirmation and no phrase', async ($, on) => {
+  const clearUnderway = { value: true }
+  const clearOffered: string[][] = []
+  const calls = installSupportedTarget(on, {
+    store: collectingStore(), clearUnderway, clearOffered, clearLeaves: [],
+    clearAnswers: ['继续清除'],
+  })
+  await $.session.start(session)
+
+  const finished = await promptHistory($, 'clear-all')
+
+  expect(clearOffered).toEqual([['继续清除', '取消']])
+  expect(captureCalls(calls, 'clear-all')).toHaveLength(1)
+  expect(finished.text).toContain('已清除本项目的 Prompt Trail 档案')
+})
+
+test('opening the timeline after another Run cleared it shows nothing cleared', async ($, on) => {
+  const archive = archivedBefore()
+  const generation = { value: 'gen-1' }
+  installSupportedTarget(on, { store: collectingStore(), archive, generation })
+  await $.session.start(session)
+  await promptHistory($, '')
+  expect(JSON.stringify(await renderBand($))).toContain('PT-SECRET-BEFORE-2')
+
+  /* Another Run clears the project; this one drew the old rows. */
+  archive.splice(0)
+  generation.value = 'gen-2'
+  await promptHistory($, '')
+
+  expect(JSON.stringify(await renderBand($))).not.toContain('PT-SECRET-BEFORE')
 })
