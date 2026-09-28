@@ -50,7 +50,7 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   Run = 随机 Run UUID + 宿主进程世代；reload 复用 Run，退出/重启/`startup`/`fork` 开新 Run，
   进程内 `/resume` 只在同一进程世代有前驱 locator 时继承 Run——**但 `/resume` 后的新 session
   仍拿到新根分支，分支重建归 Issue 18**。`archiveGeneration` 仍是占位，每个新 Run 随机生成，
-  档案侧没有 generation（归 Issue 30）。Run 边界是惰性的，event id 由 `sha256(kind:project:run)`
+  档案侧没有 generation（归 Issue 30）；Issue 28 起档案侧 generation 取活动文件身份，locator 里这个字段的语义仍归 Issue 30。Run 边界是惰性的，event id 由 `sha256(kind:project:run)`
   派生；恢复队列的 16 条上限只约束 `clear`。`timeline-read` 是唯一可在 stdout 返回原文的子命令，
   固定只回最新 128 条、带 `truncated`；游标、窗口和 `truncated` 的 UI 归 Issue 21（backlog
   `20260922-bounded-persisted-timeline-view.md`）。只经 classic 事件到达的逻辑，`2.1.273` 的

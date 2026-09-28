@@ -125,6 +125,8 @@ type ReconcileState = {
   branchId: string
   parentEventId: string | null
   attachmentCount: number
+  /* The generation the pending was staged in, when known. */
+  generation?: string
 }
 
 /* One row of the expanded band. Rows read back from the archive and rows this
@@ -406,7 +408,7 @@ type Unavailable = {
   /* The generation found damaged, when the failure is damage. */
   generation?: string
   /* What the latest recheck of a damaged archive found. */
-  recheck?: string
+  recheck?: Recheck
   /* The Run a Run-local failure belongs to; another Run this process moves
      to does not inherit it. */
   runId?: string
@@ -508,6 +510,8 @@ type ParentChoice = {
   key: string
   sessionId: string
   stored: BranchState | undefined
+  /* The generation the candidates were matched in. */
+  generation?: string
   candidates: { eventId: string; label: string }[]
   unlisted: number
   mark: TranscriptMark
@@ -1164,6 +1168,13 @@ function isSafeId(value: unknown): value is string {
   return typeof value === 'string' && SAFE_IDENTIFIER.test(value)
 }
 
+/* A generation as the helper names it: an identifier, or `null` when there
+   is no archive. Anything else fails the response as `category`. */
+function nullableGeneration(value: unknown, category: string): string | null {
+  if (value !== null && !isSafeId(value)) throw new Error(category)
+  return value
+}
+
 function storedConsent(value: unknown): ConsentDecision | undefined {
   if (!isRecord(value) || value.policyVersion !== COLLECTION_POLICY_VERSION) {
     return undefined
@@ -1241,6 +1252,7 @@ function storedReconcile(value: unknown): ReconcileState | undefined {
     branchId: value.branchId,
     parentEventId: parent,
     attachmentCount,
+    ...(isSafeId(value.generation) ? { generation: value.generation } : {}),
   }
 }
 
@@ -1642,7 +1654,7 @@ async function readArchiveRecord($: EngineInterface, currentProject: ProjectStat
       ? stored.category
       : 'category-unrecorded'
     const elsewhere = typeof stored.runId === 'string' && stored.runId !== startup.runId
-    const recheck = archiveFailure?.scope === 'archive' ? archiveFailure.recheck : undefined
+    const recheck = storedRecheck(stored.recheck)
     archiveFailure = {
       scope: 'archive',
       category,
@@ -1694,12 +1706,23 @@ async function markUnavailable(
   scope: 'run' | 'archive' = SHARED_FAILURES.has(category) ? 'archive' : 'run',
 ): Promise<Unavailable> {
   /* Damage met again keeps the generation already on record when this
-     failure could not name one. */
+     failure could not name one; a quarantine that failed keeps the
+     generation it was moving, and a recheck's findings stay with the damage
+     they describe. */
+  const damage = DAMAGE_FAILURES.has(category)
   const generation = category === 'archive-integrity'
     ? damagedGeneration ?? archiveFailure?.generation
-    : undefined
+    : damage ? archiveFailure?.generation : undefined
+  const recheck = damage ? archiveFailure?.recheck : undefined
   archiveFailure = scope === 'archive'
-    ? { scope, category, elsewhere: false, blocking: true, ...(generation ? { generation } : {}) }
+    ? {
+        scope,
+        category,
+        elsewhere: false,
+        blocking: true,
+        ...(generation ? { generation } : {}),
+        ...(recheck ? { recheck } : {}),
+      }
     : runLocal(category, false)
   $.ui.invalidate('ui.render')
   if (scope === 'archive' && currentProject) {
@@ -1711,6 +1734,7 @@ async function markUnavailable(
         since: await $.clock.now(),
         ...(startup.runId ? { runId: startup.runId } : {}),
         ...(generation ? { generation } : {}),
+        ...(recheck ? { recheck } : {}),
       })
     } catch {
       // The in-memory block remains active for this module instance.
@@ -1977,9 +2001,10 @@ function parsePendingList(
     !Number.isSafeInteger(value.skipped) ||
     (value.skipped as number) < 0
   ) throw new Error('capture-list')
+  const generation = nullableGeneration(value.generation, 'capture-list')
   const owed: ReconcileState[] = []
   for (const row of value.pending) {
-    const state = storedReconcile(isRecord(row) ? { ...row, version: 1 } : undefined)
+    const state = storedReconcile(isRecord(row) ? { ...row, version: 1, generation } : undefined)
     if (!state) throw new Error('capture-list')
     owed.push(state)
   }
@@ -2117,9 +2142,8 @@ function parseContext(value: unknown): Map<string, string> {
 function parseBatch(text: string, projectId: string, tip: string | undefined): TimelineBatch {
   const value: unknown = JSON.parse(text)
   if (!isRecord(value)) throw new Error('timeline-read')
-  if (value.generation !== null && !isSafeId(value.generation)) throw new Error('timeline-read')
   const batch: TimelineBatch = {
-    generation: value.generation as string | null,
+    generation: nullableGeneration(value.generation, 'timeline-read'),
     items: parseTimeline(value, projectId),
     earlier: value.earlier as boolean,
     later: value.later as boolean,
@@ -2676,6 +2700,12 @@ async function settlePending(
   $: EngineInterface,
   currentProject: ProjectState,
 ): Promise<'clear' | 'settled' | 'blocked'> {
+  /* A pending staged in a generation since replaced went with it into
+     quarantine: nothing is owed for it in the one now in place. */
+  const owedIn = reconcile?.state.generation
+  if (owedIn && (await readArchiveStatus($, currentProject)).generation !== owedIn) {
+    await clearReconcile($, currentProject)
+  }
   let settledAny = false
   for (let attempt = 0; attempt < PENDING_SETTLE_LIMIT; attempt += 1) {
     await discoverPending($, currentProject)
@@ -2717,9 +2747,8 @@ function parseBranchMatch(text: string, projectId: string): BranchMatch {
     !Number.isSafeInteger(preferred.sequence) ||
     !Number.isSafeInteger(preferred.ordinal)
   )) throw new Error('branch-match')
-  if (value.generation !== null && !isSafeId(value.generation)) throw new Error('branch-match')
   const prefer = {
-    generation: value.generation as string | null,
+    generation: nullableGeneration(value.generation, 'branch-match'),
     ...(preferred === undefined
       ? {}
       : {
@@ -3062,8 +3091,12 @@ async function settleAlignment(
     }
     settlement = settleBranch(stored, found, crypto.randomUUID(), compacted)
     if (settlement.kind === 'set') {
-      await $.store.set(key, settlement.state)
-      rememberBranch(key, settlement.state)
+      /* Its parent is in the generation it was matched in. */
+      const state: BranchState = found.generation
+        ? { ...settlement.state, generation: found.generation }
+        : settlement.state
+      await $.store.set(key, state)
+      rememberBranch(key, state)
       queueAlignment($)
     } else if (settlement.kind === 'keep' && stored) {
       rememberBranch(key, stored)
@@ -3080,6 +3113,7 @@ async function settleAlignment(
     key,
     sessionId: startup.sessionId,
     stored,
+    ...(found.generation ? { generation: found.generation } : {}),
     candidates: settlement.options.map(eventId => ({ eventId, label: parentLabel(eventId, found) })),
     /* What the helper counted but never named. */
     unlisted: Math.max(0, found.candidateCount - found.candidates.length),
@@ -3153,7 +3187,10 @@ async function settleParentChoice(
     return
   }
   try {
-    const chosen = chooseBranch(choice.stored, answer, crypto.randomUUID())
+    const picked = chooseBranch(choice.stored, answer, crypto.randomUUID())
+    const chosen: BranchState = choice.generation && picked.parentEventId !== null
+      ? { ...picked, generation: choice.generation }
+      : picked
     await $.store.set(choice.key, chosen)
     rememberBranch(choice.key, chosen)
     queueAlignment($)
@@ -3678,6 +3715,22 @@ async function drainLifecycle(
    reports it, and what went wrong in words. */
 type Blocked = Unavailable & { reason: string }
 
+type Recheck = { result: 'damaged' | 'unreadable'; problems: number }
+
+function storedRecheck(value: unknown): Recheck | undefined {
+  return isRecord(value)
+    && (value.result === 'damaged' || value.result === 'unreadable')
+    && Number.isSafeInteger(value.problems)
+    ? { result: value.result, problems: value.problems as number }
+    : undefined
+}
+
+function recheckNote(recheck: Recheck): string {
+  return recheck.result === 'unreadable'
+    ? '完整性检查未通过（档案已无法作为数据库读取）'
+    : `完整性检查未通过（${recheck.problems} 个问题）`
+}
+
 type ArchiveStatus = {
   generation: string | null
   quarantineUnderway: boolean
@@ -3699,22 +3752,31 @@ async function enterNewGeneration(
 ): Promise<{ key: string; value: BranchState }> {
   if (!startup.runId || !startup.sessionId) throw new Error('capture-identity')
   const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
+  /* Derived from the session and the generation it left, so a retry writes
+     the same attach on the same branch, and another session of the Run
+     leaving that generation writes its own. */
+  const derived = `${currentProject.id}:${startup.runId}:${startup.sessionId}:${left}`
   const root: BranchState = {
     version: 1,
-    branchId: crypto.randomUUID(),
+    branchId: await sha256(`prompt-trail:generation-root:1:${derived}`),
     parentEventId: null,
     explicitRoot: true,
   }
-  /* Derived from the generation left, so a retry writes the same attach. */
-  const attached = await appendBoundary($, currentProject, root.branchId, 'run-attached', {
-    eventId: await sha256(`prompt-trail:run-attached:generation:1:${currentProject.id}:${startup.runId}:${left}`),
-  })
+  let attached: { eventId: string; sequence: number } | undefined
+  try {
+    attached = await appendBoundary($, currentProject, root.branchId, 'run-attached', {
+      eventId: await sha256(`prompt-trail:run-attached:generation:1:${derived}`),
+    })
+  } catch (error) {
+    /* Written by an earlier try, at another moment: the attach is there. */
+    if (failureCategory(error, 'boundary-append') !== 'boundary-conflict') throw error
+  }
   await $.store.set(key, root)
   rememberBranch(key, root)
   await clearReconcile($, currentProject)
   resetWindow()
   timelineLoaded = undefined
-  recordBoundary($, 'run-attached', attached)
+  if (attached) recordBoundary($, 'run-attached', attached)
   $.ui.invalidate('ui.render')
   return { key, value: root }
 }
@@ -3744,13 +3806,12 @@ async function recheckArchive(
     !isRecord(value) ||
     value.projectId !== currentProject.id ||
     !['ok', 'damaged', 'unreadable', 'absent'].includes(value.result as string) ||
-    !Number.isSafeInteger(value.problems) ||
-    (value.generation !== null && !isSafeId(value.generation))
+    !Number.isSafeInteger(value.problems)
   ) throw new Error('integrity-check')
   return {
     result: value.result as string,
     problems: value.problems as number,
-    generation: value.generation as string | null,
+    generation: nullableGeneration(value.generation, 'integrity-check'),
   }
 }
 
@@ -3818,12 +3879,11 @@ async function readArchiveStatus(
   if (
     !isRecord(value) ||
     value.projectId !== currentProject.id ||
-    (value.generation !== null && !isSafeId(value.generation)) ||
     typeof value.quarantineUnderway !== 'boolean' ||
     !Array.isArray(value.quarantined)
   ) throw new Error('archive-status')
   return {
-    generation: value.generation as string | null,
+    generation: nullableGeneration(value.generation, 'archive-status'),
     quarantineUnderway: value.quarantineUnderway,
     quarantined: value.quarantined.map((kept: unknown) => {
       if (
@@ -3869,7 +3929,7 @@ async function askUnavailable(
         `Prompt Trail ${failure.reason}，无法证明这次提交能被正确保存；本次提交尚未进入会话。`,
         `范围：${scope}`,
         `类别：${failure.category}${failure.elsewhere ? '（由另一个 Run 报告）' : ''}`,
-        ...(failure.recheck ? [failure.recheck] : []),
+        ...(failure.recheck ? [recheckNote(failure.recheck)] : []),
         damaged
           ? '“重新检查完整性”只读检查档案，通过后提交；“隔离并开始新档案”把旧记录原样保留在隔离目录，新时间线从空开始，之后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。Prompt Trail 不会修复或覆盖损坏的档案。'
           : '“重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。',
@@ -3907,13 +3967,24 @@ async function answerDamage(
         await archiveRecovered($, currentProject)
         return true
       }
-      failure.recheck = found.result === 'unreadable'
-        ? '完整性检查未通过（档案已无法作为数据库读取）'
-        : `完整性检查未通过（${found.problems} 个问题）`
-      if (archiveFailure) archiveFailure.recheck = failure.recheck
+      /* What was checked is what a quarantine now moves: another Run may
+         have replaced the generation this failure first named. */
+      damagedGeneration = found.generation ?? undefined
+      if (archiveFailure) {
+        archiveFailure.recheck = {
+          result: found.result === 'unreadable' ? 'unreadable' : 'damaged',
+          problems: found.problems,
+        }
+      }
+      Object.assign(failure, await markUnavailable($, currentProject, 'archive-integrity'))
       return false
     }
     let damaged = failure.generation ?? damagedGeneration
+    if (!damaged && (await readArchiveStatus($, currentProject)).quarantineUnderway) {
+      /* A quarantine already begun is finished whatever generation is named,
+         and nothing may be checked until it is. */
+      damaged = 'unfinished'
+    }
     if (!damaged) {
       /* Nothing named the damaged generation; only one found damaged now
          may be moved. */
@@ -4237,6 +4308,7 @@ async function submitCollected(
         branchId: branch.value.branchId,
         parentEventId: branch.value.parentEventId,
         attachmentCount: attachmentKinds.length,
+        generation: staged.generation,
       },
       finalText,
     )
@@ -4416,7 +4488,7 @@ function statusText(): string {
      Run that is switched on but not collecting never reads as collecting. */
   const collectionMode = collectionModeText()
   const archive = archiveFailure
-    ? `unavailable · 范围 ${archiveFailure.scope} · 类别 ${archiveFailure.category}${archiveFailure.elsewhere ? ' · 由另一个 Run 报告' : ''}${archiveFailure.recheck ? ` · ${archiveFailure.recheck}` : ''}`
+    ? `unavailable · 范围 ${archiveFailure.scope} · 类别 ${archiveFailure.category}${archiveFailure.elsewhere ? ' · 由另一个 Run 报告' : ''}${archiveFailure.recheck ? ` · ${recheckNote(archiveFailure.recheck)}` : ''}`
     : project?.archiveReady && project.databasePath
       ? `ready · ${statusValue(project.databasePath)}`
       : 'not created'

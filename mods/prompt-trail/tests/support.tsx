@@ -105,6 +105,9 @@ export type TargetOptions = {
   integrity?: { result: 'ok' | 'damaged' | 'unreadable' | 'absent'; problems: number }
   /* `quarantine` fails with this category, moving nothing. */
   quarantineFails?: string
+  /* A quarantine begun and not finished: `archive-status` says so, and the
+     next `quarantine` finishes it whatever generation it names. */
+  quarantineUnderway?: { value: boolean }
   /* The quarantined archives `archive-status` lists; a quarantine adds one. */
   quarantined?: { name: string; path: string; bytes: number }[]
   /* The text of every Archive unavailable dialog, as the person reads it. */
@@ -506,6 +509,11 @@ export function installSupportedTarget(
         },
       }
     }
+    /* An unfinished quarantine refuses every command that opens the archive. */
+    if (argv[0] === helperPath && options.quarantineUnderway?.value
+        && !['preflight', 'archive-status', 'quarantine'].includes(argv[1] ?? '')) {
+      return failure('quarantine-failed')
+    }
     if (argv[0] === helperPath && argv[1] === 'capture-begin') {
       const eventId = argv[8]
       if (options.beginFails) {
@@ -671,6 +679,7 @@ export function installSupportedTarget(
           exitCode: 0,
           stdout: JSON.stringify({
             projectId,
+            generation: generation.value,
             pending: pending.filter(row => !held(row)),
             skipped: pending.filter(held).length,
             truncated: false,
@@ -708,7 +717,9 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'quarantine') {
       if (options.quarantineFails) return failure(options.quarantineFails)
-      if (argv[4] !== generation.value) {
+      const resumed = options.quarantineUnderway?.value === true
+      if (options.quarantineUnderway) options.quarantineUnderway.value = false
+      if (!resumed && argv[4] !== generation.value) {
         return {
           value: {
             exitCode: 0,
@@ -749,7 +760,8 @@ export function installSupportedTarget(
           stdout: JSON.stringify({
             projectId,
             generation: generation.value,
-            quarantineUnderway: options.quarantineFails === 'quarantine-failed',
+            quarantineUnderway: options.quarantineUnderway?.value
+              ?? options.quarantineFails === 'quarantine-failed',
             quarantined,
           }),
           stderr: '',

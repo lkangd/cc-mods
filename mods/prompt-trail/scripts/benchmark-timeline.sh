@@ -94,7 +94,7 @@ with tempfile.TemporaryDirectory() as temporary:
         text = f"PT-BENCH {event_id[:8]}"
         helper_call(
             "capture-begin", archives, project, tip["runId"], tip["segmentId"],
-            tip["branchId"], state["parent"], event_id, "1795000000000", "0", "-",
+            tip["branchId"], state["parent"], event_id, "1795000000000", "0", "-", "-",
             sha, "1", "--stdin", stdin=text,
         )
         helper_call("capture-confirm", archives, project, event_id, sha, "1", "--stdin", stdin=text)
