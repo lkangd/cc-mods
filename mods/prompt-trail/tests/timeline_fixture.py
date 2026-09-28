@@ -8,8 +8,8 @@ it knows the schema; production code never imports it.
 
 The mix exercises every boundary the timeline draws: Run start/attach/detach,
 Clear, Collection stop/resume, rewinds onto earlier entries, fresh roots and
-forks whose first entry hangs off another Run. Integrity gaps have no event
-kind yet (Issue 26), so none are written. Prompt text is synthetic.
+forks whose first entry hangs off another Run, and Integrity gaps each followed
+by its recovery boundary. Prompt text is synthetic.
 """
 import argparse
 import json
@@ -91,6 +91,9 @@ def build(database: pathlib.Path, project_id: str, count: int, *, seed: int = 21
                     run["branchId"] = next_id()
                     run["tip"] = generator.choice(own)["eventId"]
                 prompt(run["tip"])
+            elif roll < 0.885:
+                boundary("integrity-gap")
+                boundary("integrity-recovery")
             elif roll < 0.89:
                 boundary("collection-stopped")
                 boundary("collection-resumed")
