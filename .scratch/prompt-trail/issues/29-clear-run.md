@@ -77,3 +77,16 @@ Issue 32 把 Run 改为会话谱系：`clear-run` 的范围随之包括该 Run �
 - **Q11 续做**：任何 Run 都可续做，不再确认；续做再做一遍 DELETE（幂等）与全部物理步骤。helper 加 `--continue`：意向已不在时什么都不删，答 `cleared:false`。被挡住的提交弹「继续清除 / 禁用当前 Run 后继续」，正文列残留并说明这是之前确认过的一次按 Run 清除（不说「当前 Run」）。Run B 执行 `/prompt-history clear-run` 而意向属于 Run A 时，只给「继续清除 / 取消」，完成后回复「之前的按 Run 清除已完成；当前 Run 的记录未清除，如需清除请再执行一次」。`status` 增加 `clear-run: unfinished · N residual`。
 - **Q12 回复**：成功时列出清掉的 Prompt Entry、Pending Capture、边界事件与断开的父链接数，说明其他 Run 记录不变、编号可能前移、consent 与采集模式未变、下一次提交开始新的根，并附边界声明。切点前失败答「未删除任何内容（类别）」；切点后失败（含宿主超时）重新问 `archive-status` 判断，按 Q10 报未完成。`clear-run` 不看 consent 状态；无档案或无本 Run 的行时 no-op。文字不含原文或哈希。
 - **Q13 验收**：helper 黑盒（db/`-wal`/`-shm`/迁移备份的 byte marker 扫描：目标消失、其他 Run 保留；父链接置空与 sequence 空洞；no-op；隔离档案拒绝；构造 `.clearing-run` 的各崩溃点；`chflags uchg` 锁迁移备份构造残留；`--continue`；`clear-all` 覆盖未完成的 `clear-run`；意向期间其他命令被拒）；plugin test（no-op、取消、成功、跨 Run 续做、`capture-parent-unknown` 改新根重试、残留报告与阻塞、`status`）；双 Run 真人 PTY（实现后另行征得授权）；逐条变异检查。helper protocol 不加一，理由同 Issue 28、30。
+
+### Code review 修复（2026-09-28，round 1）
+
+产物在 `.code-review/runs/20260928-214837/round-1/`（已 gitignore）。8 条中修 7 条，1 条进 backlog，无驳回。
+
+- **隔离目录读不出来时失败关闭**：`clear_count_quarantined()` 在 `opendir` 失败（非 `ENOENT`）时报 `database-unavailable`，不再当作没有隔离档案（`clear-run` 与 `clear-all` 都经过它）。
+- **`clear-all` 接手未完成的按 Run 清除**：从 `.clearing-run` 读出 Run id，加进要删的会话索引集合；该 Run 的行此时可能已不在档案里。
+- **本 Run 发起的清除未完成时**，立即清理本 Run 的插件状态（分支新根、lifecycle 队列、Collection Boundary），之后无论由谁完成，都不会把已删的边界补写回去。
+- **回答丢失**：`clear-run` 以 `helper-call-failed` 或无法解析的回答失败、且没有清除在进行时，重读本 Run 的计数；已为 0 就按已完成回复并清理状态，不再说「未删除任何内容」。
+- **命令续做发现已由别处完成时**解除档案不可用的记录，与被挡住提交的路径一致。
+- **清理**：插件的 lifecycle 队列与 Collection Boundary 清理抽成 `forgetOwedLifecycle()`、`forgetCollectionBoundary()`，两种清除共用；helper 的 `clear_count()` 可带一个绑定参数，替代 `clear_run_count()`。
+- **backlog**：`20260928-run-clear-confirmation-counts-can-go-stale.md`（确认对话框停留期间另一个 Run 新建的父链接未在确认前展示）；`20260928-shared-intent-writer.md` 注明 `clear-all` 与 `clear-run` 已共用 `place_intent()`。
+- **测试**：helper 新增 2 项（共 145），plugin test 新增 3 项（共 396）；新增的 5 条变异全部被抓到。

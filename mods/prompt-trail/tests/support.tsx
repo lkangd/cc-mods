@@ -128,6 +128,8 @@ export type TargetOptions = {
   clearRunLeaves?: { name: string; bytes: number }[]
   /* The host kills `clear-run` after its cut. */
   clearRunRejects?: boolean
+  /* `clear-run` finishes, and its answer never reaches the plugin. */
+  clearRunAnswerLost?: boolean
   /* `capture-begin` refuses a parent the archive does not hold, as the
      helper does; off, any parent is staged. */
   parentsChecked?: boolean
@@ -648,6 +650,7 @@ export function installSupportedTarget(
         return failure('clear-run-unfinished')
       }
       if (options.clearRunUnderway) options.clearRunUnderway.value = false
+      if (options.clearRunAnswerLost) throw new Error('killed at the time limit: PT-SECRET-KILLED')
       return {
         value: {
           exitCode: 0,

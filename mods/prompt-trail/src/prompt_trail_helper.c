@@ -3780,13 +3780,15 @@ static void clear_add_run(ClearFindings *found, const char *run_id) {
   found->run_count += 1;
 }
 
-/* A count, or -1 when the archive cannot answer it. */
-static long long clear_count(sqlite3 *database, const char *sql) {
+/* A count, or -1 when the archive cannot answer it; `bound`, when given,
+   is the query's ?1. A NULL answer, as `min` over no rows gives, is 0. */
+static long long clear_count(sqlite3 *database, const char *sql, const char *bound) {
   sqlite3_stmt *statement = NULL;
   long long count = -1;
   if (sqlite3_prepare_v2(database, sql, -1, &statement, NULL) == SQLITE_OK
+      && (!bound || sqlite3_bind_text(statement, 1, bound, -1, SQLITE_TRANSIENT) == SQLITE_OK)
       && sqlite3_step(statement) == SQLITE_ROW) {
-    count = sqlite3_column_int64(statement, 0);
+    count = sqlite3_column_type(statement, 0) == SQLITE_NULL ? 0 : sqlite3_column_int64(statement, 0);
   }
   sqlite3_finalize(statement);
   return count;
@@ -3851,8 +3853,8 @@ static void clear_read_archive(const char *database_path, ClearFindings *found) 
   sqlite3 *database = clear_open_archive(database_path);
   if (!database) return;
   sqlite3_exec(database, "PRAGMA temp_store=MEMORY", NULL, NULL, NULL);
-  found->entries = clear_count(database, "SELECT count(*) FROM prompt_entries");
-  found->pending = clear_count(database, "SELECT count(*) FROM pending_captures");
+  found->entries = clear_count(database, "SELECT count(*) FROM prompt_entries", NULL);
+  found->pending = clear_count(database, "SELECT count(*) FROM pending_captures", NULL);
   clear_collect_runs(database, "SELECT DISTINCT run_id FROM prompt_entries", found);
   clear_collect_runs(database, "SELECT DISTINCT run_id FROM pending_captures", found);
   clear_collect_runs(database, "SELECT DISTINCT run_id FROM timeline_events", found);
@@ -3912,7 +3914,11 @@ static long long clear_count_quarantined(const char *database_root, const char *
   int length = snprintf(kept, PATH_MAX, "%s/quarantine/%s", database_root, project_id);
   if (length < 0 || length >= PATH_MAX) archive_error("database-path");
   DIR *directory = opendir(kept);
-  if (!directory) return 0;
+  /* A quarantine that cannot be listed is not taken for none. */
+  if (!directory) {
+    if (errno != ENOENT) archive_error("database-unavailable");
+    return 0;
+  }
   long long count = 0;
   for (struct dirent *entry; (entry = readdir(directory)) != NULL;) {
     if (entry->d_name[0] != '.') count += 1;
@@ -4001,6 +4007,8 @@ static void place_intent(const char *intent, const char *content) {
   }
 }
 
+static bool clear_run_intended(const char *intent, char run_id[129], bool strict);
+
 static void clear_all(int argc, char **argv) {
   if ((argc != 8 && argc != 9) || strcmp(argv[7], "--stdin") != 0) usage();
   /* Only finishing a clear already under way, which the person agreed to
@@ -4030,6 +4038,11 @@ static void clear_all(int argc, char **argv) {
     capture_runtime(database_root, argv[5], argv[6], PT_ROOT_OPTIONAL);
   if (root_present) lock_project(database_root, project_id, true);
   char intent[PATH_MAX];
+  /* A Run clear this one takes over may already have deleted its Run's
+     rows; the intent still names the Run whose sessions go. */
+  char intended[129];
+  if (!clear_run_intent_path(database_root, project_id, intent)) archive_error("database-path");
+  if (root_present && clear_run_intended(intent, intended, false)) clear_add_run(&found, intended);
   if (!clear_intent_path(database_root, project_id, intent)) archive_error("database-path");
   bool resuming = root_present && intent_present(intent);
   if (!root_present || (!resuming && (only_continue || !clear_has_files(database_root, project_id)))) {
@@ -4113,36 +4126,24 @@ typedef struct {
   "parent_event_id IN (SELECT event_id FROM prompt_entries WHERE run_id=?1)" \
   " AND run_id<>?1"
 
-static long long clear_run_count(sqlite3 *database, const char *sql, const char *run_id) {
-  sqlite3_stmt *statement = NULL;
-  long long count = -1;
-  if (sqlite3_prepare_v2(database, sql, -1, &statement, NULL) == SQLITE_OK
-      && sqlite3_bind_text(statement, 1, run_id, -1, SQLITE_TRANSIENT) == SQLITE_OK
-      && sqlite3_step(statement) == SQLITE_ROW) {
-    count = sqlite3_column_type(statement, 0) == SQLITE_NULL ? 0 : sqlite3_column_int64(statement, 0);
-  }
-  sqlite3_finalize(statement);
-  return count;
-}
-
 static ClearRunCounts clear_run_counts(sqlite3 *database, const char *run_id) {
   return (ClearRunCounts){
-    clear_run_count(database, "SELECT count(*) FROM prompt_entries WHERE run_id=?1", run_id),
-    clear_run_count(database, "SELECT count(*) FROM pending_captures WHERE run_id=?1", run_id),
-    clear_run_count(database, "SELECT count(*) FROM timeline_events WHERE run_id=?1", run_id),
-    clear_run_count(
+    clear_count(database, "SELECT count(*) FROM prompt_entries WHERE run_id=?1", run_id),
+    clear_count(database, "SELECT count(*) FROM pending_captures WHERE run_id=?1", run_id),
+    clear_count(database, "SELECT count(*) FROM timeline_events WHERE run_id=?1", run_id),
+    clear_count(
       database,
       "SELECT (SELECT count(*) FROM prompt_entries WHERE " CLEAR_RUN_CHILDREN ")"
       " + (SELECT count(*) FROM pending_captures WHERE " CLEAR_RUN_CHILDREN ")",
       run_id
     ),
-    clear_run_count(
+    clear_count(
       database,
       "SELECT count(*) FROM timeline_events"
       " WHERE run_id=?1 AND kind IN ('run-started', 'run-attached')",
       run_id
     ),
-    clear_run_count(
+    clear_count(
       database,
       "SELECT min(at) FROM ("
       " SELECT min(occurred_at_ms) AS at FROM prompt_entries WHERE run_id=?1"
@@ -4298,21 +4299,22 @@ static void clear_run_statement(sqlite3 *database, const char *sql, const char *
 }
 
 /* The Run an intent names, or false when there is no intent. */
-static bool clear_run_intended(const char *intent, char run_id[129]) {
+/* An intent that names no Run fails `strict`ly, and is otherwise taken
+   for none. */
+static bool clear_run_intended(const char *intent, char run_id[129], bool strict) {
   if (!intent_present(intent)) return false;
   char *content = NULL;
   size_t length = 0;
-  if (!pt_read_file(intent, &content, &length)
-      || length == 0 || length > 128 || content[length - 1] != '\n') {
-    free(content);
-    archive_error("clear-run-unfinished");
+  bool named = pt_read_file(intent, &content, &length)
+    && length > 0 && length <= 128 && content[length - 1] == '\n';
+  if (named) {
+    content[length - 1] = '\0';
+    named = pt_is_safe_identifier(content);
   }
-  content[length - 1] = '\0';
-  bool named = pt_is_safe_identifier(content);
   if (named) snprintf(run_id, 129, "%s", content);
   free(content);
-  if (!named) archive_error("clear-run-unfinished");
-  return true;
+  if (!named && strict) archive_error("clear-run-unfinished");
+  return named;
 }
 
 /* Whether the WAL beside the archive holds nothing: gone, or emptied. */
@@ -4370,7 +4372,7 @@ static void clear_run(int argc, char **argv) {
   /* An intent already there is finished for the Run it names, whichever
      Run asks: that is the clear the person confirmed. */
   char run_id[129];
-  bool resuming = clear_run_intended(intent, run_id);
+  bool resuming = clear_run_intended(intent, run_id, true);
   if (!resuming) {
     if (only_continue) {
       write_clear_run(project_id, false, false, false, counts);
