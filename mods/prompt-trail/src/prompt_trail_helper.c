@@ -4411,15 +4411,12 @@ static void clear_run(int argc, char **argv) {
     clear_run_statement(database, "DELETE FROM prompt_entries WHERE run_id=?1", run_id);
     clear_run_statement(database, "DELETE FROM timeline_events WHERE run_id=?1", run_id);
     archive_sql(database, "COMMIT");
-    /* What `secure_delete` zeroed reaches the file, earlier frames holding
-       the text go with the WAL, and the file is rebuilt without the pages
-       that held it; each step is tried, and any that fails leaves the clear
-       unfinished. */
+    /* The file is rebuilt without the pages that held the Run, then the
+       WAL, whose earlier frames still hold its text, is folded back and
+       emptied. Either failing leaves the clear unfinished. */
     int frames = -1;
     int folded = -1;
-    physical = sqlite3_wal_checkpoint_v2(database, NULL, SQLITE_CHECKPOINT_TRUNCATE, &frames, &folded) == SQLITE_OK
-      && frames == folded;
-    physical = sqlite3_exec(database, "VACUUM", NULL, NULL, NULL) == SQLITE_OK && physical;
+    physical = sqlite3_exec(database, "VACUUM", NULL, NULL, NULL) == SQLITE_OK;
     physical = sqlite3_wal_checkpoint_v2(database, NULL, SQLITE_CHECKPOINT_TRUNCATE, &frames, &folded) == SQLITE_OK
       && frames == folded && physical;
     close_archive(database);
