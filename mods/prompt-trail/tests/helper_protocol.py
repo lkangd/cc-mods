@@ -4906,6 +4906,12 @@ class HelperProtocolTests(unittest.TestCase):
         self.clear_run(project_id, cleared["run_id"])
         self.assertEqual(self.archive_status(project_id)["integrityGaps"], 2)
 
+    def test_archive_status_counts_no_gaps_for_a_project_with_no_archive_yet(self) -> None:
+        # Another project's archive makes the root exist.
+        self.boundary(identity=self.identity("d4" * 32), kind="integrity-gap")
+
+        self.assertEqual(self.archive_status("d5" * 32)["integrityGaps"], 0)
+
     def test_archive_status_leaves_the_gap_count_unknown_when_the_archive_cannot_be_read(self) -> None:
         project_id = "d2" * 32
         self.boundary(identity=self.identity(project_id), kind="integrity-gap")

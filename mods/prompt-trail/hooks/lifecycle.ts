@@ -133,19 +133,10 @@ export function landGap(state: LifecycleState, recoveryAt: number): LifecycleSta
 }
 
 /* The gap and its recovery are both in the archive: nothing is owed, and the
-   losses it records are no longer reported as current. A loss found after it
-   landed is not among them, and stays to be recorded by a gap of its own. */
+   losses it records are no longer reported as current. */
 export function settleGap(state: LifecycleState): LifecycleState {
-  const owed = state.gap
-  if (!owed) return state
-  const recorded = new Set(owed.reasons)
-  const { gap: _gap, overflowed, damaged, unobservedClear, ...rest } = state
-  return {
-    ...rest,
-    ...(overflowed && !recorded.has('queue-overflow') ? { overflowed } : {}),
-    ...(damaged && !recorded.has('queue-damaged') ? { damaged } : {}),
-    ...(unobservedClear && !recorded.has('clear-unobserved') ? { unobservedClear } : {}),
-  }
+  const { gap: _gap, overflowed: _overflowed, damaged: _damaged, unobservedClear: _unobserved, ...rest } = state
+  return rest
 }
 
 /* One process generation's stretch of a Run. `id` makes the attach and detach
