@@ -2918,14 +2918,16 @@ class HelperProtocolTests(unittest.TestCase):
 
     def schema_1_archive(
         self, project_id: str, count: int, *, extra: str = "", text_bytes: int = 0,
+        journal: str = "WAL",
     ) -> dict[str, object]:
         """A schema-1 archive as the first helpers left it: `count` Prompt
         Entries on one Run and one staged capture, each text a marker padded
         to at least `text_bytes`. Answers what the protocol must still show."""
         identity = self.identity(project_id)
         entries = []
-        # Helpers have always kept their archives in WAL.
-        script = ["PRAGMA journal_mode=WAL;", self.SCHEMA_1_DDL]
+        # Helpers have always kept their archives in WAL; a copy restored by
+        # other means may not be.
+        script = [f"PRAGMA journal_mode={journal};", self.SCHEMA_1_DDL]
         for index in range(count):
             event_id = str(uuid.uuid4())
             text = f"PT-SECRET-LEGACY-{index}-".ljust(text_bytes, "x")
@@ -3093,15 +3095,19 @@ class HelperProtocolTests(unittest.TestCase):
 
     def test_an_archive_failing_its_integrity_check_is_not_migrated(self) -> None:
         damages = {
-            "damaged-page": lambda path: self.corrupt_page(path),
+            "damaged-page": ("WAL", lambda path: self.corrupt_page(path)),
             # Every row still reads back; only the index no longer matches
             # the table, which only a full integrity check notices.
-            "stale-index": lambda path: self.redefine_index(path),
+            "stale-index": ("WAL", lambda path: self.redefine_index(path)),
+            # Not even the switch to WAL may happen before the checks pass.
+            "rollback-journal": ("DELETE", lambda path: self.redefine_index(path)),
         }
-        for index, (name, damage) in enumerate(damages.items()):
+        for index, (name, (journal, damage)) in enumerate(damages.items()):
             with self.subTest(damage=name):
                 project_id = f"f{index}" * 32
-                legacy = self.schema_1_archive(project_id, 60, text_bytes=2000)
+                legacy = self.schema_1_archive(
+                    project_id, 60, text_bytes=2000, journal=journal
+                )
                 damage(legacy["path"])
                 before = self.archive_files(project_id)
 
@@ -3267,6 +3273,34 @@ class HelperProtocolTests(unittest.TestCase):
         # Kills landed both before and after the upgrade committed.
         self.assertGreater(phases[1], 0, phases)
         self.assertGreater(phases[2], 0, phases)
+
+
+    def test_an_archive_its_owner_may_only_read_is_named_read_only(self) -> None:
+        project_id = "de" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-KEPT", identity=identity)
+        database_root = self.plugin_data / "archives"
+        path = self.archive_path(project_id)
+
+        path.chmod(0o400)
+        self.addCleanup(path.chmod, 0o600)
+        before = self.archive_files(project_id)
+        file_results = [
+            self.run_helper(*self.read_argv(project_id=project_id)),
+            self.run_helper(
+                *self.begin_argv(str(uuid.uuid4()), **identity),
+                input_text="PT-SECRET-REFUSED",
+            ),
+        ]
+        path.chmod(0o600)
+        # A writer restores its own root's mode; a read does not touch it.
+        database_root.chmod(0o500)
+        self.addCleanup(database_root.chmod, 0o700)
+        directory_result = self.run_helper(*self.read_argv(project_id=project_id))
+        database_root.chmod(0o700)
+
+        for result in [*file_results, directory_result]:
+            self.assert_refused_untouched(result, "archive-read-only", project_id, before)
 
 
 if __name__ == "__main__":
