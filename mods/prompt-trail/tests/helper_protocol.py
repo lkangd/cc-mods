@@ -3888,7 +3888,7 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(
             self.archive_status(project_id),
             {"projectId": project_id, "generation": None, "quarantined": [], "quarantineUnderway": False,
-             "clearUnderway": False},
+             "clearUnderway": False, "clearRunUnderway": False},
         )
         self.assertFalse((self.plugin_data / "archives").exists())
 
@@ -4216,13 +4216,14 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(self.indexed_sessions(), staying)
 
 
-    def inventory(self, project_id: str) -> dict[str, object]:
+    def inventory(self, project_id: str, run_id: str | None = None) -> dict[str, object]:
         result = self.run_helper(
             "clear-inventory",
             str(self.plugin_data / "archives"),
             project_id,
             json.loads(MANIFEST.read_text())["sha256"],
             "1",
+            *((run_id,) if run_id else ()),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stderr, "")
@@ -4231,7 +4232,7 @@ class HelperProtocolTests(unittest.TestCase):
 
     def test_a_clear_inventory_lists_what_a_clear_would_remove_without_changing_it(self) -> None:
         project_id = "a7" * 32
-        nothing = {"projectId": project_id, "present": False, "clearUnderway": False,
+        nothing = {"projectId": project_id, "present": False, "clearUnderway": False, "clearRunUnderway": False,
                    "generation": None, "entries": 0, "pending": 0, "otherLiveRuns": 0,
                    "files": [], "quarantined": []}
         self.assertEqual(self.inventory(project_id), nothing)
@@ -4456,6 +4457,305 @@ class HelperProtocolTests(unittest.TestCase):
 
         self.assertEqual(self.project_files(project_id), before)
         self.assertEqual((listed["entries"], listed["pending"]), (3, 1))
+
+
+    # Clearing one Run (Issue 29). Its rows go from the archive in place, the
+    # links other Runs' entries had to them with them; everything else stays.
+
+    def clear_run_argv(
+        self, *, project_id: str, run_id: str, only_continue: bool = False,
+    ) -> tuple[str, ...]:
+        return (
+            "clear-run",
+            str(self.plugin_data / "archives"),
+            project_id,
+            run_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+            *(("--continue",) if only_continue else ()),
+        )
+
+    def clear_run(self, project_id: str, run_id: str, *, only_continue: bool = False) -> dict[str, object]:
+        result = self.run_helper(
+            *self.clear_run_argv(project_id=project_id, run_id=run_id, only_continue=only_continue)
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertNotIn("PT-SECRET", result.stdout)
+        return json.loads(result.stdout)
+
+    def test_a_run_clear_removes_that_runs_records_and_keeps_every_other_run(self) -> None:
+        project_id = "b0" * 32
+        cleared = self.identity(project_id)
+        kept = self.identity(project_id)
+        first = self.capture("PT-SECRET-GONE-FIRST", identity=cleared)
+        self.boundary(identity=cleared, kind="clear")
+        # A fork of the cleared Run: its first entry's parent is the cleared Run's.
+        forked = self.capture("PT-SECRET-KEPT-FORK", identity=kept, parent=first)
+        self.capture("PT-SECRET-GONE-SECOND", identity=cleared, parent=first)
+        kept_boundary, _ = self.boundary(identity=kept, kind="collection-stopped")
+        staged = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), parent=first, **cleared), input_text="PT-SECRET-GONE-STAGED"
+        )
+        self.assertEqual(staged.returncode, 0, staged.stderr)
+        kept_before = [event for event in self.timeline(project_id) if event[0] in {forked, kept_boundary}]
+        generation = self.check(project_id)["generation"]
+
+        answer = self.clear_run(project_id, cleared["run_id"])
+
+        self.assertEqual(
+            answer,
+            {"projectId": project_id, "cleared": True, "continued": False, "entries": 2, "pending": 1,
+             "events": 1, "unlinked": 1},
+        )
+        self.assertEqual(self.markers_left(b"PT-SECRET-GONE"), [])
+        self.assertNotEqual(self.markers_left(b"PT-SECRET-KEPT-FORK"), [])
+        self.assertEqual(self.timeline(project_id), kept_before)
+        self.assertIsNone(self.read(project_id=project_id)["events"][0]["parentEventId"])
+        # The same generation, cleared in place and left sound.
+        checked = self.check(project_id)
+        self.assertEqual((checked["result"], checked["generation"]), ("ok", generation))
+        wal = self.archive_path(project_id).with_name(f"{project_id}.sqlite3-wal")
+        self.assertTrue(not wal.exists() or wal.stat().st_size == 0)
+        self.assertLessEqual(
+            set(self.project_files(project_id)),
+            {f"{project_id}.lock", f"{project_id}.sqlite3", f"{project_id}.sqlite3-wal", f"{project_id}.sqlite3-shm"},
+        )
+
+
+    def test_a_run_clear_with_nothing_of_that_run_does_nothing(self) -> None:
+        project_id = "b1" * 32
+        run_id = str(uuid.uuid4())
+        nothing = {"projectId": project_id, "cleared": False, "continued": False, "entries": 0,
+                   "pending": 0, "events": 0, "unlinked": 0}
+
+        self.assertEqual(self.clear_run(project_id, run_id), nothing)
+        self.assertFalse((self.plugin_data / "archives").exists())
+
+        self.capture("PT-SECRET-OTHER-RUN", identity=self.identity(project_id))
+        before = self.archive_files(project_id)
+        self.assertEqual(self.clear_run(project_id, run_id), nothing)
+        # Continuing finds no clear under way, for this Run or another.
+        mine = self.identity(project_id, run_id=run_id)
+        self.capture("PT-SECRET-MINE", identity=mine)
+        self.assertEqual(self.clear_run(project_id, run_id, only_continue=True), nothing)
+        self.assertNotEqual(self.markers_left(b"PT-SECRET-MINE"), [])
+        self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
+        self.assertTrue(before)
+
+    def test_a_run_clear_refuses_while_the_project_has_a_quarantined_archive(self) -> None:
+        project_id = "b2" * 32
+        legacy = self.damaged_archive_with_companions(project_id)
+        self.quarantine(project_id, self.check(project_id)["generation"])
+        identity = legacy["identity"]
+        self.capture("PT-SECRET-AFTER-QUARANTINE", identity=identity)
+        before = self.archive_files(project_id)
+
+        refused = self.run_helper(
+            *self.clear_run_argv(project_id=project_id, run_id=identity["run_id"])
+        )
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr), {"category": "clear-run-quarantined"})
+        self.assertEqual(self.archive_files(project_id), before)
+        self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
+
+    def test_a_run_clear_cut_short_is_finished_by_any_run(self) -> None:
+        # The states a kill leaves once the intent stands: nothing deleted
+        # yet, or the rows deleted and their text still in the WAL's frames.
+        archives = self.plugin_data / "archives"
+        for index, deleted in enumerate((False, True)):
+            with self.subTest(deleted=deleted):
+                project_id = ("b3", "b4")[index] * 32
+                cleared = self.identity(project_id)
+                kept = self.identity(project_id)
+                first = self.capture("PT-SECRET-GONE", identity=cleared)
+                self.capture("PT-SECRET-KEPT", identity=kept, parent=first)
+                path = self.archive_path(project_id)
+                if deleted:
+                    subprocess.run(
+                        ["python3", "-c",
+                         "import os, sqlite3, sys\n"
+                         "c = sqlite3.connect(sys.argv[1])\n"
+                         "c.execute('PRAGMA wal_autocheckpoint=0')\n"
+                         "children = 'parent_event_id IN (SELECT event_id FROM prompt_entries"
+                         " WHERE run_id=?1) AND run_id<>?1'\n"
+                         "c.execute('UPDATE prompt_entries SET parent_event_id=NULL WHERE ' + children,"
+                         " (sys.argv[2],))\n"
+                         "c.execute('DELETE FROM prompt_entries WHERE run_id=?', (sys.argv[2],))\n"
+                         "c.commit()\n"
+                         "os._exit(0)\n",
+                         str(path), cleared["run_id"]],
+                        check=True,
+                    )
+                    self.assertNotEqual(self.markers_left(b"PT-SECRET-GONE"), [])
+                intent = archives / f"{project_id}.clearing-run"
+                intent.write_text(f"{cleared['run_id']}\n")
+                intent.chmod(0o600)
+                self.assertTrue(self.archive_status(project_id)["clearRunUnderway"])
+                refused = {
+                    "timeline-read": self.read_argv(project_id=project_id),
+                    "capture-list": self.list_argv(project_id=project_id),
+                    "integrity-check": self.check_argv(project_id=project_id),
+                    "boundary-append": self.boundary_argv(str(uuid.uuid4()), kind="clear", **kept),
+                    "capture-begin": self.begin_argv(str(uuid.uuid4()), **kept),
+                    "quarantine": self.quarantine_argv(project_id=project_id, generation="stale"),
+                }
+                for command, argv in refused.items():
+                    with self.subTest(command=command):
+                        result = self.run_helper(*argv, input_text="PT-SECRET-REFUSED")
+                        self.assertEqual(result.returncode, 25, result.stderr)
+                        self.assertEqual(json.loads(result.stderr)["category"], "clear-run-unfinished")
+
+                # Another Run asks, only to continue: the Run the intent names goes.
+                finished = self.clear_run(project_id, kept["run_id"], only_continue=True)
+
+                self.assertEqual(
+                    (finished["cleared"], finished["continued"], finished["entries"]),
+                    (True, True, 0 if deleted else 1),
+                )
+                self.assertEqual(self.markers_left(b"PT-SECRET-GONE"), [])
+                self.assertNotEqual(self.markers_left(b"PT-SECRET-KEPT"), [])
+                self.assertFalse(intent.exists())
+                self.assertFalse(self.archive_status(project_id)["clearRunUnderway"])
+                self.assertEqual([event[3] for event in self.timeline(project_id)], ["PT-SECRET-KEPT"])
+
+
+    def test_a_run_clear_of_an_archive_it_upgrades_leaves_no_migration_backup(self) -> None:
+        project_id = "b5" * 32
+        legacy = self.schema_1_archive(project_id, 3, text_bytes=2000)
+        run_id = legacy["identity"]["run_id"]
+
+        answer = self.clear_run(project_id, run_id)
+
+        self.assertEqual((answer["entries"], answer["pending"]), (3, 1))
+        self.assertFalse(self.backup_path(project_id).exists())
+        self.assertEqual(self.markers_left(b"PT-SECRET-LEGACY"), [])
+        self.assertEqual(self.timeline(project_id), [])
+
+    def test_a_run_clear_whose_wal_cannot_be_emptied_stays_unfinished_until_one_finishes(self) -> None:
+        project_id = "b6" * 32
+        cleared = self.identity(project_id)
+        kept = self.identity(project_id)
+        self.capture("PT-SECRET-GONE", identity=cleared)
+        self.capture("PT-SECRET-KEPT", identity=kept)
+        # A reader outside every helper holds its snapshot, so the WAL
+        # cannot be folded back and emptied.
+        reader = subprocess.Popen(
+            ["python3", "-c",
+             "import sqlite3, sys\n"
+             "c = sqlite3.connect(sys.argv[1], isolation_level=None)\n"
+             "c.execute('BEGIN')\n"
+             "c.execute('SELECT count(*) FROM prompt_entries').fetchone()\n"
+             "print('holding', flush=True)\n"
+             "sys.stdin.read()\n",
+             str(self.archive_path(project_id))],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+        )
+        self.addCleanup(reader.kill)
+        self.assertEqual(reader.stdout.readline().strip(), "holding")
+
+        stopped = self.run_helper(*self.clear_run_argv(project_id=project_id, run_id=cleared["run_id"]))
+
+        self.assertEqual(stopped.returncode, 25, stopped.stderr)
+        self.assertEqual(json.loads(stopped.stderr), {"category": "clear-run-unfinished"})
+        self.assertTrue(self.archive_status(project_id)["clearRunUnderway"])
+        refused = self.run_helper(*self.read_argv(project_id=project_id))
+        self.assertEqual(json.loads(refused.stderr)["category"], "clear-run-unfinished")
+
+        reader.communicate("")
+        finished = self.clear_run(project_id, kept["run_id"], only_continue=True)
+
+        self.assertEqual((finished["cleared"], finished["continued"], finished["entries"]), (True, True, 0))
+        self.assertEqual(self.markers_left(b"PT-SECRET-GONE"), [])
+        self.assertEqual([event[3] for event in self.timeline(project_id)], ["PT-SECRET-KEPT"])
+
+
+    def test_a_clear_inventory_for_a_run_counts_what_a_run_clear_would_remove(self) -> None:
+        project_id = "b7" * 32
+        run_id = str(uuid.uuid4())
+        self.assertEqual(
+            self.inventory(project_id, run_id)["run"],
+            {"entries": 0, "pending": 0, "events": 0, "attaches": 0, "startedAt": None, "unlinked": 0},
+        )
+        cleared = self.identity(project_id, run_id=run_id)
+        self.run_helper(*self.boundary_argv(str(uuid.uuid4()), kind="run-started",
+                                            occurred_at="1795000000100", **cleared))
+        first = self.capture("PT-SECRET-GONE", identity=cleared)
+        self.boundary(identity=cleared, kind="run-detached")
+        self.boundary(identity=cleared, kind="run-attached")
+        self.capture("PT-SECRET-KEPT", identity=self.identity(project_id), parent=first)
+        before = self.archive_files(project_id)
+
+        listed = self.inventory(project_id, run_id)
+
+        self.assertEqual(
+            listed["run"],
+            {"entries": 1, "pending": 0, "events": 3, "attaches": 2,
+             "startedAt": 1795000000000, "unlinked": 1},
+        )
+        self.assertFalse(listed["clearRunUnderway"])
+        self.assertEqual(self.archive_files(project_id), before)
+        self.assertNotIn("run", self.inventory(project_id))
+
+        intent = self.plugin_data / "archives" / f"{project_id}.clearing-run"
+        intent.write_text(f"{run_id}\n")
+        intent.chmod(0o600)
+        underway = self.inventory(project_id, run_id)
+        self.assertTrue(underway["clearRunUnderway"])
+        # Past the cut nothing reads the Run's records.
+        self.assertIsNone(underway["run"])
+
+
+    def test_a_clear_all_takes_over_an_unfinished_run_clear(self) -> None:
+        project_id = "b8" * 32
+        cleared = self.identity(project_id)
+        self.capture("PT-SECRET-GONE", identity=cleared)
+        intent = self.plugin_data / "archives" / f"{project_id}.clearing-run"
+        intent.write_text(f"{cleared['run_id']}\n")
+        intent.chmod(0o600)
+        self.assertTrue(self.inventory(project_id)["present"])
+
+        self.assertTrue(self.clear(project_id)["cleared"])
+
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(self.markers_left(), [])
+        self.assertEqual(self.read(project_id=project_id)["events"], [])
+
+    def test_after_a_run_clear_sequences_go_on_and_other_runs_confirm_onto_roots(self) -> None:
+        project_id = "b9" * 32
+        cleared = self.identity(project_id)
+        kept = self.identity(project_id)
+        first = self.capture("PT-SECRET-GONE", identity=cleared)
+        # Staged by another Run on the cleared Run's entry, confirmed after.
+        staged = str(uuid.uuid4())
+        begun = self.run_helper(*self.begin_argv(staged, parent=first, **kept), input_text="PT-SECRET-KEPT")
+        self.assertEqual(begun.returncode, 0, begun.stderr)
+        _, last = self.boundary(identity=cleared, kind="clear")
+
+        self.clear_run(project_id, cleared["run_id"])
+        confirmed = self.run_helper(*self.confirm_argv(staged, project_id=project_id), input_text="PT-SECRET-KEPT")
+
+        self.assertEqual(confirmed.returncode, 0, confirmed.stderr)
+        answer = json.loads(confirmed.stdout)
+        # The cleared sequences are never handed out again.
+        self.assertEqual((answer["sequence"] > last, answer["ordinal"]), (True, 1))
+        self.assertIsNone(self.read(project_id=project_id)["events"][0]["parentEventId"])
+
+    def test_a_run_clear_refuses_a_damaged_archive_and_cuts_nothing(self) -> None:
+        project_id = "c0" * 32
+        legacy = self.current_archive(project_id, count=60)
+        self.corrupt_page(self.archive_path(project_id))
+        before = self.archive_files(project_id)
+
+        refused = self.run_helper(
+            *self.clear_run_argv(project_id=project_id, run_id=legacy["identity"]["run_id"])
+        )
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr)["category"], "archive-integrity")
+        self.assertEqual(self.archive_files(project_id), before)
+        self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
 
 
 if __name__ == "__main__":

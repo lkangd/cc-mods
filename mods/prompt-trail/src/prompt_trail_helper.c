@@ -619,7 +619,12 @@ static long long wait_deadline_ms;
    a quarantine moves that generation and no later one. */
 static char opened_generation[129];
 
+/* Set once a Run clear has put its intent in place: whatever stops it after
+   that leaves the clear unfinished, not undone. */
+static bool clear_run_past_cut;
+
 static void archive_failure_exit(const char *category) {
+  if (clear_run_past_cut) json_error(EXIT_ARCHIVE_UNAVAILABLE, "clear-run-unfinished");
   if (strcmp(category, "archive-integrity") == 0 && opened_generation[0]) {
     fprintf(
       stderr,
@@ -1319,6 +1324,15 @@ static bool clear_intent_path(
   return length >= 0 && length < PATH_MAX;
 }
 
+static bool clear_run_intent_path(
+  const char *database_root,
+  const char *project_id,
+  char path[PATH_MAX]
+) {
+  int length = snprintf(path, PATH_MAX, "%s/%s.clearing-run", database_root, project_id);
+  return length >= 0 && length < PATH_MAX;
+}
+
 /* Whether an intent stands at `path`; anything but a clear answer fails. */
 static bool intent_present(const char *path) {
   struct stat status;
@@ -1327,7 +1341,7 @@ static bool intent_present(const char *path) {
   return false;
 }
 
-static void refuse_unfinished_replacement(const char *database_root, const char *project_id) {
+static void refuse_unfinished_generation(const char *database_root, const char *project_id) {
   char intent[PATH_MAX];
   if (!clear_intent_path(database_root, project_id, intent)) archive_error("database-path");
   if (intent_present(intent)) archive_error("clear-unfinished");
@@ -1335,6 +1349,15 @@ static void refuse_unfinished_replacement(const char *database_root, const char 
     archive_error("database-path");
   }
   if (intent_present(intent)) archive_error("quarantine-failed");
+}
+
+/* A Run clear under way refuses too: the Run's records may still stand in
+   the archive or its WAL, and only a Run clear finishes removing them. */
+static void refuse_unfinished_replacement(const char *database_root, const char *project_id) {
+  refuse_unfinished_generation(database_root, project_id);
+  char intent[PATH_MAX];
+  if (!clear_run_intent_path(database_root, project_id, intent)) archive_error("database-path");
+  if (intent_present(intent)) archive_error("clear-run-unfinished");
 }
 
 /* An Archive generation's identity: the file it lives in. A quarantine or a
@@ -3482,6 +3505,8 @@ static void quarantine(int argc, char **argv) {
   char clearing[PATH_MAX];
   if (!clear_intent_path(database_root, project_id, clearing)) archive_error("database-path");
   if (intent_present(clearing)) archive_error("clear-unfinished");
+  if (!clear_run_intent_path(database_root, project_id, clearing)) archive_error("database-path");
+  if (intent_present(clearing)) archive_error("clear-run-unfinished");
 
   char database_path[PATH_MAX];
   char intent[PATH_MAX];
@@ -3698,6 +3723,7 @@ static void archive_status(int argc, char **argv) {
   bool generated = root_present && project_generation(database_root, project_id, generation);
   bool underway = false;
   bool clearing = false;
+  bool clearing_run = false;
   if (root_present) {
     char intent[PATH_MAX];
     if (!quarantine_intent_path(database_root, project_id, intent)) {
@@ -3706,6 +3732,8 @@ static void archive_status(int argc, char **argv) {
     underway = intent_present(intent);
     if (!clear_intent_path(database_root, project_id, intent)) archive_error("database-path");
     clearing = intent_present(intent);
+    if (!clear_run_intent_path(database_root, project_id, intent)) archive_error("database-path");
+    clearing_run = intent_present(intent);
   }
   write_status_string("{\"projectId\":", project_id);
   if (generated) {
@@ -3715,6 +3743,7 @@ static void archive_status(int argc, char **argv) {
   }
   fputs(underway ? ",\"quarantineUnderway\":true" : ",\"quarantineUnderway\":false", stdout);
   fputs(clearing ? ",\"clearUnderway\":true" : ",\"clearUnderway\":false", stdout);
+  fputs(clearing_run ? ",\"clearRunUnderway\":true" : ",\"clearRunUnderway\":false", stdout);
   write_quarantined(root_present ? database_root : NULL, project_id);
   fputs("}\n", stdout);
 }
@@ -3947,6 +3976,25 @@ static void clear_session_index(
   }
 }
 
+/* Puts `content` at `intent` whole or not at all, durable before it is in
+   place; the directory entry is the caller's to make durable. */
+static void place_intent(const char *intent, const char *content) {
+  char staged[PATH_MAX];
+  int length = snprintf(staged, PATH_MAX, "%s.partial", intent);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  unlink(staged);
+  int descriptor = open(staged, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+  if (descriptor < 0) archive_error(errno == ENOSPC ? "archive-full" : "database-unavailable");
+  size_t size = strlen(content);
+  bool written = write(descriptor, content, size) == (ssize_t)size
+    && (fcntl(descriptor, F_FULLFSYNC) == 0 || fsync(descriptor) == 0);
+  close(descriptor);
+  if (!written || rename(staged, intent) != 0) {
+    unlink(staged);
+    archive_error("database-unavailable");
+  }
+}
+
 static void clear_all(int argc, char **argv) {
   if ((argc != 8 && argc != 9) || strcmp(argv[7], "--stdin") != 0) usage();
   /* Only finishing a clear already under way, which the person agreed to
@@ -3997,19 +4045,7 @@ static void clear_all(int argc, char **argv) {
   /* The cut. Once the intent stands, no command opens the archive or makes
      a new one until a clear has removed everything and the intent with it. */
   if (!resuming) {
-    char staged[PATH_MAX];
-    length = snprintf(staged, PATH_MAX, "%s.partial", intent);
-    if (length < 0 || length >= PATH_MAX) archive_error("database-path");
-    unlink(staged);
-    int descriptor = open(staged, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
-    if (descriptor < 0) archive_error(errno == ENOSPC ? "archive-full" : "database-unavailable");
-    bool written = write(descriptor, "clear\n", 6) == 6
-      && (fcntl(descriptor, F_FULLFSYNC) == 0 || fsync(descriptor) == 0);
-    close(descriptor);
-    if (!written || rename(staged, intent) != 0) {
-      unlink(staged);
-      archive_error("database-unavailable");
-    }
+    place_intent(intent, "clear\n");
     /* In place, the intent already refuses every command: the clear has
        begun, and only a clear finishes it. */
     if (!sync_directory(database_root)) json_error(EXIT_ARCHIVE_UNAVAILABLE, "clear-unfinished");
@@ -4056,31 +4092,104 @@ static void clear_all(int argc, char **argv) {
   free(found.run_ids);
 }
 
+/* What a Run clear removes, as far as the archive answers: -1 where it
+   cannot. `attaches` and `started_at` only describe the Run to the person. */
+typedef struct {
+  long long entries;
+  long long pending;
+  long long events;
+  long long unlinked;
+  long long attaches;
+  long long started_at;
+} ClearRunCounts;
+
+#define CLEAR_RUN_CHILDREN \
+  "parent_event_id IN (SELECT event_id FROM prompt_entries WHERE run_id=?1)" \
+  " AND run_id<>?1"
+
+static long long clear_run_count(sqlite3 *database, const char *sql, const char *run_id) {
+  sqlite3_stmt *statement = NULL;
+  long long count = -1;
+  if (sqlite3_prepare_v2(database, sql, -1, &statement, NULL) == SQLITE_OK
+      && sqlite3_bind_text(statement, 1, run_id, -1, SQLITE_TRANSIENT) == SQLITE_OK
+      && sqlite3_step(statement) == SQLITE_ROW) {
+    count = sqlite3_column_type(statement, 0) == SQLITE_NULL ? 0 : sqlite3_column_int64(statement, 0);
+  }
+  sqlite3_finalize(statement);
+  return count;
+}
+
+static ClearRunCounts clear_run_counts(sqlite3 *database, const char *run_id) {
+  return (ClearRunCounts){
+    clear_run_count(database, "SELECT count(*) FROM prompt_entries WHERE run_id=?1", run_id),
+    clear_run_count(database, "SELECT count(*) FROM pending_captures WHERE run_id=?1", run_id),
+    clear_run_count(database, "SELECT count(*) FROM timeline_events WHERE run_id=?1", run_id),
+    clear_run_count(
+      database,
+      "SELECT (SELECT count(*) FROM prompt_entries WHERE " CLEAR_RUN_CHILDREN ")"
+      " + (SELECT count(*) FROM pending_captures WHERE " CLEAR_RUN_CHILDREN ")",
+      run_id
+    ),
+    clear_run_count(
+      database,
+      "SELECT count(*) FROM timeline_events"
+      " WHERE run_id=?1 AND kind IN ('run-started', 'run-attached')",
+      run_id
+    ),
+    clear_run_count(
+      database,
+      "SELECT min(at) FROM ("
+      " SELECT min(occurred_at_ms) AS at FROM prompt_entries WHERE run_id=?1"
+      " UNION ALL SELECT min(occurred_at_ms) FROM pending_captures WHERE run_id=?1"
+      " UNION ALL SELECT min(occurred_at_ms) FROM timeline_events WHERE run_id=?1)",
+      run_id
+    ),
+  };
+}
+
+static bool clear_run_counted(ClearRunCounts counts) {
+  return counts.entries >= 0 && counts.pending >= 0 && counts.events >= 0
+    && counts.unlinked >= 0 && counts.attaches >= 0 && counts.started_at >= 0;
+}
+
 /* What a clear-all would remove, for the person to see before confirming:
    the counts the archive can still give, each of the project's files with
    its size, and each quarantined archive. It holds the lock shared and
    answers even while a quarantine or a clear is unfinished, whose leftovers
    are then what it lists. */
 static void clear_inventory(int argc, char **argv) {
-  if (argc != 6) usage();
+  if (argc != 6 && argc != 7) usage();
   const char *database_root = argv[2];
   const char *project_id = argv[3];
+  /* With a Run, also what a Run clear of it would remove. */
+  const char *run_id = argc == 7 ? argv[6] : NULL;
   if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  if (run_id && !pt_is_safe_identifier(run_id)) archive_error("clear-input");
   bool root_present =
     capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
   write_status_string("{\"projectId\":", project_id);
   if (!root_present) {
     fputs(
-      ",\"present\":false,\"clearUnderway\":false,\"generation\":null,"
-      "\"entries\":0,\"pending\":0,\"otherLiveRuns\":0,\"files\":[],\"quarantined\":[]}\n",
+      ",\"present\":false,\"clearUnderway\":false,\"clearRunUnderway\":false,\"generation\":null,"
+      "\"entries\":0,\"pending\":0,\"otherLiveRuns\":0,\"files\":[],\"quarantined\":[]",
       stdout
     );
+    if (run_id) {
+      fputs(
+        ",\"run\":{\"entries\":0,\"pending\":0,\"events\":0,\"attaches\":0,"
+        "\"startedAt\":null,\"unlinked\":0}",
+        stdout
+      );
+    }
+    fputs("}\n", stdout);
     return;
   }
   lock_project(database_root, project_id, false);
   char intent[PATH_MAX];
   if (!clear_intent_path(database_root, project_id, intent)) archive_error("database-path");
   bool clearing = intent_present(intent);
+  if (!clear_run_intent_path(database_root, project_id, intent)) archive_error("database-path");
+  bool clearing_run = intent_present(intent);
   char database_path[PATH_MAX];
   int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
   if (length < 0 || length >= PATH_MAX) archive_error("database-path");
@@ -4091,6 +4200,18 @@ static void clear_inventory(int argc, char **argv) {
   bool archived = !clearing && archive_generation(database_path, generation);
   ClearFindings found = { archived || clearing ? -1 : 0, archived || clearing ? -1 : 0, NULL, 0 };
   if (archived) clear_read_archive(database_path, &found);
+  /* Nothing past a Run clear's cut is read for the Run either. */
+  ClearRunCounts run_counts = { 0, 0, 0, 0, 0, 0 };
+  bool run_known = !clearing && !clearing_run;
+  if (run_id && archived && run_known) {
+    sqlite3 *database = clear_open_archive(database_path);
+    if (database) {
+      sqlite3_exec(database, "PRAGMA temp_store=MEMORY", NULL, NULL, NULL);
+      run_counts = clear_run_counts(database, run_id);
+      sqlite3_close(database);
+    }
+    run_known = database && clear_run_counted(run_counts);
+  }
   /* Runs of this project a live process elsewhere is attached to: they go
      on in the next generation, and meanwhile still show what they drew. */
   long long live_here = -1;
@@ -4106,6 +4227,7 @@ static void clear_inventory(int argc, char **argv) {
 
   printf(",\"present\":%s", clearing || clear_has_files(database_root, project_id) ? "true" : "false");
   printf(",\"clearUnderway\":%s", clearing ? "true" : "false");
+  printf(",\"clearRunUnderway\":%s", clearing_run ? "true" : "false");
   if (archived) {
     write_status_string(",\"generation\":", generation);
   } else {
@@ -4136,7 +4258,185 @@ static void clear_inventory(int argc, char **argv) {
   closedir(directory);
   fputs("]", stdout);
   write_quarantined(database_root, project_id);
+  if (run_id && !run_known) {
+    fputs(",\"run\":null", stdout);
+  } else if (run_id) {
+    printf(
+      ",\"run\":{\"entries\":%lld,\"pending\":%lld,\"events\":%lld,\"attaches\":%lld,",
+      run_counts.entries,
+      run_counts.pending,
+      run_counts.events,
+      run_counts.attaches
+    );
+    if (run_counts.started_at > 0) printf("\"startedAt\":%lld", run_counts.started_at);
+    else fputs("\"startedAt\":null", stdout);
+    printf(",\"unlinked\":%lld}", run_counts.unlinked);
+  }
   fputs("}\n", stdout);
+}
+
+/* Clearing one Run. Its Prompt Entries, Pending Captures and Timeline Events
+   go from the archive in place, and so do the links other Runs' entries had
+   to them, which leaves those entries roots; the generation stays, as does
+   every other Run's record. The cut is an intent naming the Run, put in
+   place under the project's lock before anything is deleted: from then on no
+   command opens the archive until a Run clear has deleted the rows, folded
+   and emptied the WAL, compacted the file and removed any migration backup,
+   and the intent with them. */
+
+static void clear_run_statement(sqlite3 *database, const char *sql, const char *run_id) {
+  sqlite3_stmt *statement = archive_prepare(database, sql);
+  archive_bind_text(database, statement, 1, run_id);
+  if (sqlite3_step(statement) != SQLITE_DONE) archive_error("archive-sqlite");
+  sqlite3_finalize(statement);
+}
+
+/* The Run an intent names, or false when there is no intent. */
+static bool clear_run_intended(const char *intent, char run_id[129]) {
+  if (!intent_present(intent)) return false;
+  char *content = NULL;
+  size_t length = 0;
+  if (!pt_read_file(intent, &content, &length)
+      || length == 0 || length > 128 || content[length - 1] != '\n') {
+    free(content);
+    archive_error("clear-run-unfinished");
+  }
+  content[length - 1] = '\0';
+  bool named = pt_is_safe_identifier(content);
+  if (named) snprintf(run_id, 129, "%s", content);
+  free(content);
+  if (!named) archive_error("clear-run-unfinished");
+  return true;
+}
+
+/* Whether the WAL beside the archive holds nothing: gone, or emptied. */
+static bool clear_run_wal_empty(const char *database_path) {
+  char wal[PATH_MAX];
+  int length = snprintf(wal, PATH_MAX, "%s-wal", database_path);
+  if (length < 0 || length >= PATH_MAX) return false;
+  struct stat status;
+  if (lstat(wal, &status) != 0) return errno == ENOENT;
+  return status.st_size == 0;
+}
+
+static void write_clear_run(const char *project_id, bool cleared, bool continued, ClearRunCounts counts) {
+  write_status_string("{\"projectId\":", project_id);
+  printf(
+    ",\"cleared\":%s,\"continued\":%s,\"entries\":%lld,\"pending\":%lld,"
+    "\"events\":%lld,\"unlinked\":%lld}\n",
+    cleared ? "true" : "false",
+    continued ? "true" : "false",
+    counts.entries,
+    counts.pending,
+    counts.events,
+    counts.unlinked
+  );
+}
+
+static void clear_run(int argc, char **argv) {
+  if (argc != 7 && argc != 8) usage();
+  /* Only finishing a Run clear already under way, which the person agreed
+     to when it began: one that has meanwhile finished starts no new clear. */
+  bool only_continue = argc == 8;
+  if (only_continue && strcmp(argv[7], "--continue") != 0) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  if (!pt_is_safe_identifier(argv[4])) archive_error("clear-input");
+  ClearRunCounts counts = { 0, 0, 0, 0, 0, 0 };
+  if (!capture_runtime(database_root, argv[5], argv[6], PT_ROOT_OPTIONAL)) {
+    write_clear_run(project_id, false, false, counts);
+    return;
+  }
+  lock_project(database_root, project_id, true);
+  refuse_unfinished_generation(database_root, project_id);
+  char intent[PATH_MAX];
+  if (!clear_run_intent_path(database_root, project_id, intent)) archive_error("database-path");
+  /* An intent already there is finished for the Run it names, whichever
+     Run asks: that is the clear the person confirmed. */
+  char run_id[129];
+  bool resuming = clear_run_intended(intent, run_id);
+  if (!resuming) {
+    if (only_continue) {
+      write_clear_run(project_id, false, false, counts);
+      return;
+    }
+    snprintf(run_id, sizeof(run_id), "%s", argv[4]);
+    /* A quarantined archive is never opened, so what it holds of the Run
+       cannot be removed by Run. */
+    if (clear_count_quarantined(database_root, project_id) > 0) {
+      archive_error("clear-run-quarantined");
+    }
+  }
+  clear_run_past_cut = resuming;
+
+  char database_path[PATH_MAX];
+  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  struct stat status;
+  bool archived = lstat(database_path, &status) == 0;
+  if (!archived && errno != ENOENT) archive_error("database-unavailable");
+  if (!archived && !resuming) {
+    write_clear_run(project_id, false, false, counts);
+    return;
+  }
+  sqlite3 *database = archived
+    ? open_archive_at(database_root, project_id, database_path, false)
+    : NULL;
+  if (database) {
+    if (!resuming && !archive_checks_clean(database, true)) archive_error("archive-integrity");
+    counts = clear_run_counts(database, run_id);
+    if (!clear_run_counted(counts)) archive_error("archive-sqlite");
+  }
+  if (!resuming) {
+    if (counts.entries + counts.pending + counts.events == 0) {
+      close_archive(database);
+      write_clear_run(project_id, false, false, counts);
+      return;
+    }
+    /* The cut. */
+    char content[130];
+    snprintf(content, sizeof(content), "%s\n", run_id);
+    place_intent(intent, content);
+    clear_run_past_cut = true;
+    if (!sync_directory(database_root)) archive_error("clear-run-unfinished");
+  }
+
+  bool physical = true;
+  if (database) {
+    archive_sql(database, "BEGIN IMMEDIATE");
+    clear_run_statement(database, "UPDATE prompt_entries SET parent_event_id=NULL WHERE " CLEAR_RUN_CHILDREN, run_id);
+    clear_run_statement(database, "UPDATE pending_captures SET parent_event_id=NULL WHERE " CLEAR_RUN_CHILDREN, run_id);
+    clear_run_statement(database, "DELETE FROM pending_captures WHERE run_id=?1", run_id);
+    clear_run_statement(database, "DELETE FROM prompt_entries WHERE run_id=?1", run_id);
+    clear_run_statement(database, "DELETE FROM timeline_events WHERE run_id=?1", run_id);
+    archive_sql(database, "COMMIT");
+    /* What `secure_delete` zeroed reaches the file, earlier frames holding
+       the text go with the WAL, and the file is rebuilt without the pages
+       that held it; each step is tried, and any that fails leaves the clear
+       unfinished. */
+    int frames = -1;
+    int folded = -1;
+    physical = sqlite3_wal_checkpoint_v2(database, NULL, SQLITE_CHECKPOINT_TRUNCATE, &frames, &folded) == SQLITE_OK
+      && frames == folded;
+    physical = sqlite3_exec(database, "VACUUM", NULL, NULL, NULL) == SQLITE_OK && physical;
+    physical = sqlite3_wal_checkpoint_v2(database, NULL, SQLITE_CHECKPOINT_TRUNCATE, &frames, &folded) == SQLITE_OK
+      && frames == folded && physical;
+    close_archive(database);
+    physical = clear_run_wal_empty(database_path) && physical;
+  }
+  /* A migration backup holds every record the archive held before it. */
+  for (int version = 1; version < ARCHIVE_SCHEMA_VERSION; version += 1) {
+    char backup[PATH_MAX];
+    char partial[PATH_MAX];
+    migration_backup_paths(database_path, version, backup, partial);
+    if (unlink(backup) != 0 && errno != ENOENT) physical = false;
+    if (unlink(partial) != 0 && errno != ENOENT) physical = false;
+  }
+  if (!sync_directory(database_root) || !physical) archive_error("clear-run-unfinished");
+  if (unlink(intent) != 0 && errno != ENOENT) archive_error("clear-run-unfinished");
+  (void)sync_directory(database_root);
+  write_clear_run(project_id, true, resuming, counts);
 }
 
 static void usage(void) {
@@ -4204,6 +4504,10 @@ int main(int argc, char **argv) {
   }
   if (argc > 1 && strcmp(argv[1], "clear-all") == 0) {
     clear_all(argc, argv);
+    return 0;
+  }
+  if (argc > 1 && strcmp(argv[1], "clear-run") == 0) {
+    clear_run(argc, argv);
     return 0;
   }
   if (argc > 1 && strcmp(argv[1], "archive-status") == 0) {
