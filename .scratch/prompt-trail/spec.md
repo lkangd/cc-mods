@@ -114,7 +114,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 
 2. **领域模型**
    - Project Timeline 是一个规范项目根对应的永久时间线；不同 worktree、移动后的项目路径和不同规范根彼此隔离。
-   - Archive generation 是最近一次 `clear-all` 或隔离建立的档案世代；旧 generation 的 writer 不能向新 generation 写入或复活记录。（2026-09-28 Issue 28 修订。）
+   - Archive generation 是最近一次 `clear-all` 或隔离建立的档案世代；旧 generation 的 writer 不能向新 generation 写入或复活记录。（2026-09-28 Issue 28 修订。）generation 的身份就是活动档案文件本身，由插件的分支状态携带、helper 校验；locator 与会话索引里名为 `archiveGeneration` 的字段是历史遗留的 Run 世代令牌，不是 Archive generation，不参与任何校验。（2026-09-28 Issue 30 修订。）
    - Timeline Event 是不可变事件，以随机 `event_id` 幂等，并在事务中取得项目级单调 `sequence`；时间戳只用于展示。
    - Run 是一条会话谱系：普通启动创建新 Run，经 `/clear` 与 module reload 延续；`claude --resume`、`--continue` 与会话内 `/resume` 按 classic session id 找回所属 Run 并续接（档案中无该会话时新建）；后台 `/fork` 与 `--fork-session` 创建新 Run。进程只是接入或离开 Run，同一 Run 同一时刻至多一个存活进程接入；并发 resume 同一会话的后到进程新建 Run 并记录来源 Run。（2026-09-23 Issue 32 修订。）
    - Conversation Segment 是一个 Run 内由启动或 Clear Boundary 划分的连续区间。
@@ -225,11 +225,11 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
     - 不在运行时下载、编译、替换 helper，不修改 quarantine/xattr 或系统安全策略，也不捆绑另一份 SQLite。
 
 15. **并发与删除**
-    - `clear-all` 使用线性化切点和新 Archive generation：切点前记录全部删除，切点后的新提交只写新 generation，旧 writer 被拒绝。
+    - `clear-all` 使用线性化切点和新 Archive generation：切点前记录全部删除，切点后的新提交只写新 generation，旧 writer 被拒绝。切点是项目独占锁下写入的清除意向；意向存在期间一切打开都失败关闭，删完后原路径留空，下一次写入才建出新 generation。（2026-09-28 Issue 30 修订。）
     - `clear-run` 删除当前 Run（整条会话谱系，跨越其所有进程接入）的 Prompt Entries、Pending Captures、相关原文和可关联的敏感元数据；其他 Run 保持不变。
     - 存在无法安全打开的 Quarantined Archive 时，`clear-run` 不得声称完整按 Run 删除，必须拒绝并引导 `clear-all`。
-    - `clear-all` 删除活动数据库、WAL/SHM、迁移备份、Quarantined Archives 和 prompt 元数据，并删除会话索引里指向该项目档案中出现过的 Run 的记录（索引不记项目，只能按 Run 找回），之后 resume 这些会话会新建 Run 而不是回到旧 generation 的 Run；locator 生命周期独立，consent 与当前 Run mode 保留。（2026-09-23 Issue 32 修订。）
-    - 删除使用 `secure_delete`、WAL checkpoint/truncate 和必要空间回收。事务删除成功但残留清理失败时报告“逻辑删除完成、物理清除未完成”，列出残留并保持 Archive unavailable。
+    - `clear-all` 删除活动数据库、WAL/SHM、迁移备份、Quarantined Archives 和 prompt 元数据，并删除会话索引里指向该项目档案中出现过的 Run 的记录（索引不记项目，只能按 Run 找回），之后 resume 这些会话会新建 Run 而不是回到旧 generation 的 Run；locator 生命周期独立，consent 与当前 Run mode 保留。（2026-09-23 Issue 32 修订。）仍在运行、会在新 generation 继续的 Run 保留索引记录。（2026-09-28 Issue 30 修订。）
+    - 删除使用 `secure_delete`、WAL checkpoint/truncate 和必要空间回收；`clear-all` 删的是整个文件，只做 `unlink` 与目录 `fsync`，不覆写（写时复制文件系统上覆写不擦除旧块）。（2026-09-28 Issue 30 修订。）事务删除成功但残留清理失败时报告“逻辑删除完成、物理清除未完成”，列出残留并保持 Archive unavailable。
     - 所有删除确认都重申 Claude Code transcript/history、文件系统快照、备份和 SSD 物理介质不在保证内。
 
 16. **安全、诊断与隐私**
