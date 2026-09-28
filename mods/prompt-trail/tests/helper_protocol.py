@@ -2800,5 +2800,474 @@ class HelperProtocolTests(unittest.TestCase):
         )
 
 
+    # Schema migration (Issue 27). Fixtures build older and newer layouts by
+    # hand; what a test asserts goes through the helper's protocol and the
+    # semantic verifier, not the current production tables.
+
+    SCHEMA_1_DDL = (
+        "CREATE TABLE metadata("
+        " project_id TEXT PRIMARY KEY,"
+        " policy_version INTEGER NOT NULL,"
+        " next_sequence INTEGER NOT NULL DEFAULT 0);"
+        "CREATE TABLE pending_captures("
+        " event_id TEXT PRIMARY KEY, run_id TEXT NOT NULL,"
+        " segment_id TEXT NOT NULL, branch_id TEXT NOT NULL,"
+        " parent_event_id TEXT, occurred_at_ms INTEGER NOT NULL,"
+        " attachment_count INTEGER NOT NULL, attachment_kinds TEXT NOT NULL,"
+        " prompt_text TEXT NOT NULL);"
+        "CREATE TABLE prompt_entries("
+        " event_id TEXT PRIMARY KEY, sequence INTEGER NOT NULL UNIQUE,"
+        " run_id TEXT NOT NULL, segment_id TEXT NOT NULL,"
+        " branch_id TEXT NOT NULL, parent_event_id TEXT,"
+        " occurred_at_ms INTEGER NOT NULL, source TEXT NOT NULL,"
+        " attachment_count INTEGER NOT NULL, attachment_kinds TEXT NOT NULL,"
+        " prompt_text TEXT NOT NULL);"
+        "CREATE INDEX prompt_entries_run_sequence"
+        " ON prompt_entries(run_id, sequence);"
+    )
+
+    def archive_path(self, project_id: str) -> pathlib.Path:
+        return self.plugin_data / "archives" / f"{project_id}.sqlite3"
+
+    def hand_built_archive(self, project_id: str, script: str) -> pathlib.Path:
+        """An archive file written by the test rather than the helper, private
+        as the helper requires, in SQLite's default rollback journal."""
+        database_root = self.plugin_data / "archives"
+        database_root.mkdir(mode=0o700, exist_ok=True)
+        database_path = self.archive_path(project_id)
+        database = sqlite3.connect(database_path)
+        database.executescript(script)
+        database.commit()
+        database.close()
+        database_path.chmod(0o600)
+        return database_path
+
+    def archive_files(self, project_id: str) -> dict[str, bytes]:
+        """The archive and any backup beside it, byte for byte. SQLite's own
+        `-wal`/`-shm` companions come and go with connections and are left
+        out; the database header records a switch to WAL anyway."""
+        prefix = f"{project_id}.sqlite3"
+        return {
+            path.name: path.read_bytes()
+            for path in (self.plugin_data / "archives").iterdir()
+            if path.name.startswith(prefix)
+            and not path.name.endswith(("-wal", "-shm"))
+        }
+
+    def test_a_newer_schema_is_refused_before_anything_is_written(self) -> None:
+        for version in (3, -1):
+            with self.subTest(version=version):
+                project_id = ("d1" if version > 0 else "d2") * 32
+                self.hand_built_archive(
+                    project_id,
+                    "CREATE TABLE unknown_layout(value TEXT);"
+                    "INSERT INTO unknown_layout VALUES('PT-SECRET-FUTURE');"
+                    f"PRAGMA user_version={version};",
+                )
+                before = self.archive_files(project_id)
+                # Refusing needs no write lock, so another writer holding one
+                # does not turn the answer into a wait.
+                holder = self.hold_write_lock(project_id)
+                identity = self.identity(project_id)
+
+                started = time.monotonic()
+                results = [
+                    self.run_helper(*self.list_argv(project_id=project_id)),
+                    self.run_helper(*self.read_argv(project_id=project_id)),
+                    self.run_helper(
+                        *self.boundary_argv(
+                            str(uuid.uuid4()), kind="collection-stopped", **identity
+                        )
+                    ),
+                ]
+                elapsed = time.monotonic() - started
+                holder.execute("ROLLBACK")
+
+                for result in results:
+                    self.assertEqual(result.returncode, 25, result.stderr)
+                    self.assertEqual(result.stdout, "")
+                    self.assertEqual(
+                        json.loads(result.stderr)["category"], "schema-version"
+                    )
+                    self.assertNotIn("PT-SECRET", result.stderr)
+                self.assertLess(elapsed, 3.0)
+                self.assertEqual(self.archive_files(project_id), before)
+
+
+    def test_reads_of_a_current_archive_answer_while_another_run_holds_the_write_lock(self) -> None:
+        project_id = "d3" * 32
+        identity = self.identity(project_id)
+        archived = self.capture("PT-SECRET-READ", identity=identity)
+        holder = self.hold_write_lock(project_id)
+        scope = {"run_id": identity["run_id"], "segment_id": identity["segment_id"]}
+
+        started = time.monotonic()
+        listed = self.run_helper(*self.list_argv(project_id=project_id))
+        read = self.read(project_id=project_id)
+        matched = self.match(["PT-SECRET-READ"], project_id=project_id, **scope)
+        elapsed = time.monotonic() - started
+        holder.execute("ROLLBACK")
+
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(json.loads(listed.stdout)["pending"], [])
+        self.assertIn(archived, [event["eventId"] for event in read["events"]])
+        self.assertEqual((matched["match"], matched["eventId"]), ("unique", archived))
+        # WAL readers never wait for a writer; only taking the lock would.
+        self.assertLess(elapsed, 3.0)
+
+
+    def schema_1_archive(
+        self, project_id: str, count: int, *, extra: str = "", text_bytes: int = 0,
+    ) -> dict[str, object]:
+        """A schema-1 archive as the first helpers left it: `count` Prompt
+        Entries on one Run and one staged capture, each text a marker padded
+        to at least `text_bytes`. Answers what the protocol must still show."""
+        identity = self.identity(project_id)
+        entries = []
+        # Helpers have always kept their archives in WAL.
+        script = ["PRAGMA journal_mode=WAL;", self.SCHEMA_1_DDL]
+        for index in range(count):
+            event_id = str(uuid.uuid4())
+            text = f"PT-SECRET-LEGACY-{index}-".ljust(text_bytes, "x")
+            entries.append((event_id, index + 1, text))
+            script.append(
+                "INSERT INTO prompt_entries VALUES("
+                f"'{event_id}', {index + 1}, '{identity['run_id']}',"
+                f" '{identity['segment_id']}', '{identity['branch_id']}', NULL,"
+                f" {1_795_000_000_000 + index}, 'composer', 0, '-', '{text}');"
+            )
+        pending = str(uuid.uuid4())
+        script.append(
+            "INSERT INTO pending_captures VALUES("
+            f"'{pending}', '{identity['run_id']}', '{identity['segment_id']}',"
+            f" '{identity['branch_id']}', NULL, 1795000009999, 0, '-',"
+            " 'PT-SECRET-LEGACY-PENDING');"
+        )
+        script.append(f"INSERT INTO metadata VALUES('{project_id}', 1, {count});")
+        script.append(extra)
+        script.append("PRAGMA user_version=1;")
+        path = self.hand_built_archive(project_id, "".join(script))
+        return {"identity": identity, "entries": entries, "pending": pending, "path": path}
+
+    def timeline(self, project_id: str) -> list[tuple[str, int, str, str | None]]:
+        """The whole Project Timeline through `timeline-read`, oldest first."""
+        events: list[tuple[str, int, str, str | None]] = []
+        cursor = None
+        while True:
+            page = self.read(project_id=project_id, cursor=cursor)
+            events[:0] = [
+                (event["eventId"], event["sequence"], event["kind"], event.get("text"))
+                for event in page["events"]
+            ]
+            if not page["earlier"]:
+                return events
+            cursor = ("before", page["events"][0]["sequence"])
+
+    def assert_legacy_intact(self, project_id: str, legacy: dict[str, object]) -> None:
+        prompts = [
+            (event_id, sequence, text)
+            for event_id, sequence, kind, text in self.timeline(project_id)
+            if kind == "prompt"
+        ]
+        self.assertEqual(prompts, legacy["entries"])
+        identity = legacy["identity"]
+        listed = self.run_helper(
+            *self.list_argv(project_id=project_id, run_id=identity["run_id"])
+        )
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(
+            [row["eventId"] for row in json.loads(listed.stdout)["pending"]],
+            [legacy["pending"]],
+        )
+
+    def backup_path(self, project_id: str) -> pathlib.Path:
+        return self.plugin_data / "archives" / f"{project_id}.sqlite3.pre-migration-v1"
+
+    @staticmethod
+    def dump(path: pathlib.Path) -> list[str]:
+        database = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            return list(database.iterdump())
+        finally:
+            database.close()
+
+    def test_a_migration_keeps_a_private_backup_until_the_next_open(self) -> None:
+        project_id = "d4" * 32
+        legacy = self.schema_1_archive(project_id, 3)
+        before = self.dump(legacy["path"])
+
+        _, sequence = self.boundary(
+            identity={**legacy["identity"]}, kind="collection-stopped"
+        )
+
+        self.assertEqual(sequence, 4)
+        backup = self.backup_path(project_id)
+        status = backup.lstat()
+        self.assertTrue(stat.S_ISREG(status.st_mode))
+        self.assertEqual(stat.S_IMODE(status.st_mode), 0o600)
+        self.assertEqual(status.st_uid, os.geteuid())
+        # The backup is the archive exactly as it stood before the upgrade.
+        self.assertEqual(self.dump(backup), before)
+        self.assertEqual(
+            sorted(self.archive_files(project_id)),
+            sorted([f"{project_id}.sqlite3", backup.name]),
+        )
+
+        self.assert_legacy_intact(project_id, legacy)
+
+        self.assertFalse(backup.exists())
+        self.assertEqual(list(self.archive_files(project_id)), [f"{project_id}.sqlite3"])
+
+
+    def migrate(self, legacy: dict[str, object]) -> subprocess.CompletedProcess[str]:
+        """Open the archive for a write, which is what upgrades it."""
+        return self.run_helper(
+            *self.boundary_argv(
+                str(uuid.uuid4()), kind="collection-stopped", **legacy["identity"]
+            )
+        )
+
+    def assert_refused_untouched(
+        self,
+        result: subprocess.CompletedProcess[str],
+        category: str,
+        project_id: str,
+        before: dict[str, bytes],
+    ) -> None:
+        self.assertEqual(result.returncode, 25, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(json.loads(result.stderr)["category"], category)
+        self.assertNotIn("PT-SECRET", result.stderr)
+        self.assertEqual(self.archive_files(project_id), before)
+
+    @staticmethod
+    def corrupt_page(path: pathlib.Path, fraction: float = 0.5) -> None:
+        """Overwrite one page well inside the file, where the entries are,
+        leaving the header and schema pages readable."""
+        size = path.stat().st_size
+        offset = (int(size * fraction) // 4096) * 4096
+        with path.open("r+b") as database:
+            database.seek(offset)
+            database.write(b"\xa5" * 4096)
+
+    def test_leftovers_of_an_uncommitted_migration_are_replaced_by_a_fresh_backup(self) -> None:
+        project_id = "d5" * 32
+        legacy = self.schema_1_archive(project_id, 3)
+        before = self.dump(legacy["path"])
+        backup = self.backup_path(project_id)
+        partial = backup.with_name(backup.name + ".partial")
+        for leftover in (backup, partial):
+            leftover.write_bytes(b"PT-SECRET-STALE")
+            leftover.chmod(0o600)
+
+        migrated = self.migrate(legacy)
+
+        self.assertEqual(migrated.returncode, 0, migrated.stderr)
+        self.assertFalse(partial.exists())
+        self.assertEqual(self.dump(backup), before)
+        self.assert_legacy_intact(project_id, legacy)
+        self.assertFalse(backup.exists())
+
+    def test_an_occupied_backup_name_leaves_the_archive_and_the_occupant_alone(self) -> None:
+        occupants = {
+            "directory": lambda path: path.mkdir(mode=0o700),
+            "symlink": lambda path: path.symlink_to(self.plugin_data / "elsewhere"),
+            "shared-file": lambda path: (path.write_bytes(b"x"), path.chmod(0o644)),
+        }
+        for index, (name, occupy) in enumerate(occupants.items()):
+            with self.subTest(occupant=name):
+                project_id = f"e{index}" * 32
+                legacy = self.schema_1_archive(project_id, 2)
+                backup = self.backup_path(project_id)
+                occupy(backup)
+                before = legacy["path"].read_bytes()
+                occupant = backup.lstat()
+
+                result = self.migrate(legacy)
+
+                self.assertEqual(result.returncode, 25, result.stderr)
+                self.assertEqual(json.loads(result.stderr)["category"], "migration-backup")
+                self.assertEqual(legacy["path"].read_bytes(), before)
+                self.assertEqual(backup.lstat().st_ino, occupant.st_ino)
+                self.assertFalse(backup.with_name(backup.name + ".partial").exists())
+
+    def test_an_archive_failing_its_integrity_check_is_not_migrated(self) -> None:
+        damages = {
+            "damaged-page": lambda path: self.corrupt_page(path),
+            # Every row still reads back; only the index no longer matches
+            # the table, which only a full integrity check notices.
+            "stale-index": lambda path: self.redefine_index(path),
+        }
+        for index, (name, damage) in enumerate(damages.items()):
+            with self.subTest(damage=name):
+                project_id = f"f{index}" * 32
+                legacy = self.schema_1_archive(project_id, 60, text_bytes=2000)
+                damage(legacy["path"])
+                before = self.archive_files(project_id)
+
+                result = self.migrate(legacy)
+
+                self.assert_refused_untouched(
+                    result, "archive-integrity", project_id, before
+                )
+
+    @staticmethod
+    def redefine_index(path: pathlib.Path) -> None:
+        database = sqlite3.connect(path)
+        database.execute("PRAGMA writable_schema=ON")
+        database.execute(
+            "UPDATE sqlite_master SET sql='CREATE INDEX prompt_entries_run_sequence"
+            " ON prompt_entries(segment_id, sequence)'"
+            " WHERE name='prompt_entries_run_sequence'"
+        )
+        database.commit()
+        database.close()
+
+    def test_a_disk_without_room_for_the_backup_refuses_the_migration(self) -> None:
+        self.mount_small_volume()
+        project_id = "d7" * 32
+        legacy = self.schema_1_archive(project_id, 3)
+        before = self.archive_files(project_id)
+
+        result = self.migrate(legacy)
+
+        self.assert_refused_untouched(result, "archive-full", project_id, before)
+
+    def test_a_migration_step_that_fails_rolls_back_and_drops_its_backup(self) -> None:
+        project_id = "d8" * 32
+        # An object already holding the name the upgrade creates: the step
+        # itself fails, after the backup was written.
+        legacy = self.schema_1_archive(
+            project_id, 3, extra="CREATE TABLE timeline_events(unexpected TEXT);"
+        )
+        before = self.archive_files(project_id)
+
+        result = self.migrate(legacy)
+
+        self.assert_refused_untouched(result, "migration-verify", project_id, before)
+        with sqlite3.connect(f"file:{legacy['path']}?mode=ro", uri=True) as database:
+            self.assertEqual(database.execute("PRAGMA user_version").fetchone()[0], 1)
+
+    def test_a_backup_that_cannot_be_removed_keeps_the_archive_unavailable(self) -> None:
+        project_id = "d9" * 32
+        legacy = self.schema_1_archive(project_id, 3)
+        self.assertEqual(self.migrate(legacy).returncode, 0)
+        backup = self.backup_path(project_id)
+        subprocess.run(["/usr/bin/chflags", "uchg", str(backup)], check=True)
+        self.addCleanup(
+            subprocess.run, ["/usr/bin/chflags", "nouchg", str(backup)],
+            check=False, stderr=subprocess.DEVNULL,
+        )
+
+        blocked = self.run_helper(*self.read_argv(project_id=project_id))
+
+        self.assertEqual(blocked.returncode, 25, blocked.stderr)
+        self.assertEqual(blocked.stdout, "")
+        self.assertEqual(
+            json.loads(blocked.stderr)["category"], "migration-backup-cleanup"
+        )
+        subprocess.run(["/usr/bin/chflags", "nouchg", str(backup)], check=True)
+        self.assert_legacy_intact(project_id, legacy)
+        self.assertFalse(backup.exists())
+
+    def test_a_backup_outlives_an_upgraded_archive_that_fails_its_recheck(self) -> None:
+        project_id = "da" * 32
+        legacy = self.schema_1_archive(project_id, 60, text_bytes=2000)
+        self.assertEqual(self.migrate(legacy).returncode, 0)
+        backup = self.backup_path(project_id)
+        kept = backup.read_bytes()
+        self.corrupt_page(legacy["path"], fraction=0.3)
+
+        result = self.run_helper(*self.list_argv(project_id=project_id))
+
+        self.assertEqual(result.returncode, 25, result.stderr)
+        self.assertEqual(json.loads(result.stderr)["category"], "archive-integrity")
+        self.assertEqual(backup.read_bytes(), kept)
+
+
+    def remount_read_only(self, volume: pathlib.Path) -> None:
+        """Detach a volume from `mount_small_volume` and attach it again,
+        read-only, at the same place."""
+        subprocess.run(["/usr/bin/hdiutil", "detach", str(volume), "-quiet"], check=True)
+        subprocess.run(
+            ["/usr/bin/hdiutil", "attach", str(pathlib.Path(self.temporary.name) / "small.dmg"),
+             "-readonly", "-mountpoint", str(volume), "-nobrowse", "-noverify", "-quiet"],
+            check=True,
+        )
+
+    def test_an_archive_on_a_read_only_disk_is_named_read_only(self) -> None:
+        volume = self.mount_small_volume()
+        current_id = "db" * 32
+        current = self.identity(current_id)
+        self.capture("PT-SECRET-CURRENT", identity=current)
+        legacy_id = "dc" * 32
+        legacy = self.schema_1_archive(legacy_id, 2)
+        self.remount_read_only(volume)
+        before = {
+            project_id: self.archive_files(project_id)
+            for project_id in (current_id, legacy_id)
+        }
+
+        writes = {
+            current_id: self.run_helper(
+                *self.begin_argv(str(uuid.uuid4()), **current),
+                input_text="PT-SECRET-REFUSED",
+            ),
+            legacy_id: self.migrate(legacy),
+        }
+
+        for project_id, result in writes.items():
+            with self.subTest(project=project_id[:2]):
+                self.assert_refused_untouched(
+                    result, "archive-read-only", project_id, before[project_id]
+                )
+
+
+    def test_a_migration_killed_at_any_moment_loses_nothing(self) -> None:
+        project_id = "dd" * 32
+        legacy = self.schema_1_archive(project_id, 120, text_bytes=6000)
+        path = legacy["path"]
+        template = path.read_bytes()
+        archives = self.plugin_data / "archives"
+
+        def restore() -> None:
+            for leftover in archives.iterdir():
+                if leftover.name.startswith(f"{project_id}.sqlite3"):
+                    leftover.unlink()
+            path.write_bytes(template)
+            path.chmod(0o600)
+
+        def start() -> subprocess.Popen[str]:
+            return subprocess.Popen(
+                [str(HELPER), *self.boundary_argv(
+                    str(uuid.uuid4()), kind="collection-stopped", **legacy["identity"]
+                )],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=self.environment,
+            )
+
+        started = time.monotonic()
+        start().wait(timeout=10)
+        whole = time.monotonic() - started
+
+        import random
+        chooser = random.Random(27)
+        phases = {1: 0, 2: 0}
+        for _ in range(30):
+            restore()
+            helper = start()
+            time.sleep(chooser.uniform(0, whole * 1.2))
+            helper.kill()
+            helper.wait(timeout=10)
+            with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as database:
+                phases[database.execute("PRAGMA user_version").fetchone()[0]] += 1
+
+            self.assert_legacy_intact(project_id, legacy)
+            self.assertEqual(list(self.archive_files(project_id)), [path.name])
+
+        # Kills landed both before and after the upgrade committed.
+        self.assertGreater(phases[1], 0, phases)
+        self.assertGreater(phases[2], 0, phases)
+
+
 if __name__ == "__main__":
     unittest.main()

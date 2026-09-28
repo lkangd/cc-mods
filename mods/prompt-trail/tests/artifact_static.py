@@ -72,6 +72,23 @@ class StaticArtifactTests(unittest.TestCase):
         )
         self.assertIn("PT_HELPER_PROTOCOL 1", ARTIFACT_HEADER.read_text())
 
+    def test_manifest_schema_range_is_the_one_the_helper_writes(self) -> None:
+        manifest = json.loads(MANIFEST.read_text())
+        written = re.search(
+            r"^#define ARCHIVE_SCHEMA_VERSION (\d+)$",
+            HELPER_SOURCE.read_text(),
+            re.MULTILINE,
+        )
+        self.assertIsNotNone(written)
+        version = int(written.group(1))
+        self.assertEqual(manifest["schemaWriteMax"], version)
+        self.assertEqual(manifest["schemaReadMax"], version)
+        # Every older readable schema reaches the written one by declared steps.
+        self.assertEqual(
+            manifest["schemaMigrations"],
+            [f"{step}->{step + 1}" for step in range(manifest["schemaReadMin"], version)],
+        )
+
     def test_manifest_records_build_provenance(self) -> None:
         manifest = json.loads(MANIFEST.read_text())
 
