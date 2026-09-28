@@ -4023,9 +4023,12 @@ static void clear_inventory(int argc, char **argv) {
   char database_path[PATH_MAX];
   int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
   if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  /* Past the cut, what is left is listed by name and size only: nothing
+     reads the records a clear has cut, and opening them would bring back
+     the WAL and index the clear removed. */
   char generation[129];
-  bool archived = archive_generation(database_path, generation);
-  ClearFindings found = { archived ? -1 : 0, archived ? -1 : 0, NULL, 0 };
+  bool archived = !clearing && archive_generation(database_path, generation);
+  ClearFindings found = { archived || clearing ? -1 : 0, archived || clearing ? -1 : 0, NULL, 0 };
   if (archived) clear_read_archive(database_path, &found);
   /* Runs of this project a live process elsewhere is attached to: they go
      on in the next generation, and meanwhile still show what they drew. */
