@@ -1970,10 +1970,12 @@ typedef struct {
   size_t count;
 } LiveRuns;
 
-static LiveRuns live_runs_elsewhere(void) {
+/* NULL when the listing is complete, or the category it failed with; the
+   Runs found before a failure are freed. */
+static const char *live_runs_scan(LiveRuns *out) {
   LiveRuns live = { NULL, 0 };
   const char *home = getenv("HOME");
-  if (!home || home[0] != '/') archive_error("home-unavailable");
+  if (!home || home[0] != '/') return "home-unavailable";
   char directory[PATH_MAX];
   int length = snprintf(
     directory,
@@ -1981,13 +1983,11 @@ static LiveRuns live_runs_elsewhere(void) {
     "%s/.claude/plugins/data/.function-hook-locators/prompt-trail",
     home
   );
-  if (length < 0 || (size_t)length >= sizeof(directory)) {
-    archive_error("locator-directory");
-  }
+  if (length < 0 || (size_t)length >= sizeof(directory)) return "locator-directory";
   DIR *stream = opendir(directory);
   if (!stream) {
-    if (errno == ENOENT) return live;
-    archive_error("locator-directory");
+    *out = live;
+    return errno == ENOENT ? NULL : "locator-directory";
   }
 
   pid_t host_pid = getppid();
@@ -2002,7 +2002,7 @@ static LiveRuns live_runs_elsewhere(void) {
         &host_start_microseconds
       )) {
     closedir(stream);
-    archive_error("host-generation");
+    return "host-generation";
   }
 
   struct dirent *entry = NULL;
@@ -2029,13 +2029,22 @@ static LiveRuns live_runs_elsewhere(void) {
     char (*grown)[129] = realloc(live.run_ids, (live.count + 1) * sizeof(*grown));
     if (!grown) {
       closedir(stream);
-      archive_error("locator-directory");
+      free(live.run_ids);
+      return "locator-directory";
     }
     live.run_ids = grown;
     snprintf(live.run_ids[live.count], sizeof(live.run_ids[live.count]), "%s", run_id);
     live.count += 1;
   }
   closedir(stream);
+  *out = live;
+  return NULL;
+}
+
+static LiveRuns live_runs_elsewhere(void) {
+  LiveRuns live = { NULL, 0 };
+  const char *failed = live_runs_scan(&live);
+  if (failed) archive_error(failed);
   return live;
 }
 
@@ -2175,8 +2184,11 @@ static void capture_list(int argc, char **argv) {
    Clear Boundary that ends a Conversation Segment; `run-started` is a Run's
    first appearance, and `run-attached` and `run-detached` a process taking the
    Run up again and leaving it — a Run is a conversation's lineage, so it is
-   never ended, only left; the other three record one Run's
-   collection starting, stopping and resuming. They differ only in this list:
+   never ended, only left; the three `collection-` kinds record one Run's
+   collection starting, stopping and resuming; `integrity-gap` marks where the
+   Run's records since its last provable event cannot be shown to match the
+   conversation, and `integrity-recovery` where provable collection began
+   again. They differ only in this list:
    the table, the sequence allocator and the idempotency rule are shared. An
    unknown kind fails closed rather than entering the archive. */
 static bool boundary_kind_valid(const char *kind) {
@@ -2186,7 +2198,9 @@ static bool boundary_kind_valid(const char *kind) {
     || strcmp(kind, "clear") == 0
     || strcmp(kind, "run-started") == 0
     || strcmp(kind, "run-attached") == 0
-    || strcmp(kind, "run-detached") == 0;
+    || strcmp(kind, "run-detached") == 0
+    || strcmp(kind, "integrity-gap") == 0
+    || strcmp(kind, "integrity-recovery") == 0;
 }
 
 /* A repeat of the same boundary is idempotent only when every recorded field
@@ -3715,9 +3729,34 @@ static void write_quarantined(const char *database_root, const char *project_id)
   fputs("]", stdout);
 }
 
-/* What `status` shows of a project's archive without opening it: the
-   generation in place, whether a quarantine is under way, and each
-   quarantined archive with its place and size. */
+static sqlite3 *clear_open_archive(const char *database_path);
+static long long clear_count(sqlite3 *database, const char *sql, const char *bound);
+
+/* How many Integrity gaps the archive holds, read on a connection that
+   writes nothing: 0 with no archive, -1 when it cannot be read or a
+   quarantine or clear is cutting it. */
+static long long integrity_gaps(const char *database_root, const char *project_id, bool cutting) {
+  char database_path[PATH_MAX];
+  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  struct stat status;
+  if (lstat(database_path, &status) != 0) return errno == ENOENT && !cutting ? 0 : -1;
+  if (cutting || !pt_path_is_private_file(database_path)) return -1;
+  sqlite3 *database = clear_open_archive(database_path);
+  if (!database) return -1;
+  long long gaps = clear_count(
+    database,
+    "SELECT count(*) FROM timeline_events WHERE kind='integrity-gap'",
+    NULL
+  );
+  sqlite3_close(database);
+  return gaps;
+}
+
+/* What `status` shows of a project's archive: the generation in place,
+   whether a quarantine or clear is under way, each quarantined archive with
+   its place and size, and how many Integrity gaps the archive holds. Only
+   that count reads the archive, and it never writes. */
 static void archive_status(int argc, char **argv) {
   if (argc != 6) usage();
   const char *database_root = argv[2];
@@ -3750,6 +3789,27 @@ static void archive_status(int argc, char **argv) {
   fputs(underway ? ",\"quarantineUnderway\":true" : ",\"quarantineUnderway\":false", stdout);
   fputs(clearing ? ",\"clearUnderway\":true" : ",\"clearUnderway\":false", stdout);
   fputs(clearing_run ? ",\"clearRunUnderway\":true" : ",\"clearRunUnderway\":false", stdout);
+  long long gaps = root_present
+    ? integrity_gaps(database_root, project_id, underway || clearing || clearing_run)
+    : 0;
+  if (gaps < 0) {
+    fputs(",\"integrityGaps\":null", stdout);
+  } else {
+    printf(",\"integrityGaps\":%lld", gaps);
+  }
+  /* Which Runs other processes hold, so a caller can tell another Run's
+     leftovers from work still in flight; null when that cannot be read. */
+  LiveRuns live = { NULL, 0 };
+  if (live_runs_scan(&live)) {
+    fputs(",\"liveRuns\":null", stdout);
+  } else {
+    fputs(",\"liveRuns\":[", stdout);
+    for (size_t index = 0; index < live.count; index += 1) {
+      write_status_string(index == 0 ? "" : ",", live.run_ids[index]);
+    }
+    fputs("]", stdout);
+    free(live.run_ids);
+  }
   write_quarantined(root_present ? database_root : NULL, project_id);
   fputs("}\n", stdout);
 }

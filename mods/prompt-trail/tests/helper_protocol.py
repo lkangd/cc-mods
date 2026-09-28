@@ -1044,7 +1044,7 @@ class HelperProtocolTests(unittest.TestCase):
                 run_id=str(uuid.uuid4()),
                 segment_id=str(uuid.uuid4()),
                 branch_id=str(uuid.uuid4()),
-                kind="integrity-recovery",
+                kind="integrity-restored",
             )
         )
 
@@ -3884,7 +3884,8 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(
             self.archive_status(project_id),
             {"projectId": project_id, "generation": None, "quarantined": [], "quarantineUnderway": False,
-             "clearUnderway": False, "clearRunUnderway": False},
+             "clearUnderway": False, "clearRunUnderway": False, "integrityGaps": 0,
+             "liveRuns": []},
         )
         self.assertFalse((self.plugin_data / "archives").exists())
 
@@ -4868,6 +4869,73 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(answer["sessionsRemoved"], 1)
         self.assertNotIn(gone, self.indexed_sessions())
 
+
+    # Issue 26: Integrity gaps and Integrity recovery boundaries.
+
+    def test_an_integrity_gap_and_its_recovery_are_boundaries_of_their_run(self) -> None:
+        """Both take the shared sequence, replay idempotently and read back."""
+        project_id = "d0" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-BEFORE-GAP", identity=identity)
+        gap, gap_sequence = self.boundary(identity=identity, kind="integrity-gap")
+        recovery, recovery_sequence = self.boundary(identity=identity, kind="integrity-recovery")
+        after = self.capture("PT-SECRET-AFTER-GAP", identity=identity)
+
+        self.assertEqual((gap_sequence, recovery_sequence), (2, 3))
+        for event_id, kind, sequence in ((gap, "integrity-gap", 2), (recovery, "integrity-recovery", 3)):
+            repeated = self.run_helper(*self.boundary_argv(event_id, kind=kind, **identity))
+            self.assertEqual(repeated.returncode, 0, repeated.stderr)
+            self.assertEqual(json.loads(repeated.stdout)["sequence"], sequence)
+        self.assertEqual(
+            [(event_id, kind) for event_id, _, kind, _ in self.timeline(project_id)][1:],
+            [(gap, "integrity-gap"), (recovery, "integrity-recovery"), (after, "prompt")],
+        )
+
+    def test_archive_status_counts_the_integrity_gaps_left_in_the_archive(self) -> None:
+        project_id = "d1" * 32
+        cleared = self.identity(project_id)
+        kept = self.identity(project_id)
+        self.capture("PT-SECRET-CLEARED", identity=cleared)
+        self.boundary(identity=cleared, kind="integrity-gap")
+        self.boundary(identity=cleared, kind="integrity-recovery")
+        self.boundary(identity=kept, kind="integrity-gap")
+        self.boundary(identity=kept, kind="integrity-gap")
+
+        self.assertEqual(self.archive_status(project_id)["integrityGaps"], 3)
+        # A gap belongs to its Run, and goes when the Run is cleared.
+        self.clear_run(project_id, cleared["run_id"])
+        self.assertEqual(self.archive_status(project_id)["integrityGaps"], 2)
+
+    def test_archive_status_leaves_the_gap_count_unknown_when_the_archive_cannot_be_read(self) -> None:
+        project_id = "d2" * 32
+        self.boundary(identity=self.identity(project_id), kind="integrity-gap")
+        archive = self.plugin_data / "archives" / f"{project_id}.sqlite3"
+        archive.write_bytes(b"PT-NOT-AN-ARCHIVE" * 512)
+
+        status = self.archive_status(project_id)
+
+        self.assertIsNone(status["integrityGaps"])
+        self.assertEqual(archive.read_bytes(), b"PT-NOT-AN-ARCHIVE" * 512)
+
+    def test_archive_status_names_the_runs_live_in_other_processes(self) -> None:
+        # This test process stands for a live Run.
+        self.publish_locator()
+        live_run = json.loads(self.locator.read_text())["runId"]
+        project_id = "d3" * 32
+
+        def live_runs(**argv: bool) -> object:
+            result = self.run_helper(*self.status_argv(project_id=project_id), **argv)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return json.loads(result.stdout)["liveRuns"]
+
+        # Asked for another process, this one's Run is live elsewhere; asked
+        # for this process itself, it is the asker's own and not listed.
+        self.assertEqual(live_runs(via_child=True), [live_run])
+        self.assertEqual(live_runs(), [])
+        # Not knowing which Runs are live leaves the rest of the status intact.
+        self.locator.parent.chmod(0o000)
+        self.addCleanup(self.locator.parent.chmod, 0o700)
+        self.assertIsNone(live_runs(via_child=True))
 
 if __name__ == "__main__":
     unittest.main()
