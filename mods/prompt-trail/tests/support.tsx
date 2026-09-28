@@ -95,7 +95,18 @@ export type TargetOptions = {
   lowSpace?: boolean
   /* The answers the Archive unavailable dialog receives, one per dialog in
      order; once they run out, a dialog is cancelled. */
-  unavailableAnswers?: ('重试' | '禁用当前 Run 后继续')[]
+  unavailableAnswers?: ('重试' | '禁用当前 Run 后继续' | '重新检查完整性' | '隔离并开始新档案')[]
+  /* The options each Archive unavailable dialog offered, in order. */
+  unavailableOffered?: string[][]
+  /* The Archive generation standing at the archive's path; a quarantine puts
+     the next one in its place. */
+  generation?: { value: string }
+  /* What `integrity-check` finds. */
+  integrity?: { result: 'ok' | 'damaged' | 'unreadable' | 'absent'; problems: number }
+  /* `quarantine` fails with this category, moving nothing. */
+  quarantineFails?: string
+  /* The quarantined archives `archive-status` lists; a quarantine adds one. */
+  quarantined?: { name: string; path: string; bytes: number }[]
   /* The text of every Archive unavailable dialog, as the person reads it. */
   unavailableAsked?: string[]
   /* What `capture-list` answers: the pendings the archive still holds. A
@@ -257,7 +268,9 @@ export function installSupportedTarget(
   const currentLocatorPath = () =>
     `${locatorDirectory}/${locatorName(classic.id, identity.hostPid)}`
   const archive = options.archive ?? []
-  const allocateSequence = sequenceAllocator(archive)
+  let allocateSequence = sequenceAllocator(archive)
+  const generation = options.generation ?? { value: 'gen-1' }
+  const quarantined = options.quarantined ?? []
   const staged = new Map<string, Omit<ArchiveRow, 'sequence'>>()
   let branchWrites = 0
   mock.env(on, { HOME: home })
@@ -348,8 +361,9 @@ export function installSupportedTarget(
     const choices = e.questions[0]?.options ?? []
     const labels = choices.map(choice => (typeof choice === 'string' ? choice : choice.label))
     const isReconcile = labels.includes('已进入')
-    if (labels.includes('重试')) {
+    if (labels.includes('禁用当前 Run 后继续')) {
       options.unavailableAsked?.push(question)
+      options.unavailableOffered?.push(labels)
       const answer = options.unavailableAnswers?.shift()
       return {
         result: { questions: e.questions, answers: answer ? { [question]: answer } : {} },
@@ -495,8 +509,9 @@ export function installSupportedTarget(
     if (argv[0] === helperPath && argv[1] === 'capture-begin') {
       const eventId = argv[8]
       if (options.beginFails) {
-        return failure(options.beginFails)
+        return failure(options.beginFails, generation.value)
       }
+      if (argv[12] !== '-' && argv[12] !== generation.value) return failure('archive-generation')
       if (options.beginRejects) throw new Error('timed out: PT-SECRET-KILLED')
       if (eventId && !archive.some(row => row.eventId === eventId)) {
         staged.set(eventId, {
@@ -516,6 +531,7 @@ export function installSupportedTarget(
           stdout: JSON.stringify({
             eventId,
             projectId,
+            generation: generation.value,
             pending: true,
             ...(options.lowSpace === undefined ? {} : { lowSpace: options.lowSpace }),
           }),
@@ -532,7 +548,7 @@ export function installSupportedTarget(
         return { value: { exitCode: 25, stdout: '', stderr: '{"category":"capture-not-found"}' } }
       }
       if (options.confirmFails || (options.confirmFailsOnce && isFirstConfirm)) {
-        return failure(options.confirmFails || true)
+        return failure(options.confirmFails || true, generation.value)
       }
       /* A confirmed capture is no longer pending, exactly as the helper's own
          transaction leaves it. */
@@ -566,7 +582,7 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'boundary-append') {
       if (options.boundaryFails) {
-        return failure(options.boundaryFails)
+        return failure(options.boundaryFails, generation.value)
       }
       /* As strict as the helper: a repeated id answers the stored sequence
          only when every recorded fact matches, and a changed one is refused. */
@@ -609,19 +625,19 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'timeline-read') {
       if (options.readFails) {
-        return failure(options.readFails)
+        return failure(options.readFails, generation.value)
       }
       return {
         value: {
           exitCode: 0,
-          stdout: JSON.stringify(timelineBatch(archive, argv.slice(6))),
+          stdout: JSON.stringify({ ...timelineBatch(archive, argv.slice(6)), generation: generation.value }),
           stderr: '',
         },
       }
     }
     if (argv[0] === helperPath && argv[1] === 'branch-match') {
       if (options.branchMatchFails) {
-        return failure(options.branchMatchFails)
+        return failure(options.branchMatchFails, generation.value)
       }
       const call = calls[calls.length - 1]!
       const answer = typeof options.branchMatch === 'function'
@@ -636,14 +652,14 @@ export function installSupportedTarget(
       return {
         value: {
           exitCode: 0,
-          stdout: JSON.stringify({ projectId, ...answer, candidates }),
+          stdout: JSON.stringify({ projectId, generation: generation.value, ...answer, candidates }),
           stderr: '',
         },
       }
     }
     if (argv[0] === helperPath && argv[1] === 'capture-list') {
       if (options.listFails) {
-        return failure(options.listFails)
+        return failure(options.listFails, generation.value)
       }
       if (argv.length !== 7) throw new Error(`unexpected capture-list: ${argv.join(' ')}`)
       const caller = argv[4]
@@ -669,7 +685,7 @@ export function installSupportedTarget(
         return { value: { exitCode: 25, stdout: '', stderr: '{"category":"capture-conflict"}' } }
       }
       if (options.abortFails) {
-        return failure(options.abortFails)
+        return failure(options.abortFails, generation.value)
       }
       /* Only a successful abort removes the row; a failed one leaves the
          pending in the archive, still blocking. */
@@ -679,6 +695,66 @@ export function installSupportedTarget(
         )
       }
       return { value: { exitCode: 0, stdout: '{"aborted":true}', stderr: '' } }
+    }
+    if (argv[0] === helperPath && argv[1] === 'integrity-check') {
+      const found = options.integrity ?? { result: 'ok', problems: 0 }
+      return {
+        value: {
+          exitCode: 0,
+          stdout: JSON.stringify({ projectId, ...found, generation: generation.value }),
+          stderr: '',
+        },
+      }
+    }
+    if (argv[0] === helperPath && argv[1] === 'quarantine') {
+      if (options.quarantineFails) return failure(options.quarantineFails)
+      if (argv[4] !== generation.value) {
+        return {
+          value: {
+            exitCode: 0,
+            stdout: JSON.stringify({ projectId, generation: generation.value, moved: null }),
+            stderr: '',
+          },
+        }
+      }
+      /* The archive moves aside whole and the next generation begins with
+         the quarantine alone. */
+      const moved = `20260928T000000Z-${quarantined.length + 1}`
+      quarantined.push({ name: moved, path: `${databaseRoot}/quarantine/${projectId}/${moved}`, bytes: 4096 })
+      archive.splice(0)
+      allocateSequence = sequenceAllocator(archive)
+      const [runField, segmentId, branchId, eventId, occurredAt] = argv.slice(5, 10)
+      archive.push({
+        kind: 'archive-quarantined',
+        eventId: eventId ?? '',
+        sequence: allocateSequence(eventId ?? ''),
+        runId: runField ?? '',
+        segmentId: segmentId ?? '',
+        branchId: branchId ?? '',
+        occurredAt: Number(occurredAt),
+      })
+      generation.value = `gen-${quarantined.length + 1}`
+      return {
+        value: {
+          exitCode: 0,
+          stdout: JSON.stringify({ projectId, generation: generation.value, moved }),
+          stderr: '',
+        },
+      }
+    }
+    if (argv[0] === helperPath && argv[1] === 'archive-status') {
+      return {
+        value: {
+          exitCode: 0,
+          stdout: JSON.stringify({
+            projectId,
+            generation: generation.value,
+            quarantineUnderway: options.quarantineFails === 'quarantine-failed',
+            quarantined,
+          }),
+          stderr: '',
+        },
+      }
     }
     throw new Error(`unexpected process: ${argv.join(' ')}`)
   })
@@ -692,13 +768,18 @@ export function installSupportedTarget(
   return calls
 }
 
-/* A helper subcommand that failed with a category, as the helper exits. */
-function failure(category: boolean | string) {
+/* A helper subcommand that failed with a category, as the helper exits:
+   damage it met names the generation it met it in. */
+function failure(category: boolean | string, generation?: string) {
+  const named = category === true ? 'archive-sqlite' : category
   return {
     value: {
       exitCode: 25,
       stdout: '',
-      stderr: JSON.stringify({ category: category === true ? 'archive-sqlite' : category }),
+      stderr: JSON.stringify({
+        category: named,
+        ...(named === 'archive-integrity' && generation ? { generation } : {}),
+      }),
     },
   }
 }

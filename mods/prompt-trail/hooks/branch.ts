@@ -19,6 +19,9 @@ export type BranchState = {
   parentEventId: string | null
   explicitRoot?: true
   rootReason?: 'ambiguous-prefix'
+  /* The Archive generation this branch was last staged in. A capture names
+     it, and one meant for a generation since replaced stages nothing. */
+  generation?: string
 }
 
 export type BranchCandidate = {
@@ -31,7 +34,11 @@ export type BranchCandidate = {
 
 /* The helper's answer, as `branch-match` prints it. `prefer` places the stored
    parent it was given, so it can be named even outside the band's window. */
-type BranchMatchPlace = { prefer?: { eventId: string; sequence: number; ordinal: number } }
+type BranchMatchPlace = {
+  prefer?: { eventId: string; sequence: number; ordinal: number }
+  /* The generation the rows were matched against; `null` when there is none. */
+  generation?: string | null
+}
 export type BranchMatch =
   | ({ match: 'unique'; eventId: string; candidates: BranchCandidate[]; candidateCount: number } & BranchMatchPlace)
   | ({ match: 'none' | 'ambiguous'; candidates: BranchCandidate[]; candidateCount: number } & BranchMatchPlace)
