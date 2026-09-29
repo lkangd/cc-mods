@@ -43,3 +43,7 @@
 - **Q18 隔离环境**：每个场景新建临时 HOME、`CLAUDE_CONFIG_DIR`、项目目录与 TMPDIR；onboarding 与项目信任用预写 `.claude.json` 跳过。插件数据目录是否随 `CLAUDE_CONFIG_DIR` 隔离要先实测，不会则显式隔离，绝不写入使用者真实的插件数据目录。
 - **Q19 token 来源**：使用者用 `security add-generic-password -s prompt-trail-release -a "$USER" -w` 把 token 存进钥匙串的专用条目，脚本只读这一条。
 - **Q20 提交绑定**：报告记录当前提交 SHA；工作树不干净时照常生成报告，但整体判失败。
+
+### 实现中追加（2026-09-29）
+
+- **Q21 宿主网络故障**：第一次完整运行中，两个 PTY 场景因宿主与 API 的连接中断（`Connection dropped (ECONNRESET) · Retrying … attempt 7/10`）等不到回合结束而失败。使用者选择：失败时的屏幕带宿主网络错误特征才整场重跑一次，只重跑一次；报告的 actual 写明「retried after a host network error」，第一次的 trace 另存为 `<ID>.attempt-1.txt`。没有这种特征的失败照常判失败。

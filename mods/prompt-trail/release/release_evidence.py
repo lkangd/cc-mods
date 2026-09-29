@@ -80,6 +80,10 @@ def run_gates(run: Run, versions: list[str]) -> dict:
             "validate", "plugin-validate", version,
             "pass" if validated.returncode == 0 else "fail", link=validated.log,
         )
+        run.gates.append({
+            "name": f"plugin-validate@{version}", "link": validated.log, "detail": None,
+            "outcome": "pass" if validated.returncode == 0 else "fail",
+        })
         tested = run.command(f"plugin-tests@{version}", claude + ["plugin", "test", "."], cwd=ROOT)
         parsed = evidence.parse_plugin_test_output(tested.stdout + "\n" + tested.stderr)
         for ref, outcome in parsed.items():
@@ -195,13 +199,14 @@ def keychain_token() -> str:
     return found.stdout.strip()
 
 
-def identity(versions: list[str], facts: dict) -> dict:
-    def output(*argv: str, cwd: pathlib.Path = REPO) -> str:
-        return subprocess.run(argv, capture_output=True, text=True, cwd=cwd).stdout.strip()
+def output(*argv: str, cwd: pathlib.Path = REPO) -> str:
+    return subprocess.run(argv, capture_output=True, text=True, cwd=cwd).stdout.strip()
 
+
+def identity(commit: str, versions: list[str], facts: dict) -> dict:
     manifest = json.loads((ROOT / "artifacts/helper-manifest.json").read_text())
     return {
-        "commit": output("git", "rev-parse", "HEAD"),
+        "commit": commit,
         "pluginVersion": json.loads((ROOT / ".claude-plugin/plugin.json").read_text())["version"],
         "macOS": platform.mac_ver()[0],
         "architecture": platform.machine(),
@@ -235,9 +240,10 @@ def main() -> None:
     scanner = evidence.Scanner([], secrets=[token])
     run = Run(out, scanner)
 
-    tree_clean = not subprocess.run(
-        ["git", "status", "--porcelain"], capture_output=True, text=True, cwd=REPO
-    ).stdout.strip()
+    # The commit and whether the tree matched it are taken before anything runs,
+    # so the report names the code that ran even if the tree moves meanwhile.
+    commit = output("git", "rev-parse", "HEAD")
+    tree_clean = not output("git", "status", "--porcelain")
     facts = {} if arguments.skip_gates else run_gates(run, versions)
     privacy = run_pty(run, versions, selected, token)
     leaks = privacy.pop("leaks")
@@ -253,7 +259,7 @@ def main() -> None:
         manifest, run.results, versions=versions, partial=partial,
         tree_clean=tree_clean, leaks=leaks, gates=run.gates,
     )
-    report["identity"] = identity(versions, facts)
+    report["identity"] = identity(commit, versions, facts)
     report["benchmark"] = facts.get("benchmark")
     report["privacy"] = dict(privacy, allowedRules=evidence.ALLOWED_RULES)
     rendered_json = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
