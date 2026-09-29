@@ -70,18 +70,24 @@ export type LifecycleState = {
   gap?: OwedGap
 }
 
-/* Why a Run's records can no longer be proven to match its conversation. */
-export type GapReason =
-  /* A submission's hook failed and the host let the prompt through. */
-  | 'fail-open'
-  /* The process went while a `/clear` was being recorded. */
-  | 'clear-unrecorded'
-  | 'queue-overflow'
-  | 'queue-damaged'
-  | 'clear-unobserved'
-  /* An owed boundary whose Archive generation could not be told apart from a
-     cleared one, dropped rather than replayed into whichever stands. */
-  | 'generation-unknown'
+/* Why a Run's records can no longer be proven to match its conversation:
+   - `fail-open`: a submission's hook failed and the host let the prompt
+     through;
+   - `clear-unrecorded`: the process went while a `/clear` was being recorded;
+   - `generation-unknown`: an owed boundary whose Archive generation could not
+     be told apart from a cleared one, dropped rather than replayed into
+     whichever stands;
+   - the rest are the record's own loss flags. */
+export const GAP_REASONS = [
+  'fail-open',
+  'clear-unrecorded',
+  'queue-overflow',
+  'queue-damaged',
+  'clear-unobserved',
+  'generation-unknown',
+] as const
+
+export type GapReason = typeof GAP_REASONS[number]
 
 /* An Integrity gap owed to the archive, with the recovery boundary that
    follows it. Its fields are fixed when the loss is found, so every replay
