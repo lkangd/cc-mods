@@ -157,6 +157,15 @@ def judge_report(
     }
 
 
+# What the host shows when its own requests to the API fail. A PTY scenario
+# that failed with one of these on screen is run once more (Issue 31 comments).
+_NETWORK_FAILURE = re.compile(r"Connection dropped|API Error|ECONNRESET|ETIMEDOUT|Unable to connect to API")
+
+
+def network_failure(trace: str) -> bool:
+    return bool(_NETWORK_FAILURE.search(trace))
+
+
 def new_marker(scenario_id: str) -> str:
     """128 random bits first, so a row the UI cuts short still carries them."""
     return f"{random_source.token_hex(16)}-{scenario_id}"

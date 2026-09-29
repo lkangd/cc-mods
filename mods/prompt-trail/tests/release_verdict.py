@@ -261,6 +261,21 @@ class ScannerGrowthTests(unittest.TestCase):
         self.assertEqual(scanner.redact_rows([later])[0][:10], "<marker:2>")
 
 
+class NetworkFailureTests(unittest.TestCase):
+    def test_a_trace_with_the_hosts_retry_notice_is_a_network_failure(self) -> None:
+        for line in (
+            "✻ Connection dropped (ECONNRESET) · Retrying in 5s · attempt 7/10",
+            "⎿  API Error: 529 overloaded_error",
+            "⎿  API Error: Request timed out.",
+        ):
+            with self.subTest(line=line):
+                self.assertTrue(evidence.network_failure(f"==== step\n{line}\n"))
+
+    def test_a_trace_without_one_is_not(self) -> None:
+        self.assertFalse(evidence.network_failure("==== step\n⏺ ok\n❯ \n"))
+        self.assertFalse(evidence.network_failure("the archive is unavailable · retrying"))
+
+
 class ScanTreeTests(unittest.TestCase):
     def test_only_the_archive_family_and_host_conversation_files_may_hold_a_marker(self) -> None:
         marker = evidence.new_marker("PT-SEC-001")

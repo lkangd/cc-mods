@@ -169,8 +169,12 @@ class Terminal:
         raise ScenarioFailure(f"timed out waiting for {what}")
 
     def wait_idle(self, timeout: float = 120.0) -> None:
-        """Until the host is no longer running a turn."""
-        time.sleep(0.5)
+        """Until the turn just asked for has run: first until it shows as
+        running (a turn over within ten seconds may never be seen to), then
+        until it no longer does. Returning early would queue the next prompt."""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and "esc to interrupt" not in self.text():
+            time.sleep(0.1)
         self.wait_for(lambda t: "esc to interrupt" not in t.text(), "the turn to end", timeout)
 
     def close(self) -> None:

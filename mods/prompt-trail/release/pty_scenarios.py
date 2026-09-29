@@ -92,6 +92,18 @@ class Context:
         self.env.snap(terminal, text)
         return after
 
+    def expand(self, terminal: Terminal, marker: str) -> list[str]:
+        """Opens the band and waits until it shows the entry `marker` names."""
+        self.command(terminal, "/prompt-history", "已展开")
+        terminal.wait_for(
+            lambda t: any(
+                marker[: evidence.MARKER_PREFIX] in row for row in self.band(t)
+            ) and self.band(t)[0].startswith("▾"),
+            "the band to open on the entry", 15,
+        )
+        self.env.snap(terminal, "band open")
+        return self.band(terminal)
+
     def band(self, terminal: Terminal) -> list[str]:
         """The band's rows: its title row and what stands under it, down to
         the prompt box's top rule."""
@@ -135,7 +147,7 @@ class Context:
 
 
 def prompt(marker: str) -> str:
-    return f"{marker} 请只回复 ok"
+    return f"{marker} 这是自动化验收的测试输入，请只回复 ok"
 
 
 @scenario("PT-COMPAT-001")
@@ -165,8 +177,7 @@ def capture_001(ctx: Context) -> str:
     check(len(entries) == 1, f"{len(entries)} entries")
     check(entries[0]["promptText"] == prompt(marker), "the archived text is not the final text")
     check(not ctx.pending(), "a Pending Capture was left")
-    ctx.command(terminal, "/prompt-history", "已展开")
-    shown = sum(1 for row in ctx.band(terminal) if marker[: evidence.MARKER_PREFIX] in row)
+    shown = sum(1 for row in ctx.expand(terminal, marker) if marker[: evidence.MARKER_PREFIX] in row)
     check(shown == 1, f"the band shows the entry {shown} times")
     check(ctx.transcript_rows(marker) >= 1, "the transcript holds no such prompt")
     return f"1 entry at sequence {entries[0]['sequence']}, no pending, shown once in the band, present in the transcript"
@@ -192,7 +203,7 @@ def capture_002(ctx: Context) -> str:
 @scenario("PT-CAPTURE-003")
 def capture_003(ctx: Context) -> str:
     marker = ctx.marker("PT-CAPTURE-003")
-    text = f"{marker} 请只回复 ok\n\n中文宽字符 😀 é 第三行"
+    text = f"{prompt(marker)}\n\n中文宽字符 😀 é 第三行"
     terminal = ctx.env.launch(columns=100)
     ctx.start(terminal)
     terminal.paste(text)
@@ -203,8 +214,7 @@ def capture_003(ctx: Context) -> str:
     terminal.wait_idle()
     entries = ctx.wait_entries(1)
     check(entries[0]["promptText"] == text, "the archived text is not verbatim")
-    ctx.command(terminal, "/prompt-history", "已展开")
-    rows = [row for row in ctx.band(terminal) if marker[: evidence.MARKER_PREFIX] in row]
+    rows = [row for row in ctx.expand(terminal, marker) if marker[: evidence.MARKER_PREFIX] in row]
     check(len(rows) == 1, f"the entry takes {len(rows)} rows")
     check("↵" in rows[0], "the newline is not shown as ↵")
     return "multi-line CJK/emoji/combining text archived verbatim; shown on one row with ↵"
