@@ -4,11 +4,30 @@
 
 **Blocked by:** 31「生成零跳过发布证据」
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `/clear`、compaction、plugin reload、正常退出与普通重启、重启延续各有 PTY 场景，断言只依据屏幕快照与 semantic verifier。
-- [ ] 每个场景在隔离环境中运行，使用合成标记，trace 写盘前脱敏。
-- [ ] 场景清单引用新 PTY 脚本，报告中这些场景在两个版本上都判为 pass。
+- [x] `/clear`、compaction、plugin reload、正常退出与普通重启、重启延续各有 PTY 场景，断言只依据屏幕快照与 semantic verifier。
+- [x] 每个场景在隔离环境中运行，使用合成标记，trace 写盘前脱敏。
+- [x] 场景清单引用新 PTY 脚本，报告中这些场景在两个版本上都判为 pass。
+
+## Answer
+
+`PT-LIFE-001..004` 与 `PT-STORE-001` 现在由真实 PTY 场景证明（`mods/prompt-trail/release/pty_scenarios.py`），在 `2.1.273` 与 `2.1.283` 上都通过。实现提交：`0b7d780`。对齐见下方 Comments 的 Q1–Q11。
+
+- **场景**：每个 ID 一个函数、一个全新的隔离环境。`Context` 新增四个方法：`identity()`（从 status 读 `run:` 和 `Archive generation:`）、`exit()`（`/exit` 后等进程结束）、`session()`（按标记找到 transcript 对应的 classic session）、`focused()`（反色绘制的行就是焦点环所在的行）。
+  - LIFE-001：`/clear` 之后恰好一个 clear 边界，位于两个条目之间；Run 不变，两个条目分属两个 segment，后一个开新根分支；band 里显示 Clear Boundary。
+  - LIFE-002：`/compact` 之后的条目沿用同一 Run、segment 与 branch，父条目就是前一个；档案里只有 `run-started` 一个边界；两个条目都能跳转。
+  - LIFE-003：先选中较早的条目，按 Esc 后执行 `/reload-plugins`。band 恢复为展开，每个条目只出现一次且能跳转，条目数与 Run 都不变；再次进入 band 时焦点落在最新条目。
+  - LIFE-004：`/exit` 写入一次该 Run 的 `run-detached`；普通重启后得到新 Run，generation 不变；band 按顺序显示旧 Run 的「Run 开始 → × 条目 → Run 离开」。
+  - STORE-001：重启后不再询问同意，status 显示 granted，新 Run 下能继续采集，generation 不变；`--resume <第一个 session>` 续接第一个 Run，恰好写入一次 `run-attached`；全部事件的 sequence 从 1 到 8 连续。
+- **契约修订**（Q11）：reload 后不再承诺恢复选中位置。Issue 05 的 PT-LIFE-003、`release/scenarios.json` 的 expected 与 README 的不承诺清单已同步修改。
+- **验证**：
+  - scratchpad 脚本逐个场景调试，两个版本 5/5 通过；
+  - 正式入口 `release-evidence.sh --skip-gates --only <5 个 ID>`（`build/evidence/20260929T080807Z/`）：10/10 PTY 通过，0 泄漏；报告因 partial 和跳过门禁按设计判 FAIL；
+  - 变异检查（2.1.283）：5 个场景各反转一条关键断言，全部失败；
+  - `verify-startup.sh` 通过。
+- **与对齐稿不同**：Q9 预期重启后能看到新 Run 的「Run 开始」，实际上 `run-started` 要等新 Run 第一次写入才补写（Issue 17 的惰性边界），只启动不提交时 band 里只有旧 Run 的三行。场景改为断言这三行的顺序，新 Run 由 status 证明。
+- **每个场景的耗时**：12–38 秒。
 
 ## Comments
 

@@ -156,6 +156,10 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   干净才判定通过。PTY 用 Python `pty` + pyte，在临时 HOME/`CLAUDE_CONFIG_DIR` 里以钥匙串专用条目中的 `setup-token` token 运行
   生产插件，只存脱敏后的屏幕快照；标记扫描匹配随机部分 ≥12 字符的前缀，档案 SQLite 族与宿主对话记录列入允许清单。
   宿主网络错误导致的失败整场重跑一次并写明。31 只带 `PT-COMPAT-001` 与 `PT-CAPTURE-001..008` 的 PTY，其余拆到 36–40，正式证据在 41。
+- [以真实 PTY 证明生命周期与 Run 身份](issues/36-pty-lifecycle-run-identity.md)：
+  `PT-LIFE-001..004` 与 `PT-STORE-001` 的 PTY 场景覆盖 `/clear`、`/compact`、`/reload-plugins`、`/exit` 后普通重启，
+  以及 `--resume` 续接原 Run，在两个版本上通过。Run 与 generation 从 status 读，事件从 semantic verifier 读，焦点环按反色行判断。
+  契约不再承诺 reload 后恢复选中位置：焦点一离开 band 就不保留，再进入时从最新条目开始。
 
 ## Not yet specified
 
