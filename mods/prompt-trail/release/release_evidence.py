@@ -140,28 +140,45 @@ def run_pty(run: Run, versions: list[str], selected: set[str] | None, token: str
         host = pty_driver.Host(version)
         for id_ in ids:
             print(f"· pty {id_}@{version}", flush=True)
-            scenario = pty_scenarios.SCENARIOS[id_]
-            env = pty_driver.Environment(host, run.scanner, token, ROOT)
-            context = pty_scenarios.Context(env, run.scanner)
-            try:
-                actual = scenario(context)
-                outcome = "pass"
-            except pty_driver.ScenarioFailure as failure:
-                actual, outcome = f"failed: {failure}", "fail"
-            except Exception:  # A broken scenario is a failed one, never a skipped one.
-                actual = "failed: " + traceback.format_exc().strip().splitlines()[-1]
-                outcome = "fail"
-            found = env.finish()
-            for key in ("scannedFiles", "allowedFiles", "argvSamples"):
-                privacy[key] += found[key]
-            privacy["leaks"] += [dict(leak, scenario=f"{id_}@{version}") for leak in found["leaks"]]
             link = f"pty/{version}/{id_}.txt"
-            (run.out / link).parent.mkdir(parents=True, exist_ok=True)
-            (run.out / link).write_text("\n\n".join(env.trace) + "\n")
-            actual = run.scanner.redact_rows([actual])[0]
+            outcome, actual = run_scenario(run, host, id_, token, privacy, link)
+            if outcome == "fail" and evidence.network_failure((run.out / link).read_text()):
+                # The host lost its connection to the API: run the whole
+                # scenario once more in a fresh world, keeping the first trace.
+                (run.out / link).rename(run.out / f"pty/{version}/{id_}.attempt-1.txt")
+                print(f"  {actual}; host network error, running once more", flush=True)
+                outcome, retried = run_scenario(run, host, id_, token, privacy, link)
+                actual = f"retried after a host network error: {retried}"
             run.results.record("pty", id_, version, outcome, actual=actual, link=link)
             print(f"  {outcome}: {actual}", flush=True)
     return privacy
+
+
+def run_scenario(
+    run: Run, host, id_: str, token: str, privacy: dict, link: str,
+) -> tuple[str, str]:
+    """One scenario in its own world; its leaks and counts go into `privacy`,
+    its masked trace to `link`."""
+    import pty_driver
+    import pty_scenarios
+
+    env = pty_driver.Environment(host, run.scanner, token, ROOT)
+    context = pty_scenarios.Context(env, run.scanner)
+    try:
+        actual = pty_scenarios.SCENARIOS[id_](context)
+        outcome = "pass"
+    except pty_driver.ScenarioFailure as failure:
+        actual, outcome = f"failed: {failure}", "fail"
+    except Exception:  # A broken scenario is a failed one, never a skipped one.
+        actual = "failed: " + traceback.format_exc().strip().splitlines()[-1]
+        outcome = "fail"
+    found = env.finish()
+    for key in ("scannedFiles", "allowedFiles", "argvSamples"):
+        privacy[key] += found[key]
+    privacy["leaks"] += [dict(leak, scenario=f"{id_}@{host.version}") for leak in found["leaks"]]
+    (run.out / link).parent.mkdir(parents=True, exist_ok=True)
+    (run.out / link).write_text("\n\n".join(env.trace) + "\n")
+    return outcome, run.scanner.redact_rows([actual])[0]
 
 
 def keychain_token() -> str:
