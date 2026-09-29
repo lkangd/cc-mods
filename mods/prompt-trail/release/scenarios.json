@@ -682,7 +682,7 @@
         "执行 `/reload-plugins`",
         "读取档案"
       ],
-      "expected": "沿用 Run；重放不创建 Prompt Entry，已绑定项不重复，选中位置与展开状态恢复。",
+      "expected": "沿用 Run；重放不创建 Prompt Entry，已绑定项不重复，展开状态恢复；选中位置不保留，reload 后与 Esc 后一样从最新条目开始。",
       "layers": [
         "plugin",
         "pty"

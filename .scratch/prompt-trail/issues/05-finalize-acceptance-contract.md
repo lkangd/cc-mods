@@ -51,7 +51,7 @@ Blocked by: 03, 04, 06, 10
 
 - **PT-LIFE-001 `/clear`**：`SessionEnd(reason=clear)` 恰好写入一个 Clear Boundary 并结束当前 Conversation Segment；`SessionStart(source=clear)` 只关联新 classic session id。Run 不变，前后 prompt 分属不同 Segment；重复事件和两事件间崩溃均不得重复或丢失边界。
 - **PT-LIFE-002 Compaction**：`/compact`、`source=compact`、Pre/PostCompact 和延迟 `prompt.context` 均不得创建 Clear Boundary、Prompt Entry 或新 Run；compact 前后活动分支保持连续。
-- **PT-LIFE-003 Plugin reload**：同进程 reload 产生新 module instance 但沿用 Run；重放的 `ui.render` 不创建 Prompt Entry，已绑定项不重复，选中位置和展开状态恢复。
+- **PT-LIFE-003 Plugin reload**：同进程 reload 产生新 module instance 但沿用 Run；重放的 `ui.render` 不创建 Prompt Entry，已绑定项不重复，展开状态恢复；焦点离开 band 后不保留选中位置，reload 后与 Esc 后一样从最新条目开始。（2026-09-29 Issue 36 修订。）
 - **PT-LIFE-004 正常退出与普通重启**：正常退出记录 Run 离开；普通启动的新进程获得新 Run，沿用同一 Project Timeline 和 Archive generation。旧 Prompt Entry 仍可浏览，但未在当前 transcript 重放的项无 Jump Target。
 - **PT-BRANCH-001 Resume**：`claude --resume`、`--continue` 与会话内 `/resume` 续接原 Run 并记录 Run 续接，依据 source、session id 和唯一共享前缀恢复 Active Branch；共享历史只重绑 Jump Target，不重复归档；resume 节点之后不在活动路径上的条目折叠为可展开的另一分支。双终端并发 resume 同一会话时后到者新建 Run 并记录来源。（2026-09-23 Issue 32 修订。）
 - **PT-BRANCH-002 Fork**：后台 `/fork` 与 `--fork-session` 均创建新 Run 和新 Conversation Branch；共享前缀不重复，fork 参数若以 composer submission 进入则产生新 Prompt Entry。

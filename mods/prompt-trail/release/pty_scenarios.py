@@ -121,6 +121,39 @@ class Context:
     def status(self, terminal: Terminal) -> str:
         return self.command(terminal, "/prompt-history status", "Prompt Trail status")
 
+    def identity(self, terminal: Terminal) -> tuple[str, str]:
+        """The Run and the Archive generation that status names."""
+        status = self.status(terminal)
+        run = re.search(r"\brun: (\S+)", status)
+        generation = re.search(r"Archive generation: (\S+)", status)
+        check(run is not None and generation is not None, "status names no run or no generation")
+        return run.group(1), generation.group(1)
+
+    def exit(self, terminal: Terminal) -> None:
+        """Leaves the host the ordinary way and waits for its process to end."""
+        self.send(terminal, "/exit")
+        terminal.wait_for(lambda t: t.closed, "the host to exit", 30)
+
+    def session(self, marker: str) -> str:
+        """The classic session whose transcript holds the marker."""
+        found = [
+            path.stem for path in (self.env.config / "projects").rglob("*.jsonl")
+            if marker in path.read_text()
+        ]
+        check(len(found) == 1, f"{len(found)} transcripts hold the prompt")
+        return found[0]
+
+    def focused(self, terminal: Terminal) -> list[str]:
+        """The rows the focus ring stands on: a focused Button is drawn reversed."""
+        with terminal.lock:
+            buffer, columns, lines = terminal.screen.buffer, terminal.screen.columns, terminal.screen.lines
+            reversed_rows = [
+                y for y in range(lines)
+                if next((buffer[y][x].reverse for x in range(columns) if buffer[y][x].data.strip()), False)
+            ]
+        rows = terminal.rows()
+        return [rows[y] for y in reversed_rows]
+
     def entries(self) -> list[dict]:
         archive = self.env.archive()
         return archive["entries"] if archive else []
@@ -389,6 +422,173 @@ def capture_008(ctx: Context) -> str:
     return (
         "a refused confirmation kept the pending and status reported it; the next submission "
         "confirmed it from the transcript and handed its own text back as a draft, which then went through"
+    )
+
+
+
+def shown(band: list[str], marker: str) -> list[str]:
+    """The band's rows for the entry the marker names."""
+    return [row for row in band if marker[: evidence.MARKER_PREFIX] in row]
+
+
+def jumpable(row: str, marker: str) -> bool:
+    """An entry row without the × that marks one it cannot jump to."""
+    return "×" not in row.split(marker[: evidence.MARKER_PREFIX])[0]
+
+
+@scenario("PT-LIFE-001")
+def life_001(ctx: Context) -> str:
+    before = ctx.marker("PT-LIFE-001")
+    after = ctx.marker("PT-LIFE-001")
+    terminal = ctx.env.launch()
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(before), consent=True)
+    ctx.wait_entries(1)
+    ctx.command(terminal, "/clear", "❯")
+    terminal.wait_idle()
+    ctx.submit(terminal, prompt(after))
+    first, second = ctx.wait_entries(2)
+    clears = [b for b in ctx.env.archive()["boundaries"] if b["kind"] == "clear"]
+    check(len(clears) == 1, f"{len(clears)} Clear Boundaries")
+    check(first["runId"] == second["runId"] == clears[0]["runId"], "the Run changed across /clear")
+    check(first["segmentId"] != second["segmentId"], "both prompts are in one segment")
+    check(first["sequence"] < clears[0]["sequence"] < second["sequence"], "the boundary does not stand between the prompts")
+    check(second["parentEventId"] is None and second["branchId"] != first["branchId"], "the prompt after /clear did not start a root branch")
+    band = ctx.expand(terminal, after)
+    check(any("/clear：新的 Conversation Segment" in row for row in band), "the band shows no Clear Boundary")
+    return "1 Clear Boundary between the prompts; same Run, two segments, a new root branch after it; shown in the band"
+
+
+@scenario("PT-LIFE-002")
+def life_002(ctx: Context) -> str:
+    before = ctx.marker("PT-LIFE-002")
+    after = ctx.marker("PT-LIFE-002")
+    terminal = ctx.env.launch()
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(before), consent=True)
+    ctx.wait_entries(1)
+    ctx.command(terminal, "/compact", "ompact", timeout=120)
+    terminal.wait_idle()
+    ctx.submit(terminal, prompt(after))
+    entries = ctx.wait_entries(2)
+    check(len(entries) == 2, f"{len(entries)} entries")
+    first, second = entries
+    check(second["runId"] == first["runId"], "compaction started a new Run")
+    check(second["segmentId"] == first["segmentId"], "compaction started a new segment")
+    check(second["branchId"] == first["branchId"], "compaction started a new branch")
+    check(second["parentEventId"] == first["eventId"], "the prompt after compaction does not follow the one before")
+    kinds = [b["kind"] for b in ctx.env.archive()["boundaries"]]
+    check(kinds == ["run-started"], f"boundaries beside the Run's start: {kinds}")
+    band = ctx.expand(terminal, after)
+    for marker in (before, after):
+        rows = shown(band, marker)
+        check(len(rows) == 1 and jumpable(rows[0], marker), "an entry is not shown once with a Jump Target")
+    return "no Clear Boundary, no new Run, no extra entry; the prompt after /compact continues the branch; both entries jumpable"
+
+
+@scenario("PT-LIFE-003")
+def life_003(ctx: Context) -> str:
+    first = ctx.marker("PT-LIFE-003")
+    latest = ctx.marker("PT-LIFE-003")
+    terminal = ctx.env.launch()
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(first), consent=True)
+    ctx.submit(terminal, prompt(latest))
+    ctx.wait_entries(2)
+    run, _ = ctx.identity(terminal)
+    ctx.expand(terminal, latest)
+    # Select the earlier entry, then leave the band for the composer.
+    terminal.key("ctrl-x", "tab", pause=0.5)
+    terminal.key("up", pause=0.5)
+    check(any(first[: evidence.MARKER_PREFIX] in row for row in ctx.focused(terminal)), "the earlier entry could not be selected")
+    ctx.env.snap(terminal, "earlier entry selected")
+    terminal.key("esc", pause=0.5)
+    ctx.command(terminal, "/reload-plugins", "eload")
+    band = terminal.wait_for(
+        lambda t: (b := ctx.band(t)) and b[0].startswith("▾") and shown(b, latest) and b,
+        "the band to come back open", 30,
+    )
+    ctx.env.snap(terminal, "reloaded")
+    for marker in (first, latest):
+        rows = shown(band, marker)
+        check(len(rows) == 1, f"an entry is shown {len(rows)} times after the reload")
+        check(jumpable(rows[0], marker), "an entry lost its Jump Target in the reload")
+    check(len(ctx.entries()) == 2, "the reload's replay created a Prompt Entry")
+    check(ctx.identity(terminal)[0] == run, "the reload changed the Run")
+    # The selection is not kept once focus leaves the band: entering again
+    # starts on the latest entry, as it does after Esc.
+    terminal.key("ctrl-x", "tab", pause=0.5)
+    check(any(latest[: evidence.MARKER_PREFIX] in row for row in ctx.focused(terminal)), "entering the band did not start on the latest entry")
+    ctx.env.snap(terminal, "entered after reload")
+    return "same Run, still expanded, each entry once and jumpable, no new entry; entering the band starts on the latest entry"
+
+
+@scenario("PT-LIFE-004")
+def life_004(ctx: Context) -> str:
+    marker = ctx.marker("PT-LIFE-004")
+    terminal = ctx.env.launch()
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(marker), consent=True)
+    entry = ctx.wait_entries(1)[0]
+    run, generation = ctx.identity(terminal)
+    check(entry["runId"] == run, "the entry does not belong to the Run status names")
+    ctx.exit(terminal)
+    detached = [b for b in ctx.env.archive()["boundaries"] if b["kind"] == "run-detached"]
+    check([b["runId"] for b in detached] == [run], "the exit did not record the Run leaving once")
+    restarted = ctx.env.launch()
+    ctx.start(restarted)
+    new_run, new_generation = ctx.identity(restarted)
+    check(new_run != run, "the restart kept the old Run")
+    check(new_generation == generation, "the restart changed the Archive generation")
+    band = ctx.expand(restarted, marker)
+    rows = shown(band, marker)
+    check(len(rows) == 1 and not jumpable(rows[0], marker), "the old entry is not shown once without a Jump Target")
+    # The new Run's start is written by its first write, so the band shows
+    # only the old Run: its start, its entry and its leaving, in that order.
+    lines = [row for row in band[1:] if row.startswith("——") or row in rows]
+    check(lines == ["—— Run 开始 ——", rows[0], "—— Run 离开 ——"], "the band does not show the old Run start, its entry and its leaving")
+    check(len(ctx.entries()) == 1, "the restart created a Prompt Entry")
+    return "exit recorded the Run leaving; the restart got a new Run on the same generation; the old Run shows start, × entry, leaving"
+
+
+@scenario("PT-STORE-001")
+def store_001(ctx: Context) -> str:
+    first = ctx.marker("PT-STORE-001")
+    second = ctx.marker("PT-STORE-001")
+    third = ctx.marker("PT-STORE-001")
+    terminal = ctx.env.launch()
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(first), consent=True)
+    ctx.wait_entries(1)
+    run, generation = ctx.identity(terminal)
+    session = ctx.session(first)
+    ctx.exit(terminal)
+    # An ordinary launch: a new Run on the same timeline, consent kept.
+    restarted = ctx.env.launch()
+    ctx.start(restarted)
+    ctx.submit(restarted, prompt(second))
+    check("采集同意" not in restarted.text(), "the restart asked for consent again")
+    entries = ctx.wait_entries(2)
+    new_run, new_generation = ctx.identity(restarted)
+    check("collection consent: granted" in ctx.status(restarted), "status does not say consent is granted")
+    check(new_run != run and entries[1]["runId"] == new_run, "the restart did not get a new Run")
+    check(new_generation == generation, "the restart changed the Archive generation")
+    ctx.exit(restarted)
+    # A resume of the first session attaches to the first Run again.
+    resumed = ctx.env.launch("--resume", session)
+    ctx.start(resumed)
+    ctx.submit(resumed, prompt(third))
+    entries = ctx.wait_entries(3)
+    check(ctx.identity(resumed)[0] == run and entries[2]["runId"] == run, "the resume did not attach to the first Run")
+    check([e["promptText"] for e in entries] == [prompt(first), prompt(second), prompt(third)], "earlier entries changed")
+    archive = ctx.env.archive()
+    attached = [b for b in archive["boundaries"] if b["kind"] == "run-attached"]
+    check([b["runId"] for b in attached] == [run], "the resume did not record the Run attaching once")
+    sequences = sorted(e["sequence"] for e in archive["entries"] + archive["boundaries"])
+    check(sequences == list(range(1, len(sequences) + 1)), "the sequence does not run on without a gap")
+    return (
+        "a restart kept the earlier entry, the generation and consent under a new Run; "
+        f"a resume attached to the first Run; sequence 1..{len(sequences)} unbroken"
     )
 
 
