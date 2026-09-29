@@ -169,6 +169,10 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 - [第一次提交前 `/clear` 也记下 Clear Boundary](issues/42-clear-before-first-write.md)：
   函数 hook 的 `session.start` 早于 bridge 发布 locator，新进程在提交前不知道自己的 Run。生命周期事件遇到 Run 未知时先重读 locator，
   再决定是否暂存，于是普通启动或 `--resume` 后第一件事就 `/clear`，也恰好写入一个 Clear Boundary，不再记成 Integrity gap。`PT-LIFE-001` 扩展覆盖这两条路径。
+- [会话内 `/resume` 之后的条目也能跳转](issues/43-jump-after-in-process-resume.md)：
+  宿主在 resume 后用原来的 `requestId` 重放会话的行，插件却把本进程画过的行一直记为已消失，交给 helper 的行缺了祖先，新条目就绑不上。
+  现在「已消失」只持续到下一个 classic SessionStart，之前那段「退出时重画」照旧不收，于是重放的历史和之后的新条目都能跳转，也收掉了 Issue 22 的已知代价。
+  `PT-BRANCH-001` 扩展覆盖。
 
 ## Not yet specified
 

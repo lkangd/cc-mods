@@ -62,7 +62,7 @@
 决定：
 
 - **Q7 新进程第一件事就是 `/clear`**：任何新进程（包括普通重启）在第一次提交之前执行 `/clear`，档案里记下的是 integrity gap/recovery，Clear Boundary 丢失，两个版本都能复现；先提交一次或先跑一次 status 就正常。拆为 [Issue 42](42-clear-before-first-write.md)，37 不被它阻塞。BRANCH-001 在 `--resume` 之后先提交一条，再 `/clear`。
-- **Q8 会话内 `/resume` 之后的新条目显示 `×`**：拆为 [Issue 43](43-jump-after-in-process-resume.md)，先诊断。BRANCH-001 不在会话内 `/resume` 之后断言跳转。Issue 22 的已知缺口（同一进程 `/resume` 回到它打开过的 session，旧行显示 `×`）补进 README 的不承诺清单。
+- **Q8 会话内 `/resume` 之后的新条目显示 `×`**：拆为 [Issue 43](43-jump-after-in-process-resume.md)，先诊断。BRANCH-001 不在会话内 `/resume` 之后断言跳转。Issue 22 的已知缺口（同一进程 `/resume` 回到它打开过的 session，旧行显示 `×`）补进 README 的不承诺清单。（2026-09-29 Issue 43 已修复这两处：BRANCH-001 在会话内 `/resume` 之后断言 A–D 与 F 能跳转，README 的这一条已删除。）
 - **Q9 后台 `/fork` 的宿主文件与残留进程**：宿主把 fork 参数原文写进 `sessions/<pid>.json`、`daemon/roster.json`、`jobs/<id>/state.json` 和 `jobs/<id>/tmp/parent-transcript.jsonl`。`ALLOWED_RULES` 增加「config 目录下的 Claude Code 后台会话记录：`sessions/`、`daemon/`、`jobs/`」。`Environment.finish()` 先扫描、再结束本世界派生出的 daemon 及其子进程（识别依据是 `--spawned-by` 的 cwd 落在本世界内），然后扫描并删除它在 `/tmp/cc-daemon-<uid>/` 下持有的目录；扫描漏掉的进程或目录记为泄漏。spec Testing Decisions 与 README 的允许文件说明同步修改。
 - **Q10 鼠标点击**：`Terminal.click()` 先发移动事件（`\x1b[<35;x;yM`），停 0.3 秒，再按下、松开，对所有调用方生效。
 - **Q11 BRANCH-001**：T1 提交 A（同意采集）、B，然后 `/exit` → T2 `--continue`：提交前 band 里 A、B 能跳转、条目数仍为 2；提交 C，父节点是 B，Run 不变，新增一条 `run-attached`；然后 `/exit` → T3 `--resume S`：提交 D（父节点是 C）→ `/clear` → 提交 E → `/resume S` → 提交 F：F 的父节点是 D，Run 不变；band 在分叉点显示「▸ 另一分支 · 1 条」，点击展开后看到 E → T4：在 T3 仍存活时 `--resume S`：status 的 Run 与原 Run 不同；提交前 A、B、C、D、F 能跳转；提交 G，父节点是 F，band 在 G 之前显示「Run 开始（从 Run <原 Run 前 8 位> 分出）」；条目总数恰好是 7。

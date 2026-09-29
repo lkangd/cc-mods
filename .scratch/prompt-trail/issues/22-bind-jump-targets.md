@@ -35,7 +35,7 @@
 与上面「实现层面对齐」不同的地方，都经使用者确认（PTY 在 2.1.283 上发现）：
 
 - **消失的行（修订 Q4）**：rewind 与 clear 不发信号，只在点击时靠 `deny` 兜底太晚（展开时仍显示可点）。每次对齐前、以及下面的重查时，读 `$.session.messages()`，把已渲染行按顺序在人类 `user` 行里逐个往后找；最后一个找得到的行之后的那些行就是被移除的，记为「已消失」：删掉绑定，之后宿主再画也不收。只剪末尾这一段，中间画法与 transcript 不同的行（粘贴块）不受影响。展开 band（点标题或 `/prompt-history`）时也对齐一次。
-- **clear 后的旧行重画**：`SessionEnd` 之后宿主会把 clear 前的行再画一次，而此时 `messages()` 还是旧的。`SessionEnd` 时把已渲染的行全部记为「已消失」，不再清空这个集合。代价：同一进程里 `/resume` 回到本进程先前打开过的 session，原来的行一直显示 `×`，重启后恢复（不会跳错）。
+- **clear 后的旧行重画**：`SessionEnd` 之后宿主会把 clear 前的行再画一次，而此时 `messages()` 还是旧的。`SessionEnd` 时把已渲染的行全部记为「已消失」，不再清空这个集合。代价：同一进程里 `/resume` 回到本进程先前打开过的 session，原来的行一直显示 `×`，重启后恢复（不会跳错）。（2026-09-29 由 [Issue 43](43-jump-after-in-process-resume.md) 收掉：「已消失」只持续到下一个 classic SessionStart。）
 - **展开状态下的 rewind**：rewind 不重画 transcript 行，也不重画 band，只重画输入框下的 `PromptHint`（旧 prompt 放回输入框）。band 展开且有跳转目标时，band 或 `PromptHint` 每次重画都立即重查一次，并在 500 ms 后补查一次，其间的重画并入补查；只有真有行消失才调用 helper。
 - **门禁当前版本**：2.1.281 升为 2.1.283（本轮 PTY 所用版本）。
 - **拆出新票**：模型运行中排队的提交被宿主撤回（`popAll`）后仍被存档，归 [Issue 35](35-queued-submission-withdrawn.md)。
@@ -50,7 +50,7 @@
 - **没做到的**：
   - rewind 后再提交与被移除行同文本的 prompt，新条目判为不唯一，显示 `×`；
   - 渲染文本与归档文本不同（例如图片）时显示 `×`，不做规范化；PTY 实测粘贴块（`[Pasted text …]`）不在此列：不显示 `×`，能正常跳转；图片未测；
-  - 同一进程里 `/resume` 回到本进程先前打开过的 session，原来的行显示 `×`，重启后恢复。
+  - 同一进程里 `/resume` 回到本进程先前打开过的 session，原来的行显示 `×`，重启后恢复。（2026-09-29 已由 [Issue 43](43-jump-after-in-process-resume.md) 修复。）
 - **宿主事实**（2.1.283 实测）：
   - reload 与 resume 在 `session.start` 之前按 transcript 顺序重放全部行，`requestId` 不变；`UserMessage` 新增 `onScreen`，滚动时反复重画同一行。
   - rewind 不重画任何 transcript 行，也不重画 band，只重画 `PromptHint`；`/clear` 的 `SessionEnd` 之后宿主会把旧行再画一次，此时 `messages()` 尚未更新。
