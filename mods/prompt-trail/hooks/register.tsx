@@ -3765,6 +3765,9 @@ async function applyLifecycleEvent(
   /* Before consent there is no archive at all, so there is no segment to cut
      and nothing to owe. */
   if (currentProject.consent !== 'enabled') return
+  /* `session.start` runs before the bridge publishes the locator, so a
+     process that has not submitted anything yet has not read its Run. */
+  if (!startup.runId) await refreshStartup($)
   if (!startup.runId) {
     await defer(currentProject)
     return

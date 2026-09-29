@@ -588,9 +588,10 @@
       "title": "/clear",
       "steps": [
         "提交 prompt 后执行 `/clear`，再提交",
+        "`/exit` 后普通重启，第一件事就执行 `/clear`，再提交；`/exit` 后 `--resume` 同样再做一次",
         "读取档案"
       ],
-      "expected": "恰好一个 Clear Boundary；Run 不变，前后 prompt 分属不同 Segment；重复事件与两事件间崩溃不重复也不丢失边界。",
+      "expected": "恰好一个 Clear Boundary；Run 不变，前后 prompt 分属不同 Segment；重复事件与两事件间崩溃不重复也不丢失边界。新进程第一件事就执行 `/clear` 时同样恰好记下一个 Clear Boundary，不记成 Integrity gap；整个场景三次 `/clear`，共 3 个 Clear Boundary。",
       "layers": [
         "plugin",
         "pty",
@@ -620,6 +621,10 @@
         {
           "kind": "plugin",
           "ref": "tests/clear_segment.test.tsx::the segment after a clear starts a new root branch"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/clear_segment.test.tsx::a clear before this process has read its locator still writes the boundary"
         },
         {
           "kind": "unit",

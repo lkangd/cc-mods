@@ -49,7 +49,7 @@ Blocked by: 03, 04, 06, 10
 
 ### 5. 生命周期、分支与跳转场景
 
-- **PT-LIFE-001 `/clear`**：`SessionEnd(reason=clear)` 恰好写入一个 Clear Boundary 并结束当前 Conversation Segment；`SessionStart(source=clear)` 只关联新 classic session id。Run 不变，前后 prompt 分属不同 Segment；重复事件和两事件间崩溃均不得重复或丢失边界。
+- **PT-LIFE-001 `/clear`**：`SessionEnd(reason=clear)` 恰好写入一个 Clear Boundary 并结束当前 Conversation Segment；`SessionStart(source=clear)` 只关联新 classic session id。Run 不变，前后 prompt 分属不同 Segment；重复事件和两事件间崩溃均不得重复或丢失边界。新进程（普通启动或 `--resume`）第一件事就执行 `/clear` 时同样恰好写入一个 Clear Boundary，不得记成 Integrity gap。（2026-09-29 Issue 42 修订。）
 - **PT-LIFE-002 Compaction**：`/compact`、`source=compact`、Pre/PostCompact 和延迟 `prompt.context` 均不得创建 Clear Boundary、Prompt Entry 或新 Run；compact 前后活动分支保持连续。
 - **PT-LIFE-003 Plugin reload**：同进程 reload 产生新 module instance 但沿用 Run；重放的 `ui.render` 不创建 Prompt Entry，已绑定项不重复，展开状态恢复；焦点离开 band 后不保留选中位置，reload 后与 Esc 后一样从最新条目开始。（2026-09-29 Issue 36 修订。）
 - **PT-LIFE-004 正常退出与普通重启**：正常退出记录 Run 离开；普通启动的新进程获得新 Run，沿用同一 Project Timeline 和 Archive generation。旧 Prompt Entry 仍可浏览，但未在当前 transcript 重放的项无 Jump Target。
