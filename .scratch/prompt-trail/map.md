@@ -149,6 +149,13 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   fail-open 由 `$.store` 里不含原文的在途标记发现：pending 之前或 `/clear` 途中留下的记为 gap，pending 之后的交给对账；别的 Run 的
   标记只在它不再存活时判定（`archive-status` 新增 `liveRuns` 与 gap 计数）。停用时只写 gap，恢复边界在 `collection-resumed` 之后。
   清除随 Run 删除 gap。band 以黄色、不折叠显示，`status` 显示当前是否欠 gap 与档案里的 gap 数。
+- [生成零跳过发布证据](issues/31-release-evidence.md)：
+  `scripts/release-evidence.sh` 是唯一发布门禁：在 `2.1.273` 与当前版本上跑制品重建比对、plugin validate/test、TypeScript、
+  unittest、helper 探针、100k benchmark、真实 PTY 场景与隐私扫描，按 `release/scenarios.json` 把 56 个场景 ID 逐条映射到
+  「文件::测试名」、unittest id、门禁与 PTY 脚本，写出 JSON/Markdown 报告；零失败、零缺失、零跳过、零泄漏、非局部运行、工作树
+  干净才判定通过。PTY 用 Python `pty` + pyte，在临时 HOME/`CLAUDE_CONFIG_DIR` 里以钥匙串专用条目中的 `setup-token` token 运行
+  生产插件，只存脱敏后的屏幕快照；标记扫描匹配随机部分 ≥12 字符的前缀，档案 SQLite 族与宿主对话记录列入允许清单。
+  宿主网络错误导致的失败整场重跑一次并写明。31 只带 `PT-COMPAT-001` 与 `PT-CAPTURE-001..008` 的 PTY，其余拆到 36–40，正式证据在 41。
 
 ## Not yet specified
 
