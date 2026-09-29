@@ -305,7 +305,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
     - 发布报告必须零 skipped、零 missing、零 leaked marker，并链接每个 MUST 场景的可复核证据。
     - 门禁入口是 `mods/prompt-trail/scripts/release-evidence.sh`，场景与证据的对应写在 `release/scenarios.json`；报告写到 `build/evidence/`，发布时连同脱敏 trace 提交到 `release/evidence/<插件版本>/`。局部运行（`--only`、`--skip-gates`）或工作树不干净时报告一律判失败。
     - 真实 PTY 由 Python `pty` 与 pyte 终端模拟器驱动，不依赖 GUI；隔离环境以使用者用 `claude setup-token` 生成、存在钥匙串专用条目中的 token 登录，不读使用者现有凭据。
-    - 标记允许出现的文件除档案 SQLite 族外，还有 Claude Code 自己的对话记录（transcript、`history.jsonl` 等），它们不属于 Prompt Trail 的产物。宿主与 API 之间的网络错误导致的 PTY 失败整场重跑一次，报告写明。（2026-09-29 Issue 31 修订。）
+    - 标记允许出现的文件除档案 SQLite 族外，还有 Claude Code 自己的对话记录（transcript、`history.jsonl` 等），它们不属于 Prompt Trail 的产物。宿主与 API 之间的网络错误导致的 PTY 失败整场重跑一次，报告写明。（2026-09-29 Issue 31 修订。）后台会话记录（config 目录下的 `sessions/`、`daemon/`、`jobs/`）同属 Claude Code 自己的记录；场景结束时，本世界派生的后台 daemon 及其子进程要结束，它在 `/tmp/cc-daemon-<uid>/` 下的目录要扫描后删除，漏掉的记为泄漏。（2026-09-29 Issue 37 修订。）
 
 ## Out of Scope
 

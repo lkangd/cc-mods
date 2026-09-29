@@ -239,18 +239,20 @@ class Scanner:
 
 # Files that may hold prompt text by design: the archive's own SQLite files
 # (live, WAL, SHM, migration backups and quarantined copies), and the host's
-# record of the conversation itself, which Prompt Trail neither writes nor owns.
+# record of the conversation itself and of its background sessions, which
+# Prompt Trail neither writes nor owns.
 ALLOWED_RULES = [
     "archive SQLite files under a plugin data archives/ directory: "
     "<project>.sqlite3 with -wal, -shm, -journal and .pre-migration-vN[.partial] siblings, "
     "including quarantined copies",
     "Claude Code conversation records under the config directory: projects/, history.jsonl, "
     "file-history/, paste-cache/",
+    "Claude Code background session records under the config directory: sessions/, daemon/, jobs/",
 ]
 _ARCHIVE_FILE = re.compile(
     r"^[0-9a-f]{64}\.sqlite3(?:\.pre-migration-v[0-9]+(?:\.partial)?)?(?:-wal|-shm|-journal)?$"
 )
-_HOST_CONVERSATION_DIRS = {"projects", "file-history", "paste-cache"}
+_HOST_CONVERSATION_DIRS = {"projects", "file-history", "paste-cache", "sessions", "daemon", "jobs"}
 
 
 def _allowed(relative: pathlib.PurePath, config: pathlib.PurePath) -> bool:

@@ -122,16 +122,17 @@ class Context:
         return self.command(terminal, "/prompt-history status", "Prompt Trail status")
 
     def identity(self, terminal: Terminal) -> tuple[str, str]:
-        """The Run and the Archive generation that status names."""
-        status = self.status(terminal)
+        """The Run and the Archive generation that status names, read once
+        its last line, the Run, is drawn."""
+        status = self.command(terminal, "/prompt-history status", "run: ")
         run = re.search(r"\brun: (\S+)", status)
         generation = re.search(r"Archive generation: (\S+)", status)
         check(run is not None and generation is not None, "status names no run or no generation")
         return run.group(1), generation.group(1)
 
-    def relaunch(self, *args: str) -> Terminal:
+    def relaunch(self, *args: str, **options) -> Terminal:
         """A new host process in the same project, ready for input."""
-        terminal = self.env.launch(*args)
+        terminal = self.env.launch(*args, **options)
         self.start(terminal)
         return terminal
 
@@ -147,6 +148,23 @@ class Context:
         if len(found) != 1:
             raise ScenarioFailure(f"cannot name the session to resume: {len(found)} transcripts hold the prompt")
         return found[0]
+
+    def focus(self, terminal: Terminal, row: str) -> None:
+        """Enters the band and walks the focus ring up to the band row that
+        begins as `row` does; entering starts on the latest entry."""
+        terminal.key("ctrl-x", "tab", pause=0.5)
+        for _ in range(20):
+            if any(focused.startswith(row) for focused in terminal.reversed_rows()):
+                self.env.snap(terminal, "entry focused")
+                return
+            terminal.key("up", pause=0.4)
+        raise ScenarioFailure("could not move the focus onto the entry")
+
+    def click_row(self, terminal: Terminal, row: str, needle: str) -> None:
+        """Clicks the text `needle` names on the one row that holds `row`."""
+        found = [i for i, text in enumerate(terminal.rows()) if row in text]
+        check(len(found) == 1, f"{len(found)} rows to click")
+        terminal.click(terminal.column(found[0], needle), found[0])
 
     def entries(self) -> list[dict]:
         archive = self.env.archive()
@@ -586,6 +604,348 @@ def store_001(ctx: Context) -> str:
         "a restart kept the earlier entry, the generation and consent under a new Run; "
         "a resume attached to the first Run; sequence 1..8 unbroken"
     )
+
+
+def entry(entries: list[dict], marker: str) -> dict:
+    """The one Prompt Entry holding the prompt the marker names."""
+    found = [e for e in entries if e["promptText"] == prompt(marker)]
+    check(len(found) == 1, f"{len(found)} entries hold one prompt")
+    return found[0]
+
+
+def in_transcript(terminal: Terminal, marker: str) -> bool:
+    """Whether the transcript above the band shows the prompt the marker names."""
+    rows = terminal.rows()
+    titles = [i for i, row in enumerate(rows) if row.startswith(("▸ Prompt Trail", "▾ Prompt Trail"))]
+    above = rows[: titles[-1]] if titles else rows
+    return any(row.startswith("❯ ") and marker[: evidence.MARKER_PREFIX] in row for row in above)
+
+
+def collapsed(ctx: Context, terminal: Terminal) -> bool:
+    band = ctx.band(terminal)
+    return bool(band) and band[0].startswith("▸")
+
+
+def boundaries(ctx: Context, kind: str) -> list[dict]:
+    return [b for b in ctx.env.archive()["boundaries"] if b["kind"] == kind]
+
+
+def check_bound(band: list[str], markers, what: str) -> None:
+    """Each entry the markers name is shown once, with a Jump Target."""
+    for marker in markers:
+        rows = shown(band, marker)
+        check(len(rows) == 1 and jumpable(rows[0], marker), f"{what} did not bind the shared history once")
+
+
+def check_fold(band: list[str], count: int, before: str, after: str, hidden) -> int:
+    """The one fold row of `count` entries stands between the entries `before`
+    and `after` name, and the entries it folds are not shown; its row index."""
+    folds = [i for i, row in enumerate(band) if row.startswith(f"▸ 另一分支 · {count} 条")]
+    check(len(folds) == 1 and not any(shown(band, m) for m in hidden), "the entries that left the active path are not folded into one row")
+    at = {m: [i for i, row in enumerate(band) if m[: evidence.MARKER_PREFIX] in row] for m in (before, after)}
+    check(len(at[before]) == 1 and len(at[after]) == 1, "the entries around the fold are not shown once")
+    check(at[before][0] < folds[0] < at[after][0], "the fold does not stand where the branch left")
+    return folds[0]
+
+
+def check_branched_off(ctx: Context, terminal: Terminal, marker: str, source: str) -> None:
+    """The entry the marker names opens a Run that says it branched off `source`."""
+    band = terminal.wait_for(lambda t: (b := ctx.band(t)) and shown(b, marker) and b, "the band to show the prompt", 15)
+    row = band.index(shown(band, marker)[0])
+    check(band[row - 1] == f"—— Run 开始（从 Run {source[:8]} 分出）——", "the new Run does not say which Run it branched off")
+
+
+@scenario("PT-BRANCH-001")
+def branch_001(ctx: Context) -> str:
+    a, b, c, d, e, f, g = (ctx.marker("PT-BRANCH-001") for _ in range(7))
+    first = ctx.env.launch(lines=60)
+    ctx.start(first)
+    ctx.submit(first, prompt(a), consent=True)
+    ctx.submit(first, prompt(b))
+    ctx.wait_entries(2)
+    run, _ = ctx.identity(first)
+    session = ctx.session(a)
+    ctx.exit(first)
+
+    # --continue takes the latest session up again: its shared history binds
+    # anew and nothing of it is archived twice.
+    continued = ctx.relaunch("--continue", lines=60)
+    check_bound(ctx.expand(continued, b), (a, b), "--continue")
+    check(len(ctx.entries()) == 2, "--continue archived the shared history")
+    ctx.submit(continued, prompt(c))
+    entries = ctx.wait_entries(3)
+    check(entry(entries, c)["parentEventId"] == entry(entries, b)["eventId"], "--continue did not go on from the last entry")
+    check(entry(entries, c)["runId"] == run and ctx.identity(continued)[0] == run, "--continue did not take the Run up")
+    check([x["runId"] for x in boundaries(ctx, "run-attached")] == [run], "--continue did not record the Run attaching once")
+    ctx.exit(continued)
+
+    # --resume names the session. After a /clear, an in-process /resume of it
+    # comes back to its branch; the prompt after the clear leaves the active
+    # path and folds where it branched.
+    resumed = ctx.relaunch("--resume", session, lines=60)
+    ctx.submit(resumed, prompt(d))
+    entries = ctx.wait_entries(4)
+    check(entry(entries, d)["parentEventId"] == entry(entries, c)["eventId"], "--resume did not go on from the last entry")
+    check(entry(entries, d)["runId"] == run and ctx.identity(resumed)[0] == run, "--resume did not take the Run up")
+    check([x["runId"] for x in boundaries(ctx, "run-attached")] == [run, run], "--resume did not record the Run attaching once more")
+    ctx.command(resumed, "/clear", "❯")
+    resumed.wait_idle()
+    ctx.submit(resumed, prompt(e))
+    entries = ctx.wait_entries(5)
+    check(entry(entries, e)["parentEventId"] is None, "the prompt after /clear has a parent")
+    check(len(boundaries(ctx, "clear")) == 1, "the /clear left no single Clear Boundary")
+    ctx.send(resumed, f"/resume {session}")
+    resumed.wait_for(lambda t: in_transcript(t, d), "the in-process resume to show the session", 30)
+    ctx.env.snap(resumed, "resumed in process")
+    ctx.submit(resumed, prompt(f))
+    entries = ctx.wait_entries(6)
+    check(entry(entries, f)["parentEventId"] == entry(entries, d)["eventId"], "/resume did not go on from the session's last entry")
+    check(entry(entries, f)["runId"] == run and ctx.identity(resumed)[0] == run, "/resume did not keep the Run")
+    band = ctx.expand(resumed, f)
+    fold = check_fold(band, 1, d, f, hidden=(e,))
+    ctx.click_row(resumed, band[fold], "另一分支")
+    resumed.wait_for(lambda t: shown(ctx.band(t), e), "the fold to open", 15)
+    ctx.env.snap(resumed, "fold opened")
+
+    # A second terminal resuming the session while the first holds its Run
+    # branches off in a Run of its own.
+    concurrent = ctx.relaunch("--resume", session, lines=60)
+    other, _ = ctx.identity(concurrent)
+    check(other != run, "a concurrent resume took up the held Run")
+    check_bound(ctx.expand(concurrent, f), (a, b, c, d, f), "the concurrent resume")
+    check(len(ctx.entries()) == 6, "the concurrent resume archived the shared history")
+    ctx.submit(concurrent, prompt(g))
+    entries = ctx.wait_entries(7)
+    check(len(entries) == 7, f"{len(entries)} entries")
+    check(entry(entries, g)["parentEventId"] == entry(entries, f)["eventId"], "the concurrent resume did not go on from the last entry")
+    check(entry(entries, g)["runId"] == other, "the concurrent prompt is not in the new Run")
+    check_branched_off(ctx, concurrent, g, run)
+    return (
+        "--continue and a concurrent --resume bind the shared history once and archive none of it; --continue, "
+        "--resume and an in-process /resume keep the Run and go on from the session's last entry; the prompt after "
+        "/clear folds where it left; a resume while the Run is held branches off in a new Run"
+    )
+
+
+@scenario("PT-BRANCH-002")
+def branch_002(ctx: Context) -> str:
+    a, b, g, h = (ctx.marker("PT-BRANCH-002") for _ in range(4))
+    source = ctx.env.launch(lines=60)
+    ctx.start(source)
+    ctx.submit(source, prompt(a), consent=True)
+    ctx.submit(source, prompt(b))
+    ctx.wait_entries(2)
+    run, _ = ctx.identity(source)
+    session = ctx.session(a)
+    # A background /fork submits its argument in a session of its own.
+    ctx.send(source, f"/fork {prompt(g)}")
+    entries = ctx.wait_entries(3, timeout=90)
+    check(len(entries) == 3, f"{len(entries)} entries after the fork")
+    forked = entry(entries, g)
+    check(forked["runId"] != run, "the background fork did not start a Run")
+    check(forked["parentEventId"] == entry(entries, b)["eventId"], "the fork does not go on from the shared history")
+    check(forked["branchId"] != entry(entries, b)["branchId"], "the fork did not start a branch")
+    check(forked["runId"] in [x["runId"] for x in boundaries(ctx, "run-started")], "the fork's Run did not start")
+
+    cli = ctx.relaunch("--resume", session, "--fork-session", lines=60)
+    band = ctx.expand(cli, b)
+    check_bound(band, (a, b), "--fork-session")
+    rows = shown(band, g)
+    check(len(rows) == 1 and not jumpable(rows[0], g), "the other fork's entry is not shown once without a Jump Target")
+    ctx.submit(cli, prompt(h))
+    entries = ctx.wait_entries(4)
+    check(len(entries) == 4, f"{len(entries)} entries after --fork-session")
+    child = entry(entries, h)
+    check(child["runId"] not in (run, forked["runId"]) and ctx.identity(cli)[0] == child["runId"], "--fork-session did not start a Run")
+    check(child["parentEventId"] == entry(entries, b)["eventId"], "--fork-session does not go on from the shared history")
+    check(child["branchId"] not in (entry(entries, b)["branchId"], forked["branchId"]), "--fork-session did not start a branch")
+    check_branched_off(ctx, cli, h, run)
+    return (
+        "a background /fork archived its argument once in a new Run and branch after the shared history; "
+        "--fork-session bound the shared history, marked the other fork ×, and started a Run of its own "
+        "that says which Run it branched off"
+    )
+
+
+@scenario("PT-BRANCH-003")
+def branch_003(ctx: Context) -> str:
+    a, b, c, d, e = (ctx.marker("PT-BRANCH-003") for _ in range(5))
+    terminal = ctx.env.launch(lines=60)
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(a), consent=True)
+    ctx.submit(terminal, prompt(b))
+    ctx.submit(terminal, prompt(c))
+    ctx.wait_entries(3)
+    # /rewind to before B, then Esc Esc to before A: the same menu, reached
+    # once through the command and once without it.
+    for opener, target, next_prompt in (("/rewind", b, d), (None, a, e)):
+        if opener:
+            ctx.send(terminal, opener)
+        else:
+            terminal.key("esc", pause=0.3)
+            terminal.key("esc")
+        terminal.wait_for("(current)", "the rewind menu", 15)
+        for _ in range(10):
+            # The menu's selection is indented; the transcript's prompts are not.
+            selected = [row for row in terminal.rows() if row.startswith("   ❯ ") and "(current)" not in row]
+            if selected and target[: evidence.MARKER_PREFIX] in selected[-1]:
+                break
+            terminal.key("up", pause=0.5)
+        ctx.env.snap(terminal, "rewind target")
+        terminal.key("enter")
+        terminal.wait_for("Restore conversation", "the restore choice", 15)
+        ctx.choose(terminal, "Restore conversation")
+        terminal.wait_for(
+            lambda t: target[: evidence.MARKER_PREFIX] in t.rows()[_prompt_box(t)], "the rewound prompt in the box", 15,
+        )
+        ctx.env.snap(terminal, "rewound")
+        terminal.key("ctrl-c", pause=0.5)
+        ctx.submit(terminal, prompt(next_prompt))
+        if next_prompt == d:
+            entries = ctx.wait_entries(4)
+            check(entry(entries, d)["parentEventId"] == entry(entries, a)["eventId"], "the prompt after /rewind does not follow A")
+            check(entry(entries, d)["branchId"] != entry(entries, a)["branchId"], "the prompt after /rewind did not start a branch")
+            check_fold(ctx.expand(terminal, d), 2, a, d, hidden=(b, c))
+    entries = ctx.wait_entries(5)
+    check(len(entries) == 5, f"{len(entries)} entries")
+    root = entry(entries, e)
+    check(root["parentEventId"] is None, "the prompt after Esc Esc has a parent")
+    check(root["branchId"] not in {x["branchId"] for x in entries if x is not root}, "the prompt after Esc Esc did not start a branch")
+    check([entry(entries, m)["sequence"] for m in (a, b, c, d)] == sorted(x["sequence"] for x in entries)[:4], "an earlier entry changed")
+    band = terminal.wait_for(lambda t: (b_ := ctx.band(t)) and shown(b_, e) and b_, "the band to show the prompt", 15)
+    row = band.index(shown(band, e)[0])
+    check(band[row - 1] == "—— 新根分支 ——", "the band does not mark the new root branch")
+    check(all(len(shown(band[:row], m)) == 1 for m in (a, b, c, d)), "the old entries do not stay above the new root")
+    return (
+        "/rewind to before B: the next prompt follows A on a new branch and B, C fold where it left; "
+        "Esc Esc to the start: the next prompt starts a root branch below every old entry, all kept"
+    )
+
+
+@scenario("PT-BRANCH-004")
+def branch_004(ctx: Context) -> str:
+    a, b, c = (ctx.marker("PT-BRANCH-004") for _ in range(3))
+    first = ctx.env.launch(lines=60)
+    ctx.start(first)
+    ctx.submit(first, prompt(a), consent=True)
+    ctx.submit(first, prompt(b))
+    ctx.wait_entries(2)
+    run, _ = ctx.identity(first)
+    session = ctx.session(a)
+    ctx.command(first, "/compact", "ompact", timeout=120)
+    first.wait_idle()
+    ctx.exit(first)
+    # The compacted transcript no longer holds A and B, so it cannot prove
+    # which entry the next prompt follows.
+    resumed = ctx.relaunch("--resume", session, lines=60)
+    # The Pane stands beside the transcript and wraps its question; its key
+    # hint is one line.
+    question = "Esc 取消并放回草稿"
+
+    def asked() -> None:
+        ctx.send(resumed, prompt(c))
+        resumed.wait_for(question, "the parent Pane", 30)
+        time.sleep(1)
+        ctx.env.snap(resumed, "parent Pane")
+        check(len(ctx.entries()) == 2 and not ctx.pending(), "the blocked submission was archived")
+        check(c[: evidence.MARKER_PREFIX] not in resumed.rows()[_prompt_box(resumed)], "the draft stayed in the prompt box")
+
+    asked()
+    focused = resumed.reversed_spans()
+    check(len(focused) == 1 and focused[0].startswith("#"), "the Pane did not take focus on its first candidate")
+    resumed.key("esc", pause=1)
+    resumed.wait_for(lambda t: question not in t.text(), "the Pane to close", 10)
+    check(c[: evidence.MARKER_PREFIX] in resumed.rows()[_prompt_box(resumed)], "Esc did not put the draft back")
+    check(len(ctx.entries()) == 2, "cancelling archived the draft")
+    # Submitting again without a choice asks again.
+    resumed.key("ctrl-c", pause=0.5)
+    asked()
+    candidates = [m.group(0) for m in (
+        re.search(rf"#\d+ {re.escape(b[: evidence.MARKER_PREFIX])}", row) for row in resumed.rows()
+    ) if m]
+    check(len(candidates) == 1, "B is not a candidate once")
+    ctx.click_row(resumed, candidates[0], candidates[0])
+    resumed.wait_for(lambda t: question not in t.text(), "the Pane to close", 10)
+    resumed.wait_for(
+        lambda t: c[: evidence.MARKER_PREFIX] in t.rows()[_prompt_box(t)], "the draft to come back", 10,
+    )
+    ctx.env.snap(resumed, "parent chosen")
+    time.sleep(5)
+    check("esc to interrupt" not in resumed.text() and len(ctx.entries()) == 2, "the draft was submitted by itself")
+    resumed.key("enter")
+    resumed.wait_idle()
+    entries = ctx.wait_entries(3)
+    check(entry(entries, c)["parentEventId"] == entry(entries, b)["eventId"], "the prompt does not follow the chosen parent")
+    check(entry(entries, c)["runId"] == run, "the resume changed the Run")
+    return (
+        "a compacted resume dropped the first submission into a focused parent Pane with the box empty; Esc put "
+        "the draft back and a resubmission asked again; a click on B closed the Pane and put the draft back "
+        "unsent; the next submission followed B"
+    )
+
+
+@scenario("PT-JUMP-001")
+def jump_001(ctx: Context) -> str:
+    markers = [ctx.marker("PT-JUMP-001") for _ in range(5)]
+    terminal = ctx.env.launch(lines=24)
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(markers[0]), consent=True)
+    for marker in markers[1:]:
+        ctx.submit(terminal, prompt(marker))
+    ctx.wait_entries(5)
+    for how, marker in (("Enter", markers[0]), ("click", markers[1])):
+        band = ctx.expand(terminal, markers[-1])
+        check(not in_transcript(terminal, marker), "the target is already on screen")
+        rows = shown(band, marker)
+        check(len(rows) == 1 and jumpable(rows[0], marker), "the target is not shown once with a Jump Target")
+        if how == "Enter":
+            ctx.focus(terminal, rows[0])
+            terminal.key("enter")
+        else:
+            ctx.click_row(terminal, rows[0], marker[: evidence.MARKER_PREFIX])
+        terminal.wait_for(lambda t: collapsed(ctx, t) and in_transcript(t, marker), f"the {how} jump", 15)
+        ctx.env.snap(terminal, f"jumped by {how}")
+        terminal.type("zz")
+        terminal.wait_for(lambda t: t.rows()[_prompt_box(t)][1:].strip() == "zz", "typing to reach the prompt box", 5)
+        terminal.key("backspace", "backspace")
+    return "Enter and a click each brought an off-screen entry into view, collapsed the band and gave typing back to the prompt box"
+
+
+@scenario("PT-JUMP-002")
+def jump_002(ctx: Context) -> str:
+    marker = ctx.marker("PT-JUMP-002")
+    first = ctx.env.launch(lines=60)
+    ctx.start(first)
+    ctx.submit(first, prompt(marker), consent=True)
+    ctx.wait_entries(1)
+    ctx.exit(first)
+    # The same text again in a new process: guessing by text would land on it.
+    restarted = ctx.relaunch(lines=60)
+    ctx.submit(restarted, prompt(marker))
+    ctx.wait_entries(2)
+    band = ctx.expand(restarted, marker)
+    rows = shown(band, marker)
+    check(len(rows) == 2 and not jumpable(rows[0], marker) and jumpable(rows[1], marker), "the old entry is not × beside a jumpable twin")
+    old = rows[0]
+    for how in ("Enter", "click"):
+        before = restarted.rows()
+        title = next(i for i, row in enumerate(before) if row.startswith("▾ Prompt Trail"))
+        if how == "Enter":
+            ctx.focus(restarted, old)
+            restarted.key("enter")
+        else:
+            ctx.click_row(restarted, old, marker[: evidence.MARKER_PREFIX])
+        time.sleep(2)
+        ctx.env.snap(restarted, f"× activated by {how}")
+        after = restarted.rows()
+        check(after[title].startswith("▾ Prompt Trail"), f"{how} on × collapsed the band")
+        check(after[:title] == before[:title], f"{how} on × moved the transcript")
+        check(shown(ctx.band(restarted), marker) == rows, f"{how} on × changed the entries shown")
+        check(len(ctx.entries()) == 2, f"{how} on × archived something")
+        if how == "Enter":
+            check(any(row.startswith(old) for row in restarted.reversed_rows()), "Enter on × moved the focus")
+        restarted.key("esc", pause=0.5)
+    return "after a restart the old entry is × beside a jumpable twin of the same text; Enter and a click on it left the band, the transcript and the archive as they were"
 
 
 def _prompt_box(terminal: Terminal) -> int:
