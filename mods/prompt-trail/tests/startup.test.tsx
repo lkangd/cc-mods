@@ -63,6 +63,9 @@ test('reports unsupported target without touching an archive', async ($, on) => 
   expect(result.text).toContain('support: unsupported target')
   expect(result.text).toContain('reason: operating-system')
   expect(result.text).toContain('collection consent: not granted')
+  expect(result.text).toContain(
+    'not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）',
+  )
   expect(result.text).not.toContain('PT-SECRET-MARKER')
   expect(processCalls).toStrictEqual([
     ['/usr/bin/uname', '-s'],

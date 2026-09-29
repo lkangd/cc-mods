@@ -218,6 +218,9 @@ const MINIMUM_CLAUDE_VERSION = [2, 1, 273] as const
 const MINIMUM_CLAUDE_VERSION_TEXT = MINIMUM_CLAUDE_VERSION.join('.')
 const COLLECTION_POLICY_VERSION = 1
 const TARGET = `macOS 15.x arm64 · Claude Code >=${MINIMUM_CLAUDE_VERSION_TEXT} · interactive terminal`
+/* What the release does not promise, by name only; the README says each in full. */
+const NOT_PROMISED =
+  '其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）'
 const LOCATOR_SUFFIX = '.claude/plugins/data/.function-hook-locators/prompt-trail'
 const SAFE_IDENTIFIER = /^[A-Za-z0-9_-]{1,128}$/
 const SAFE_ERROR_CATEGORIES = new Set([
@@ -5598,6 +5601,7 @@ function statusText(): string {
     `support: ${startup.support}`,
     `reason: ${startup.reason}`,
     `target: ${TARGET}`,
+    `not promised: ${NOT_PROMISED}`,
     `detected: ${statusValue(startup.detected)}`,
     `collection consent: ${consent}`,
     `Run collection mode: ${collectionMode}`,
