@@ -152,6 +152,18 @@ class Terminal:
                 return index
         return None
 
+    def reversed_rows(self) -> list[str]:
+        """The rows whose first visible cell is drawn reversed, as a focused
+        Button is, read from one frame."""
+        with self.lock:
+            found = []
+            for y, text in enumerate(self.screen.display):
+                line = self.screen.buffer[y]
+                first = next((x for x in range(self.screen.columns) if line[x].data.strip()), None)
+                if first is not None and line[first].reverse:
+                    found.append(text.rstrip())
+            return found
+
     def cell(self, column: int, row: int):
         with self.lock:
             return self.screen.buffer[row][column]

@@ -129,30 +129,24 @@ class Context:
         check(run is not None and generation is not None, "status names no run or no generation")
         return run.group(1), generation.group(1)
 
+    def relaunch(self, *args: str) -> Terminal:
+        """A new host process in the same project, ready for input."""
+        terminal = self.env.launch(*args)
+        self.start(terminal)
+        return terminal
+
     def exit(self, terminal: Terminal) -> None:
         """Leaves the host the ordinary way and waits for its process to end."""
         self.send(terminal, "/exit")
         terminal.wait_for(lambda t: t.closed, "the host to exit", 30)
 
     def session(self, marker: str) -> str:
-        """The classic session whose transcript holds the marker."""
-        found = [
-            path.stem for path in (self.env.config / "projects").rglob("*.jsonl")
-            if marker in path.read_text()
-        ]
-        check(len(found) == 1, f"{len(found)} transcripts hold the prompt")
+        """The classic session whose transcript holds the marker: what a resume
+        names, found as setup rather than asserted on."""
+        found = [path.stem for path, text in self.transcripts() if marker in text]
+        if len(found) != 1:
+            raise ScenarioFailure(f"cannot name the session to resume: {len(found)} transcripts hold the prompt")
         return found[0]
-
-    def focused(self, terminal: Terminal) -> list[str]:
-        """The rows the focus ring stands on: a focused Button is drawn reversed."""
-        with terminal.lock:
-            buffer, columns, lines = terminal.screen.buffer, terminal.screen.columns, terminal.screen.lines
-            reversed_rows = [
-                y for y in range(lines)
-                if next((buffer[y][x].reverse for x in range(columns) if buffer[y][x].data.strip()), False)
-            ]
-        rows = terminal.rows()
-        return [rows[y] for y in reversed_rows]
 
     def entries(self) -> list[dict]:
         archive = self.env.archive()
@@ -173,10 +167,14 @@ class Context:
 
     def transcript_rows(self, marker: str) -> int:
         """How many lines of the host's transcripts hold the marker."""
-        count = 0
+        return sum(
+            sum(1 for line in text.splitlines() if marker in line) for _, text in self.transcripts()
+        )
+
+    def transcripts(self):
+        """Each host transcript in the scenario's world, with its text."""
         for path in (self.env.config / "projects").rglob("*.jsonl"):
-            count += sum(1 for line in path.read_text().splitlines() if marker in line)
-        return count
+            yield path, path.read_text()
 
 
 def prompt(marker: str) -> str:
@@ -500,7 +498,7 @@ def life_003(ctx: Context) -> str:
     # Select the earlier entry, then leave the band for the composer.
     terminal.key("ctrl-x", "tab", pause=0.5)
     terminal.key("up", pause=0.5)
-    check(any(first[: evidence.MARKER_PREFIX] in row for row in ctx.focused(terminal)), "the earlier entry could not be selected")
+    check(any(first[: evidence.MARKER_PREFIX] in row for row in terminal.reversed_rows()), "the earlier entry could not be selected")
     ctx.env.snap(terminal, "earlier entry selected")
     terminal.key("esc", pause=0.5)
     ctx.command(terminal, "/reload-plugins", "eload")
@@ -518,7 +516,7 @@ def life_003(ctx: Context) -> str:
     # The selection is not kept once focus leaves the band: entering again
     # starts on the latest entry, as it does after Esc.
     terminal.key("ctrl-x", "tab", pause=0.5)
-    check(any(latest[: evidence.MARKER_PREFIX] in row for row in ctx.focused(terminal)), "entering the band did not start on the latest entry")
+    check(any(latest[: evidence.MARKER_PREFIX] in row for row in terminal.reversed_rows()), "entering the band did not start on the latest entry")
     ctx.env.snap(terminal, "entered after reload")
     return "same Run, still expanded, each entry once and jumpable, no new entry; entering the band starts on the latest entry"
 
@@ -535,8 +533,7 @@ def life_004(ctx: Context) -> str:
     ctx.exit(terminal)
     detached = [b for b in ctx.env.archive()["boundaries"] if b["kind"] == "run-detached"]
     check([b["runId"] for b in detached] == [run], "the exit did not record the Run leaving once")
-    restarted = ctx.env.launch()
-    ctx.start(restarted)
+    restarted = ctx.relaunch()
     new_run, new_generation = ctx.identity(restarted)
     check(new_run != run, "the restart kept the old Run")
     check(new_generation == generation, "the restart changed the Archive generation")
@@ -564,8 +561,7 @@ def store_001(ctx: Context) -> str:
     session = ctx.session(first)
     ctx.exit(terminal)
     # An ordinary launch: a new Run on the same timeline, consent kept.
-    restarted = ctx.env.launch()
-    ctx.start(restarted)
+    restarted = ctx.relaunch()
     ctx.submit(restarted, prompt(second))
     check("采集同意" not in restarted.text(), "the restart asked for consent again")
     entries = ctx.wait_entries(2)
@@ -575,8 +571,7 @@ def store_001(ctx: Context) -> str:
     check(new_generation == generation, "the restart changed the Archive generation")
     ctx.exit(restarted)
     # A resume of the first session attaches to the first Run again.
-    resumed = ctx.env.launch("--resume", session)
-    ctx.start(resumed)
+    resumed = ctx.relaunch("--resume", session)
     ctx.submit(resumed, prompt(third))
     entries = ctx.wait_entries(3)
     check(ctx.identity(resumed)[0] == run and entries[2]["runId"] == run, "the resume did not attach to the first Run")
@@ -584,11 +579,12 @@ def store_001(ctx: Context) -> str:
     archive = ctx.env.archive()
     attached = [b for b in archive["boundaries"] if b["kind"] == "run-attached"]
     check([b["runId"] for b in attached] == [run], "the resume did not record the Run attaching once")
+    # Each Run starts and leaves around its prompt, then the resume attaches.
     sequences = sorted(e["sequence"] for e in archive["entries"] + archive["boundaries"])
-    check(sequences == list(range(1, len(sequences) + 1)), "the sequence does not run on without a gap")
+    check(sequences == list(range(1, 9)), f"events hold sequences {sequences}, not 1..8")
     return (
         "a restart kept the earlier entry, the generation and consent under a new Run; "
-        f"a resume attached to the first Run; sequence 1..{len(sequences)} unbroken"
+        "a resume attached to the first Run; sequence 1..8 unbroken"
     )
 
 
