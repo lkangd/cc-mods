@@ -8,7 +8,7 @@
 
 - [x] Run 身份由随机 Run UUID 与实际宿主进程世代共同确定，不以 module instance、classic session ID 或单独环境变量充当 Run。
 - [x] 同进程 `/reload-plugins` 产生新 module instance 但复用 Run；重放 render 不重复 Timeline Events。
-- [ ] reload 后 Run collection mode、展开状态、选择位置和已持久事件保持。（部分满足：选择位置尚不存在，归 Issue 21；其余三项已满足。）
+- [ ] reload 后 Run collection mode、展开状态、选择位置和已持久事件保持。（部分满足：选择位置尚不存在，归 Issue 21；其余三项已满足。2026-09-29 Issue 36 修订契约：焦点离开 band 后不保留选择位置，reload 后与 Esc 后一样从最新条目开始，此项不再要求。）
 - [x] 正常退出写入 Run 结束；重新启动创建新 Run，并继续读取同一 Project Timeline 和 Archive generation。（部分满足：Archive generation 仍是每个新 Run 随机生成的占位，归 Issue 30；其余已满足。）（2026-09-28 Issue 30 修订：已满足。Archive generation 就是档案文件本身，重启后读到的是同一份；locator 里的 `archiveGeneration` 只是不校验的 Run 令牌。）
 - [x] 异常退出留下未闭合 Run；后续浏览显示中断而不伪造结束事件。
 - [x] 继承 Run 环境标记但实际宿主进程世代不同的子进程创建新 Run。

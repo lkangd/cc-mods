@@ -14,7 +14,7 @@
 
 `PT-LIFE-001..004` 与 `PT-STORE-001` 现在由真实 PTY 场景证明（`mods/prompt-trail/release/pty_scenarios.py`），在 `2.1.273` 与 `2.1.283` 上都通过。实现提交：`0b7d780`。对齐见下方 Comments 的 Q1–Q11。
 
-- **场景**：每个 ID 一个函数、一个全新的隔离环境。`Context` 新增四个方法：`identity()`（从 status 读 `run:` 和 `Archive generation:`）、`exit()`（`/exit` 后等进程结束）、`session()`（按标记找到 transcript 对应的 classic session）、`focused()`（反色绘制的行就是焦点环所在的行）。
+- **场景**：每个 ID 一个函数、一个全新的隔离环境。`Context` 新增：`identity()`（从 status 读 `run:` 和 `Archive generation:`）、`relaunch()`（在同一项目启动新进程并等到可输入）、`exit()`（`/exit` 后等进程结束）、`session()`（按标记找到 resume 要用的 classic session，属于准备步骤，不是断言）、`transcripts()`（与 `transcript_rows()` 共用）。`Terminal` 新增 `reversed_rows()`：在同一帧里读出反色绘制的行，也就是焦点环所在的行。
   - LIFE-001：`/clear` 之后恰好一个 clear 边界，位于两个条目之间；Run 不变，两个条目分属两个 segment，后一个开新根分支；band 里显示 Clear Boundary。
   - LIFE-002：`/compact` 之后的条目沿用同一 Run、segment 与 branch，父条目就是前一个；档案里只有 `run-started` 一个边界；两个条目都能跳转。
   - LIFE-003：先选中较早的条目，按 Esc 后执行 `/reload-plugins`。band 恢复为展开，每个条目只出现一次且能跳转，条目数与 Run 都不变；再次进入 band 时焦点落在最新条目。
@@ -46,3 +46,17 @@
 - **Q9 LIFE-004**：重启后展开 band，旧条目带 `×`，能看到「Run 离开」与新的「Run 开始」；status 的 `run:` 与旧 Run 不同，`Archive generation` 相同。
 - **Q10 验证**：用 scratchpad 脚本调试单个场景；收尾时在两个版本上跑 `release-evidence.sh --skip-gates --only <5 个 ID>`，再跑 `verify-startup.sh`。不做完整运行（归 41）。变异检查只在 2.1.283 上做，每个场景反转一条关键断言。
 - **Q11 选中位置的定义**：探测（2.1.283）表明，不经过 reload 焦点环也留不住：进入 band 后焦点落在最新条目，↑ 移到上一条，Esc 离开后再按 `ctrl+x tab`，又回到最新条目；reload 之后也一样。插件把 `autoFocus` 固定给最新条目，而 `/reload-plugins` 必须在输入框里执行，执行前焦点已经离开 band。据此修订契约：焦点离开 band 后不保留选中位置，reload 后与 Esc 后一样从最新条目开始；reload 要保证的是展开状态、条目与 Jump Target。PT-LIFE-003 的 expected、Issue 05 的契约条目与 README 的不承诺清单同步修订，PTY 断言 reload 后 `ctrl+x tab` 落在最新条目。
+
+### Code review 修复（2026-09-29，round 1）
+
+产物：`.code-review/runs/20260929-164918/round-1/`。8 条 finding，7 条修复、1 条驳回：
+
+- **已修** #1：Issue 17 的「选择位置保持」检查项补上 Issue 36 修订注记。
+- **已修** #2：`spec.md` 用户故事 46 删去「选择位置延续」，改写为焦点离开后不保留选择位置，并标注修订。
+- **驳回** #3（STORE-001 依据 transcript 断言）：`session()` 只是为 `--resume` 找 session id 的准备步骤，Run 的续接由 status 与档案证明。它的 docstring 和失败信息已写明这是准备步骤；找不到唯一 session 时场景照样失败，因为 resume 根本没法开始。
+- **已修** #4、#6：焦点行原本分两次加锁读取，可能跨帧。现改为 `Terminal.reversed_rows()` 在一次加锁中读取，场景层不再直接碰 pyte 的缓冲区。
+- **已修** #5：STORE-001 断言事件恰好是 sequence 1..8（两个 Run 各有开始、条目、离开，再加续接和第三个条目），不再接受任意长度的连续序列。
+- **已修** #7：`session()` 与 `transcript_rows()` 共用 `transcripts()`。
+- **已修** #8：新增 `Context.relaunch()`，LIFE-004、STORE-001 的重启与 resume 都改用它（对齐 Q2 本就要求共用）。
+
+复验：LIFE-003、LIFE-004、STORE-001 在 `2.1.283` 与 `2.1.273` 上都通过，0 泄漏；LIFE-003、STORE-001 的变异仍然会失败。

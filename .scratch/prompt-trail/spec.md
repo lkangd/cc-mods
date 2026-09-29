@@ -67,7 +67,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 43. 作为触发 AskUserQuestion 的使用者，我希望 Prompt Trail 在工具交互期间让出 AbovePrompt 并在结束后恢复，以便两个界面不会争抢同一槽位。
 44. 作为执行 `/clear` 的使用者，我希望 Run 保持不变而新 Conversation Segment 切断父链，以便清空语义和进程语义不混淆。
 45. 作为执行 `/compact` 的使用者，我希望不创建 Clear Boundary、新 Run 或 Prompt Entry，以便压缩不会伪装成清空。
-46. 作为执行 `/reload-plugins` 的使用者，我希望 Run、档案、展开状态和选择位置延续且 render 重放不重复归档，以便开发期 reload 安全。
+46. 作为执行 `/reload-plugins` 的使用者，我希望 Run、档案和展开状态延续且 render 重放不重复归档，以便开发期 reload 安全；焦点离开时间线后不保留选择位置，reload 后与 Esc 后一样从最新条目开始。（2026-09-29 Issue 36 修订。）
 47. 作为退出并重启 Claude Code 的使用者，我希望旧 Project Timeline 延续，普通启动获得新 Run、resume 续接原 Run，以便历史持久且 Run 与会话谱系一致。
 48. 作为 resume 会话的使用者，我希望续接原 Run、以唯一共享前缀续接原 Conversation Branch 且不重复 Prompt Entry，并让 resume 节点之后不在活动路径上的条目折叠为可展开的另一分支，以便时间线与会话详情一致且不丢历史。
 49. 作为使用后台 `/fork` 或 `--fork-session` 的使用者，我希望新进程建立新 Run 和 Conversation Branch，以便共享前缀与新提交都被正确表示。
