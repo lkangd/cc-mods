@@ -520,14 +520,19 @@ const ambiguousRoots = new Set<string>()
    Jump Target of each Prompt Entry the helper tied to one: the row's
    `requestId`, in memory only. A row the transcript lost (a rewind, a clear,
    a row the engine would not scroll to) is gone, and never kept or tied
-   again. The generation moves whenever the transcript starts over, so an
-   alignment asked of the old rows cannot land on the new ones; one asked
-   while another runs is run again once it ends. */
+   again until another session's transcript starts. The generation moves
+   whenever the transcript starts over, so an alignment asked of the old rows
+   cannot land on the new ones; one asked while another runs is run again
+   once it ends. */
 let drawnRows: DrawnRow[] = []
 let seenRows = new Set<string>()
 let goneRows = new Set<string>()
 let jumpTable = new Map<string, string>()
 let drawnGeneration = 0
+/* Between a classic SessionEnd that another session follows (a clear, a
+   resume) and that session's SessionStart: what the engine draws then is the
+   transcript it is leaving, and none of it is kept. */
+let transcriptEnding = false
 let alignmentQueued = false
 let alignment: { again: boolean } | undefined
 /* A rewind says nothing and draws nothing: while the band is open, a
@@ -3068,15 +3073,27 @@ async function recheckRows($: EngineInterface): Promise<void> {
   if (vanished.length > 0) queueAlignment($)
 }
 
-/* The transcript started over: a clear, a resume into another session, an
+/* The transcript is ending: a clear, a resume into another session, an
    exit. Nothing drawn before is where it was, and the engine may draw some
-   of it once more on the way out, so all of it is gone for good. */
-function forgetDrawnRows($: EngineInterface): void {
+   of it once more on the way out, so all of it is gone until the next
+   session starts, when one does: after a clear or a resume. */
+function forgetDrawnRows($: EngineInterface, reason: string): void {
   for (const row of drawnRows) goneRows.add(row.requestId)
   drawnRows = []
   drawnGeneration += 1
+  transcriptEnding = reason === 'clear' || reason === 'resume'
   if (jumpTable.size > 0) $.ui.invalidate('ui.render')
   jumpTable = new Map()
+}
+
+/* The next session's transcript has started. A resume replays its rows under
+   the requestIds they had, even ones this process drew before it left that
+   session: drawn now, they are held again, and kept anew. */
+function startDrawnRows(): void {
+  if (!transcriptEnding) return
+  transcriptEnding = false
+  seenRows = new Set()
+  goneRows = new Set()
 }
 
 /* Rows the transcript lost: no longer kept, and no entry's target. */
@@ -6614,6 +6631,7 @@ export const register: Register = on => {
     if (
       e.requestId !== 'placeholder' &&
       e.props.origin.kind === 'composer' &&
+      !transcriptEnding &&
       recordRow(drawnRows, seenRows, e.requestId, e.props.text)
     ) queueAlignment($)
     return next(e)
@@ -6625,7 +6643,7 @@ export const register: Register = on => {
      result is not this plugin's to change, so the hook writes what it can and
      hands the event on untouched. */
   on('classic.SessionEnd', async ($, e, next) => {
-    forgetDrawnRows($)
+    forgetDrawnRows($, e.reason)
     await applyLifecycle($, {
       event: 'session-end',
       sessionId: e.session_id,
@@ -6637,8 +6655,10 @@ export const register: Register = on => {
   /* The other half of the same transition: it names the new classic session and
      therefore the new Conversation Segment, and never writes a second boundary.
      `source=compact`, `resume`, `fork` and `startup` reach the state machine as
-     events it ignores. */
+     events it ignores. Whatever its source, it ends the old transcript's
+     drawing on its way out. */
   on('classic.SessionStart', async ($, e, next) => {
+    startDrawnRows()
     if (e.source === 'clear') {
       await applyLifecycle($, {
         event: 'session-start',

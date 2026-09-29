@@ -731,6 +731,9 @@ def branch_001(ctx: Context) -> str:
     check(entry(entries, f)["parentEventId"] == entry(entries, d)["eventId"], "/resume did not go on from the session's last entry")
     check(entry(entries, f)["runId"] == run and ctx.identity(resumed)[0] == run, "/resume did not keep the Run")
     band = ctx.expand(resumed, f)
+    # The session's rows, drawn by this process before it left them, are
+    # replayed and bound again, and the prompt after them too (Issue 43).
+    check_bound(band, (a, b, c, d, f), "the in-process /resume")
     fold = check_fold(band, 1, d, f, hidden=(e,))
     ctx.click_row(resumed, band[fold], "另一分支")
     resumed.wait_for(lambda t: shown(ctx.band(t), e), "the fold to open", 15)
@@ -751,7 +754,8 @@ def branch_001(ctx: Context) -> str:
     check_branched_off(ctx, concurrent, g, run)
     return (
         "--continue and a concurrent --resume bind the shared history once and archive none of it; --continue, "
-        "--resume and an in-process /resume keep the Run and go on from the session's last entry; the prompt after "
+        "--resume and an in-process /resume keep the Run and go on from the session's last entry; an in-process /resume back "
+        "into a session this process drew binds its history and the next prompt again; the prompt after "
         "/clear folds where it left; a resume while the Run is held branches off in a new Run"
     )
 
