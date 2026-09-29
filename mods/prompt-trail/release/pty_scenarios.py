@@ -237,12 +237,25 @@ def capture_004(ctx: Context) -> str:
     terminal.wait_for("采集同意", "the consent question", 30)
     ctx.choose(terminal, "启用")
     terminal.wait_idle()
-    entries = ctx.wait_entries(1)
-    entry = entries[0]
+    entry = ctx.wait_entries(1)[0]
     check(entry["attachmentCount"] >= 1, "no attachment counted")
-    check("pixel" not in (entry["promptText"] or ""), "the attachment's name was archived")
-    check(str(project) not in (entry["promptText"] or ""), "the attachment's path was archived")
-    return f"attachments {entry['attachmentCount']} of kinds {entry['attachmentKinds']}; no name or path archived"
+    archived = entry["promptText"] or ""
+    check("pixel" not in archived and str(project) not in archived, "the attachment's name or path was archived")
+    # An attachment alone: the host sends its own placeholder text, if any.
+    terminal.paste(str(image))
+    terminal.wait_for("[Image", "the image attachment", 15)
+    time.sleep(0.5)
+    terminal.key("enter")
+    terminal.wait_idle()
+    alone = ctx.wait_entries(2)[1]
+    text = alone["promptText"] or ""
+    check(alone["attachmentCount"] >= 1, "the attachment-only submission counted no attachment")
+    check(re.fullmatch(r"(\[Image #\d+\]\s*)*", text) is not None, "the attachment-only entry holds more than the host's placeholder")
+    return (
+        f"with text: {entry['attachmentCount']} attachment(s) of kinds {entry['attachmentKinds']}; "
+        f"alone: an entry with {alone['attachmentCount']} attachment(s) and "
+        f"{'no text' if not text else 'only the host placeholder as text'}; no name or path archived"
+    )
 
 
 @scenario("PT-CAPTURE-005")

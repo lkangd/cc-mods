@@ -56,22 +56,28 @@ class Run:
         print(f"  {name}: {outcome}" + (f" ({detail})" if detail else ""), flush=True)
 
 
-def artifact_digests() -> dict[str, str]:
+def artifact_digests() -> dict[str, str | None]:
+    """Each artifact's digest; None for one that is missing or unreadable, so
+    the gate fails with a report instead of the run stopping."""
     digests = {}
     for path in ARTIFACTS:
         output = subprocess.run(
-            ["/usr/bin/shasum", "-a", "256", str(ROOT / path)], capture_output=True, text=True, check=True
-        ).stdout
-        digests[path] = output.split()[0]
+            ["/usr/bin/shasum", "-a", "256", str(ROOT / path)], capture_output=True, text=True
+        )
+        digests[path] = output.stdout.split()[0] if output.returncode == 0 else None
     return digests
 
 
 def run_gates(run: Run, versions: list[str]) -> dict:
     before = artifact_digests()
     built = run.command("build-artifacts", [str(ROOT / "scripts/build-artifacts.sh")])
+    after = artifact_digests()
+    missing = [path for path, digest in before.items() if digest is None]
     run.gate(
-        "artifacts-reproducible", built.returncode == 0 and artifact_digests() == before,
-        built.log, None if artifact_digests() == before else "rebuilt artifacts differ",
+        "artifacts-reproducible", built.returncode == 0 and not missing and after == before,
+        built.log,
+        f"missing before the rebuild: {', '.join(missing)}" if missing
+        else None if after == before else "rebuilt artifacts differ",
     )
     for version in versions:
         claude = ["npx", "-y", f"@anthropic-ai/claude-code@{version}"]
@@ -233,7 +239,7 @@ def main() -> None:
     selected = set(arguments.only.split(",")) if arguments.only else None
     partial = selected is not None or arguments.skip_gates
     versions = [MINIMUM_CLAUDE_VERSION, CURRENT_CLAUDE_VERSION]
-    stamp = datetime.datetime.now(datetime.UTC).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out = arguments.out or ROOT / "build/evidence" / stamp
     token = keychain_token()
     manifest = json.loads((ROOT / "release/scenarios.json").read_text())

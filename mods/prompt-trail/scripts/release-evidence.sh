@@ -13,7 +13,15 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 VENV=${PROMPT_TRAIL_RELEASE_VENV:-$HOME/.cache/prompt-trail-release/venv}
 
-if ! "$VENV/bin/python" -c 'import pyte' 2>/dev/null; then
+# Install unless the environment holds exactly the pinned versions.
+if ! "$VENV/bin/python" - "$ROOT/release/requirements.txt" 2>/dev/null <<'PY'
+import importlib.metadata, sys
+for line in open(sys.argv[1]):
+    name, version = line.split()[0].split("==")
+    if importlib.metadata.version(name) != version:
+        sys.exit(1)
+PY
+then
   python3 -m venv "$VENV"
   "$VENV/bin/pip" install --quiet --disable-pip-version-check --require-hashes \
     --only-binary=:all: -r "$ROOT/release/requirements.txt"
