@@ -1,0 +1,5 @@
+{
+  "name": "prompt-trail-downstream-fixture",
+  "version": "0.1.0",
+  "description": "Release fixture: a hook beneath Prompt Trail that drops or holds marked prompts."
+}
