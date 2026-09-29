@@ -763,7 +763,7 @@
         "分别以 `--resume`、`--continue` 与会话内 `/resume` 续接",
         "双终端并发 resume 同一会话"
       ],
-      "expected": "续接原 Run 并记录续接；共享历史只重绑 Jump Target 不重复归档；离开活动路径的条目折叠；并发时后到者新建 Run。",
+      "expected": "续接原 Run 并记录续接；共享历史只重绑 Jump Target 不重复归档；会话内 `/resume` 回到本进程先前画过的会话时，其历史与之后的新条目都能跳转；离开活动路径的条目折叠；并发时后到者新建 Run。",
       "layers": [
         "plugin",
         "pty",
@@ -789,6 +789,14 @@
         {
           "kind": "plugin",
           "ref": "tests/continued_session.test.tsx::a continued session goes on along the branch of the session it came from"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/jump_target.test.tsx::rows replayed by an in-process resume back into a drawn session are tied again"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/jump_target.test.tsx::rows drawn on the way out of a clear are never tied, even once the next session starts"
         },
         {
           "kind": "unit",

@@ -578,3 +578,109 @@ test('a branch the transcript rebuilds is aligned again even when the submission
 
   expect(alignCalls(calls).at(-1)?.argv[7]).toBe(third)
 })
+
+/* Issue 43: an in-process `/resume` back into a session this process already
+   drew replays its rows under the requestIds they had. Drawn once the new
+   session has started, they are its transcript again, not the old one drawn
+   on its way out, and go to the helper with the rows after them: it ties an
+   entry only where some row holds each of its ancestors. */
+test('rows replayed by an in-process resume back into a drawn session are tied again', async ($, on) => {
+  /* The 2.1.273 test kit cannot raise a classic hook event; the gate's
+     current version covers this. */
+  const classic = ($ as unknown as {
+    classic?: {
+      SessionEnd: (e: { reason: string; session_id: string }) => Promise<unknown>
+      SessionStart: (e: { source: string; session_id: string }) => Promise<unknown>
+    }
+  }).classic
+  if (!classic) return
+  const elsewhere = '66666666-7777-4888-8999-aaaaaaaaaaaa'
+  const classicSession = { id: sessionId }
+  const transcript = holding('PT-SECRET-ONE')
+  const { calls, settle } = install(on, {
+    store: storeOn(second),
+    archive: lineage().slice(0, 2),
+    classicSession,
+    transcript,
+    /* As the helper answers: an entry whose parent no row holds breaks the
+       chain, so a lineage is only placed from its root. */
+    branchMatch: alignArchive(lineage().slice(0, 2)),
+  })
+  on('classic.SessionEnd', () => ({}))
+  on('classic.SessionStart', () => ({}))
+  await $.session.start(session)
+  await drawRow($, 'row-1', 'PT-SECRET-ONE')
+  await settle()
+
+  /* Out to another session and back, in the same process; each time the
+     engine draws the transcript it leaves once more on the way out. */
+  await classic.SessionEnd({ reason: 'resume', session_id: sessionId })
+  await drawRow($, 'row-1', 'PT-SECRET-ONE')
+  classicSession.id = elsewhere
+  transcript.splice(0)
+  await classic.SessionStart({ source: 'resume', session_id: elsewhere })
+  await classic.SessionEnd({ reason: 'resume', session_id: elsewhere })
+  classicSession.id = sessionId
+  transcript.push(...holding('PT-SECRET-ONE'))
+  await classic.SessionStart({ source: 'resume', session_id: sessionId })
+  await drawRow($, 'row-1', 'PT-SECRET-ONE')
+  transcript.push(...holding('PT-SECRET-TWO'))
+  await drawRow($, 'row-2', 'PT-SECRET-TWO')
+  await settle()
+  await promptHistory($)
+  await settle()
+
+  expect(alignCalls(calls).at(-1)?.stdin).toBe('13\nPT-SECRET-ONE13\nPT-SECRET-TWO')
+  expect(entryLabels(await renderBand($, { maxRows: 40 }))).toEqual([
+    '1. PT-SECRET-ONE',
+    '2. PT-SECRET-TWO',
+  ])
+})
+
+test('rows drawn on the way out of a clear are never tied, even once the next session starts', async ($, on) => {
+  const classic = ($ as unknown as {
+    classic?: {
+      SessionEnd: (e: { reason: string; session_id: string }) => Promise<unknown>
+      SessionStart: (e: { source: string; session_id: string }) => Promise<unknown>
+    }
+  }).classic
+  if (!classic) return
+  const cleared = '66666666-7777-4888-8999-aaaaaaaaaaaa'
+  const classicSession = { id: sessionId }
+  const transcript = holding('PT-SECRET-ONE')
+  const { settle } = install(on, {
+    store: storeOn(first),
+    archive: lineage().slice(0, 1),
+    classicSession,
+    transcript,
+    /* Whatever the rows around it, a row of the entry's text is placed. */
+    branchMatch: call => {
+      const rows = (call.stdin ?? '').split(/\d+\n/).filter(Boolean)
+      const at = rows.indexOf('PT-SECRET-ONE')
+      return at < 0
+        ? { match: 'none', candidates: [], candidateCount: 0, rows: [] }
+        : aligned(first, [{ row: at, eventId: first }])
+    },
+  })
+  on('classic.SessionEnd', () => ({}))
+  on('classic.SessionStart', () => ({}))
+  await $.session.start(session)
+  await drawRow($, 'row-1', 'PT-SECRET-ONE')
+  await settle()
+
+  /* The clear's SessionEnd comes while the transcript still holds the row,
+     and the engine draws it once more before the next session starts, with
+     another of its rows this module instance never drew. */
+  await classic.SessionEnd({ reason: 'clear', session_id: sessionId })
+  await drawRow($, 'row-1', 'PT-SECRET-ONE')
+  await drawRow($, 'row-0', 'PT-SECRET-ONE')
+  classicSession.id = cleared
+  await classic.SessionStart({ source: 'clear', session_id: cleared })
+  /* A row held after them would keep them among the rows the helper is asked. */
+  transcript.splice(0, 1, ...holding('PT-SECRET-NEW'))
+  await drawRow($, 'row-2', 'PT-SECRET-NEW')
+  await promptHistory($)
+  await settle()
+
+  expect(entryLabels(await renderBand($, { maxRows: 40 }))).toEqual(['× 1. PT-SECRET-ONE'])
+})
