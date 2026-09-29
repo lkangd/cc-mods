@@ -39,6 +39,7 @@ Prompt Trail 只通过 `--plugin-dir` 加载。它不经 Marketplace 发布，�
 - 未经真人验收的 PageUp/PageDown/Home/End 不作承诺。
 - 其他插件同样占用输入框上方的位置时，Prompt Trail 不会与它们自动协调。AskUserQuestion 对话期间，时间线会让出位置。
 - 当前 transcript 里已经没有的条目会显示 `×`，不能跳转。
+- 同一个进程里用 `/resume` 回到它先前打开过的 session 时，那个 session 原有的条目显示 `×`，重启后恢复。
 
 ## 删除边界
 

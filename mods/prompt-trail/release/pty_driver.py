@@ -9,6 +9,7 @@ import json
 import os
 import pathlib
 import pty
+import re
 import shutil
 import signal
 import struct
@@ -24,6 +25,8 @@ import pyte
 import evidence
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+# A host daemon's socket directory, as lsof names a file under it.
+_DAEMON_DIRECTORY = re.compile(rf"^n((?:/private)?/tmp/cc-daemon-{os.getuid()}/[^/]+)/")
 sys.path.insert(0, str(ROOT / "tests"))
 import semantic_verifier  # noqa: E402
 
@@ -39,6 +42,18 @@ KEYS = {
     "ctrl-c": "\x03",
     "ctrl-x": "\x18",
 }
+
+
+def _processes() -> list[tuple[int, int, str, str]]:
+    """Every process: PID, parent PID, start time and argv."""
+    listing = subprocess.run(
+        ["/bin/ps", "-axww", "-o", "pid=,ppid=,lstart=,args="], capture_output=True, text=True
+    ).stdout
+    found = []
+    for line in listing.splitlines():
+        fields = line.split(None, 7) + [""]
+        found.append((int(fields[0]), int(fields[1]), " ".join(fields[2:7]), fields[7]))
+    return found
 
 
 class ScenarioFailure(Exception):
@@ -127,7 +142,11 @@ class Terminal:
             time.sleep(pause)
 
     def click(self, column: int, row: int) -> None:
-        """A left click on a 0-based cell, in SGR mouse encoding."""
+        """A left click on a 0-based cell, in SGR mouse encoding, after the
+        pointer moves onto it: the host hit-tests a press against what the
+        pointer last hovered, as a real terminal's motion reports let it."""
+        self._write(f"\x1b[<35;{column + 1};{row + 1}M")
+        time.sleep(0.3)
         self._write(f"\x1b[<0;{column + 1};{row + 1}M")
         time.sleep(0.05)
         self._write(f"\x1b[<0;{column + 1};{row + 1}m")
@@ -163,6 +182,36 @@ class Terminal:
                 if first is not None and line[first].reverse:
                     found.append(text.rstrip())
             return found
+
+    def reversed_spans(self) -> list[str]:
+        """Each run of cells drawn reversed, as text, read from one frame: a
+        focused Button in a Pane beside the transcript."""
+        with self.lock:
+            spans = []
+            for y in range(self.screen.lines):
+                line = self.screen.buffer[y]
+                span = ""
+                for x in range(self.screen.columns + 1):
+                    if x < self.screen.columns and line[x].reverse:
+                        span += line[x].data
+                    elif span.strip():
+                        spans.append(span.strip())
+                        span = ""
+                    else:
+                        span = ""
+            return spans
+
+    def column(self, row: int, needle: str) -> int:
+        """The 0-based cell where `needle` starts on a row, a wide character
+        counted as the two cells it takes."""
+        with self.lock:
+            line = self.screen.buffer[row]
+            text, columns = "", []
+            for x in range(self.screen.columns):
+                data = line[x].data
+                text += data
+                columns += [x] * len(data)
+        return columns[text.index(needle)]
 
     def cell(self, column: int, row: int):
         with self.lock:
@@ -297,6 +346,67 @@ class Environment:
             + "\n".join(row.rstrip() for row in rows)
         )
 
+    def _stop_background(self) -> list[dict]:
+        """A background `/fork` starts a host daemon that outlives the terminal
+        that asked for it, with sockets under /tmp/cc-daemon-<uid>/, outside the
+        world. Its processes are stopped and its directories scanned and removed;
+        whatever cannot be is a leak."""
+        processes = self._world_processes()
+        directories = set()
+        leaks = []
+        for pid, (_, args) in processes.items():
+            listing = subprocess.run(
+                ["/usr/sbin/lsof", "-a", "-p", str(pid), "-F", "n"], capture_output=True, text=True
+            ).stdout
+            found = {pathlib.Path(m.group(1)) for m in map(_DAEMON_DIRECTORY.match, listing.splitlines()) if m}
+            if " daemon run " in f" {args} " and not found:
+                # A daemon whose directory cannot be named cannot be scanned.
+                leaks.append({"path": "<daemon>", "kind": "not inventoried"})
+            directories |= found
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            # Only a process still the one listed: a PID freed by the first
+            # signal may already name another process.
+            for pid in self._still_running(processes):
+                try:
+                    os.kill(pid, sig)
+                except ProcessLookupError:
+                    pass
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline and self._still_running(processes):
+                time.sleep(0.1)
+        if self._still_running(processes):
+            leaks.append({"path": "<daemon process>", "kind": "not stopped"})
+        for directory in sorted(directories):
+            if not directory.exists():
+                continue  # The daemon removed it on the way out.
+            found = evidence.scan_tree(directory, self.scanner, config="<none>")
+            leaks += [dict(leak, path=f"<daemon>/{leak['path']}") for leak in found["leaks"]]
+            shutil.rmtree(directory, ignore_errors=True)
+            if directory.exists():
+                leaks.append({"path": "<daemon>", "kind": "not removed"})
+        return leaks
+
+    def _world_processes(self) -> dict[int, tuple[str, str]]:
+        """Processes that name the world in their argv (a daemon names the
+        directory that spawned it), with everything they started: each PID
+        with its start time and argv."""
+        rows = {}
+        for pid, ppid, started, args in _processes():
+            rows[pid] = (ppid, started, args)
+        found = {pid for pid, (_, _, args) in rows.items() if str(self.base) in args and pid != os.getpid()}
+        while True:
+            children = {pid for pid, (ppid, _, _) in rows.items() if ppid in found} - found
+            if not children:
+                return {pid: rows[pid][1:] for pid in sorted(found)}
+            found |= children
+
+    @staticmethod
+    def _still_running(processes: dict[int, tuple[str, str]]) -> list[int]:
+        """The listed processes that still run, each still the process it was:
+        the same PID started at the same time."""
+        now = {pid: started for pid, _, started, _ in _processes()}
+        return [pid for pid, (started, _) in processes.items() if now.get(pid) == started]
+
     def _sample_argv(self) -> None:
         """Every process's argv, sampled while the scenario runs: the helper
         must take prompt text on stdin only."""
@@ -313,16 +423,19 @@ class Environment:
             time.sleep(0.25)
 
     def finish(self) -> dict:
-        """Stops every terminal, scans the whole world and removes it."""
+        """Stops every terminal and every process the world left running, scans
+        the whole world and the daemon directories outside it, and removes them."""
         for terminal in self.terminals:
             terminal.close()
         self._sampling = False
         self._sampler.join(timeout=5)
+        daemon_leaks = self._stop_background()
         found = evidence.scan_tree(
             self.base, self.scanner, config=str(self.config.relative_to(self.base))
         )
         for leak in found["leaks"]:
             leak["path"] = f"<scenario>/{leak['path']}"
+        found["leaks"] += daemon_leaks
         shutil.rmtree(self.base, ignore_errors=True)
         if self.base.exists():
             # A world that outlives its scenario keeps prompt text on disk.

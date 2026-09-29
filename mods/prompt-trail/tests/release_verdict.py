@@ -319,6 +319,32 @@ class ScanTreeTests(unittest.TestCase):
             self.assertEqual(found["scannedFiles"], len(leaking) + 1)
             self.assertEqual(found["allowedFiles"], len(allowed))
 
+    def test_the_hosts_background_session_records_may_hold_a_marker(self) -> None:
+        marker = evidence.new_marker("PT-BRANCH-002")
+        scanner = evidence.Scanner([marker], secrets=[])
+        with tempfile.TemporaryDirectory() as temporary:
+            base = pathlib.Path(temporary)
+            allowed = [
+                base / "home/.claude/sessions/4242.json",
+                base / "home/.claude/daemon/roster.json",
+                base / "home/.claude/jobs/89903f3d/state.json",
+                base / "home/.claude/jobs/89903f3d/tmp/parent-transcript.jsonl",
+            ]
+            leaking = [
+                # Named like the host's records, but not inside its directories.
+                base / "home/.claude/sessions.json",
+                base / "home/.claude/daemon.log",
+                base / "project/.claude/jobs/1/state.json",
+            ]
+            for path in allowed + leaking:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(f"{marker}\n")
+            found = evidence.scan_tree(base, scanner, config="home/.claude")
+            self.assertEqual(
+                sorted(item["path"] for item in found["leaks"]),
+                sorted(str(path.relative_to(base)) for path in leaking),
+            )
+            self.assertEqual(found["allowedFiles"], len(allowed))
 
     def test_a_secret_is_a_leak_even_in_an_allowed_file(self) -> None:
         marker = evidence.new_marker("PT-SEC-001")

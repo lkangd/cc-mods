@@ -890,7 +890,7 @@
       "id": "PT-BRANCH-004",
       "title": "父节点歧义",
       "steps": [
-        "构造共享前缀匹配多个 lineage 的续接",
+        "跨进程 resume 一个 compact 过的会话，使 transcript 无法唯一确定父节点",
         "提交 prompt",
         "在候选 Pane 中选择"
       ],
