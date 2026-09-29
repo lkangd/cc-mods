@@ -11,11 +11,11 @@ target: Issue 42 working tree (clear before the first submission)
 
 ## Problem
 
-The 2.1.273 test kit cannot raise classic hook events, so every test that does casts `$` to `{ classic?: { SessionEnd … } }` and returns early when it is missing. The cast is written inline in `mods/prompt-trail/tests/clear_all.test.tsx:445`, `tests/integrity_gap.test.tsx:263` and `:817`, and `tests/clear_segment.test.tsx:454` (Issue 42, which adds `SessionStart`), while `tests/integrity_gap.test.tsx:478` already has a file-local `classicOf($)` helper for the same thing. The shape and the compatibility gate are kept in sync by hand across files.
+The 2.1.273 test kit cannot raise classic hook events, so every test that does casts `$` to `{ classic?: { SessionEnd … } }` and returns early when it is missing. The cast is written inline in `mods/prompt-trail/tests/clear_all.test.tsx:445`, `tests/integrity_gap.test.tsx:263` and `:817`, `tests/clear_segment.test.tsx:454` (Issue 42, which adds `SessionStart`), and `tests/jump_target.test.tsx:595` and `:646` (Issue 43, the same `SessionEnd`/`SessionStart` shape), while `tests/integrity_gap.test.tsx:478` already has a file-local `classicOf($)` helper for the same thing. The shape and the compatibility gate are kept in sync by hand across files.
 
 ## Why deferred
 
-The duplication predates Issue 42, which only followed the prevalent inline pattern; sharing it touches three test files unrelated to the fix.
+The duplication predates Issue 42, which only followed the prevalent inline pattern; sharing it touches three test files unrelated to the fix. Issue 43's review (2026-09-29, `.code-review/runs/20260929-235353/round-1/`) flagged the same pattern in its two new tests and left it here for the same reason.
 
 ## Suggested fix approach
 
