@@ -52,6 +52,62 @@ def entry_row(event_id: str, sequence: int, expected: dict) -> tuple:
     )
 
 
+def read_archive(database_path: pathlib.Path) -> tuple[list, list, list, list]:
+    database = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
+    try:
+        metadata = database.execute(
+            "SELECT project_id, policy_version, next_sequence FROM metadata"
+        ).fetchall()
+        pending = database.execute(
+            "SELECT event_id, run_id, segment_id, branch_id, parent_event_id, "
+            "occurred_at_ms, attachment_count, attachment_kinds, prompt_text "
+            "FROM pending_captures ORDER BY event_id"
+        ).fetchall()
+        entries = database.execute(
+            "SELECT event_id, sequence, run_id, segment_id, branch_id, "
+            "parent_event_id, occurred_at_ms, source, attachment_count, "
+            "attachment_kinds, prompt_text FROM prompt_entries ORDER BY sequence"
+        ).fetchall()
+        boundaries = database.execute(
+            "SELECT event_id, sequence, kind, run_id, segment_id, branch_id, "
+            "occurred_at_ms FROM timeline_events ORDER BY sequence"
+        ).fetchall()
+    finally:
+        database.close()
+    return metadata, pending, entries, boundaries
+
+
+def describe(database_path: pathlib.Path) -> dict:
+    """The archive's Timeline Events by meaning, for acceptance runs that watch
+    a real host. Holds prompt text: keep it in memory, never print it."""
+    _, pending, entries, boundaries = read_archive(database_path)
+    return {
+        "pending": [
+            {
+                "eventId": row[0], "runId": row[1], "segmentId": row[2], "branchId": row[3],
+                "parentEventId": row[4], "attachmentCount": row[6],
+                "attachmentKinds": row[7], "promptText": row[8],
+            }
+            for row in pending
+        ],
+        "entries": [
+            {
+                "eventId": row[0], "sequence": row[1], "runId": row[2], "segmentId": row[3],
+                "branchId": row[4], "parentEventId": row[5], "source": row[7],
+                "attachmentCount": row[8], "attachmentKinds": row[9], "promptText": row[10],
+            }
+            for row in entries
+        ],
+        "boundaries": [
+            {
+                "eventId": row[0], "sequence": row[1], "kind": row[2], "runId": row[3],
+                "segmentId": row[4], "branchId": row[5],
+            }
+            for row in boundaries
+        ],
+    }
+
+
 def main() -> None:
     try:
         request = json.load(sys.stdin)
@@ -82,29 +138,9 @@ def main() -> None:
         fail("invalid-request")
 
     try:
-        database = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
-        metadata = database.execute(
-            "SELECT project_id, policy_version, next_sequence FROM metadata"
-        ).fetchall()
-        pending = database.execute(
-            "SELECT event_id, run_id, segment_id, branch_id, parent_event_id, "
-            "occurred_at_ms, attachment_count, attachment_kinds, prompt_text "
-            "FROM pending_captures ORDER BY event_id"
-        ).fetchall()
-        entries = database.execute(
-            "SELECT event_id, sequence, run_id, segment_id, branch_id, "
-            "parent_event_id, occurred_at_ms, source, attachment_count, "
-            "attachment_kinds, prompt_text FROM prompt_entries ORDER BY sequence"
-        ).fetchall()
-        boundaries = database.execute(
-            "SELECT event_id, sequence, kind, run_id, segment_id, branch_id, "
-            "occurred_at_ms FROM timeline_events ORDER BY sequence"
-        ).fetchall()
+        metadata, pending, entries, boundaries = read_archive(database_path)
     except sqlite3.Error:
         fail("archive-unreadable")
-    finally:
-        if "database" in locals():
-            database.close()
 
     if expected_state == "set":
         # An explicit ordered set: every archived row must be named once, so a
