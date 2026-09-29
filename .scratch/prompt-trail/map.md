@@ -160,6 +160,12 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   `PT-LIFE-001..004` 与 `PT-STORE-001` 的 PTY 场景覆盖 `/clear`、`/compact`、`/reload-plugins`、`/exit` 后普通重启，
   以及 `--resume` 续接原 Run，在两个版本上通过。Run 与 generation 从 status 读，事件从 semantic verifier 读，焦点环按反色行判断。
   契约不再承诺 reload 后恢复选中位置：焦点一离开 band 就不保留，再进入时从最新条目开始。
+- [以真实 PTY 证明分支与跳转](issues/37-pty-branch-jump.md)：
+  `PT-BRANCH-001..004` 与 `PT-JUMP-001..002` 的 PTY 场景覆盖 `--continue`、`--resume`、会话内 `/resume`、并发 resume、
+  后台 `/fork` 与 `--fork-session`、`/rewind` 与 Esc Esc、compact 后 resume 的父节点确认，以及有效与失效 Jump Target 的 Enter 和点击，
+  在两个版本上通过。点击要先 hover；后台 `/fork` 的 daemon 活得比终端久，场景结束时要结束它并扫描它在 `/tmp` 下的目录。
+  探测中发现两个缺陷，拆为 [Issue 42](issues/42-clear-before-first-write.md)（第一次提交前 `/clear` 记成 Integrity gap）
+  与 [Issue 43](issues/43-jump-after-in-process-resume.md)（会话内 `/resume` 之后的新条目没有 Jump Target）。
 
 ## Not yet specified
 
