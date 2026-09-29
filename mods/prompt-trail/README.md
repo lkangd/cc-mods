@@ -34,6 +34,7 @@ Prompt Trail 只通过 `--plugin-dir` 加载。它不经 Marketplace 发布，�
 
 - 展开时间线后，键盘焦点不会自动移进去。要用 `ctrl+x tab` 或鼠标进入。
 - Esc 只保证把焦点还给 composer，不保证折叠时间线。
+- 焦点离开时间线后不保留选中位置：再次进入（包括 `/reload-plugins` 之后）总是从最新条目开始。
 - 不保证触控板和滚轮滚动时间线；方向键和鼠标点击可以到达时间线的首尾。
 - 未经真人验收的 PageUp/PageDown/Home/End 不作承诺。
 - 其他插件同样占用输入框上方的位置时，Prompt Trail 不会与它们自动协调。AskUserQuestion 对话期间，时间线会让出位置。
