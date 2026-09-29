@@ -306,10 +306,15 @@ class Environment:
             terminal.close()
         self._sampling = False
         self._sampler.join(timeout=5)
-        found = evidence.scan_tree(self.base, self.scanner)
+        found = evidence.scan_tree(
+            self.base, self.scanner, config=str(self.config.relative_to(self.base))
+        )
         for leak in found["leaks"]:
             leak["path"] = f"<scenario>/{leak['path']}"
         shutil.rmtree(self.base, ignore_errors=True)
+        if self.base.exists():
+            # A world that outlives its scenario keeps prompt text on disk.
+            found["leaks"].append({"path": "<scenario>", "kind": "not removed"})
         return {
             "scannedFiles": found["scannedFiles"],
             "allowedFiles": found["allowedFiles"],

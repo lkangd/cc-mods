@@ -87,3 +87,16 @@
 ### 实现中追加（2026-09-29）
 
 - **Q21 宿主网络故障**：第一次完整运行中，两个 PTY 场景因宿主与 API 的连接中断（`Connection dropped (ECONNRESET) · Retrying … attempt 7/10`）等不到回合结束而失败。使用者选择：失败时的屏幕带宿主网络错误特征才整场重跑一次，只重跑一次；报告的 actual 写明「retried after a host network error」，第一次的 trace 另存为 `<ID>.attempt-1.txt`。没有这种特征的失败照常判失败。
+
+### Code review 修复（2026-09-29，round 1）
+
+`/code-review` 对 `5755f1c..19715c2` 给出 15 条（产物 `.code-review/runs/20260929-133045/round-1/`）：修 11 条，backlog 2 条，驳回 2 条。
+
+- 扫描（`release/evidence.py`）：`scan_tree` 新增 `config` 参数，允许清单只认隔离配置目录下 `plugins/data/*/archives/` 的档案文件与宿主对话记录；允许清单内的文件仍查 secret；文件名、目录名与符号链接目标都扫描，报告里的路径先脱敏；进不去的目录与读不了的文件记为 `unscannable` 泄漏。隔离目录删不掉时记 `not removed` 泄漏（`release/pty_driver.py`）。
+- 判定：清单里重复的场景 ID 使报告失败。
+- 门禁：缺失或读不了的制品记为 `artifacts-reproducible` 失败，不再中止运行；`datetime.UTC` 改为 `datetime.timezone.utc`；`scripts/release-evidence.sh` 在 venv 版本与 `requirements.txt` 不一致时重装（实测 0.8.1 被重装为 0.8.2）。
+- CAPTURE-004 加一次纯附件提交：两个宿主都产生 1 个附件、文本只有宿主 `[Image #N]` 占位符的条目。
+- 模块注释不再称「纯逻辑」。
+- backlog：`docs/code-review-backlog/20260929-release-gate-unit-module-list-duplicated.md`、`20260929-release-gate-artifact-list-duplicated.md`。
+- 驳回：npx 的 `claude` 在两个版本上都是原生 arm64 Mach-O，不依赖 node，PATH 不缺；「esc to interrupt」在提交的同时显示，不经 API，回合启动超过 10 秒才显示的前提不成立。
+- 测试：`tests/release_verdict.py` 22 → 28 项；新增扫描逻辑的 10 条变异首轮存活 3 条，补测后全部被抓到。修复后没有重新完整运行门禁，只在两个版本上跑了 CAPTURE-004。

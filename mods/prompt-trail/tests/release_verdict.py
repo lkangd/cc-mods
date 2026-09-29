@@ -301,18 +301,86 @@ class ScanTreeTests(unittest.TestCase):
                 base / "home/.claude/plugins/store" / ("a" * 64 + ".sqlite3"),
                 base / "home/.claude/debug/latest",
                 base / "tmp/trace.txt",
+                # Named like allowed files, but outside the isolated config directory.
+                base / "project/.claude/projects/notes.jsonl",
+                base / "tmp/archives" / ("a" * 64 + ".sqlite3"),
+                base / "home/.claude/plugins/data/prompt-trail-inline/other" / ("a" * 64 + ".sqlite3"),
+                base / "home/.claude/debug/history.jsonl",
             ]
             for path in allowed + leaking:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(f"{marker}\n")
             (base / "clean.txt").write_text("nothing\n")
-            found = evidence.scan_tree(base, scanner)
+            found = evidence.scan_tree(base, scanner, config="home/.claude")
             self.assertEqual(
                 sorted(item["path"] for item in found["leaks"]),
                 sorted(str(path.relative_to(base)) for path in leaking),
             )
             self.assertEqual(found["scannedFiles"], len(leaking) + 1)
             self.assertEqual(found["allowedFiles"], len(allowed))
+
+
+    def test_a_secret_is_a_leak_even_in_an_allowed_file(self) -> None:
+        marker = evidence.new_marker("PT-SEC-001")
+        scanner = evidence.Scanner([marker], secrets=["sk-secret-token"])
+        with tempfile.TemporaryDirectory() as temporary:
+            base = pathlib.Path(temporary)
+            transcript = base / "home/.claude/projects/-p/session.jsonl"
+            transcript.parent.mkdir(parents=True)
+            transcript.write_text(f"{marker} sk-secret-token\n")
+            found = evidence.scan_tree(base, scanner, config="home/.claude")
+            self.assertEqual(found["leaks"], [{"path": "home/.claude/projects/-p/session.jsonl", "kind": "secret"}])
+
+    def test_a_marker_in_a_file_or_link_name_is_a_leak_reported_masked(self) -> None:
+        marker = evidence.new_marker("PT-SEC-001")
+        scanner = evidence.Scanner([marker], secrets=[])
+        with tempfile.TemporaryDirectory() as temporary:
+            base = pathlib.Path(temporary)
+            (base / f"{marker}.log").write_text("")
+            (base / "link").symlink_to(base / f"missing-{marker}")
+            found = evidence.scan_tree(base, scanner, config="home/.claude")
+            self.assertEqual(sorted(leak["kind"] for leak in found["leaks"]), ["marker", "marker in link target"])
+            for leak in found["leaks"]:
+                self.assertEqual(scanner.find(leak["path"].encode()), [])
+
+    def test_a_directory_it_cannot_enter_is_a_failure_not_a_clean_scan(self) -> None:
+        scanner = evidence.Scanner([evidence.new_marker("PT-SEC-001")], secrets=[])
+        with tempfile.TemporaryDirectory() as temporary:
+            base = pathlib.Path(temporary)
+            closed = base / "closed"
+            closed.mkdir()
+            (closed / "inside.txt").write_text("x")
+            closed.chmod(0)
+            try:
+                found = evidence.scan_tree(base, scanner, config="home/.claude")
+            finally:
+                closed.chmod(0o700)
+            self.assertEqual(found["leaks"], [{"path": "closed", "kind": "unscannable"}])
+
+    def test_a_file_it_cannot_read_is_a_failure_not_a_clean_scan(self) -> None:
+        scanner = evidence.Scanner([evidence.new_marker("PT-SEC-001")], secrets=[])
+        with tempfile.TemporaryDirectory() as temporary:
+            base = pathlib.Path(temporary)
+            closed = base / "closed.txt"
+            closed.write_text("x")
+            closed.chmod(0)
+            try:
+                found = evidence.scan_tree(base, scanner, config="home/.claude")
+            finally:
+                closed.chmod(0o600)
+            self.assertEqual(found["leaks"], [{"path": "closed.txt", "kind": "unscannable"}])
+
+
+class DuplicateScenarioTests(unittest.TestCase):
+    def test_a_scenario_listed_twice_fails_the_release(self) -> None:
+        manifest = full_manifest()
+        manifest["scenarios"].append(dict(manifest["scenarios"][0]))
+        report = evidence.judge_report(
+            manifest, unit_results(manifest), versions=VERSIONS, partial=False,
+            tree_clean=True, leaks=[], gates=[],
+        )
+        self.assertEqual(report["overall"], "fail")
+        self.assertTrue(any(evidence.REQUIRED_SCENARIOS[0] in reason for reason in report["reasons"]))
 
 
 class RenderTests(unittest.TestCase):

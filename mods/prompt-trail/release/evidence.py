@@ -2,8 +2,8 @@
 their evidence, how a run's results settle each one, and the marker scan that
 keeps prompt text out of everything the run leaves behind.
 
-Pure logic only; release_evidence.py runs the gates and the PTY scenarios and
-feeds their results in here."""
+No processes run here: release_evidence.py runs the gates and the PTY
+scenarios and feeds their results in; only scan_tree reads files."""
 import json
 import os
 import pathlib
@@ -119,6 +119,10 @@ def judge_report(
 ) -> dict:
     listed = {item["id"]: item for item in manifest["scenarios"]}
     reasons = []
+    ids = [item["id"] for item in manifest["scenarios"]]
+    repeated = sorted({id_ for id_ in ids if ids.count(id_) > 1})
+    if repeated:
+        reasons.append(f"scenarios listed more than once: {', '.join(repeated)}")
     scenarios = []
     for id_ in REQUIRED_SCENARIOS:
         if id_ in listed:
@@ -249,37 +253,59 @@ _ARCHIVE_FILE = re.compile(
 _HOST_CONVERSATION_DIRS = {"projects", "file-history", "paste-cache"}
 
 
-def _allowed(relative: pathlib.PurePath) -> bool:
-    parts = relative.parts
-    if "archives" in parts and _ARCHIVE_FILE.match(relative.name):
-        return True
-    if ".claude" in parts:
-        inside = parts[parts.index(".claude") + 1:]
-        if inside and (inside[0] in _HOST_CONVERSATION_DIRS or inside == ("history.jsonl",)):
-            return True
-    return False
+def _allowed(relative: pathlib.PurePath, config: pathlib.PurePath) -> bool:
+    """Whether a file may hold markers: only under the isolated config directory."""
+    try:
+        inside = relative.relative_to(config).parts
+    except ValueError:
+        return False
+    if inside[:2] == ("plugins", "data") and len(inside) > 4 and inside[3] == "archives":
+        return bool(_ARCHIVE_FILE.match(inside[-1]))
+    return inside == ("history.jsonl",) or (len(inside) > 1 and inside[0] in _HOST_CONVERSATION_DIRS)
 
 
-def scan_tree(base: pathlib.Path, scanner: Scanner) -> dict:
+def scan_tree(base: pathlib.Path, scanner: Scanner, config: str) -> dict:
+    """Every file under `base` and every name there, markers allowed only in the
+    files ALLOWED_RULES names under `config` (relative to `base`); secrets are
+    allowed nowhere. What cannot be read counts as a leak, never as clean."""
+    config_path = pathlib.PurePath(config)
     leaks = []
     scanned = 0
     allowed = 0
-    for directory, _, names in os.walk(base):
+
+    def leak(relative: pathlib.PurePath, kind: str) -> None:
+        leaks.append({"path": scanner.redact_rows([str(relative)])[0], "kind": kind})
+
+    def unreadable(error: OSError) -> None:
+        leak(pathlib.Path(error.filename).relative_to(base), "unscannable")
+
+    for directory, subdirectories, names in os.walk(base, onerror=unreadable):
+        for name in subdirectories + names:
+            path = pathlib.Path(directory) / name
+            relative = path.relative_to(base)
+            for kind in scanner.find(name.encode()):
+                leak(relative, kind)
+            if path.is_symlink():
+                for kind in scanner.find(os.readlink(path).encode()):
+                    leak(relative, f"{kind} in link target")
         for name in names:
             path = pathlib.Path(directory) / name
+            relative = path.relative_to(base)
             if path.is_symlink() or not path.is_file():
                 continue
-            relative = path.relative_to(base)
-            if _allowed(relative):
-                allowed += 1
-                continue
-            scanned += 1
             try:
                 data = path.read_bytes()
             except OSError:
-                leaks.append({"path": str(relative), "kind": "unreadable"})
+                leak(relative, "unscannable")
                 continue
-            leaks += [{"path": str(relative), "kind": kind} for kind in scanner.find(data)]
+            kinds = scanner.find(data)
+            if _allowed(relative, config_path):
+                allowed += 1
+                kinds = [kind for kind in kinds if kind == "secret"]
+            else:
+                scanned += 1
+            for kind in kinds:
+                leak(relative, kind)
     return {"scannedFiles": scanned, "allowedFiles": allowed, "leaks": leaks}
 
 
