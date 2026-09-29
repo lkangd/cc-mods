@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { LifecycleState, LifecycleWrite } from '../hooks/lifecycle'
-import type { TranscriptRow } from './support'
+import type { ArchiveRow, TranscriptRow } from './support'
 import {
   LIFECYCLE_QUEUE_LIMIT,
   clearTransitionState,
@@ -440,6 +440,41 @@ test('the timeline keeps both sides of a clear in their original order', async (
   /* Exactly one boundary row, however often the band is drawn. */
   expect(band.split('新的 Conversation Segment')).toHaveLength(2)
   expect(boundaryCalls(calls)).toHaveLength(1)
+})
+
+/* Issue 42: the host runs the function hooks' `session.start` before the
+   bridge's classic SessionStart publishes the locator, so a process whose
+   first act is `/clear` reaches SessionEnd without having read its Run. */
+test('a clear before this process has read its locator still writes the boundary', async ($, on) => {
+  /* The 2.1.273 test kit cannot raise a classic hook event; the gate's
+     current version covers this. */
+  const classic = ($ as unknown as {
+    classic?: {
+      SessionEnd: (e: { reason: string; session_id: string }) => Promise<unknown>
+      SessionStart: (e: { source: string; session_id: string }) => Promise<unknown>
+    }
+  }).classic
+  if (!classic) return
+  const archive: ArchiveRow[] = []
+  const classicSession = { id: endedSessionId }
+  const locatorPublished = { value: false }
+  installSupportedTarget(on, { store: consentedStore(), archive, classicSession, locatorPublished })
+  on('classic.SessionEnd', () => ({}))
+  on('classic.SessionStart', () => ({}))
+
+  await $.session.start(session)
+  locatorPublished.value = true
+  await classic.SessionEnd({ reason: 'clear', session_id: endedSessionId })
+  classicSession.id = resumedSessionId
+  await classic.SessionStart({ source: 'clear', session_id: resumedSessionId })
+  await composerPrompt($)
+
+  const ordered = [...archive].sort((left, right) => left.sequence - right.sequence)
+  expect(ordered.map(row => row.kind)).toEqual(['run-started', 'clear', 'prompt'])
+  const [, clear, entry] = ordered
+  expect(clear?.segmentId).toBe(endedSessionId)
+  expect(entry?.segmentId).toBe(resumedSessionId)
+  expect(entry?.parentEventId ?? null).toBeNull()
 })
 
 test('drawing the band again archives nothing', async ($, on) => {

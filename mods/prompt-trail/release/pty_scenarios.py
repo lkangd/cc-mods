@@ -472,7 +472,36 @@ def life_001(ctx: Context) -> str:
     check(second["parentEventId"] is None and second["branchId"] != first["branchId"], "the prompt after /clear did not start a root branch")
     band = ctx.expand(terminal, after)
     check(any("/clear：新的 Conversation Segment" in row for row in band), "the band shows no Clear Boundary")
-    return "1 Clear Boundary between the prompts; same Run, two segments, a new root branch after it; shown in the band"
+
+    # A process whose first act is /clear has not read its locator yet: the
+    # boundary still lands, in a new Run and in a resumed one (Issue 42).
+    session = ctx.session(after)
+    ctx.exit(terminal)
+    for args, marker, what in (
+        ((), ctx.marker("PT-LIFE-001"), "a restart"),
+        (("--resume", session), ctx.marker("PT-LIFE-001"), "a --resume"),
+    ):
+        archived = ctx.entries()
+        again = ctx.relaunch(*args)
+        ctx.command(again, "/clear", "❯")
+        again.wait_idle()
+        ctx.submit(again, prompt(marker))
+        latest = entry(ctx.wait_entries(len(archived) + 1), marker)
+        clears = [b for b in ctx.env.archive()["boundaries"] if b["kind"] == "clear"]
+        check(
+            clears[-1]["runId"] == latest["runId"] and archived[-1]["sequence"] < clears[-1]["sequence"] < latest["sequence"],
+            f"the /clear first thing after {what} left no Clear Boundary before the prompt",
+        )
+        check(latest["parentEventId"] is None, f"the prompt after {what} and /clear has a parent")
+        ctx.exit(again)
+    check(latest["runId"] == first["runId"], "--resume did not take the Run up")
+    kinds = [b["kind"] for b in ctx.env.archive()["boundaries"]]
+    check(kinds.count("clear") == 3, f"{kinds.count('clear')} Clear Boundaries for 3 /clear")
+    check("integrity-gap" not in kinds, "a /clear was recorded as an Integrity gap")
+    return (
+        "1 Clear Boundary between the prompts; same Run, two segments, a new root branch after it; shown in the band; "
+        "a /clear first thing after a restart and after --resume is a Clear Boundary too, never an Integrity gap"
+    )
 
 
 @scenario("PT-LIFE-002")
