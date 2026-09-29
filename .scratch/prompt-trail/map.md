@@ -166,6 +166,9 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   在两个版本上通过。点击要先 hover；后台 `/fork` 的 daemon 活得比终端久，场景结束时要结束它并扫描它在 `/tmp` 下的目录。
   探测中发现两个缺陷，拆为 [Issue 42](issues/42-clear-before-first-write.md)（第一次提交前 `/clear` 记成 Integrity gap）
   与 [Issue 43](issues/43-jump-after-in-process-resume.md)（会话内 `/resume` 之后的新条目没有 Jump Target）。
+- [第一次提交前 `/clear` 也记下 Clear Boundary](issues/42-clear-before-first-write.md)：
+  函数 hook 的 `session.start` 早于 bridge 发布 locator，新进程在提交前不知道自己的 Run。生命周期事件遇到 Run 未知时先重读 locator，
+  再决定是否暂存，于是普通启动或 `--resume` 后第一件事就 `/clear`，也恰好写入一个 Clear Boundary，不再记成 Integrity gap。`PT-LIFE-001` 扩展覆盖这两条路径。
 
 ## Not yet specified
 
