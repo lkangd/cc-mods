@@ -727,3 +727,104 @@ test('a gap owed to a generation since cleared goes with it and blocks nothing',
   expect(left.gap).toBeUndefined()
   expect(left.overflowed).toBeUndefined()
 })
+
+/* Regressions from the Issue 26 code review. */
+
+test('another Run that is gone with its losses only on record is that Run’s gap', async ($, on) => {
+  const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  store[lifecycleKey(otherRun)] = { version: 1, started: true, queue: [], overflowed: true }
+  installSupportedTarget(on, { store, archive })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  const ordered = [...archive].sort((left, right) => left.sequence - right.sequence)
+  expect(ordered.map(row => [row.kind, row.runId])).toEqual([
+    ['integrity-gap', otherRun],
+    ['integrity-recovery', otherRun],
+    ['prompt', runId],
+  ])
+  expect((store[lifecycleKey(otherRun)] as Record<string, unknown>).overflowed).toBeUndefined()
+})
+
+test('another Run’s lifecycle record that cannot be read is that Run’s gap once it is gone', async ($, on) => {
+  const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  store[lifecycleKey(otherRun)] = 'PT-NOT-A-RECORD'
+  installSupportedTarget(on, { store, archive })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  expect([...archive].sort((left, right) => left.sequence - right.sequence)
+    .map(row => [row.kind, row.runId])).toEqual([
+    ['integrity-gap', otherRun],
+    ['integrity-recovery', otherRun],
+    ['prompt', runId],
+  ])
+})
+
+test('a live Run’s losses are left for that Run to record', async ($, on) => {
+  const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  store[lifecycleKey(otherRun)] = { version: 1, started: true, queue: [], overflowed: true }
+  installSupportedTarget(on, { store, archive, liveRuns: [otherRun] })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  expect(kinds(archive)).not.toContain('integrity-gap')
+  expect(store[lifecycleKey(otherRun)]).toMatchObject({ overflowed: true })
+})
+
+test('a gone Run whose collection is disabled gets its gap but no recovery', async ($, on) => {
+  const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
+  const archive: ArchiveRow[] = []
+  const store = storeWith({})
+  store[lifecycleKey(otherRun)] = { version: 1, started: true, queue: [], overflowed: true }
+  store[`prompt-trail:run-mode:${projectId}:${otherRun}`] = { version: 1, mode: 'disabled' }
+  installSupportedTarget(on, { store, archive })
+
+  await $.session.start(session)
+  await composerPrompt($)
+
+  expect(kinds(archive)).toEqual(['integrity-gap', 'prompt'])
+  expect(store[lifecycleKey(otherRun)]).toMatchObject({ gap: { landed: true } })
+})
+
+test('a prompt let through by disabling the Run leaves no marker, even if the host then fails it', async ($, on) => {
+  const store = storeWith({})
+  installSupportedTarget(on, {
+    store,
+    beginFails: 'archive-busy',
+    unavailableAnswers: ['禁用当前 Run 后继续'],
+    duringSubmit: async () => {
+      throw new Error('host failed: PT-SECRET-HOST')
+    },
+  })
+
+  await $.session.start(session)
+  await composerPrompt($).catch(() => undefined)
+
+  expect(inflightKeys(store)).toEqual([])
+})
+
+test('a leaving held at an in-process resume is owed to the generation it happened in', async ($, on) => {
+  const classic = ($ as unknown as {
+    classic?: { SessionEnd: (e: { reason: string }) => Promise<unknown> }
+  }).classic
+  if (!classic) return
+  const store = storeWith({})
+  installSupportedTarget(on, { store, generation: { value: 'gen-7' } })
+  on('classic.SessionEnd', () => ({}))
+  await $.session.start(session)
+  await composerPrompt($)
+
+  await classic.SessionEnd({ reason: 'resume' })
+
+  expect(store[lifecycleKey()]).toMatchObject({ attachment: { leaving: { generation: 'gen-7' } } })
+})

@@ -77,3 +77,21 @@ Prompt Trail 现在把无法证明完整的区间记为该 Run 的 Integrity gap
 - **Q15 文档**：`CONTEXT.md` 的 Integrity gap 补「属于一个 Run，随该 Run 的清除一起删除」；spec §9、§13、§15 补本票内容并标「2026-09-29 Issue 26 修订」。
 - **Q16 其他 Run**：已欠着的 gap 与恢复边界随 `flushForeignLifecycles` 替已不在运行的 Run 补写；外来在途标记只在用 `clear-all` 的存活判定确认该 Run 无存活进程时才当陈旧并记 gap。替别的 Run 补写不弹 toast，只体现在 `status` 计数。
 - **实现手段**：helper 测试里的未知种类改名；plugin test 以预置陈旧标记覆盖检测、以新增假 helper 选项在指定阶段制造未捕获抛错覆盖外层 catch；100k 夹具补 gap 行；真人 PTY 另行征得授权。
+
+### Code review 修复（2026-09-29，round 1）
+
+`/code-review`，产物在 `.code-review/runs/20260929-005742/round-1/`（已 gitignore）。10 条中修 7 条，驳回 3 条，无 backlog。
+
+- **修复**：
+  - #1、#4：别的 Run 记录里的丢失标志（含整条读不出的记录，现按 damaged 处理），在该 Run 不在 `liveRuns` 里时转成它的 gap，gap id 由记录键与原因派生；仍存活的 Run 留给它自己记。
+  - #2：外来 Run 的 run-mode 为 disabled 时只补 gap，不写恢复边界（同 Q14）。
+  - #3：`/resume` 时保留的 `attachment.leaving` 在保存时就盖 generation；没有 generation 的按 unknown 处理。
+  - #8：在对话框里选「禁用当前 Run 后继续」放行的提交，在交给宿主前删除在途标记。
+  - #9：`GapReason` 由 `lifecycle.ts` 的 `GAP_REASONS` 元组推导，运行时校验共用这份清单。
+  - #10：marker key 的解码收进 `markerOwner()`，判定、清除与 `status` 共用。
+  - 新增 plugin test 6 项；这几处修复的 6 条变异全部被抓到。
+- **驳回**：
+  - #5（`/clear` 标记写失败且之后 lifecycle 也写不进）：此时 store 不接受写入，没有可以留下持久痕迹的地方，行为与改动前相同。
+  - #6（`archive-status` 失败时由标志转成的 gap 不校验 generation）：对齐时已取「宁可多记」，这类 gap 的 generation 同样无法确定，丢弃会少记。
+  - #7（并发写入使 gap 与恢复边界的 sequence 不相邻）：Q9 的「相邻」是描述，不是约束；中间插入别的 Run 的事件不改变两者的含义。
+- 另有一条因批次不匹配未进结果：locator 读不出时 `liveRuns` 会漏掉那个 Run。这与 `capture-list` 的既有规则一致（不受信任的 locator 不算任何 Run 的声明），未处理。

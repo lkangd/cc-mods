@@ -33,6 +33,7 @@ import type {
   OwedGap,
 } from './lifecycle'
 import {
+  GAP_REASONS,
   LIFECYCLE_QUEUE_CAPACITY,
   landGap,
   lossReasons,
@@ -1353,7 +1354,7 @@ function storedAttachment(value: unknown): Attachment | undefined {
     !/^\d+-\d+-\d+$/.test(value.host) ||
     !isSafeId(value.segmentId)
   ) return undefined
-  const leaving = value.leaving === undefined ? undefined : storedLifecycleWrite(value.leaving, false)
+  const leaving = value.leaving === undefined ? undefined : storedLifecycleWrite(value.leaving, true)
   return {
     id: value.id,
     host: value.host,
@@ -1363,14 +1364,7 @@ function storedAttachment(value: unknown): Attachment | undefined {
   }
 }
 
-const GAP_REASONS = new Set<string>([
-  'fail-open',
-  'clear-unrecorded',
-  'queue-overflow',
-  'queue-damaged',
-  'clear-unobserved',
-  'generation-unknown',
-])
+const GAP_REASON_SET = new Set<string>(GAP_REASONS)
 
 /* An owed gap is replayed only when every field it names is intact; one that
    is not is still a loss, and is owed again from what can be read. */
@@ -1385,7 +1379,7 @@ function storedGap(value: unknown): OwedGap | undefined {
     (value.occurredAt as number) < 0 ||
     !(value.generation === null || isSafeId(value.generation)) ||
     !Array.isArray(value.reasons) ||
-    !value.reasons.every(reason => typeof reason === 'string' && GAP_REASONS.has(reason))
+    !value.reasons.every(reason => typeof reason === 'string' && GAP_REASON_SET.has(reason))
   ) return undefined
   const landed = value.landed === true
     && Number.isSafeInteger(value.recoveryAt)
@@ -1524,7 +1518,9 @@ async function stampGenerations(
   currentProject: ProjectState,
   value: LifecycleState,
 ): Promise<LifecycleState> {
-  if (!value.queue.some(write => write.generation === undefined)) return value
+  const leaving = value.attachment?.leaving
+  const unstamped = leaving !== undefined && leaving.generation === undefined
+  if (!unstamped && !value.queue.some(write => write.generation === undefined)) return value
   let generation: string | null = UNKNOWN_GENERATION
   try {
     generation = (await readArchiveStatus($, currentProject)).generation
@@ -1535,6 +1531,11 @@ async function stampGenerations(
     ...value,
     queue: value.queue.map(write =>
       write.generation === undefined ? { ...write, generation } : write),
+    /* A detach held at an in-process `/resume` happened then, not when it is
+       later queued. */
+    ...(unstamped && value.attachment && leaving
+      ? { attachment: { ...value.attachment, leaving: { ...leaving, generation } } }
+      : {}),
   }
 }
 
@@ -1550,8 +1551,9 @@ async function foreignLifecycles(
   const found: { key: string; value: LifecycleState }[] = []
   for (const key of await $.store.keys()) {
     if (!key.startsWith(prefix) || key === own) continue
-    const value = storedLifecycle(await $.store.get(key))
-    if (value) found.push({ key, value })
+    /* A record that cannot be read lost what it owed, as this Run's own does. */
+    const value = storedLifecycle(await $.store.get(key)) ?? { ...emptyLifecycle(), damaged: true as const }
+    found.push({ key, value })
   }
   lifecycleOthers = {
     queue: found.flatMap(record => record.value.queue),
@@ -3574,9 +3576,44 @@ async function flushForeignLifecycles(
   }
   let settledAll = true
   let live: string[] | null | undefined
+  const liveRuns = async (): Promise<string[] | null> => {
+    if (live === undefined) {
+      try {
+        live = (await readArchiveStatus($, currentProject)).liveRuns
+      } catch {
+        live = null
+      }
+    }
+    return live
+  }
+  const prefix = lifecyclePrefix(currentProject.id)
   for (const record of foreign) {
-    if (record.value.queue.length === 0 && !record.value.gap) continue
+    const runOf = record.key.slice(prefix.length)
+    /* Losses another Run has on record and will not record itself: it is
+       gone, so they are its gap. A live one records its own. */
+    const losses = lossReasons(record.value).filter(reason => !record.value.gap?.reasons.includes(reason))
+    if (record.value.queue.length === 0 && !record.value.gap && losses.length === 0) continue
     let settled = record.value
+    if (losses.length > 0) {
+      const running = await liveRuns()
+      if (running !== null && !running.includes(runOf)) {
+        try {
+          const segmentId = settled.attachment?.segmentId ?? runOf
+          settled = oweGap(settled, losses, {
+            eventId: await sha256(`prompt-trail:integrity-gap:losses:1:${record.key}:${losses.join(',')}`),
+            runId: runOf,
+            segmentId,
+            branchId: storedBranch(await $.store.get(branchKey(currentProject.id, runOf, segmentId)))?.branchId
+              ?? runOf,
+            occurredAt: await $.clock.now(),
+            generation: null,
+          })
+        } catch {
+          settledAll = false
+          continue
+        }
+      }
+    }
     for (const write of record.value.queue) {
       if (write.generation === UNKNOWN_GENERATION) {
         /* Derived from the write, so two Runs finding it at once owe the
@@ -3613,15 +3650,14 @@ async function flushForeignLifecycles(
           await writeIntegrity($, currentProject, owed, 'integrity-gap')
           settled = landGap(settled, await $.clock.now())
         }
-        if (live === undefined) {
-          try {
-            live = (await readArchiveStatus($, currentProject)).liveRuns
-          } catch {
-            live = null
-          }
-        }
+        const running = await liveRuns()
         const landed = settled.gap
-        if (landed && live !== null && !live.includes(landed.runId)) {
+        /* A Run left disabled collects nothing, so nothing is provable again
+           until it resumes and writes its own recovery. */
+        const disabled = landed
+          ? storedRunMode(await $.store.get(runModeKey(currentProject.id, landed.runId)))?.mode === 'disabled'
+          : false
+        if (landed && running !== null && !running.includes(landed.runId) && !disabled) {
           await writeIntegrity($, currentProject, landed, 'integrity-recovery')
           settled = settleGap(settled)
         }
@@ -3971,6 +4007,15 @@ function markerCall(key: string): string {
   return key.slice(key.lastIndexOf(':') + 1)
 }
 
+/* The Run and call a key under the project's marker prefix names; undefined
+   for a key that is not one. */
+function markerOwner(key: string, projectId: string): { runOf: string; call: string } | undefined {
+  const prefix = inflightPrefix(projectId)
+  if (!key.startsWith(prefix)) return undefined
+  const [runOf, call] = key.slice(prefix.length).split(':')
+  return runOf && call ? { runOf, call } : undefined
+}
+
 async function removeMarker($: EngineInterface, key: string | undefined): Promise<void> {
   if (!key) return
   try {
@@ -3994,12 +4039,11 @@ async function releaseMarker($: EngineInterface, key: string | undefined): Promi
    staged, and is settled by reconciliation. Another Run's marker is only
    judged once no live process holds that Run. */
 async function settleInflight($: EngineInterface, currentProject: ProjectState): Promise<void> {
-  const prefix = inflightPrefix(currentProject.id)
   let live: string[] | null | undefined
   for (const key of await $.store.keys()) {
-    if (!key.startsWith(prefix)) continue
-    const [runOf, call] = key.slice(prefix.length).split(':')
-    if (!runOf || !call || liveCalls.has(call)) continue
+    const owner = markerOwner(key, currentProject.id)
+    if (!owner || liveCalls.has(owner.call)) continue
+    const { runOf, call } = owner
     const own = runOf === startup.runId
     if (!own) {
       if (live === undefined) {
@@ -4814,11 +4858,9 @@ async function forgetMarkers(
   currentProject: ProjectState,
   forRun: (runId: string) => boolean,
 ): Promise<void> {
-  const prefix = inflightPrefix(currentProject.id)
   for (const key of await $.store.keys()) {
-    if (!key.startsWith(prefix)) continue
-    const runOf = key.slice(prefix.length).split(':')[0] ?? ''
-    if (liveCalls.has(markerCall(key)) || !forRun(runOf)) continue
+    const owner = markerOwner(key, currentProject.id)
+    if (!owner || liveCalls.has(owner.call) || !forRun(owner.runOf)) continue
     await $.store.delete(key)
   }
 }
@@ -5333,6 +5375,10 @@ async function collectSubmission(
       const note = await disableCollection($)
       if (runMode?.value.mode === 'disabled') {
         $.ui.toast(note)
+        /* Let through by the person's choice, not by a failure: whatever the
+           host does with it now is no gap. */
+        await removeMarker($, markers.get(call))
+        markers.delete(call)
         return next(e)
       }
       const restored = await restoreDraft($, e.text)
@@ -6642,9 +6688,9 @@ export const register: Register = on => {
           await loadLifecycle($, currentProject)
           await foreignLifecycles($, currentProject)
           unsettledCalls = 0
-          const markers = startup.runId ? `${inflightPrefix(currentProject.id)}${startup.runId}:` : undefined
-          for (const key of markers ? await $.store.keys() : []) {
-            if (markers && key.startsWith(markers) && !liveCalls.has(markerCall(key))) unsettledCalls += 1
+          for (const key of await $.store.keys()) {
+            const owner = markerOwner(key, currentProject.id)
+            if (owner && owner.runOf === startup.runId && !liveCalls.has(owner.call)) unsettledCalls += 1
           }
           try {
             archiveStatus = undefined
