@@ -1,14 +1,19 @@
 """PTY scenarios: each drives a real Claude Code in its own isolated world and
 returns what it saw, in words that carry no prompt text. A failed check raises
 ScenarioFailure; the trace keeps a masked screen at each step."""
+import hashlib
 import pathlib
 import re
+import shutil
 import sqlite3
+import subprocess
+import tempfile
 import time
 
 import evidence
 from pty_driver import Environment, ScenarioFailure, Terminal
-import timeline_fixture  # tests/, put on the path by pty_driver
+import helper_protocol  # tests/, put on the path by pty_driver
+import timeline_fixture
 
 FIXTURE = pathlib.Path(__file__).resolve().parent / "fixtures" / "downstream"
 SCENARIOS: dict = {}
@@ -1548,6 +1553,720 @@ def ui_008(ctx: Context) -> str:
         "counting the prompt that asked, after the dialog was answered and after it was cancelled"
     )
 
+
+CLEAR_PHRASE = "delete all prompts"
+DAMAGE_DIALOG = "档案不可用"
+# Every line status draws, and the lines only some states add: a status that
+# draws anything else says more than the contract lets it.
+STATUS_FIELDS = {
+    "support", "reason", "target", "not promised", "detected", "collection consent",
+    "Run collection mode", "latest collection boundary", "pending reconciliation",
+    "clear transition", "integrity", "integrity gaps", "archive", "Archive generation",
+    "Quarantined archives", "disk space", "project", "database root", "helper", "locator", "run",
+}
+STATUS_STATE_FIELDS = {"choices", "quarantine", "clear", "clear-run"}
+
+
+def flat(text: str) -> str:
+    """Text as one line: the host wraps long answers and dialog lines, and
+    continues them indented or under a │ rule."""
+    return re.sub(r"\s*\n\s*(?:│\s*)?", "", text)
+
+
+def archive_file(ctx: Context) -> pathlib.Path:
+    found = sorted((ctx.env.config / "plugins" / "data").glob("*/archives/*.sqlite3"))
+    check(len(found) == 1, f"expected one active archive, found {len(found)}")
+    return found[0]
+
+
+def archive_bytes(ctx: Context) -> int:
+    """What the active archive takes on disk: the file, its WAL and its shared memory."""
+    database = archive_file(ctx)
+    companions = [database, database.with_name(f"{database.name}-wal"), database.with_name(f"{database.name}-shm")]
+    return sum(path.stat().st_size for path in companions if path.exists())
+
+
+def quarantine_root(ctx: Context) -> pathlib.Path:
+    return archive_file(ctx).parent / "quarantine" / archive_file(ctx).stem
+
+
+def status_fields(ctx: Context, terminal: Terminal) -> dict[str, str]:
+    """Status, line by line, as {field: value}; drawn on a terminal wide
+    enough that no line wraps."""
+    after = ctx.command(terminal, "/prompt-history status", "run: ")
+    lines = after.splitlines()
+    ends = [i for i, row in enumerate(lines) if row.strip().startswith("run: ")]
+    lines = lines[: ends[0] + 1]
+    check(not ctx.scanner.find("\n".join(lines).encode()), "status shows prompt text")
+    fields = {}
+    for row in lines:
+        line = re.sub(r"^\s*⎿\s+prompt-trail: ", "", row).strip()
+        if not line or line == "Prompt Trail status":
+            continue
+        if line.startswith("/"):
+            continue  # A quarantined archive, under its count.
+        name, _, value = line.partition(": ")
+        fields[name] = value
+        if name == "run":
+            break
+    extra = set(fields) - STATUS_FIELDS - STATUS_STATE_FIELDS
+    check(not extra, f"status draws lines the contract does not name: {sorted(extra)}")
+    check(STATUS_FIELDS <= set(fields), f"status leaves out {sorted(STATUS_FIELDS - set(fields))}")
+    return fields
+
+
+def shown_dialog(terminal: Terminal, header: str) -> str | None:
+    """The dialog under `header` as one line, once its choices are drawn."""
+    rows = terminal.rows()
+    at = [i for i, row in enumerate(rows) if row.strip() == f"☐ {header}"]
+    if not at:
+        return None
+    ends = [i for i in range(at[-1], len(rows)) if rows[i].startswith("Enter to select")]
+    return flat("\n".join(rows[at[-1]:ends[0]])) if ends else None
+
+
+def dialog(ctx: Context, terminal: Terminal, header: str, timeout: float = 30) -> str:
+    text = terminal.wait_for(lambda t: shown_dialog(t, header), f"the {header} dialog", timeout)
+    ctx.env.snap(terminal, f"{header} dialog")
+    check(not ctx.scanner.find(text.encode()), f"the {header} dialog shows prompt text")
+    return text
+
+
+def answer_freely(ctx: Context, terminal: Terminal, text: str) -> None:
+    """Moves the dialog's selection onto its free-input item, types `text`
+    there and confirms it."""
+    pattern = re.compile(r"^\s*(❯)?\s*\d+\. Type something\.$")
+    time.sleep(1)
+    for _ in range(10):
+        found = [m for m in map(pattern.match, terminal.rows()) if m]
+        check(bool(found), "the dialog has no free-input item")
+        if found[-1].group(1):
+            terminal.type(text)
+            time.sleep(0.5)
+            ctx.env.snap(terminal, "phrase typed")
+            terminal.key("enter", pause=1)
+            return
+        terminal.key("down", pause=0.5)
+    raise ScenarioFailure("could not reach the free-input item")
+
+
+def replied(ctx: Context, terminal: Terminal, command: str, expect: str) -> str:
+    """The answer a command gave after its dialog closed, as one line."""
+    def answered(t: Terminal) -> str | None:
+        rows = t.rows()
+        echoes = [i for i, row in enumerate(rows) if row.strip() == f"❯ {command}"]
+        if not echoes:
+            return None
+        after = flat("\n".join(rows[echoes[-1] + 1:]))
+        return after if expect in after else None
+    text = terminal.wait_for(answered, f"{command} to answer", 60)
+    ctx.env.snap(terminal, f"{command} answered")
+    return text
+
+
+def dismiss(ctx: Context, terminal: Terminal) -> None:
+    """Closes a dialog that holds a submission, which keeps it held and puts
+    its draft back in the prompt box, then empties the box. A dialog just
+    drawn may not take keys yet."""
+    for _ in range(5):
+        time.sleep(1)
+        terminal.key("esc", pause=1)
+        if "草稿已恢复" in terminal.text():
+            break
+    terminal.wait_for("草稿已恢复", "the held draft to come back", 15)
+    for _ in range(40):
+        if not terminal.rows()[_prompt_box(terminal)][1:].strip():
+            ctx.env.snap(terminal, "dismissed")
+            return
+        terminal.key(*["backspace"] * 20, pause=0.01)
+        time.sleep(0.3)
+    raise ScenarioFailure("could not empty the prompt box")
+
+
+def damage(ctx: Context, terminal: Terminal, **size) -> Terminal:
+    """Leaves the host, then damages the archive as a failing disk would: the
+    page at the root of the Prompt Entries table overwritten, after the WAL
+    is folded in. Answers a new process on the damaged archive."""
+    ctx.exit(terminal)
+    database = archive_file(ctx)
+    connection = sqlite3.connect(database)
+    connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    (page_size,) = connection.execute("PRAGMA page_size").fetchone()
+    (root,) = connection.execute("SELECT rootpage FROM sqlite_master WHERE name='prompt_entries'").fetchone()
+    connection.close()
+    with database.open("r+b") as file:
+        file.seek((root - 1) * page_size)
+        file.write(b"\xa5" * page_size)
+    return ctx.relaunch(**size)
+
+
+def meet_damage(ctx: Context, terminal: Terminal, marker: str) -> str:
+    """Submits until the damage holds a submission, and answers its dialog.
+    The pre-write may not touch the damaged page; the confirmation does, and
+    the pending it leaves then meets the damage at the next submission."""
+    for _ in range(2):
+        ctx.send(terminal, prompt(marker))
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            if shown_dialog(terminal, DAMAGE_DIALOG):
+                return dialog(ctx, terminal, DAMAGE_DIALOG)
+            time.sleep(0.2)
+        terminal.wait_idle()
+    ctx.env.snap(terminal, "damage never held a submission")
+    raise ScenarioFailure("the damaged archive never offered its choices")
+
+
+def quarantine(ctx: Context, terminal: Terminal, marker: str, **size) -> Terminal:
+    """Damages the archive and quarantines it from the dialog the damage
+    raises; the held prompt then starts the next generation."""
+    terminal = damage(ctx, terminal, **size)
+    meet_damage(ctx, terminal, marker)
+    ctx.choose(terminal, "隔离并开始新档案")
+    terminal.wait_idle()
+    ctx.env.snap(terminal, "quarantined")
+    check(any(quarantine_root(ctx).iterdir()), "the quarantine holds no archive")
+    return terminal
+
+
+@scenario("PT-CONTROL-001")
+def control_001(ctx: Context) -> str:
+    wide = {"columns": 250, "lines": 60}
+    marker = ctx.marker("PT-CONTROL-001")
+    terminal = ctx.env.launch(**wide)
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(marker), consent=True)
+    ctx.wait_entries(1)
+    database = archive_file(ctx)
+    # Healthy.
+    healthy = status_fields(ctx, terminal)
+    check(healthy["collection consent"] == "granted · policy 1", "status does not say consent is granted")
+    check(healthy["Run collection mode"] == "enabled", "status does not say the Run collects")
+    check(healthy["integrity"] == "healthy" and healthy["integrity gaps"] == "0", "a healthy archive reads as unhealthy")
+    check(healthy["project"] == str(ctx.env.project()), "status names another project path")
+    check(healthy["database root"] == str(database.parent), "status names another database root")
+    size = archive_bytes(ctx)
+    check(healthy["archive"] == f"ready · {database} · {size} bytes", "status does not give the archive's path and size")
+    # With Integrity gaps in the history.
+    ctx.exit(terminal)
+    # Seed 22's 400 events hold Integrity gaps, as PT-UI-002 found.
+    timeline_fixture.build(database, database.stem, 400, seed=22)
+    gaps = len(boundaries(ctx, "integrity-gap"))
+    check(gaps > 0, "the fixture wrote no Integrity gap")
+    terminal = ctx.relaunch(**wide)
+    gapped = status_fields(ctx, terminal)
+    check(
+        gapped["integrity gaps"] == f"{gaps} · 本项目的时间线跨越这些 Integrity gap 的部分不完整",
+        "status does not count the Integrity gaps in the history",
+    )
+    # Failed: the archive is damaged, and status still answers.
+    terminal = damage(ctx, terminal, **wide)
+    meet_damage(ctx, terminal, marker)
+    dismiss(ctx, terminal)
+    failed = status_fields(ctx, terminal)
+    check(failed["archive"].startswith("unavailable · 范围 archive · 类别 archive-integrity"), "status does not say the archive is damaged")
+    check(failed.get("choices", "").startswith("重新检查完整性 / 隔离并开始新档案"), "status does not name the damage's choices")
+    return (
+        f"healthy: consent, Run mode, health, project, database path and {size} bytes; "
+        f"{gaps} Integrity gaps counted; damaged: archive-integrity with its choices; "
+        "no line beyond the contract's and no prompt text in any"
+    )
+
+
+def refused_confirmation(ctx: Context, terminal: Terminal, marker: str) -> str:
+    """Leaves a Pending Capture as PT-CAPTURE-008 does: the release fixture
+    holds the prompt after it is staged, and the archive's write lock makes
+    its confirmation fail. The prompt entered the session; its text is
+    answered. Needs the terminal launched with the fixture."""
+    text = f"{prompt(marker)} PT-FIXTURE-HOLD"
+    ctx.send(terminal, text)
+    terminal.wait_for(
+        lambda _: any(p["promptText"] == text for p in ctx.pending()), "the held prompt to be staged", 15,
+    )
+    staged = ctx.env.archive()
+    lock = sqlite3.connect(archive_file(ctx), timeout=0, isolation_level=None)
+    lock.execute("BEGIN IMMEDIATE")
+    try:
+        terminal.wait_idle(timeout=180)
+        time.sleep(12)
+        ctx.env.snap(terminal, "confirmation refused")
+        check("hook skipped" not in terminal.text(), "the fixture's hook failed, so nothing was held")
+    finally:
+        lock.execute("ROLLBACK")
+        lock.close()
+    # Nothing is removed or written behind the failure once the lock is gone:
+    # the pending waits for the next submission to settle it.
+    time.sleep(2)
+    check(ctx.env.archive() == staged, "the archive changed after the refused confirmation, with no submission to settle it")
+    return text
+
+
+@scenario("PT-CONTROL-002")
+def control_002(ctx: Context) -> str:
+    first, stopped, held, after = (ctx.marker("PT-CONTROL-002") for _ in range(4))
+    terminal = ctx.env.launch(plugins=[FIXTURE], lines=60)
+    ctx.start(terminal)
+    # The first enable asks for consent before it writes anything.
+    ctx.send(terminal, "/prompt-history enable")
+    terminal.wait_for("采集同意", "the consent question", 30)
+    check(ctx.env.archive() is None, "enable wrote before consent was given")
+    ctx.env.snap(terminal, "consent asked")
+    ctx.choose(terminal, "启用")
+    replied(ctx, terminal, "/prompt-history enable", "已开始采集")
+    check(len(boundaries(ctx, "collection-started")) == 1, "enable did not record collection starting")
+    ctx.submit(terminal, prompt(first))
+    check(shown_dialog(terminal, "采集同意") is None, "a prompt after enable asked for consent again")
+    ctx.wait_entries(1)
+    # Disabled, the Run archives nothing more and deletes nothing.
+    ctx.command(terminal, "/prompt-history disable", "已停用采集")
+    ctx.submit(terminal, prompt(stopped))
+    time.sleep(2)
+    check([e["promptText"] for e in ctx.entries()] == [prompt(first)], "disable deleted entries or archived a prompt")
+    check(not ctx.pending(), "a disabled Run staged a Pending Capture")
+    fields = ctx.status(terminal)
+    check("collection consent: granted" in fields and "Run collection mode: disabled" in fields, "disable changed consent, or did not stop the Run")
+    # Collecting again, a confirmation fails and leaves a pending; enabled
+    # once more after a disable, the Run settles it before it resumes.
+    ctx.command(terminal, "/prompt-history enable", "已恢复采集")
+    text = refused_confirmation(ctx, terminal, held)
+    ctx.command(terminal, "/prompt-history disable", "已停用采集")
+    ctx.command(terminal, "/prompt-history enable", "已恢复采集")
+    check(not ctx.pending(), "enable resumed with the pending still owed")
+    confirmed = [e for e in ctx.entries() if e["promptText"] == text]
+    check(len(confirmed) == 1, "enable did not settle the pending from the transcript")
+    resumed = boundaries(ctx, "collection-resumed")[-1]
+    check(confirmed[0]["sequence"] < resumed["sequence"], "the pending was settled after the resume was written")
+    ctx.submit(terminal, prompt(after))
+    entry_after = entry(ctx.wait_entries(3), after)
+    check(
+        entry_after["parentEventId"] is None and entry_after["branchId"] == resumed["branchId"],
+        "the prompt after the resume does not start the new root branch",
+    )
+    return (
+        "enable asked for consent first, then recorded the start; disabled, a prompt was neither archived nor staged "
+        "and nothing was deleted; with a pending owed, enable settled it from the transcript, then wrote the resume, "
+        "and the next prompt started its new root branch"
+    )
+
+
+# What both clears must say they leave alone: spec's deletion boundary.
+DELETE_BOUNDARY = ("transcript/history", "文件系统快照", "第三方备份", "SSD")
+
+
+def events_of(ctx: Context, run: str) -> list[dict]:
+    archive = ctx.env.archive()
+    return sorted(
+        (e for e in archive["entries"] + archive["boundaries"] if e["runId"] == run),
+        key=lambda e: e["eventId"],
+    )
+
+
+@scenario("PT-DELETE-001")
+def delete_001(ctx: Context) -> str:
+    a1, a2, b1, b2, c = (ctx.marker("PT-DELETE-001") for _ in range(5))
+    terminal = ctx.env.launch(lines=60)
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(a1), consent=True)
+    ctx.submit(terminal, prompt(a2))
+    ctx.wait_entries(2)
+    kept_run, _ = ctx.identity(terminal)
+    ctx.exit(terminal)
+    terminal = ctx.relaunch(lines=60)
+    ctx.submit(terminal, prompt(b1))
+    ctx.submit(terminal, prompt(b2))
+    ctx.wait_entries(4)
+    run, _ = ctx.identity(terminal)
+    kept = events_of(ctx, kept_run)
+    # Cancelled, nothing goes.
+    ctx.send(terminal, "/prompt-history clear-run")
+    asked = dialog(ctx, terminal, "清除当前 Run")
+    check("2 条 Prompt Entry" in asked, "the confirmation does not count this Run's entries")
+    check(run not in asked, "the confirmation shows the Run's identifier")
+    ctx.choose(terminal, "取消")
+    replied(ctx, terminal, "/prompt-history clear-run", "已取消，未删除任何内容。")
+    check(len(ctx.entries()) == 4, "a cancelled clear-run removed entries")
+    # Confirmed, only this Run goes.
+    ctx.send(terminal, "/prompt-history clear-run")
+    dialog(ctx, terminal, "清除当前 Run")
+    ctx.choose(terminal, "清除当前 Run")
+    replied(ctx, terminal, "/prompt-history clear-run", "已清除当前 Run 的 Prompt Trail 记录：2 条 Prompt Entry")
+    check([e["promptText"] for e in ctx.entries()] == [prompt(a1), prompt(a2)], "clear-run did not leave exactly the other Run's entries")
+    check(events_of(ctx, kept_run) == kept, "clear-run changed the other Run's records")
+    check(not events_of(ctx, run), "clear-run left records of this Run")
+    # With a quarantined archive, no Run clear can be complete.
+    terminal = quarantine(ctx, terminal, c, lines=60)
+    before = ctx.entries()
+    ctx.send(terminal, "/prompt-history clear-run")
+    refused = replied(ctx, terminal, "/prompt-history clear-run", "本项目有隔离档案")
+    check("/prompt-history clear-all" in refused and "未删除任何内容" in refused, "the refusal does not point to clear-all")
+    check(ctx.entries() == before, "a refused clear-run removed entries")
+    return (
+        "the confirmation counted 2 entries of this Run; cancelling removed nothing; confirming removed this Run's "
+        "records and left the other Run's as they were; with a quarantined archive clear-run refused and pointed to clear-all"
+    )
+
+
+@scenario("PT-DELETE-002")
+def delete_002(ctx: Context) -> str:
+    a, b, c, d = (ctx.marker("PT-DELETE-002") for _ in range(4))
+    terminal = ctx.env.launch(lines=60)
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(a), consent=True)
+    ctx.submit(terminal, prompt(b))
+    ctx.wait_entries(2)
+    terminal = quarantine(ctx, terminal, c, lines=60)
+    ctx.wait_entries(1)
+    database = archive_file(ctx)
+    root = database.parent
+    _, generation = ctx.identity(terminal)
+    # A phrase that is not the phrase removes nothing.
+    ctx.send(terminal, "/prompt-history clear-all")
+    asked = dialog(ctx, terminal, "清除档案")
+    check("隔离档案：" in asked, "the confirmation does not list the quarantined archive")
+    answer_freely(ctx, terminal, "delete all")
+    replied(ctx, terminal, "/prompt-history clear-all", "确认短语不符，未删除任何内容。")
+    check(database.exists() and any(quarantine_root(ctx).iterdir()), "a mistyped phrase removed files")
+    # The phrase removes everything the project archived.
+    quarantined = quarantine_root(ctx)
+    ctx.send(terminal, "/prompt-history clear-all")
+    dialog(ctx, terminal, "清除档案")
+    answer_freely(ctx, terminal, CLEAR_PHRASE)
+    cleared = replied(ctx, terminal, "/prompt-history clear-all", "已清除本项目的 Prompt Trail 档案")
+    check("1 个隔离档案" in cleared, "the answer does not count the quarantined archive")
+    left = sorted(path.name for path in root.iterdir() if path.name.startswith(database.stem))
+    check(left == [f"{database.stem}.lock"], f"clear-all left {left}")
+    check(not quarantined.exists(), "clear-all left the quarantined archive")
+    status = ctx.status(terminal)
+    check("collection consent: granted" in status and "Run collection mode: enabled" in status, "clear-all changed consent or the Run mode")
+    # The Run goes on collecting in an empty timeline of a new generation.
+    ctx.submit(terminal, prompt(d))
+    check(shown_dialog(terminal, "采集同意") is None, "the prompt after clear-all asked for consent again")
+    check([e["promptText"] for e in ctx.wait_entries(1)] == [prompt(d)], "the timeline after clear-all is not empty but for the new prompt")
+    _, new_generation = ctx.identity(terminal)
+    check(new_generation not in (generation, "none"), "status shows the timeline after clear-all as the same generation")
+    return (
+        "the confirmation listed the quarantined archive; a mistyped phrase removed nothing; the phrase removed the active "
+        "archive with its WAL/SHM and the quarantine, leaving only the lock; consent and the Run mode stayed; "
+        "the next prompt started a new generation with no consent question"
+    )
+
+
+@scenario("PT-DELETE-003")
+def delete_003(ctx: Context) -> str:
+    a, b = (ctx.marker("PT-DELETE-003") for _ in range(2))
+    terminal = ctx.env.launch(lines=60)
+    ctx.start(terminal)
+    # Nothing archived: both clears say so and ask nothing.
+    ctx.command(terminal, "/prompt-history clear-run", "当前 Run 没有可清除的 Prompt Trail 记录。")
+    ctx.command(terminal, "/prompt-history clear-all", "没有可清除的 Prompt Trail 档案。")
+    check(ctx.env.archive() is None, "a clear with nothing archived made an archive")
+    # A WAL that cannot be removed: logically cleared, physically not.
+    ctx.submit(terminal, prompt(a), consent=True)
+    ctx.wait_entries(1)
+    database = archive_file(ctx)
+    wal = database.with_name(f"{database.name}-wal")
+    check(wal.exists(), "the archive has no WAL to hold")
+    subprocess.run(["/usr/bin/chflags", "uchg", str(wal)], check=True)
+    try:
+        ctx.send(terminal, "/prompt-history clear-all")
+        dialog(ctx, terminal, "清除档案")
+        answer_freely(ctx, terminal, CLEAR_PHRASE)
+        stopped = replied(ctx, terminal, "/prompt-history clear-all", "物理清除未完成")
+        check("逻辑删除已完成" in stopped, "the answer does not say the logical deletion is done")
+        check(f"{wal.name}（" in stopped, "the answer does not list the WAL left behind")
+        check(not database.exists(), "the clear left the archive itself")
+        status = ctx.status(terminal)
+        check("clear: unfinished · 1 residual" in status, "status does not report the unfinished clear")
+        check("archive: unavailable" in status, "the archive reads as available with a clear unfinished")
+        ctx.send(terminal, prompt(b))
+        held = dialog(ctx, terminal, DAMAGE_DIALOG)
+        check(wal.name in held, "the held submission's dialog does not list what is left")
+        dismiss(ctx, terminal)
+        check(not ctx.entries(), "a submission reached the archive while the clear was unfinished")
+    finally:
+        subprocess.run(["/usr/bin/chflags", "nouchg", str(wal)], check=True)
+    # Once the file can go, clear-all finishes the clear without the phrase.
+    ctx.send(terminal, "/prompt-history clear-all")
+    dialog(ctx, terminal, "继续清除")
+    ctx.choose(terminal, "继续清除")
+    finished = replied(ctx, terminal, "/prompt-history clear-all", "已清除本项目的 Prompt Trail 档案")
+    check("损坏" not in finished, "finishing the clear calls the archive it removed damaged")
+    check(not wal.exists(), "the finished clear left the WAL")
+    check("clear: unfinished" not in ctx.status(terminal), "status still reports the clear unfinished")
+    ctx.submit(terminal, prompt(b))
+    check([e["promptText"] for e in ctx.wait_entries(1)] == [prompt(b)], "the archive did not come back after the clear finished")
+    return (
+        "with nothing archived both clears answered without asking; a WAL made immutable left the clear logically done "
+        "and physically unfinished, listed in the answer and in status, holding the next submission; once the WAL "
+        "could go, clear-all finished without the phrase and the next prompt was archived"
+    )
+
+
+@scenario("PT-DELETE-004")
+def delete_004(ctx: Context) -> str:
+    marker = ctx.marker("PT-DELETE-004")
+    terminal = ctx.env.launch(lines=60)
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(marker), consent=True)
+    ctx.wait_entries(1)
+    for command, header in (("/prompt-history clear-run", "清除当前 Run"), ("/prompt-history clear-all", "清除档案")):
+        ctx.send(terminal, command)
+        asked = dialog(ctx, terminal, header)
+        missing = [words for words in DELETE_BOUNDARY if words not in asked]
+        check(not missing, f"the {header} confirmation does not say it leaves {missing} alone")
+        ctx.choose(terminal, "取消")
+        replied(ctx, terminal, command, "已取消，未删除任何内容。")
+    check(len(ctx.entries()) == 1, "reading a confirmation removed entries")
+    return "both confirmations say they leave the transcript/history, filesystem snapshots and third-party backups alone and promise no SSD erasure"
+
+
+@scenario("PT-SEC-001")
+def sec_001(ctx: Context) -> str:
+    marker = ctx.marker("PT-SEC-001")
+    # The scan itself: a marker is found where it may not be, and passed
+    # over only in an archive file. Outside the world, removed at once.
+    with tempfile.TemporaryDirectory() as scratch:
+        base = pathlib.Path(scratch)
+        archives = base / "config" / "plugins" / "data" / "prompt-trail-inline" / "archives"
+        archives.mkdir(parents=True)
+        (base / "config" / "notes.txt").write_text(marker)
+        (archives / f"{'0' * 64}.sqlite3").write_text(marker)
+        found = evidence.scan_tree(base, ctx.scanner, config="config")
+    check([leak["kind"] for leak in found["leaks"]] == ["marker"], "the scan does not find a marker outside the archive")
+    check(found["allowedFiles"] == 1, "the scan does not pass over the archive file")
+    terminal = ctx.env.launch(columns=250, lines=60)
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(marker), consent=True)
+    ctx.wait_entries(1)
+    database = archive_file(ctx)
+    archived = b"".join(path.read_bytes() for path in database.parent.glob(f"{database.name}*"))
+    check(marker.encode() in archived, "the archive does not hold the prompt")
+    # Shown where it may be, and nowhere else the UI speaks.
+    ctx.expand(terminal, marker)
+    status_fields(ctx, terminal)
+    ctx.send(terminal, "/prompt-history clear-run")
+    dialog(ctx, terminal, "清除当前 Run")
+    ctx.choose(terminal, "取消")
+    replied(ctx, terminal, "/prompt-history clear-run", "已取消")
+    terminal = damage(ctx, terminal, columns=250, lines=60)
+    meet_damage(ctx, terminal, marker)
+    dismiss(ctx, terminal)
+    found = evidence.scan_tree(ctx.env.base, ctx.scanner, config=str(ctx.env.config.relative_to(ctx.env.base)))
+    check(not found["leaks"], f"{len(found['leaks'])} file(s) outside the archive hold the prompt")
+    check(found["allowedFiles"] > 0 and found["scannedFiles"] > 0, "the scan read no files")
+    check(not ctx.env.argv_leaks, "a process took the prompt in its argv")
+    return (
+        f"the scan found a planted marker and passed over the archive; the prompt stood in the archive and the band, "
+        f"not in status, a clear confirmation or the damage dialog; {found['scannedFiles']} files scanned, "
+        f"{found['allowedFiles']} archive or host files passed over, no argv held it"
+    )
+
+
+def fault_tour(ctx: Context, scenario_id: str, observe) -> None:
+    """The representative failures a real host meets, one after another in
+    one world: a refused confirmation, damage, a clear that leaves a file,
+    and a helper that cannot be trusted. `observe(what, text)` sees what each
+    failure put before the person."""
+    first, held, after, damaged, blocked = (ctx.marker(scenario_id) for _ in range(5))
+    wide = {"columns": 250, "lines": 60}
+    terminal = ctx.env.launch(plugins=[FIXTURE], **wide)
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(first), consent=True)
+    ctx.wait_entries(1)
+    # A confirmation the archive refused leaves a pending, reported by its
+    # event ID, and settled at the next submission.
+    refused_confirmation(ctx, terminal, held)
+    observe("reconciliation owed", ctx.status(terminal))
+    ctx.send(terminal, prompt(after))
+    terminal.wait_for("已完成对账", "the reconciliation notice", 60)
+    ctx.env.snap(terminal, "reconciled")
+    observe("reconciled", terminal.text())
+    terminal.key("enter")
+    terminal.wait_idle()
+    ctx.wait_entries(3)
+    # Damage holds the next submission and moves nothing until chosen.
+    terminal = damage(ctx, terminal, plugins=[FIXTURE], **wide)
+    database = archive_file(ctx)
+    observe("damage", meet_damage(ctx, terminal, damaged))
+    # What the damage holds, as the person is asked about it; SQLite's
+    # shared memory is rebuilt by any reader and is left out.
+    before = {
+        path.name: path.read_bytes() for path in database.parent.glob(f"{database.name}*")
+        if not path.name.endswith("-shm")
+    }
+    ctx.choose(terminal, "隔离并开始新档案")
+    terminal.wait_idle()
+    kept = [path.parent for path in quarantine_root(ctx).rglob(database.name)]
+    check(len(kept) == 1, "the quarantine does not hold the damaged archive once")
+    check(
+        {name: (kept[0] / name).read_bytes() for name in before if (kept[0] / name).exists()} == before,
+        "the quarantine did not keep the damaged archive unchanged",
+    )
+    # A clear that cannot remove the WAL.
+    wal = database.with_name(f"{database.name}-wal")
+    subprocess.run(["/usr/bin/chflags", "uchg", str(wal)], check=True)
+    try:
+        ctx.send(terminal, "/prompt-history clear-all")
+        dialog(ctx, terminal, "清除档案")
+        answer_freely(ctx, terminal, CLEAR_PHRASE)
+        observe("residue", replied(ctx, terminal, "/prompt-history clear-all", "物理清除未完成"))
+        observe("residue status", ctx.status(terminal))
+    finally:
+        subprocess.run(["/usr/bin/chflags", "nouchg", str(wal)], check=True)
+    ctx.send(terminal, "/prompt-history clear-all")
+    dialog(ctx, terminal, "继续清除")
+    ctx.choose(terminal, "继续清除")
+    replied(ctx, terminal, "/prompt-history clear-all", "已清除本项目的 Prompt Trail 档案")
+    ctx.submit(terminal, prompt(first))
+    ctx.wait_entries(1)
+    ctx.exit(terminal)
+    # A helper that is not the one the plugin was built with.
+    copy = ctx.env.base / "plugin"
+    for part in (".claude-plugin", "hooks", "bin", "artifacts"):
+        shutil.copytree(ctx.env.plugin_root / part, copy / part)
+    helper = copy / "bin" / "prompt-trail-helper"
+    helper.write_text("#!/bin/sh\nexit 1\n")
+    helper.chmod(0o755)
+    archived = {path.name: path.read_bytes() for path in archive_file(ctx).parent.iterdir() if path.is_file()}
+    terminal = ctx.relaunch(plugin_root=copy, **wide)
+    # Asked at once, status may meet a locator the bridge has yet to publish.
+    for _ in range(5):
+        unavailable = ctx.status(terminal)
+        if "locator: unavailable" not in unavailable:
+            break
+        time.sleep(2)
+    observe("helper unavailable", unavailable)
+    check("support: helper unavailable" in unavailable, "status does not say the helper is unavailable")
+    check("archive: unknown" in unavailable, "status claims to know the archive with no helper to check it")
+    ctx.send(terminal, prompt(blocked))
+    observe("helper unavailable, held", dialog(ctx, terminal, DAMAGE_DIALOG))
+    dismiss(ctx, terminal)
+    ctx.command(terminal, "/prompt-history", "已展开")
+    time.sleep(2)
+    band = ctx.band(terminal)
+    ctx.env.snap(terminal, "band without a helper")
+    check(not any(m[: evidence.MARKER_PREFIX] in row for m in (first, held, after) for row in band), "the band shows entries with no helper to read them")
+    check(
+        {path.name: path.read_bytes() for path in archive_file(ctx).parent.iterdir() if path.is_file()} == archived,
+        "the archive changed while the helper was unavailable",
+    )
+
+
+def reported_privately(ctx: Context, what: str, text: str) -> None:
+    """What a failure shows holds no prompt text."""
+    check(not ctx.scanner.find(text.encode()), f"{what}: the report shows prompt text")
+
+
+@scenario("PT-SEC-002")
+def sec_002(ctx: Context) -> str:
+    seen: dict[str, str] = {}
+
+    def observe(what: str, text: str) -> None:
+        if what == "reconciled":
+            # The screen still shows the conversation; only the notice is the plugin's.
+            text = "\n".join(row for row in text.splitlines() if "对账" in row)
+        reported_privately(ctx, what, text)
+        seen[what] = flat(text)
+
+    fault_tour(ctx, "PT-SEC-002", observe)
+    check(re.search(r"pending reconciliation: [0-9a-f]{8} · 待对账", seen["reconciliation owed"]) is not None, "status does not name the pending by its event ID")
+    check("类别：archive-integrity" in seen["damage"], "the damage dialog does not name its category")
+    check(".sqlite3-wal（" in seen["residue"], "the residue report does not name the file left")
+    check("helper: unavailable" in seen["helper unavailable"], "status does not name the helper as unavailable")
+    check(not ctx.env.argv_leaks, "a process took prompt text in its argv")
+    return (
+        "a refused confirmation, damage, a clear that left a file and an untrusted helper each reported an event ID, "
+        "a category or a path and no prompt text; no process took prompt text in its argv"
+    )
+
+
+def xattrs(root: pathlib.Path) -> str:
+    """Every extended attribute of every file the plugin ships, with its value."""
+    return subprocess.run(["/usr/bin/xattr", "-lr", str(root)], capture_output=True, text=True, check=True).stdout
+
+
+@scenario("PT-SEC-004")
+def sec_004(ctx: Context) -> str:
+    shipped = [ctx.env.plugin_root / part for part in (".claude-plugin", "hooks", "bin", "artifacts")]
+    before = {str(part): xattrs(part) for part in shipped}
+    ctx.env.watch_side_effects()
+    fault_tour(ctx, "PT-SEC-004", lambda what, text: None)
+    check(not ctx.env.side_effects, f"side effects: {sorted(ctx.env.side_effects)}")
+    check(ctx.env.socket_checks > 0, "no helper or bridge process was ever sampled for sockets")
+    check({str(part): xattrs(part) for part in shipped} == before, "the plugin's extended attributes changed")
+    return (
+        "through a refused confirmation, damage, a clear that left a file and an untrusted helper: no compiler, "
+        f"xattr, spctl, codesign or network client started, no socket in {ctx.env.socket_checks} samples of a "
+        "helper or bridge process, the plugin's extended "
+        "attributes unchanged, no archive file changed or removed before the person chose, and no timeline "
+        "drawn without a helper"
+    )
+
+
+@scenario("PT-SEC-003")
+def sec_003(ctx: Context) -> str:
+    first, damaged, after, left = (ctx.marker("PT-SEC-003") for _ in range(4))
+    ctx.env.watch_modes()
+    # An archive as the first helpers left it, private as the helper requires.
+    project = ctx.env.project()
+    root = ctx.env.config / "plugins" / "data" / "prompt-trail-inline" / "archives"
+    for directory in (root.parent.parent, root.parent, root):
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    project_id = hashlib.sha256(str(project).encode()).hexdigest()
+    legacy = root / f"{project_id}.sqlite3"
+    connection = sqlite3.connect(legacy)
+    connection.executescript(
+        helper_protocol.HelperProtocolTests.SCHEMA_1_DDL
+        + f"INSERT INTO metadata VALUES('{project_id}', 1, 0);PRAGMA user_version=1;"
+    )
+    connection.close()
+    legacy.chmod(0o600)
+    checked = []
+
+    def private(after_what: str) -> None:
+        wrong = ctx.env.private_modes()
+        check(not wrong, f"after {after_what}: {wrong}")
+        checked.append(after_what)
+
+    terminal = ctx.env.launch(lines=60)
+    ctx.start(terminal)
+    ctx.submit(terminal, prompt(first), consent=True)
+    ctx.wait_entries(1)
+    with sqlite3.connect(legacy) as migrated:
+        (version,) = migrated.execute("PRAGMA user_version").fetchone()
+    check(version > 1, "the schema-1 archive was not migrated")
+    private("migration")
+    terminal = quarantine(ctx, terminal, damaged, lines=60)
+    private("quarantine")
+    ctx.send(terminal, "/prompt-history clear-all")
+    dialog(ctx, terminal, "清除档案")
+    answer_freely(ctx, terminal, CLEAR_PHRASE)
+    replied(ctx, terminal, "/prompt-history clear-all", "已清除本项目的 Prompt Trail 档案")
+    private("clear")
+    ctx.submit(terminal, prompt(after))
+    ctx.wait_entries(1)
+    private("creation")
+    wal = legacy.with_name(f"{legacy.name}-wal")
+    subprocess.run(["/usr/bin/chflags", "uchg", str(wal)], check=True)
+    try:
+        ctx.send(terminal, "/prompt-history clear-all")
+        dialog(ctx, terminal, "清除档案")
+        answer_freely(ctx, terminal, CLEAR_PHRASE)
+        replied(ctx, terminal, "/prompt-history clear-all", "物理清除未完成")
+    finally:
+        subprocess.run(["/usr/bin/chflags", "nouchg", str(wal)], check=True)
+    ctx.send(terminal, "/prompt-history clear-all")
+    dialog(ctx, terminal, "继续清除")
+    ctx.choose(terminal, "继续清除")
+    replied(ctx, terminal, "/prompt-history clear-all", "已清除本项目的 Prompt Trail 档案")
+    ctx.submit(terminal, prompt(left))
+    ctx.wait_entries(1)
+    private("recovery from an unfinished clear")
+    check(not ctx.env.mode_violations, f"sampled: {sorted(ctx.env.mode_violations)}")
+    backup = any(".pre-migration-v" in name for name in ctx.env.names_seen)
+    return (
+        f"directories 0700 and files 0600 after {', '.join(checked)}, and in every 50 ms sample between; "
+        + ("the migration backup was sampled while it stood" if backup else "the migration backup stood too briefly to be sampled; its mode is the helper unit test's")
+    )
 
 def _prompt_box(terminal: Terminal) -> int:
     """The row of the prompt box: the last one that begins with ❯."""
