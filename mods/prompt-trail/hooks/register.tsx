@@ -1896,10 +1896,24 @@ async function markUnavailable(
 
 /* A write the archive took proves it works, for this Run and every other:
    whichever Run lands one first lifts the record. */
+/* A write that succeeds proves the archive takes writes again, which is all
+   a busy, full or read-only archive needed. It proves nothing of damage: a
+   page it did not touch may still be broken. Damage is lifted only by what
+   settles it, a recheck that passes, a quarantine or a clear. */
 async function archiveRecovered(
   $: EngineInterface,
   currentProject: ProjectState,
+  settles?: 'settles-damage',
 ): Promise<void> {
+  if (!settles) {
+    if (archiveFailure && DAMAGE_FAILURES.has(archiveFailure.category)) return
+    try {
+      const stored = await $.store.get(archiveStateKey(currentProject.id))
+      if (isRecord(stored) && typeof stored.category === 'string' && DAMAGE_FAILURES.has(stored.category)) return
+    } catch {
+      return
+    }
+  }
   if (archiveFailure) {
     archiveFailure = undefined
     $.ui.invalidate('ui.render')
@@ -4631,7 +4645,7 @@ async function answerClear(
       $.ui.toast('Prompt Trail 已清除本项目的全部档案，新时间线从这次提交开始。')
     } else {
       /* Another Run finished it: the archive is usable again. */
-      await archiveRecovered($, currentProject)
+      await archiveRecovered($, currentProject, 'settles-damage')
     }
     return true
   } catch (error) {
@@ -4659,7 +4673,7 @@ async function answerDamage(
     if (choice === 'recheck') {
       const found = await recheckArchive($, currentProject)
       if (found.result === 'ok' || found.result === 'absent') {
-        await archiveRecovered($, currentProject)
+        await archiveRecovered($, currentProject, 'settles-damage')
         return true
       }
       /* What was checked is what a quarantine now moves: another Run may
@@ -4685,13 +4699,13 @@ async function answerDamage(
          may be moved. */
       const found = await recheckArchive($, currentProject)
       if (found.result === 'ok' || found.result === 'absent' || !found.generation) {
-        await archiveRecovered($, currentProject)
+        await archiveRecovered($, currentProject, 'settles-damage')
         return true
       }
       damaged = found.generation
     }
     const moved = await quarantineArchive($, currentProject, damaged)
-    await archiveRecovered($, currentProject)
+    await archiveRecovered($, currentProject, 'settles-damage')
     damagedGeneration = undefined
     await enterNewGeneration($, currentProject, damaged)
     try {
@@ -4883,7 +4897,7 @@ type Cleared = {
    next capture starts over in the new one. */
 async function forgetClearedHistory($: EngineInterface, currentProject: ProjectState): Promise<boolean> {
   await clearReconcile($, currentProject)
-  await archiveRecovered($, currentProject)
+  await archiveRecovered($, currentProject, 'settles-damage')
   damagedGeneration = undefined
   archiveStatus = undefined
   /* A `/clear` this Run saw and never recorded belongs to the cleared
@@ -5084,7 +5098,7 @@ async function clearAllCommand($: EngineInterface): Promise<string> {
   try {
     const cleared = await clearTimeline($, currentProject, inventory.clearUnderway)
     if (!cleared.cleared && inventory.clearUnderway) {
-      await archiveRecovered($, currentProject)
+      await archiveRecovered($, currentProject, 'settles-damage')
       return '上一次清除已由其他 Run 完成，未删除任何新记录。'
     }
     return clearedText(cleared, inventory.entries === null && !inventory.clearUnderway)
@@ -5225,6 +5239,13 @@ async function submitCollected(
     } catch {
       return holdSubmission($, currentProject, 'inflight-unrecorded', '无法记录在途的提交')
     }
+  }
+
+  /* Damage on record stops the submission before anything is settled or
+     written in the damaged generation; the damage choices settle a pending
+     too. A person's choice to try again has already dealt with it. */
+  if (!retrying && archiveFailure?.blocking && DAMAGE_FAILURES.has(archiveFailure.category)) {
+    return { blocked: { ...archiveFailure, reason: '档案当前不可用' } }
   }
 
   /* Anything unresolved is settled before another capture is staged, so a
