@@ -173,6 +173,15 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   宿主在 resume 后用原来的 `requestId` 重放会话的行，插件却把本进程画过的行一直记为已消失，交给 helper 的行缺了祖先，新条目就绑不上。
   现在「已消失」只持续到下一个 classic SessionStart，之前那段「退出时重画」照旧不收，于是重放的历史和之后的新条目都能跳转，也收掉了 Issue 22 的已知代价。
   `PT-BRANCH-001` 扩展覆盖。
+- [以真实 PTY 证明时间线 UI 场景](issues/38-pty-timeline-ui.md)：
+  `PT-UI-001..008` 的 PTY 场景覆盖折叠与展开、顺序与边界颜色、新条目计数、键盘与点击遍历整条时间线、不发滚动时的点击降级、
+  10 万条历史的端到端耗时（按键到画面 p95 ≤ 1 s）、28 列与 22 行的门槛，以及 AskUserQuestion 让出，在两个版本上通过。
+  长历史直接用 `tests/timeline_fixture.py` 写入档案；颜色和反色从 pyte 单元格读。探测中发现两个缺陷，拆为 44、45，均已修好。
+- [裸 `/prompt-history` 切换展开与折叠](issues/44-bare-command-toggles.md)：
+  band 已展开时，裸命令折叠它并按 Run 保存，回复「已折叠」；折叠时照旧展开并回到最新。`PT-UI-001` 覆盖。
+- [视图跟随焦点时不再丢方向键](issues/45-arrow-lost-after-view-follow.md)：
+  2.1.273 偶尔拒绝 render 路径的 `$.ui.focus`（新帧还没提交），宿主又按位置保留焦点环，插件的 `ringKey` 就落后一行。
+  现在插件把焦点送往哪一行，就先把 `ringKey` 设为那一行；被拒时隔 50 ms 重试，最多 3 次。`PT-UI-002/004/006` 在 2.1.273 上也通过。
 
 ## Not yet specified
 

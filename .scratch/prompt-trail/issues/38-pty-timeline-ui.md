@@ -4,11 +4,21 @@
 
 **Blocked by:** 31「生成零跳过发布证据」、45「2.1.273 上视图跟随焦点时偶尔丢一次方向键」
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] 焦点、按键、鼠标 hover/点击、resize 与 AskUserQuestion 让出均由 PTY 断言，颜色从模拟屏幕读取。
-- [ ] 长历史场景与 benchmark 证据共同覆盖 `PT-UI-006`。
-- [ ] 场景清单引用新 PTY 脚本，报告中这些场景在两个版本上都判为 pass。
+- [x] 焦点、按键、鼠标 hover/点击、resize 与 AskUserQuestion 让出均由 PTY 断言，颜色从模拟屏幕读取。
+- [x] 长历史场景与 benchmark 证据共同覆盖 `PT-UI-006`。
+- [x] 场景清单引用新 PTY 脚本，报告中这些场景在两个版本上都判为 pass。
+
+## Answer
+
+- **场景**：`PT-UI-001..008` 在 `release/pty_scenarios.py` 里各有一个函数。做法、与对齐（Q1–Q10）不同的地方和宿主事实，见下面 Comments 里的「实现中修订与进度」。
+- **拆出并已修好的两张票**：
+  - [Issue 45](45-arrow-lost-after-view-follow.md)：2.1.273 上视图跟随焦点时丢方向键。修好后 UI-002/004/006 在 2.1.273 上也通过。
+  - [Issue 44](44-bare-command-toggles.md)：裸 `/prompt-history` 现在会切换。UI-001 按 Q3 补上命令折叠的断言，`ctx.expand` 遇到已展开的 band 先折叠再展开。
+- **正式入口**：`release-evidence.sh --skip-gates --only PT-UI-001,…,PT-UI-008`（`build/evidence/20260930T041600Z/`）：16/16 PTY 通过，0 泄漏；报告因为是 partial、工作树未提交，按设计判 FAIL。UI-006 的 p95，2.1.273：展开 202 ms、跨批按键 104 ms、新条目 201 ms；2.1.283：262、113、204 ms。
+- **`verify-startup.sh`**：通过（两个版本各 442 项 plugin test）。
+- **scenarios.json**：步骤文字没改；PT-UI-001 与 PT-UI-004 各补上 44、45 的 plugin test 引用。
 
 ## Comments
 
@@ -52,3 +62,14 @@
   - Q9：焦点所在行必须留在视图里，所以 100×22 的小视图会把视图挪到焦点那一行，恢复尺寸后位置不再是原来的。因此每次缩到门槛以下都直接恢复到 100×40 再比对；28 列与 22 行只检查能画出行。
 - **观察到但没有定性的现象**：UI-007 在多次 resize 之后，30 列下那条宽字符条目的行尾没有 `…`，屏幕上多出一个 marker 字符。插件自己的截断结果是对的（`clipCells` 实测 30 格、以 `…` 结尾），同样的文字不经 resize、直接在 30 列下提交时也有 `…`。怀疑是宿主的差量重绘与 pyte 的 resize 语义不一致，没有确认是插件缺陷，所以断言只查契约要求的「不换第二行」。
 - **宿主事实**：终端 27 列、21 行时空间不足，28 列、22 行时正常（两个版本都有 UI-007 证明）；dimColor 画成 256 色 `949494`，Gap 行是 `ffd700`，焦点所在行反色，所以颜色要从非反色的行上读（2.1.283 实测）。
+
+### Code review 修复（2026-09-30，round 1）
+
+范围是 611a477 之后的整个分支加工作树，对照 38、44、45 三张票。8 条发现全部修复：
+
+- `sendRing` 的重试在定时器触发时没有再确认 `ringKey`，50 ms 内又按了方向键时，旧的重试会把焦点拉回旧行。现在每次发送前都确认。同步抛出的异常也会触发重试。
+- `clear_all.test.tsx` 的 `opening the timeline after another Run cleared it shows nothing cleared` 漏改：第二次裸命令会把 band 折叠掉，断言形同虚设。改为先折叠、再展开。
+- UI-001 补上断言：`ctrl+x tab 键盘选择` 这几个单元格是暗色 `949494`（Q3）。
+- UI-002 的边界行原来只按子序列比对，档案里有而屏幕漏画的边界也能通过。现在要求两条之间画出的边界种类与档案里会画出的种类（`BOUNDARY_ROWS` 的取值）完全一致。
+- 清理：JUMP-001 改用 `typed()`，去掉它没用到的 `ctx` 参数；`timed()` 改用 `Terminal.wait_for()`（新增 `interval` 参数，按 10 ms 采样）；`p95` 改写成整数算的 nearest-rank。
+- 验证：`verify-startup.sh` 通过（两个版本各 442 项）。UI-001、UI-002、UI-006、JUMP-001 在两个版本上都通过，0 泄漏。UI-006 在 2.1.273 上这一次的展开 p95 是 611 ms，同一时间机器上还在跑 `verify-startup.sh`；门槛是 1 s。
