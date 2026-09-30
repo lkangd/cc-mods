@@ -5,6 +5,7 @@ import hashlib
 import json
 import pathlib
 import re
+import shlex
 import shutil
 import sqlite3
 import subprocess
@@ -1670,16 +1671,21 @@ def replied(ctx: Context, terminal: Terminal, command: str, expect: str) -> str:
 
 def dismiss(ctx: Context, terminal: Terminal) -> None:
     """Closes a dialog that holds a submission, which keeps it held and puts
-    its draft back in the prompt box, then empties the box. A dialog just
-    drawn may not take keys yet."""
+    its draft back in the prompt box, then empties the box."""
+    draft_back(terminal)
+    empty_prompt_box(terminal)
+    ctx.env.snap(terminal, "dismissed")
+
+
+def draft_back(terminal: Terminal) -> None:
+    """Closes a dialog that holds a submission and waits for its draft to
+    come back. A dialog just drawn may not take keys yet."""
     for _ in range(5):
         time.sleep(1)
         terminal.key("esc", pause=1)
         if "草稿已恢复" in terminal.text():
             break
     terminal.wait_for("草稿已恢复", "the held draft to come back", 15)
-    empty_prompt_box(terminal)
-    ctx.env.snap(terminal, "dismissed")
 
 
 def empty_prompt_box(terminal: Terminal) -> None:
@@ -2095,7 +2101,8 @@ def logging_helper(ctx: Context) -> bytes:
     only, then hands the call to the real helper. What it noted shows whether
     Prompt Trail ran a helper it had refused to trust."""
     original = ctx.env.plugin_root / "bin" / "prompt-trail-helper"
-    return f'#!/bin/sh\necho "$1" >> {helper_calls(ctx)}\nexec {original} "$@"\n'.encode()
+    calls, helper = shlex.quote(str(helper_calls(ctx))), shlex.quote(str(original))
+    return f'#!/bin/sh\necho "$1" >> {calls} || exit 1\nexec {helper} "$@"\n'.encode()
 
 
 def fault_tour(ctx: Context, scenario_id: str, observe) -> None:
@@ -2206,7 +2213,7 @@ def fault_tour(ctx: Context, scenario_id: str, observe) -> None:
     # A helper that is not the one the plugin was built with.
     copy = plugin_copy(ctx)
     replace_file(copy / "bin" / "prompt-trail-helper", logging_helper(ctx))
-    archived = {path.name: path.read_bytes() for path in archive_file(ctx).parent.iterdir() if path.is_file()}
+    archived = archive_files(ctx)
     terminal = ctx.relaunch(plugin_root=copy, **wide)
     # Asked at once, status may meet a locator the bridge has yet to publish.
     for _ in range(5):
@@ -2226,7 +2233,7 @@ def fault_tour(ctx: Context, scenario_id: str, observe) -> None:
     ctx.env.snap(terminal, "band without a helper")
     check(not any(m[: evidence.MARKER_PREFIX] in row for m in (first, held, after) for row in band), "the band shows entries with no helper to read them")
     check(
-        {path.name: path.read_bytes() for path in archive_file(ctx).parent.iterdir() if path.is_file()} == archived,
+        archive_files(ctx) == archived,
         "the archive changed while the helper was unavailable",
     )
 
@@ -2969,12 +2976,7 @@ def store_009(ctx: Context) -> str:
 def cancel_held(ctx: Context, terminal: Terminal, marker: str) -> None:
     """Closes the dialog holding a submission and checks its draft came back
     whole, then empties the prompt box."""
-    for _ in range(5):
-        time.sleep(1)
-        terminal.key("esc", pause=1)
-        if "草稿已恢复" in terminal.text():
-            break
-    terminal.wait_for("草稿已恢复", "the held draft to come back", 15)
+    draft_back(terminal)
     ctx.env.snap(terminal, "draft back")
     box = terminal.rows()[_prompt_box(terminal)]
     check(prompt(marker)[: evidence.MARKER_PREFIX] in box and box.rstrip().endswith("请只回复 ok"), "the draft did not come back whole")

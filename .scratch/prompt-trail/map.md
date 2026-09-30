@@ -36,7 +36,7 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 - [同意采集并显示首个 Prompt Entry](issues/12-consent-first-prompt-entry.md)：首次 composer 提交前询问一次带 policy version 的 Collection consent；拒绝则 prompt 正常进入且零建档，启用则先预写 Pending Capture、`next(e)` 成功后原子确认为 Prompt Entry。prompt 原文只经 stdin 进 helper，consent 与 Archive unavailable 持久化在 `$.store` 以跨 reload 保持；展开后的显示序号是会话级、从 1 开始，项目级永久 sequence 只存在于档案内。
 - [严格匹配人类 composer 提交](issues/13-strict-composer-capture.md)：成员资格只取决于 `origin.kind === 'composer'` 且 `next(e)` 成功返回文本的 `prompt.submit`，不看 classic hook、transcript `user` row、`ui.render`，也不按 `/` 前缀过滤——slash 命令走 `command.run`，不经过 `prompt.submit`。重复文本按事件身份保持独立，宽字符与空行逐字保存，附件只留数量和宽泛类型，下游 drop 幂等丢弃 Pending Capture，render 重放不重复归档。宿主限制：`2.1.278` 把粘贴的附件替换成 `[Image #N]` 占位文本，故无文本 submission 不承诺出现。
 - [切换 Run collection mode](issues/14-run-collection-mode.md)：Run collection mode 是 `$.store` 里 `prompt-trail:run-mode:<projectId>:<runId>` 的 Run 级记录，无记录即默认 `enabled`；disable 只停当前 Run 的后续采集，不删旧 Prompt Entries、不撤销 consent、不影响其他 Run。真实的开始/停止/恢复落在新的 `timeline_events` 表（schema 升到 2，旧库在写锁内判定并执行 `1->2` 迁移），边界不含文本、与 Prompt Entry 共用同一项目级 sequence 分配器，事件身份跨三张表唯一。方向性是核心：停用永远生效、边界写入随后尝试且失败如实说明；恢复必须先补上缺失的停止边界，补不上就拒绝恢复，且重置为新的根分支、不补录禁用期间的 prompt。preflight 不健康、未 consent、档案不可用或开关读不到一律失败关闭而非假装成功。迁移前的完整性/空间检查与备份留给 Issue 27，Pending Capture 对账留给 Issue 15。
-- [对账中断的 Pending Capture](issues/15-reconcile-pending-capture.md)：未决 Pending Capture 成为独立的持久「待对账」状态（`$.store` 的 `prompt-trail:reconcile:<projectId>`，只存身份不存文本，按 project 键以跨重启），`archiveUnavailable` 退回「档案真的不可用」的本义。档案侧新增 `capture-list`（只回身份、固定最大批次 64、只有 ENOENT 才算空、不可信的根失败关闭）与 `capture-confirm --pending`（用预写文本确认，重启后唯一可用的形式，原文不出 helper）。自动对账只认两种无歧义形态：暂存文本在 `user` row 恰好出现一次，或一次未现且 transcript 完整；其余交给使用者三选一，`已进入` 归档、`未进入` 丢弃、`新根分支` 同样不归档只重置为新根——不确定时绝不猜成 Prompt Entry。取消不是答案、被阻止的提交不代为重发、草稿退不回时文案如实说明。时序不可调换：对账跑在 `archiveUnavailable` 短路之前，`新根分支` 先写新根再 abort，发现的 pending 立即落盘，结清一条后重新问档案直到报空。
+- [对账中断的 Pending Capture](issues/15-reconcile-pending-capture.md)：未决 Pending Capture 成为独立的持久「待对账」状态（`$.store` 的 `prompt-trail:reconcile:<projectId>`，只存身份不存文本，按 project 键以跨重启；Issue 50 起改为按 Run 存放，旧键只读），`archiveUnavailable` 退回「档案真的不可用」的本义。档案侧新增 `capture-list`（只回身份、固定最大批次 64、只有 ENOENT 才算空、不可信的根失败关闭）与 `capture-confirm --pending`（用预写文本确认，重启后唯一可用的形式，原文不出 helper）。自动对账只认两种无歧义形态：暂存文本在 `user` row 恰好出现一次，或一次未现且 transcript 完整；其余交给使用者三选一，`已进入` 归档、`未进入` 丢弃、`新根分支` 同样不归档只重置为新根——不确定时绝不猜成 Prompt Entry。取消不是答案、被阻止的提交不代为重发、草稿退不回时文案如实说明。时序不可调换：对账跑在 `archiveUnavailable` 短路之前，`新根分支` 先写新根再 abort，发现的 pending 立即落盘，结清一条后重新问档案直到报空。
 - [以 Clear Boundary 划分 Conversation Segment](issues/16-clear-conversation-segment.md)：
   生命周期判断是独立于 `$` 的纯状态机（`hooks/lifecycle.ts`），只有
   `classic.SessionEnd(reason=clear)` 形成写入，幂等键从旧 classic session id 派生；
@@ -114,7 +114,7 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 - [Archive unavailable 时失败关闭](issues/25-fail-closed-archive-unavailable.md)：
   helper 每次调用共用 8 秒 busy 预算，超时报 `archive-busy`；写满报 `archive-full`，事务完整回滚；`capture-begin` 报低空间。
   档案本身的故障写入按项目划分的共享记录，其他 Run 每次操作都重新读取，读到就不经尝试直接拦下提交；locator、helper、preflight
-  故障只影响本 Run，只记在内存。任何成功写入都会解除共享记录。被拦下的提交只给「重试」和「禁用当前 Run 后继续」两个选择，
+  故障只影响本 Run，只记在内存。任何成功写入都会解除共享记录（损坏除外，见 Issue 51）。被拦下的提交只给「重试」和「禁用当前 Run 后继续」两个选择，
   关闭对话框即恢复草稿。`status` 显示范围、类别和磁盘空间，band 标题显示「档案不可用」。顺带修了新档案切换 WAL、
   并发创建 archives 目录这两个原有竞争。读命令也要拿写锁，进了 backlog（已由 Issue 27 解决）。
 - [安全迁移档案 schema](issues/27-safe-schema-migration.md)：
