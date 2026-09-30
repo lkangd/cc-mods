@@ -94,7 +94,11 @@ class Context:
         return after
 
     def expand(self, terminal: Terminal, marker: str) -> list[str]:
-        """Opens the band and waits until it shows the entry `marker` names."""
+        """Opens the band and waits until it shows the entry `marker` names.
+        A band already open (a Run taken up keeps its own) is folded first, so
+        it opens on the latest events."""
+        if (band := self.band(terminal)) and band[0].startswith("▾"):
+            self.command(terminal, "/prompt-history", "已折叠")
         self.command(terminal, "/prompt-history", "已展开")
         terminal.wait_for(
             lambda t: any(
@@ -1063,8 +1067,7 @@ def ui_001(ctx: Context) -> str:
     click_title(ctx, terminal, "Prompt Trail")
     terminal.wait_for(lambda t: collapsed(ctx, t), "the title click to fold the band", 15)
     ctx.env.snap(terminal, "folded by a click")
-    # The command opens it too, and does not take the keyboard for it. It
-    # does not fold it yet (Issue 44), so the title folds it above.
+    # The command opens it too, and does not take the keyboard for it.
     band = ctx.expand(terminal, marker)
     check(FOCUS_HINT in band[0], "the band opened by the command does not say how to take its keyboard")
     check(not focused(ctx, terminal), "opening the band took the keyboard")
@@ -1078,9 +1081,14 @@ def ui_001(ctx: Context) -> str:
     typed(ctx, terminal)
     check(ctx.band(terminal)[0].startswith("▾"), "Esc folded the band")
     ctx.env.snap(terminal, "keyboard given back")
+    # The command folds the open band again.
+    ctx.command(terminal, "/prompt-history", "已折叠")
+    terminal.wait_for(lambda t: collapsed(ctx, t), "the command to fold the band", 15)
+    ctx.env.snap(terminal, "folded by the command")
     return (
         "starts as one collapsed title row; a title click opens it with the ctrl+x tab hint and folds it again; "
-        "/prompt-history opens it without taking the keyboard; ctrl+x tab lands on the entry; Esc gives typing back and the band stays open"
+        "/prompt-history opens it without taking the keyboard; ctrl+x tab lands on the entry; Esc gives typing back and the band stays open; "
+        "/prompt-history folds it again"
     )
 
 

@@ -415,6 +415,24 @@ test('the band starts collapsed in a new Run and its state is kept per Run', asy
   expect(store[uiKey(earlierRunId)]).toEqual({ version: 1, expanded: true })
 })
 
+test('bare prompt-history folds an expanded band and opens a folded one, kept per Run', async ($, on) => {
+  const store: Record<string, unknown> = consentedStore()
+  installSupportedTarget(on, { store })
+  await $.session.start(session)
+  await promptHistory($)
+
+  const folded = await promptHistory($)
+  const foldedBand = JSON.stringify(await renderBand($))
+  const foldedState = store[uiKey()]
+  const opened = await promptHistory($)
+
+  expect(folded.text).toContain('Prompt Trail 已折叠')
+  expect(foldedBand).toContain('▸ Prompt Trail')
+  expect(foldedState).toEqual({ version: 1, expanded: false })
+  expect(opened.text).toContain('Prompt Trail 已展开')
+  expect(store[uiKey()]).toEqual({ version: 1, expanded: true })
+})
+
 test('a restart continues the Project Timeline under a new Run', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),

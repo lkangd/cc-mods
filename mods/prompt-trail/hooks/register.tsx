@@ -6715,6 +6715,12 @@ export const register: Register = on => {
   on('command.run', { command: 'prompt-history' }, async ($, e) => {
     const args = e.args.trim()
     if (args === '') {
+      if (expanded) {
+        expanded = false
+        $.ui.invalidate('ui.render')
+        await saveExpanded($)
+        return { text: 'Prompt Trail 已折叠。' }
+      }
       await refreshStartup($)
       const loaded = project !== undefined && timelineLoaded === project.id
       await ensureTimeline($)

@@ -205,6 +205,8 @@ test('the band folds a Run writing alongside this one and opens it on a press', 
   archive.push({ kind: 'prompt', eventId: 'b1000000-0000-4000-8000-000000000000', sequence: next(), ...other, parentEventId: null, text: 'PT-SECRET-OTHER', attachmentCount: 0 })
   archive.push({ kind: 'run-detached', eventId: 'b2000000-0000-4000-8000-000000000000', sequence: next(), ...other })
   await composerPrompt($, { text: 'PT-SECRET-MINE-2' })
+  /* Folded and opened again, the band reads the latest batch. */
+  await promptHistory($)
   await promptHistory($)
   const folded = JSON.stringify(await renderBand($, { maxRows: 40 }))
   await $.ui.press({ plugin: 'prompt-trail', key: 'prompt-trail:fold:b1000000-0000-4000-8000-000000000000', requestId: BAND_ID })

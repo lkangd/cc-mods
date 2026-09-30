@@ -358,6 +358,8 @@ test('a view of a replaced generation gives way to the new one', async ($, on) =
   })
   generation.value = 'gen-2'
 
+  /* Folded and opened again, the band reads the archive anew. */
+  await promptHistory($)
   await promptHistory($)
 
   const band = JSON.stringify(await renderBand($))
