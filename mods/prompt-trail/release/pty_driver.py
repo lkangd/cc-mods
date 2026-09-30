@@ -141,11 +141,15 @@ class Terminal:
             self._write(KEYS[name])
             time.sleep(pause)
 
+    def hover(self, column: int, row: int) -> None:
+        """The pointer moving onto a 0-based cell, with no button held."""
+        self._write(f"\x1b[<35;{column + 1};{row + 1}M")
+
     def click(self, column: int, row: int) -> None:
         """A left click on a 0-based cell, in SGR mouse encoding, after the
         pointer moves onto it: the host hit-tests a press against what the
         pointer last hovered, as a real terminal's motion reports let it."""
-        self._write(f"\x1b[<35;{column + 1};{row + 1}M")
+        self.hover(column, row)
         time.sleep(0.3)
         self._write(f"\x1b[<0;{column + 1};{row + 1}M")
         time.sleep(0.05)
@@ -181,6 +185,17 @@ class Terminal:
                 first = next((x for x in range(self.screen.columns) if line[x].data.strip()), None)
                 if first is not None and line[first].reverse:
                     found.append(text.rstrip())
+            return found
+
+    def styled_rows(self) -> list[tuple[str, "pyte.screens.Char | None"]]:
+        """Each row with its first visible cell, read from one frame: whether
+        a row is drawn reversed, and in which colour."""
+        with self.lock:
+            found = []
+            for y, text in enumerate(self.screen.display):
+                line = self.screen.buffer[y]
+                first = next((x for x in range(self.screen.columns) if line[x].data.strip()), None)
+                found.append((text.rstrip(), None if first is None else line[first]))
             return found
 
     def reversed_spans(self) -> list[str]:

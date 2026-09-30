@@ -8,6 +8,7 @@ import time
 
 import evidence
 from pty_driver import Environment, ScenarioFailure, Terminal
+import timeline_fixture  # tests/, put on the path by pty_driver
 
 FIXTURE = pathlib.Path(__file__).resolve().parent / "fixtures" / "downstream"
 SCENARIOS: dict = {}
@@ -800,6 +801,32 @@ def branch_002(ctx: Context) -> str:
     )
 
 
+def rewind(ctx: Context, terminal: Terminal, target: str, command: bool = True) -> None:
+    """Rewinds the conversation to before the prompt `target` names, through
+    /rewind or Esc Esc (the same menu), and clears the prompt put back."""
+    if command:
+        ctx.send(terminal, "/rewind")
+    else:
+        terminal.key("esc", pause=0.3)
+        terminal.key("esc")
+    terminal.wait_for("(current)", "the rewind menu", 15)
+    for _ in range(10):
+        # The menu's selection is indented; the transcript's prompts are not.
+        selected = [row for row in terminal.rows() if row.startswith("   ❯ ") and "(current)" not in row]
+        if selected and target[: evidence.MARKER_PREFIX] in selected[-1]:
+            break
+        terminal.key("up", pause=0.5)
+    ctx.env.snap(terminal, "rewind target")
+    terminal.key("enter")
+    terminal.wait_for("Restore conversation", "the restore choice", 15)
+    ctx.choose(terminal, "Restore conversation")
+    terminal.wait_for(
+        lambda t: target[: evidence.MARKER_PREFIX] in t.rows()[_prompt_box(t)], "the rewound prompt in the box", 15,
+    )
+    ctx.env.snap(terminal, "rewound")
+    terminal.key("ctrl-c", pause=0.5)
+
+
 @scenario("PT-BRANCH-003")
 def branch_003(ctx: Context) -> str:
     a, b, c, d, e = (ctx.marker("PT-BRANCH-003") for _ in range(5))
@@ -811,28 +838,8 @@ def branch_003(ctx: Context) -> str:
     ctx.wait_entries(3)
     # /rewind to before B, then Esc Esc to before A: the same menu, reached
     # once through the command and once without it.
-    for opener, target, next_prompt in (("/rewind", b, d), (None, a, e)):
-        if opener:
-            ctx.send(terminal, opener)
-        else:
-            terminal.key("esc", pause=0.3)
-            terminal.key("esc")
-        terminal.wait_for("(current)", "the rewind menu", 15)
-        for _ in range(10):
-            # The menu's selection is indented; the transcript's prompts are not.
-            selected = [row for row in terminal.rows() if row.startswith("   ❯ ") and "(current)" not in row]
-            if selected and target[: evidence.MARKER_PREFIX] in selected[-1]:
-                break
-            terminal.key("up", pause=0.5)
-        ctx.env.snap(terminal, "rewind target")
-        terminal.key("enter")
-        terminal.wait_for("Restore conversation", "the restore choice", 15)
-        ctx.choose(terminal, "Restore conversation")
-        terminal.wait_for(
-            lambda t: target[: evidence.MARKER_PREFIX] in t.rows()[_prompt_box(t)], "the rewound prompt in the box", 15,
-        )
-        ctx.env.snap(terminal, "rewound")
-        terminal.key("ctrl-c", pause=0.5)
+    for command, target, next_prompt in ((True, b, d), (False, a, e)):
+        rewind(ctx, terminal, target, command)
         ctx.submit(terminal, prompt(next_prompt))
         if next_prompt == d:
             entries = ctx.wait_entries(4)
@@ -979,6 +986,560 @@ def jump_002(ctx: Context) -> str:
             check(any(row.startswith(old) for row in restarted.reversed_rows()), "Enter on × moved the focus")
         restarted.key("esc", pause=0.5)
     return "after a restart the old entry is × beside a jumpable twin of the same text; Enter and a click on it left the band, the transcript and the archive as they were"
+
+
+FIXTURE_ROW = re.compile(r"PT-FIXTURE (\d+) 继续")
+FOCUS_HINT = "ctrl+x tab 键盘选择"
+UP = "↑ 点此向上浏览"
+
+
+def seeded(ctx: Context, scenario_id: str, count: int, *, seed: int = 21, **size) -> Terminal:
+    """A new process on a project whose archive holds one real, consented
+    prompt followed by `count` synthetic events. The events are written
+    straight into the archive between processes, as setup: what is under
+    test is how the band reads and draws them."""
+    first = ctx.env.launch()
+    ctx.start(first)
+    ctx.submit(first, prompt(ctx.marker(scenario_id)), consent=True)
+    ctx.wait_entries(1)
+    ctx.exit(first)
+    database = sorted((ctx.env.config / "plugins" / "data").glob("*/archives/*.sqlite3"))[0]
+    timeline_fixture.build(database, database.stem, count, seed=seed)
+    return ctx.relaunch(**size)
+
+
+def title(ctx: Context, terminal: Terminal) -> str:
+    """The band's title row, without the host's own control at its end."""
+    band = ctx.band(terminal)
+    return re.sub(r"\s*\[-\]$", "", band[0]) if band else ""
+
+
+def focused(ctx: Context, terminal: Terminal) -> list[str]:
+    """The band's rows drawn reversed: the ring's, and the pointer's."""
+    band = ctx.band(terminal)
+    return [row for row in terminal.reversed_rows() if row in band]
+
+
+def park(terminal: Terminal) -> None:
+    """Moves the pointer off the band, so only the ring draws reversed."""
+    terminal.hover(0, 0)
+    time.sleep(0.2)
+
+
+def typed(ctx: Context, terminal: Terminal) -> None:
+    """Typing reaches the prompt box, and is taken back out."""
+    terminal.type("zz")
+    terminal.wait_for(lambda t: t.rows()[_prompt_box(t)][1:].strip() == "zz", "typing to reach the prompt box", 5)
+    terminal.key("backspace", "backspace")
+
+
+def click_title(ctx: Context, terminal: Terminal, needle: str) -> None:
+    """Clicks `needle` on the band's title row, then moves the pointer away."""
+    rows = terminal.rows()
+    row = max(i for i, text in enumerate(rows) if text.startswith(("▸ Prompt Trail", "▾ Prompt Trail")))
+    terminal.click(terminal.column(row, needle), row)
+    park(terminal)
+
+
+@scenario("PT-UI-001")
+def ui_001(ctx: Context) -> str:
+    marker = ctx.marker("PT-UI-001")
+    terminal = ctx.env.launch()
+    ctx.start(terminal)
+    check(
+        [row for row in ctx.band(terminal) if row.strip()] == [ctx.band(terminal)[0]] and title(ctx, terminal) == "▸ Prompt Trail",
+        "the band did not start as one collapsed title row",
+    )
+    ctx.submit(terminal, prompt(marker), consent=True)
+    ctx.wait_entries(1)
+    check(collapsed(ctx, terminal), "a submission opened the band")
+    # A click on the title opens the band and says how to take its keyboard.
+    click_title(ctx, terminal, "Prompt Trail")
+    band = terminal.wait_for(
+        lambda t: (b := ctx.band(t)) and b[0].startswith("▾") and shown(b, marker) and b, "the title click to open the band", 15,
+    )
+    ctx.env.snap(terminal, "opened by a click")
+    check(FOCUS_HINT in band[0], "the open band does not say how to take its keyboard")
+    click_title(ctx, terminal, "Prompt Trail")
+    terminal.wait_for(lambda t: collapsed(ctx, t), "the title click to fold the band", 15)
+    ctx.env.snap(terminal, "folded by a click")
+    # The command opens it too, and does not take the keyboard for it. It
+    # does not fold it yet (Issue 44), so the title folds it above.
+    band = ctx.expand(terminal, marker)
+    check(FOCUS_HINT in band[0], "the band opened by the command does not say how to take its keyboard")
+    check(not focused(ctx, terminal), "opening the band took the keyboard")
+    typed(ctx, terminal)
+    # ctrl+x tab gives the band the keyboard, on the latest entry; Esc gives
+    # it back to the prompt box and leaves the band open.
+    terminal.key("ctrl-x", "tab", pause=0.5)
+    check(focused(ctx, terminal) == shown(ctx.band(terminal), marker), "ctrl+x tab did not land on the entry")
+    ctx.env.snap(terminal, "band holds the keyboard")
+    terminal.key("esc", pause=0.5)
+    typed(ctx, terminal)
+    check(ctx.band(terminal)[0].startswith("▾"), "Esc folded the band")
+    ctx.env.snap(terminal, "keyboard given back")
+    return (
+        "starts as one collapsed title row; a title click opens it with the ctrl+x tab hint and folds it again; "
+        "/prompt-history opens it without taking the keyboard; ctrl+x tab lands on the entry; Esc gives typing back and the band stays open"
+    )
+
+
+DIM, WARN = "949494", "ffd700"
+# A focus stop on a band row: a Prompt Entry or a fold.
+STOP = re.compile(r"^(× )?\d+\. |^[▸▾] 另一(分支| Run) · \d+ 条")
+# The archived boundary each band row names, by how the row begins.
+BOUNDARY_ROWS = {
+    "—— /clear：": "clear",
+    "—— Run 开始": "run-started",
+    "—— Run 续接": "run-attached",
+    "—— Run 离开": "run-detached",
+    "—— Integrity gap": "integrity-gap",
+    "—— 已恢复可验证采集": "integrity-recovery",
+    "—— 采集已停止": "collection-stopped",
+    "—— 采集已恢复": "collection-resumed",
+}
+
+
+def boundary_kind(row: str) -> str | None:
+    return next((kind for start, kind in BOUNDARY_ROWS.items() if row.startswith(start)), None)
+
+
+def frame(terminal: Terminal) -> list[tuple[int, str, object]]:
+    """The band's rows in one frame, title first: each row's index on
+    screen, its text, and its first visible cell."""
+    styled = terminal.styled_rows()
+    titles = [i for i, (text, _) in enumerate(styled) if text.startswith(("▸ Prompt Trail", "▾ Prompt Trail"))]
+    if not titles:
+        return []
+    band = []
+    for index in range(titles[-1], len(styled)):
+        text, cell = styled[index]
+        if text.startswith("────"):
+            break
+        band.append((index, text, cell))
+    return band
+
+
+def ringed(rows) -> list[tuple[int, str]]:
+    return [(index, text) for index, text, cell in rows if cell is not None and cell.reverse]
+
+
+def walk(ctx: Context, terminal: Terminal, key: str, done, each=None, limit: int = 1500) -> list[float]:
+    """Presses `key` until `done(rows)`, one press at a time, with the ring on
+    the band and the pointer off it. Each press must move the ring onto the
+    next stop the frame before showed that way, if it showed one, and the
+    ring and view must then hold still while any batch the move asked for
+    arrives. Answers the seconds each press took to move the ring."""
+    rows = frame(terminal)
+    took = []
+    while not done(rows):
+        check(len(took) < limit, f"{limit} presses did not finish the walk")
+        before = ringed(rows)
+        check(len(before) == 1, f"{len(before)} band rows drawn focused")
+        at = [index for index, _, _ in rows].index(before[0][0])
+        way = rows[:at][::-1] if key == "up" else rows[at + 1:]
+        neighbour = next((text for _, text, _ in way if STOP.match(text)), None)
+        started = time.monotonic()
+        terminal.key(key, pause=0)
+        while True:
+            rows = frame(terminal)
+            after = ringed(rows)
+            if len(after) == 1 and after[0][1] != before[0][1]:
+                took.append(time.monotonic() - started)
+                break
+            if time.monotonic() - started > 5:
+                ctx.env.snap(terminal, "the ring did not move")
+                raise ScenarioFailure(f"a {key} press did not move the ring")
+            time.sleep(0.01)
+        if neighbour is not None and after[0][1] != neighbour:
+            ctx.env.snap(terminal, "the ring skipped a stop")
+            raise ScenarioFailure(f"a {key} press did not move the ring onto the next stop")
+        time.sleep(0.25)
+        rows = frame(terminal)
+        if ringed(rows) != after:
+            ctx.env.snap(terminal, "the ring moved by itself")
+            raise ScenarioFailure("the ring or the view moved after the press had landed")
+        if each is not None:
+            each(rows)
+    return took
+
+
+def at_top(rows) -> bool:
+    """The ring on the title, the first event shown under it, nothing above."""
+    return bool(rows) and ringed(rows) == [(rows[0][0], rows[0][1])] and UP not in rows[0][1] \
+        and len(rows) > 1 and rows[1][1] == "—— Run 开始 ——"
+
+
+@scenario("PT-UI-002")
+def ui_002(ctx: Context) -> str:
+    terminal = seeded(ctx, "PT-UI-002", 400, seed=22, columns=100, lines=30)
+    archive = ctx.env.archive()
+    kinds = {b["sequence"]: b["kind"] for b in archive["boundaries"]}
+    ctx.expand(terminal, "PT-FIXTURE")
+    terminal.key("ctrl-x", "tab", pause=0.5)
+    park(terminal)
+    seen: set[str] = set()
+    branches = 0
+
+    def each(rows) -> None:
+        nonlocal branches
+        # On screen, old to new: fixture entries rise, and the boundary rows
+        # between two of them name, in order, boundaries archived between.
+        last, between = None, []
+        for _, text, cell in rows[1:]:
+            kind = boundary_kind(text)
+            # The ring's row is drawn reversed, in the colours swapped.
+            colour = cell.fg if cell is not None and not cell.reverse else None
+            if colour is None:
+                pass
+            elif kind in ("integrity-gap", "integrity-recovery"):
+                check(colour == WARN, "an Integrity gap row is not drawn in the warning colour")
+            elif text.startswith(("——", "× ")) or STOP.match(text) and text.startswith(("▸", "▾")):
+                check(colour == DIM, f"a row is not dimmed: {text[:12]}")
+            if kind is not None:
+                seen.add(kind)
+                between.append(kind)
+            if text.startswith(("—— 新分支", "—— 新根分支", "▸ 另一分支", "▾ 另一分支")) or "分出）——" in text:
+                branches += 1
+            match = FIXTURE_ROW.search(text)
+            if match:
+                sequence = int(match.group(1))
+                if last is not None:
+                    check(last < sequence, "entries are not drawn old to new")
+                    archived = iter([kinds[s] for s in range(last + 1, sequence) if s in kinds])
+                    check(all(kind in archived for kind in between), "boundary rows do not match the archive between two entries")
+                last, between = sequence, []
+
+    each(frame(terminal))
+    took = walk(ctx, terminal, "up", at_top, each)
+    ctx.env.snap(terminal, "first event")
+    missing = sorted(set(BOUNDARY_ROWS.values()) - seen)
+    check(not missing, f"never drawn: {missing}")
+    check(branches > 0, "no branch was drawn")
+    return (
+        f"walked {len(took)} stops from the latest event to the first; entries old to new, every boundary row matching the "
+        "archive between its entries, each kind drawn (Run start/leave/attach, clear, collection stop/resume, Integrity gap/"
+        "recovery) and branches marked; gap rows in the warning colour, other rows dimmed; the ring and view held still while batches loaded"
+    )
+
+
+def away_from_bottom(ctx: Context, terminal: Terminal) -> str:
+    """Takes the view up a page with the title's click, gives the keyboard
+    back to the prompt box, and answers the first row the view shows."""
+    click_title(ctx, terminal, UP)
+    terminal.wait_for(lambda t: UP in title(ctx, t) and "底部" not in title(ctx, t), "the view to leave the bottom", 10)
+    terminal.key("esc", pause=0.5)
+    ctx.env.snap(terminal, "away from the bottom")
+    return ctx.band(terminal)[1]
+
+
+def counted(ctx: Context, terminal: Terminal, count: int) -> list[str]:
+    """Waits for the title and the row under the view to count `count` new entries."""
+    return terminal.wait_for(
+        lambda t: (b := ctx.band(t)) and title(ctx, t).startswith(f"▾ Prompt Trail · {count} 条新条目")
+        and f"↓ {count} 条新条目" in b and b,
+        f"{count} new entries to be counted", 15,
+    )
+
+
+@scenario("PT-UI-003")
+def ui_003(ctx: Context) -> str:
+    a, b, c = (ctx.marker("PT-UI-003") for _ in range(3))
+    terminal = seeded(ctx, "PT-UI-003", 40, columns=100, lines=30)
+    ctx.expand(terminal, "PT-FIXTURE")
+    # At the bottom a new entry is followed, and nothing is counted.
+    ctx.submit(terminal, prompt(a))
+    band = terminal.wait_for(lambda t: (x := ctx.band(t)) and shown(x, a) and x, "the new entry to be followed", 15)
+    check("条新条目" not in "\n".join(band), "an entry followed at the bottom was counted")
+    # Away from it, the view stays and new entries are counted.
+    top = away_from_bottom(ctx, terminal)
+    for count, marker in ((1, b), (2, c)):
+        ctx.submit(terminal, prompt(marker))
+        band = counted(ctx, terminal, count)
+        check(band[1] == top, "a new entry moved the view")
+        check(not shown(band, marker), "a new entry was followed away from the bottom")
+    ctx.env.snap(terminal, "counted")
+    # The count's row takes the view back to the latest, and clears it.
+    ctx.click_row(terminal, "↓ 2 条新条目", "↓ 2 条新条目")
+    park(terminal)
+    band = terminal.wait_for(
+        lambda t: (x := ctx.band(t)) and shown(x, b) and shown(x, c) and x, "the view to return to the latest", 15,
+    )
+    ctx.env.snap(terminal, "back at the latest")
+    check("条新条目" not in "\n".join(band), "the count stayed after returning to the latest")
+    return (
+        "at the bottom a new entry was followed uncounted; away from it the view held while the title and the row "
+        "under it counted 1 then 2; that row took the view back to both entries and cleared the count"
+    )
+
+
+def no_pages(rows) -> None:
+    check(not any("页" in text for _, text, _ in rows), "the band shows a page number")
+
+
+def ring_on(marker: str):
+    return lambda rows: any(marker[: evidence.MARKER_PREFIX] in text for _, text in ringed(rows))
+
+
+@scenario("PT-UI-004")
+def ui_004(ctx: Context) -> str:
+    a, b, c = (ctx.marker("PT-UI-004") for _ in range(3))
+    terminal = seeded(ctx, "PT-UI-004", 400, columns=100, lines=30)
+    # A branch of this Run's own, folded where it left: A, B, then back to
+    # before B and C.
+    ctx.submit(terminal, prompt(a))
+    ctx.submit(terminal, prompt(b))
+    rewind(ctx, terminal, b)
+    ctx.submit(terminal, prompt(c))
+    ctx.expand(terminal, c)
+    terminal.key("ctrl-x", "tab", pause=0.5)
+    park(terminal)
+    check(ring_on(c)(frame(terminal)), "the ring did not start on the latest entry")
+    # The arrows alone walk the whole timeline, up to its first event and
+    # back, with no page to turn.
+    no_pages(frame(terminal))
+    up = walk(ctx, terminal, "up", at_top, no_pages)
+    ctx.env.snap(terminal, "first event")
+    down = walk(ctx, terminal, "down", ring_on(c), no_pages)
+    ctx.env.snap(terminal, "latest entry")
+    # The pointer lights the row under it, beside the ring's.
+    row = next(i for i, text, _ in frame(terminal) if a[: evidence.MARKER_PREFIX] in text)
+    terminal.hover(terminal.column(row, a[: evidence.MARKER_PREFIX]), row)
+    terminal.wait_for(lambda t: any(i == row for i, _ in ringed(frame(t))), "the hovered row to light", 5)
+    ctx.env.snap(terminal, "hovered")
+    park(terminal)
+    # Enter opens the fold the ring is on; a click folds it again.
+    walk(ctx, terminal, "up", lambda rows: any(text.startswith("▸ 另一分支 · 1 条") for _, text in ringed(rows)))
+    terminal.key("enter")
+    terminal.wait_for(lambda t: (x := ctx.band(t)) and shown(x, b) and "▾ 另一分支 · 1 条" in x, "Enter to open the fold", 10)
+    ctx.env.snap(terminal, "fold opened by Enter")
+    ctx.click_row(terminal, "▾ 另一分支 · 1 条", "另一分支")
+    park(terminal)
+    terminal.wait_for(lambda t: (x := ctx.band(t)) and not shown(x, b) and "▸ 另一分支 · 1 条" in x, "a click to fold it", 10)
+    ctx.env.snap(terminal, "fold closed by a click")
+    # Enter on an entry of this Run jumps to it.
+    terminal.key("esc", pause=0.5)
+    ctx.focus(terminal, shown(ctx.band(terminal), a)[0])
+    terminal.key("enter")
+    terminal.wait_for(lambda t: collapsed(ctx, t) and in_transcript(t, a), "the Enter jump", 15)
+    ctx.env.snap(terminal, "jumped")
+    return (
+        f"the arrows walked {len(up)} stops up to the first event and {len(down)} back to the latest, with no page "
+        "number and the ring held on its row while batches loaded; hover lit a row; Enter opened a fold and a click "
+        "closed it; Enter on an entry jumped to it"
+    )
+
+
+@scenario("PT-UI-005")
+def ui_005(ctx: Context) -> str:
+    terminal = seeded(ctx, "PT-UI-005", 400, columns=100, lines=30)
+    latest = ctx.expand(terminal, "PT-FIXTURE")
+    # Resting at its bottom the band's tree fits, so the host sends it no
+    # scrolling at all; the title says so and offers a click instead.
+    check(title(ctx, terminal).endswith(f"{UP} · 底部不响应触控板  {FOCUS_HINT}"), "the title does not offer the way up from the bottom")
+    clicks = 0
+    while UP in title(ctx, terminal):
+        check(clicks < 200, "200 clicks did not reach the first event")
+        first = ctx.band(terminal)[1]
+        click_title(ctx, terminal, UP)
+        terminal.wait_for(lambda t: ctx.band(t)[1] != first, "a click to take the view up", 5)
+        clicks += 1
+    band = ctx.band(terminal)
+    check(band[1] == "—— Run 开始 ——", "the clicks did not reach the first event")
+    ctx.env.snap(terminal, "first event by clicks")
+    # Folding and opening again comes back to the latest events.
+    click_title(ctx, terminal, "Prompt Trail")
+    terminal.wait_for(lambda t: collapsed(ctx, t), "the title to fold the band", 10)
+    click_title(ctx, terminal, "Prompt Trail")
+    terminal.wait_for(lambda t: ctx.band(t)[1:] == latest[1:], "the band to open on the latest events", 10)
+    ctx.env.snap(terminal, "latest by clicks")
+    # The arrows leave the bottom too, though no scrolling reaches the band there.
+    terminal.key("esc", pause=0.5)
+    terminal.key("ctrl-x", "tab", pause=0.5)
+    park(terminal)
+    walk(ctx, terminal, "up", lambda rows: "底部" not in rows[0][1])
+    ctx.env.snap(terminal, "left the bottom by arrows")
+    return (
+        f"with no scrolling sent, {clicks} clicks on the title's way up reached the first event; folding and opening "
+        "came back to the latest; the arrows left the bottom"
+    )
+
+
+def p95(samples: list[float]) -> float:
+    ordered = sorted(samples)
+    return ordered[-(-len(ordered) * 95 // 100) - 1]
+
+
+def timed(terminal: Terminal, press, done, what: str, timeout: float = 10) -> float:
+    """Seconds from `press()` until `done(terminal)`, read every 10 ms."""
+    started = time.monotonic()
+    press()
+    while not done(terminal):
+        if time.monotonic() - started > timeout:
+            terminal.env.snap(terminal, f"timed out: {what}")
+            raise ScenarioFailure(f"timed out waiting for {what}")
+        time.sleep(0.01)
+    return time.monotonic() - started
+
+
+@scenario("PT-UI-006")
+def ui_006(ctx: Context) -> str:
+    """One warm-up then ten runs of each, timed from the key to the frame
+    that shows it done: the helper's reads, the band's own parsing and
+    drawing, and the host's."""
+    runs, stretch = 11, 128
+    terminal = seeded(ctx, "PT-UI-006", 100_000, columns=100, lines=30)
+    # Opening: /prompt-history until the latest events are drawn, folded
+    # again by the title between runs.
+    opened = []
+    for _ in range(runs):
+        terminal.type("/prompt-history")
+        time.sleep(0.3)
+        opened.append(timed(
+            terminal, lambda: terminal.key("enter", pause=0),
+            lambda t: (b := ctx.band(t)) and b[0].startswith("▾") and FIXTURE_ROW.search("\n".join(b)), "the band to open",
+        ))
+        click_title(ctx, terminal, "Prompt Trail")
+        terminal.wait_for(lambda t: collapsed(ctx, t), "the title to fold the band", 10)
+    ctx.expand(terminal, "PT-FIXTURE")
+    # A new entry: Enter until the band at its bottom draws it.
+    shown_new = []
+    for _ in range(runs):
+        marker = ctx.marker("PT-UI-006")
+        terminal.type(prompt(marker))
+        time.sleep(0.5)
+        shown_new.append(timed(
+            terminal, lambda: terminal.key("enter", pause=0), lambda t: shown(ctx.band(t), marker), "the new entry",
+        ))
+        terminal.wait_idle()
+    # Earlier batches: the arrows walk the ring up from the latest entry, one
+    # press as soon as the last has landed. The band fetches a batch ahead
+    # once the ring reaches its window's first row, so no press waits for a
+    # read by design, and the helper's read is timed by the benchmark; what a
+    # person meets is the slowest press in each batch's stretch of events.
+    # The first stretch lies in the window the band opened on, and loads none.
+    terminal.key("ctrl-x", "tab", pause=0.5)
+    park(terminal)
+    slowest: dict[int, float] = {}
+    newest = None
+    while len(slowest) <= runs + 1:
+        before = ringed(frame(terminal))
+        check(len(before) == 1, f"{len(before)} band rows drawn focused")
+        took = timed(
+            terminal, lambda: terminal.key("up", pause=0),
+            lambda t: (r := ringed(frame(t))) and len(r) == 1 and r != before, "a press to move the ring",
+        )
+        match = FIXTURE_ROW.search(before[0][1])
+        if match:
+            newest = newest or int(match.group(1))
+            batch = (newest - int(match.group(1))) // stretch
+            slowest[batch] = max(slowest.get(batch, 0), took)
+    loaded = [slowest[batch] for batch in sorted(slowest)[1:runs + 1]]
+    ctx.env.snap(terminal, "walked back")
+    results = {"open": opened[1:], "a press across an earlier batch's load": loaded[1:], "show a new entry": shown_new[1:]}
+    report = "; ".join(f"{name} p95 {p95(samples) * 1000:.0f} ms" for name, samples in results.items())
+    for name, samples in results.items():
+        check(p95(samples) <= 1.0, f"{name}: p95 over 1 second ({report})")
+    return f"100,000 events; one warm-up then ten runs each, key to frame: {report}"
+
+
+def cramped(ctx: Context, terminal: Terminal) -> bool:
+    """The open band drawn as its title alone, saying space is short."""
+    band = [row for row in ctx.band(terminal) if row.strip()]
+    return len(band) == 1 and title(ctx, terminal).startswith("▾ Prompt Trail · 空间不")
+
+
+@scenario("PT-UI-007")
+def ui_007(ctx: Context) -> str:
+    wide, other = ctx.marker("PT-UI-007"), ctx.marker("PT-UI-007")
+    # Wide, combining and multi-line text ahead of the marker, so a narrow
+    # row still shows it.
+    text = f"中文😀e\u0301 {prompt(wide)}\n\n第二行 宽字符"
+    terminal = seeded(ctx, "PT-UI-007", 40, columns=100, lines=40)
+    ctx.expand(terminal, "PT-FIXTURE")
+    terminal.paste(text)
+    time.sleep(0.5)
+    terminal.key("enter")
+    terminal.wait_idle()
+    terminal.wait_for(lambda _: any(e["promptText"] == text for e in ctx.entries()), "the wide entry to be archived", 15)
+    away_from_bottom(ctx, terminal)
+    ctx.submit(terminal, prompt(other))
+    counted(ctx, terminal, 1)
+    terminal.key("ctrl-x", "tab", pause=0.5)
+    terminal.key("up", pause=0.5)
+    park(terminal)
+    before, ring = ctx.band(terminal), ringed(frame(terminal))
+    check(len(ring) == 1, "the ring is not on one row")
+    ctx.env.snap(terminal, "before resizing")
+    # Under 28 columns or 22 rows, the open band is its title alone; with
+    # room again it is open as it was: the same rows and count, the ring back
+    # on its row.
+    for small in ((27, 40), (100, 21)):
+        terminal.resize(*small)
+        terminal.wait_for(lambda t: cramped(ctx, t), f"the band to give way at {small}", 10)
+        ctx.env.snap(terminal, f"cramped at {small}")
+        terminal.resize(100, 40)
+        terminal.wait_for(lambda t: ctx.band(t) == before and ringed(frame(t)) == ring, f"the band as it was after {small}", 10)
+        ctx.env.snap(terminal, f"restored after {small}")
+    # At 28 columns and at 22 rows it draws its rows.
+    for room in ((28, 40), (100, 22)):
+        terminal.resize(*room)
+        terminal.wait_for(lambda t: not cramped(ctx, t) and len(ctx.band(t)) > 2, f"the band to draw its rows at {room}", 10)
+        ctx.env.snap(terminal, f"room at {room}")
+    terminal.resize(100, 40)
+    # Each entry keeps to one row at 30 to 40 columns.
+    terminal.key("esc", pause=0.5)
+    ctx.click_row(terminal, "↓ 1 条新条目", "↓ 1 条新条目")
+    park(terminal)
+    for columns in (30, 34, 40):
+        terminal.resize(columns, 40)
+        band = terminal.wait_for(lambda t: (x := ctx.band(t)) and shown(x, other) and shown(x, wide) and x, f"the entries at {columns} columns", 10)
+        ctx.env.snap(terminal, f"{columns} columns")
+        row = band.index(shown(band, wide)[0])
+        check("中文😀" in band[row], f"the wide entry's row does not show its wide text at {columns} columns")
+        after = band[row + 1]
+        check(bool(STOP.match(after)) or after.startswith("——"), f"the wide entry wrapped at {columns} columns")
+    # Short of space, the title still folds and opens the band.
+    terminal.resize(27, 40)
+    terminal.wait_for(lambda t: cramped(ctx, t), "the band to give way", 10)
+    click_title(ctx, terminal, "Prompt")
+    terminal.wait_for(lambda t: collapsed(ctx, t), "the title to fold the band", 10)
+    click_title(ctx, terminal, "Prompt")
+    terminal.wait_for(lambda t: cramped(ctx, t), "the title to open the band", 10)
+    ctx.env.snap(terminal, "folded and opened while cramped")
+    terminal.resize(100, 40)
+    return (
+        "at 27 columns and at 21 rows the open band drew its title alone, saying space is short; at 28 and 22 its rows "
+        "came back; restored, it showed the same rows and count with the ring on the same entry; a wide, combining, "
+        "multi-line entry kept to one row at 30, 34 and 40 columns; while cramped the title folded and opened the band"
+    )
+
+
+@scenario("PT-UI-008")
+def ui_008(ctx: Context) -> str:
+    terminal = seeded(ctx, "PT-UI-008", 40, columns=100, lines=40)
+    ctx.expand(terminal, "PT-FIXTURE")
+    top = away_from_bottom(ctx, terminal)
+    option = re.compile(r"^\s*(❯)?\s*1\. 甲$")
+    for count, how in ((1, "answered"), (2, "cancelled")):
+        marker = ctx.marker("PT-UI-008")
+        ctx.send(terminal, f"{marker} 请调用 AskUserQuestion 工具问我一个问题：选甲还是乙？选项只有「甲」和「乙」。不要做别的事。")
+        terminal.wait_for(lambda t: any(map(option.match, t.rows())), "the model's AskUserQuestion dialog", 90)
+        time.sleep(1)
+        ctx.env.snap(terminal, "dialog up")
+        check(not ctx.band(terminal), "the band stayed while the dialog was up")
+        if how == "answered":
+            ctx.choose(terminal, "甲")
+        else:
+            terminal.key("esc", pause=1)
+        terminal.wait_idle()
+        band = counted(ctx, terminal, count)
+        ctx.env.snap(terminal, f"dialog {how}")
+        check(band[1] == top, f"the band came back elsewhere after the dialog was {how}")
+    return (
+        "the band gave way while the model's AskUserQuestion dialog was up, and came back open where it was, "
+        "counting the prompt that asked, after the dialog was answered and after it was cancelled"
+    )
 
 
 def _prompt_box(terminal: Terminal) -> int:
