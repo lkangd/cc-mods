@@ -68,20 +68,40 @@ class ScenarioFailure(Exception):
 
 
 class Host:
-    """One Claude Code version, as npm publishes it."""
+    """One Claude Code version, as npm publishes it: the native arm64 build,
+    or the x86_64 build run under Rosetta, as on a Mac that took the Intel one."""
 
-    def __init__(self, version: str) -> None:
+    def __init__(self, version: str, intel: bool = False) -> None:
         self.version = version
-        found = subprocess.run(
-            ["npx", "-y", "-p", f"@anthropic-ai/claude-code@{version}", "sh", "-c", "command -v claude"],
-            capture_output=True, text=True, check=True,
-        ).stdout.strip().splitlines()[-1]
-        self.binary = str(pathlib.Path(found).resolve())
+        if intel:
+            self.binary = str(_intel_build(version))
+            self.command = ["/usr/bin/arch", "-x86_64", self.binary]
+        else:
+            found = subprocess.run(
+                ["npx", "-y", "-p", f"@anthropic-ai/claude-code@{version}", "sh", "-c", "command -v claude"],
+                capture_output=True, text=True, check=True,
+            ).stdout.strip().splitlines()[-1]
+            self.binary = str(pathlib.Path(found).resolve())
+            self.command = [self.binary]
         reported = subprocess.run(
-            [self.binary, "--version"], capture_output=True, text=True, check=True
+            self.command + ["--version"], capture_output=True, text=True, check=True
         ).stdout.split()[0]
         if reported != version:
-            raise RuntimeError(f"npx gave Claude Code {reported}, not {version}")
+            raise RuntimeError(f"npm gave Claude Code {reported}, not {version}")
+
+
+def _intel_build(version: str) -> pathlib.Path:
+    """The darwin-x64 package's binary, unpacked once into the release cache."""
+    home = pathlib.Path.home() / ".cache" / "prompt-trail-release" / "hosts" / f"darwin-x64-{version}"
+    binary = home / "package" / "claude"
+    if not binary.exists():
+        home.mkdir(parents=True, exist_ok=True)
+        packed = subprocess.run(
+            ["npm", "pack", f"@anthropic-ai/claude-code-darwin-x64@{version}", "--pack-destination", str(home)],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip().splitlines()[-1]
+        subprocess.run(["/usr/bin/tar", "-xzf", str(home / packed), "-C", str(home)], check=True)
+    return binary
 
 
 class _Screen(pyte.Screen):
@@ -260,7 +280,21 @@ class Terminal:
             time.sleep(0.1)
         self.wait_for(lambda t: "esc to interrupt" not in t.text(), "the turn to end", timeout)
 
+    def kill(self) -> None:
+        """The host dies at once, as a crash would, and is reaped as its
+        terminal would reap it: a process left a zombie still reads as running."""
+        os.kill(self.pid, signal.SIGKILL)
+        os.waitpid(self.pid, 0)
+        self.reaped = True
+        self.reader.join(timeout=2)
+
     def close(self) -> None:
+        if getattr(self, "reaped", False):
+            try:
+                os.close(self.fd)
+            except OSError:
+                pass
+            return
         if not self.closed:
             try:
                 os.kill(self.pid, signal.SIGTERM)
@@ -346,9 +380,10 @@ class Environment:
     def launch(
         self, *args: str, project: str = "project", columns: int = 120, lines: int = 40,
         plugins: list[pathlib.Path] = (), plugin_root: pathlib.Path | None = None,
+        host: Host | None = None,
     ) -> Terminal:
         root = plugin_root or self.plugin_root
-        argv = [self.host.binary, "--model", "haiku", "--plugin-dir", str(root)]
+        argv = [*(host or self.host).command, "--model", "haiku", "--plugin-dir", str(root)]
         for extra in plugins:
             argv += ["--plugin-dir", str(extra)]
         terminal = Terminal(self, argv + list(args), self.project(project), columns, lines)

@@ -47,7 +47,7 @@
       "id": "PT-COMPAT-002",
       "title": "不受支持目标",
       "steps": [
-        "分别注入操作系统、架构、macOS 主版本、低于 2.1.273 或无法证明的 Claude Code 版本",
+        "分别注入操作系统、架构、macOS 主版本、低于 2.1.273 或无法证明的 Claude Code 版本（PTY 注入 2.1.272 宿主、在 Rosetta 下运行的 x64 宿主与无法写入的 locator 目录；插件以绝对路径调用 `uname` 与 `sw_vers`，操作系统与 macOS 主版本无法从外部伪造，由 plugin test 证明）",
         "启动并查看 `status`"
       ],
       "expected": "不请求 consent、不创建档案、不联网或编译；`status` 显示 `unsupported target`。",
@@ -107,7 +107,7 @@
       "id": "PT-COMPAT-003",
       "title": "Helper 不可用",
       "steps": [
-        "依次注入缺失、非普通文件、不可执行、摘要不符、错误 protocol、SQLite 能力不足与执行被拒的 helper",
+        "依次注入缺失、非普通文件、不可执行、摘要不符、错误 protocol、SQLite 能力不足与执行被拒的 helper（PTY 用插件副本注入缺失、符号链接、0644、0775、另一构建与另一 protocol 的 locator，并用记录调用的 helper 证明从未执行；SQLite 能力不足与执行被拒无法从外部造出，由 plugin test 与 helper 单测证明）",
         "启动并查看 `status`"
       ],
       "expected": "进入 helper unavailable；不静默更换 binary、SQLite 或使用内存时间线。",
@@ -193,6 +193,10 @@
         {
           "kind": "gate",
           "ref": "protocol-mismatch-probe"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/startup_refusal.test.tsx::status runs no helper it cannot trust, even for a project that collects"
         },
         {
           "kind": "pty",
@@ -1331,7 +1335,7 @@
       "id": "PT-STORE-002",
       "title": "双 Run 并发",
       "steps": [
-        "两个终端对同一项目交错提交",
+        "两个终端对同一项目交错提交（event ID 幂等要从外部重放同一事件，由 helper 单测证明）",
         "禁用其中一个 Run"
       ],
       "expected": "sequence 单调唯一、event ID 幂等、各自 Active Branch；禁用一个 Run 不影响另一个。",
@@ -1558,6 +1562,14 @@
           "ref": "tests/quarantine_archive.test.tsx::enable that meets damage while settling a pending names the choices, not a read failure"
         },
         {
+          "kind": "plugin",
+          "ref": "tests/quarantine_archive.test.tsx::damage another Run found stops this Run before it writes anything"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/quarantine_archive.test.tsx::a write that succeeds past the damage does not lift it for the other Runs"
+        },
+        {
           "kind": "pty",
           "ref": "PT-STORE-006"
         }
@@ -1691,11 +1703,12 @@
       "id": "PT-FAIL-001",
       "title": "预写失败",
       "steps": [
-        "让 Pending Capture 无法持久化后提交"
+        "让 Pending Capture 无法持久化后提交（PTY 对档案与 WAL 加 `chflags uchg`）"
       ],
       "expected": "drop 本次提交并原样保留草稿。",
       "layers": [
         "plugin",
+        "pty",
         "unit"
       ],
       "evidence": [
@@ -1710,6 +1723,14 @@
         {
           "kind": "unit",
           "ref": "helper_protocol.HelperProtocolTests.test_a_full_disk_stages_nothing_and_keeps_an_earlier_pending_whole"
+        },
+        {
+          "kind": "unit",
+          "ref": "helper_protocol.HelperProtocolTests.test_an_archive_that_refuses_writes_is_read_only_and_stages_nothing"
+        },
+        {
+          "kind": "pty",
+          "ref": "PT-FAIL-001"
         }
       ]
     },
@@ -1722,6 +1743,7 @@
       "expected": "保留 pending、阻止该 Run 后续提交并进入对账；不输出 prompt 原文。",
       "layers": [
         "plugin",
+        "pty",
         "unit"
       ],
       "evidence": [
@@ -1736,6 +1758,18 @@
         {
           "kind": "unit",
           "ref": "helper_protocol.HelperProtocolTests.test_confirm_from_pending_archives_the_staged_text"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/reconcile_pending.test.tsx::another live Run's reconciliation record is left to that Run"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/reconcile_pending.test.tsx::a Run's own pending leaves another Run's record as it was"
+        },
+        {
+          "kind": "pty",
+          "ref": "PT-FAIL-002"
         }
       ]
     },
@@ -1748,6 +1782,7 @@
       "expected": "只提供两种选择；禁用写入 Collection Boundary，不补录，不影响其他健康 Run。",
       "layers": [
         "plugin",
+        "pty",
         "unit"
       ],
       "evidence": [
@@ -1770,6 +1805,10 @@
         {
           "kind": "unit",
           "ref": "helper_protocol.HelperProtocolTests.test_collection_boundaries_share_the_sequence_with_prompt_entries"
+        },
+        {
+          "kind": "pty",
+          "ref": "PT-FAIL-003"
         }
       ]
     },
@@ -1777,12 +1816,13 @@
       "id": "PT-FAIL-004",
       "title": "宿主级 fail-open",
       "steps": [
-        "模拟 hook 崩溃与不可阻止的 lifecycle 写入失败",
+        "模拟 hook 崩溃与不可阻止的 lifecycle 写入失败（PTY 在提交等待写锁时 `SIGKILL` 宿主，并在写锁占住时执行 `/clear`；hook 抛出异常与恢复队列溢出只能改代码或大量操作造出，由 plugin test 证明）",
         "再次提交"
       ],
       "expected": "优先用 transcript 与 `$.store` 恢复队列对账；无法唯一恢复时写入显著、不可变的 Integrity Gap。",
       "layers": [
         "plugin",
+        "pty",
         "unit"
       ],
       "evidence": [
@@ -1801,6 +1841,10 @@
         {
           "kind": "unit",
           "ref": "helper_protocol.HelperProtocolTests.test_an_integrity_gap_and_its_recovery_are_boundaries_of_their_run"
+        },
+        {
+          "kind": "pty",
+          "ref": "PT-FAIL-004"
         }
       ]
     },
@@ -1815,6 +1859,7 @@
       "expected": "写入闭合边界，历史 Gap 永久可见；只有删除相应范围的清除才移除标记。",
       "layers": [
         "plugin",
+        "pty",
         "unit"
       ],
       "evidence": [
@@ -1837,6 +1882,10 @@
         {
           "kind": "unit",
           "ref": "helper_protocol.HelperProtocolTests.test_archive_status_counts_the_integrity_gaps_left_in_the_archive"
+        },
+        {
+          "kind": "pty",
+          "ref": "PT-FAIL-005"
         }
       ]
     },
@@ -1844,7 +1893,7 @@
       "id": "PT-FAIL-006",
       "title": "代表性真实宿主故障",
       "steps": [
-        "在真实宿主中依次注入 locator/helper 不可用、提交失败关闭、重试、禁用后继续、busy、损坏与物理删除残留"
+        "在真实宿主中依次注入 locator/helper 不可用、提交失败关闭、重试、禁用后继续、busy、损坏与物理删除残留（locator 不可用为运行中把 locator 放宽为 0644）"
       ],
       "expected": "每种故障均按对应场景的约定表现。",
       "layers": [
