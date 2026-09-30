@@ -1874,6 +1874,27 @@ class HelperProtocolTests(unittest.TestCase):
         texts = [row.get("text") for row in self.read(project_id=project_id)["events"]]
         self.assertEqual(texts, ["PT-SECRET-FIRST", large])
 
+    def test_an_archive_that_refuses_writes_is_read_only_and_stages_nothing(self) -> None:
+        project_id = "c9" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-FIRST", identity=identity)
+        database = self.plugin_data / "archives" / f"{project_id}.sqlite3"
+        held = [str(database), f"{database}-wal"]
+        subprocess.run(["/usr/bin/chflags", "uchg", *held], check=True)
+        self.addCleanup(subprocess.run, ["/usr/bin/chflags", "nouchg", *held])
+
+        refused = self.run_helper(
+            *self.begin_argv(str(uuid.uuid4()), **identity), input_text="PT-SECRET-REFUSED",
+        )
+
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertEqual(json.loads(refused.stderr)["category"], "archive-read-only")
+        self.assertNotIn("PT-SECRET", refused.stdout + refused.stderr)
+        subprocess.run(["/usr/bin/chflags", "nouchg", *held], check=True)
+        listed = self.run_helper(*self.list_argv(project_id=project_id))
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(json.loads(listed.stdout)["pending"], [])
+
     def test_capture_begin_says_whether_the_archive_disk_is_low_on_space(self) -> None:
         volume = os.statvfs(self.plugin_data)
         if volume.f_bavail * volume.f_frsize < 2 * (1 << 30):
