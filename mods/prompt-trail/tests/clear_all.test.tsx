@@ -308,6 +308,8 @@ test('opening the timeline after another Run cleared it shows nothing cleared', 
   /* Another Run clears the project; this one drew the old rows. */
   archive.splice(0)
   generation.value = 'gen-2'
+  /* Folded and opened again, the band reads the archive anew. */
+  await promptHistory($, '')
   await promptHistory($, '')
 
   expect(JSON.stringify(await renderBand($))).not.toContain('PT-SECRET-BEFORE')

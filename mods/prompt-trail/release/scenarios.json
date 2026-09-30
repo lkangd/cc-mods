@@ -1029,6 +1029,10 @@
           "ref": "tests/run_identity.test.tsx::the band starts collapsed in a new Run and its state is kept per Run"
         },
         {
+          "kind": "plugin",
+          "ref": "tests/run_identity.test.tsx::bare prompt-history folds an expanded band and opens a folded one, kept per Run"
+        },
+        {
           "kind": "pty",
           "ref": "PT-UI-001"
         }
