@@ -350,6 +350,17 @@ for (const category of [
   })
 }
 
+test('an archive the helper cannot check is unknown, not said never to exist', async ($, on) => {
+  installTarget(on, {
+    helperFailure: { exitCode: 24, stderr: '{"category":"sqlite-capability"}' },
+  })
+
+  const result = await status($)
+
+  expect(result.text).toContain('archive: unknown')
+  expect(result.text).not.toContain('archive: not created')
+})
+
 test('reports system execution refusal without leaking its error', async ($, on) => {
   installTarget(on, { helperThrows: true })
 

@@ -4996,9 +4996,12 @@ function pendingCount(pending: number | null): string {
   return pending === null ? 'Pending Capture 数量无法读取' : `${pending} 个 Pending Capture`
 }
 
-function clearedText(cleared: Cleared): string {
+function clearedText(cleared: Cleared, damaged: boolean): string {
+  /* Counts the clear could not give are damage only when the archive the
+     person confirmed could not be counted either; otherwise an earlier clear,
+     or another Run's begun meanwhile, may already have removed it. */
   const counts = cleared.entries === null
-    ? '损坏的活动档案（条数无法读取）'
+    ? damaged ? '损坏的活动档案（条数无法读取）' : '活动档案（条数无法读取，可能已在上一次清除中删除）'
     : `${cleared.entries} 条 Prompt Entry、${pendingCount(cleared.pending)}`
   return [
     `已清除本项目的 Prompt Trail 档案：${counts}、${cleared.quarantined} 个隔离档案。`,
@@ -5053,7 +5056,7 @@ async function clearAllCommand($: EngineInterface): Promise<string> {
       await archiveRecovered($, currentProject)
       return '上一次清除已由其他 Run 完成，未删除任何新记录。'
     }
-    return clearedText(cleared)
+    return clearedText(cleared, inventory.entries === null && !inventory.clearUnderway)
   } catch (error) {
     const category = failureCategory(error, 'clear-all')
     if (category !== 'clear-unfinished') {
@@ -5654,9 +5657,13 @@ function statusText(): string {
   const collectionMode = collectionModeText()
   const archive = archiveFailure
     ? `unavailable · 范围 ${archiveFailure.scope} · 类别 ${archiveFailure.category}${archiveFailure.elsewhere ? ' · 由另一个 Run 报告' : ''}${archiveFailure.recheck ? ` · ${recheckNote(archiveFailure.recheck)}` : ''}`
-    : project?.archiveReady && project.databasePath
-      ? `ready · ${statusValue(project.databasePath)} · ${archiveSize()}`
-      : 'not created'
+    : startup.support !== 'supported'
+      ? `unknown · ${startup.support}，无法检查档案`
+      /* Once written, until the helper answers that no file stands at the
+         path: a clear, this Run's or another's, leaves none. */
+      : project?.archiveReady && project.databasePath && archiveStatus?.generation !== null
+        ? `ready · ${statusValue(project.databasePath)} · ${archiveSize()}`
+        : 'not created'
   const damageChoices = archiveFailure && DAMAGE_FAILURES.has(archiveFailure.category)
     ? ['choices: 重新检查完整性 / 隔离并开始新档案 / 清除全部档案 / 禁用当前 Run 后继续（在下一次提交时选择）']
     : []
@@ -5691,7 +5698,7 @@ function statusText(): string {
 function quarantineLines(): string[] {
   if (!archiveStatus) return ['Archive generation: unknown']
   return [
-    `Archive generation: ${archiveStatus.generation ? archiveStatus.generation.slice(0, 12) : 'none'}`,
+    `Archive generation: ${archiveStatus.generation ?? 'none'}`,
     ...(archiveStatus.quarantineUnderway ? ['quarantine: 未完成（再次选择“隔离并开始新档案”会接着完成）'] : []),
     ...(archiveStatus.clearUnderway
       ? [`clear: unfinished · ${archiveStatus.clearResidual ?? 'unknown'} residual（/prompt-history clear-all 可继续）`]

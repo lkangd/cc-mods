@@ -425,7 +425,9 @@ test('status names the generation, each quarantined archive and the choices', as
 
   const status = (await promptHistory($, 'status')).text ?? ''
 
-  expect(status).toContain('Archive generation: 1000012-1f50')
+  /* Whole: its first characters are the device and the high digits of the
+     inode, which the next generation shares. */
+  expect(status).toMatch(/^Archive generation: 1000012-1f5023aa-6ab9f774-350e89d$/m)
   expect(status).toContain('Quarantined archives: 1')
   expect(status).toContain(`archives/quarantine/${projectId}/20260928T000000Z-1（8192 bytes）`)
   expect(status).toContain('重新检查完整性 / 隔离并开始新档案 / 清除全部档案 / 禁用当前 Run 后继续')
