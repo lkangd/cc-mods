@@ -654,6 +654,14 @@ static const char *archive_failure(sqlite3 *database, const char *category) {
     } else if (code == SQLITE_CORRUPT || code == SQLITE_NOTADB) {
       /* Damage SQLite itself met, wherever it met it. */
       category = "archive-integrity";
+    } else if (code == SQLITE_READONLY
+               || code == SQLITE_PERM
+               || (code == SQLITE_IOERR
+                   && (sqlite3_system_errno(database) == EPERM
+                       || sqlite3_system_errno(database) == EACCES
+                       || sqlite3_system_errno(database) == EROFS))) {
+      /* A file the system will not let be written, whatever was writing. */
+      category = "archive-read-only";
     }
   }
   return category;
