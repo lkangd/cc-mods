@@ -182,6 +182,20 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 - [视图跟随焦点时不再丢方向键](issues/45-arrow-lost-after-view-follow.md)：
   2.1.273 偶尔拒绝 render 路径的 `$.ui.focus`（新帧还没提交），宿主又按位置保留焦点环，插件的 `ringKey` 就落后一行。
   现在插件把焦点送往哪一行，就先把 `ringKey` 设为那一行；被拒时隔 50 ms 重试，最多 3 次。`PT-UI-002/004/006` 在 2.1.273 上也通过。
+- [以真实 PTY 证明控制、删除与安全场景](issues/40-pty-control-delete-security.md)：
+  `PT-CONTROL-001..002`、`PT-DELETE-001..004` 与 `PT-SEC-001..004` 的 PTY 场景覆盖三种状态下的 status、首次 enable 先问 consent、
+  disable 与带 pending 的重新 enable、按 Run 与全部清除（取消、错短语、隔离档案、无数据、WAL 残留与恢复）、删除边界告知、
+  标记扫描自检、失败时的诊断、各阶段的私有权限，以及故障中没有编译、xattr、联网或自动删除，在两个版本上通过。
+  故障全从外部注入：写坏表根页、`chflags uchg`、SQLite 写锁、下游 fixture 与替换临时副本里的 helper。
+  探测中发现三处缺陷，拆为 46、47、48，均已修好。
+- [status 显示活动档案的大小](issues/46-status-archive-size.md)：
+  `archive-status` 多给 `archiveBytes`（`.sqlite3`、`-wal`、`-shm` 之和），status 写 `ready · <路径> · N bytes`，读不到时写 `size unknown`。
+- [对账遇到损坏时给出损坏选项](issues/47-damage-during-reconciliation.md)：
+  档案在预写之后才被发现损坏时，留下的 pending 让每次提交都停在「待对账」，拿不到损坏的四个选择。现在对账的 confirm 或 abort
+  遇到损坏类失败，就按损坏处理并给出选择，`enable` 也说明档案已损坏。`clear-all` 留下残留时改说「逻辑删除已完成……但物理清除未完成」。
+- [status 与清除回复不再误导](issues/48-misleading-status-and-clear-text.md)：
+  status 显示完整的 generation（前 12 位只是设备号与 inode 高位，区分不了）；接着完成的清除读不到条数时不再说档案损坏；
+  目标不受支持或 helper 不可用时，`archive:` 写 `unknown` 而不是 `not created`。
 
 ## Not yet specified
 

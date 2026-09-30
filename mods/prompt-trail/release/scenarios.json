@@ -1538,6 +1538,26 @@
           "ref": "helper_protocol.HelperProtocolTests.test_an_integrity_check_reads_without_changing_a_byte"
         },
         {
+          "kind": "plugin",
+          "ref": "tests/quarantine_archive.test.tsx::damage met while settling a pending offers the same choices, not an endless reconciliation"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/quarantine_archive.test.tsx::a recheck that passes over an owed pending settles it first"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/quarantine_archive.test.tsx::a clear over an owed pending takes the pending with it"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/quarantine_archive.test.tsx::disabling the Run over an owed pending lets the prompt through and keeps the pending"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/quarantine_archive.test.tsx::enable that meets damage while settling a pending names the choices, not a read failure"
+        },
+        {
           "kind": "pty",
           "ref": "PT-STORE-006"
         }
@@ -1872,6 +1892,18 @@
           "ref": "helper_protocol.HelperProtocolTests.test_archive_status_names_the_generation_and_each_quarantined_archive"
         },
         {
+          "kind": "plugin",
+          "ref": "tests/consent_capture.test.tsx::status gives the size of the archive in place, or says it is unknown"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/startup_refusal.test.tsx::an archive the helper cannot check is unknown, not said never to exist"
+        },
+        {
+          "kind": "unit",
+          "ref": "helper_protocol.HelperProtocolTests.test_archive_status_gives_the_size_of_the_archive_in_place"
+        },
+        {
           "kind": "pty",
           "ref": "PT-CONTROL-001"
         }
@@ -1984,6 +2016,14 @@
           "ref": "helper_protocol.HelperProtocolTests.test_a_clear_removes_every_file_the_project_archived_and_nothing_else"
         },
         {
+          "kind": "plugin",
+          "ref": "tests/clear_all.test.tsx::a first clear of a damaged archive says it was damaged"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/clear_all.test.tsx::after a clear status says no archive is in place"
+        },
+        {
           "kind": "pty",
           "ref": "PT-DELETE-002"
         }
@@ -1994,7 +2034,7 @@
       "title": "无数据与残留",
       "steps": [
         "无数据时执行两种清除",
-        "锁住 WAL 或备份后执行清除"
+        "锁住 WAL 或备份后执行清除（PTY 用 `chflags uchg` 锁住 `clear-all` 的 WAL；`clear-run` 要先写库、VACUUM 与截断 WAL，外部锁定会让它更早以别的错误失败，其残留由 plugin test 与 helper 单测证明）"
       ],
       "expected": "无目标时 no-op 不询问；物理清除失败时报告「逻辑删除完成、物理清除未完成」并列出残留，维持 Archive unavailable。",
       "layers": [
@@ -2030,6 +2070,14 @@
         {
           "kind": "unit",
           "ref": "helper_protocol.HelperProtocolTests.test_a_run_clear_with_nothing_of_that_run_does_nothing"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/clear_all.test.tsx::finishing a clear whose archive is already gone does not call it damaged"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/clear_all.test.tsx::a clear another Run began during the confirmation is not called damage"
         },
         {
           "kind": "pty",
@@ -2148,7 +2196,7 @@
       "id": "PT-SEC-003",
       "title": "私有权限",
       "steps": [
-        "在创建、迁移、隔离、清除与异常恢复后检查目录与文件权限"
+        "在创建、迁移、隔离、清除与异常恢复后检查目录与文件权限（迁移备份只存活到下一次打开档案，PTY 以 50 ms 采样尽量捕捉，其权限由 helper 单测证明）"
       ],
       "expected": "目录始终 `0700`，数据库、locator、备份与隔离文件始终 `0600`。",
       "layers": [

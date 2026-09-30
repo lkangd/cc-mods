@@ -30,6 +30,13 @@ _DAEMON_DIRECTORY = re.compile(rf"^n((?:/private)?/tmp/cc-daemon-{os.getuid()}/[
 sys.path.insert(0, str(ROOT / "tests"))
 import semantic_verifier  # noqa: E402
 
+# What Prompt Trail must never start: a compiler, a change to extended
+# attributes or to the system's security policy, or a network client.
+FORBIDDEN_PROGRAMS = {
+    "cc", "clang", "gcc", "ld", "xcrun", "make", "swiftc",
+    "xattr", "spctl", "codesign", "csrutil", "curl", "wget", "nc",
+}
+
 KEYS = {
     "enter": "\r",
     "esc": "\x1b",
@@ -297,6 +304,11 @@ class Environment:
         self._sampling = True
         self._sampler = threading.Thread(target=self._sample_argv, daemon=True)
         self._sampler.start()
+        self._watchers: list[threading.Thread] = []
+        self.mode_violations: set[str] = set()
+        self.names_seen: set[str] = set()
+        self.side_effects: set[str] = set()
+        self.socket_checks = 0
         self._write_config()
 
     def project(self, name: str = "project") -> pathlib.Path:
@@ -333,9 +345,10 @@ class Environment:
 
     def launch(
         self, *args: str, project: str = "project", columns: int = 120, lines: int = 40,
-        plugins: list[pathlib.Path] = (),
+        plugins: list[pathlib.Path] = (), plugin_root: pathlib.Path | None = None,
     ) -> Terminal:
-        argv = [self.host.binary, "--model", "haiku", "--plugin-dir", str(self.plugin_root)]
+        root = plugin_root or self.plugin_root
+        argv = [self.host.binary, "--model", "haiku", "--plugin-dir", str(root)]
         for extra in plugins:
             argv += ["--plugin-dir", str(extra)]
         terminal = Terminal(self, argv + list(args), self.project(project), columns, lines)
@@ -350,6 +363,69 @@ class Environment:
         if len(found) > 1 and project == "project":
             raise ScenarioFailure(f"expected one project archive, found {len(found)}")
         return semantic_verifier.describe(found[0])
+
+    def private_modes(self) -> list[str]:
+        """Prompt Trail's directories that are not 0700 and its files that are
+        not 0600, each as its path under the config directory and its mode:
+        its data, archives, quarantine, session index and process locators."""
+        data = self.config / "plugins" / "data"
+        found = []
+        for top in (data / "prompt-trail-inline", data / ".function-hook-locators" / "prompt-trail"):
+            if not top.exists():
+                continue
+            for path in [top, *top.rglob("*")]:
+                try:
+                    status = path.lstat()
+                except FileNotFoundError:
+                    continue  # Gone between the listing and the look.
+                mode = status.st_mode & 0o777
+                wanted = 0o700 if path.is_dir() and not path.is_symlink() else 0o600
+                if mode != wanted:
+                    found.append(f"{path.relative_to(self.config)} {mode:04o}")
+        return found
+
+    def watch_modes(self, interval: float = 0.05) -> None:
+        """Samples Prompt Trail's modes until the world finishes, so a file
+        that stands only a moment is looked at too; every name seen is kept."""
+        def sample() -> None:
+            while self._sampling:
+                self.mode_violations.update(self.private_modes())
+                inline = self.config / "plugins" / "data" / "prompt-trail-inline"
+                if inline.exists():
+                    self.names_seen.update(path.name for path in inline.rglob("*"))
+                time.sleep(interval)
+        self._watch(sample)
+
+    def watch_side_effects(self, interval: float = 0.1) -> None:
+        """Samples the world's processes until it finishes: any forbidden
+        program, and any network socket a Prompt Trail process holds."""
+        def sample() -> None:
+            while self._sampling:
+                # The hosts themselves, whose argv does not name the world.
+                hosts = frozenset(t.pid for t in self.terminals if not t.closed)
+                processes = self._world_processes(hosts)
+                for pid, (_, args) in processes.items():
+                    program = pathlib.Path(args.split(" ", 1)[0]).name
+                    if program in FORBIDDEN_PROGRAMS:
+                        self.side_effects.add(f"started {program}")
+                    if "prompt-trail-helper" in args or "prompt-trail-bridge" in args:
+                        # Every open file by type; a process gone before it
+                        # was looked at is no check at all.
+                        listing = subprocess.run(
+                            ["/usr/sbin/lsof", "-p", str(pid), "-F", "t"], capture_output=True, text=True,
+                        ).stdout.splitlines()
+                        if f"p{pid}" not in listing:
+                            continue
+                        self.socket_checks += 1
+                        if any(line in ("tIPv4", "tIPv6") for line in listing):
+                            self.side_effects.add(f"{program} opened a network socket")
+                time.sleep(interval)
+        self._watch(sample)
+
+    def _watch(self, sample) -> None:
+        watcher = threading.Thread(target=sample, daemon=True)
+        watcher.start()
+        self._watchers.append(watcher)
 
     def snap(self, terminal: Terminal, label: str) -> None:
         columns = terminal.screen.columns
@@ -401,14 +477,15 @@ class Environment:
                 leaks.append({"path": "<daemon>", "kind": "not removed"})
         return leaks
 
-    def _world_processes(self) -> dict[int, tuple[str, str]]:
+    def _world_processes(self, roots: frozenset[int] = frozenset()) -> dict[int, tuple[str, str]]:
         """Processes that name the world in their argv (a daemon names the
-        directory that spawned it), with everything they started: each PID
-        with its start time and argv."""
+        directory that spawned it), and the `roots` given, with everything
+        they started: each PID with its start time and argv."""
         rows = {}
         for pid, ppid, started, args in _processes():
             rows[pid] = (ppid, started, args)
         found = {pid for pid, (_, _, args) in rows.items() if str(self.base) in args and pid != os.getpid()}
+        found |= roots & rows.keys()
         while True:
             children = {pid for pid, (ppid, _, _) in rows.items() if ppid in found} - found
             if not children:
@@ -444,7 +521,12 @@ class Environment:
             terminal.close()
         self._sampling = False
         self._sampler.join(timeout=5)
+        for watcher in self._watchers:
+            watcher.join(timeout=5)
         daemon_leaks = self._stop_background()
+        # A file a scenario made immutable to hold it in place would keep
+        # the world from being removed.
+        subprocess.run(["/usr/bin/chflags", "-R", "nouchg", str(self.base)], capture_output=True)
         found = evidence.scan_tree(
             self.base, self.scanner, config=str(self.config.relative_to(self.base))
         )
