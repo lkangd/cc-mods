@@ -322,6 +322,7 @@ const SHARED_FAILURES = new Set([
 /* Damage to the archive, or a quarantine of it left unfinished: beside
    disabling the Run, the person may check it again or quarantine it. */
 const DAMAGE_FAILURES = new Set(['archive-integrity', 'quarantine-failed'])
+const DAMAGE_NEXT_SUBMISSION = '档案已损坏：下一次提交时可选择重新检查完整性、隔离并开始新档案，或禁用当前 Run 后继续。'
 /* What the plugin itself names a failure it met, beside the helper's own
    categories. Nothing else a failure carries is ever shown. */
 const PLUGIN_FAILURES = new Set([
@@ -2737,6 +2738,9 @@ async function reconcilePending(
       await clearReconcile($, currentProject)
       return 'resolved'
     } catch (error) {
+      /* Damage is the archive's, not this pending's: the caller holds the
+         submission on it, with the choices damage offers. */
+      if (DAMAGE_FAILURES.has(failureCategory(error, 'confirm'))) throw error
       if (!settledElsewhere(error, 'confirm')) return 'blocked'
       await clearReconcile($, currentProject)
       return 'resolved'
@@ -2747,6 +2751,7 @@ async function reconcilePending(
     try {
       await abortCapture($, currentProject, owed.state.eventId)
     } catch (error) {
+      if (DAMAGE_FAILURES.has(failureCategory(error, 'abort'))) throw error
       if (!settledElsewhere(error, 'abort')) return 'blocked'
     }
     await clearReconcile($, currentProject)
@@ -5018,7 +5023,7 @@ async function unfinishedClearText($: EngineInterface, currentProject: ProjectSt
     // The listing is best effort; the state it describes is on record.
   }
   return [
-    '切点已生效，旧记录不会再被读写；但以下残留未能删除：',
+    '逻辑删除已完成（切点已生效，旧记录不会再被读写），但物理清除未完成；以下残留未能删除：',
     ...(leftovers.length > 0 ? leftovers.map(line => `- ${line}`) : ['- （无法列出残留）']),
     '清除完成前，本项目的档案不可用；可再次执行 /prompt-history clear-all 继续。',
   ].join('\n')
@@ -5197,7 +5202,13 @@ async function submitCollected(
   try {
     settled = await settlePending($, currentProject)
   } catch (error) {
-    return holdSubmission($, currentProject, failureCategory(error, 'capture-list'), '无法读取未决的 Pending Capture')
+    const category = failureCategory(error, 'capture-list')
+    return holdSubmission(
+      $,
+      currentProject,
+      category,
+      DAMAGE_FAILURES.has(category) ? '无法完成未决 Pending Capture 的对账' : '无法读取未决的 Pending Capture',
+    )
   }
   if (settled !== 'clear') {
     /* A submission that met a reconciliation is never sent on the person's
@@ -5841,7 +5852,9 @@ async function enableCollection($: EngineInterface): Promise<string> {
     }
   } catch (error) {
     const failure = await markUnavailable($, currentProject, failureCategory(error, 'capture-list'))
-    return `Prompt Trail 无法读取未决的 Pending Capture（${failure.category}），未启用采集。`
+    return DAMAGE_FAILURES.has(failure.category)
+      ? `Prompt Trail 无法完成未决 Pending Capture 的对账（${failure.category}），未启用采集。${DAMAGE_NEXT_SUBMISSION}`
+      : `Prompt Trail 无法读取未决的 Pending Capture（${failure.category}），未启用采集。`
   }
 
   /* A resume boundary written ahead of a Clear Boundary that is still owed
@@ -5903,9 +5916,7 @@ async function enableCollection($: EngineInterface): Promise<string> {
     appended = await appendBoundary($, currentProject, branchId, kind)
   } catch (error) {
     const failure = await markUnavailable($, currentProject, failureCategory(error, 'boundary-append'))
-    const damage = DAMAGE_FAILURES.has(failure.category)
-      ? '档案已损坏：下一次提交时可选择重新检查完整性、隔离并开始新档案，或禁用当前 Run 后继续。'
-      : ''
+    const damage = DAMAGE_FAILURES.has(failure.category) ? DAMAGE_NEXT_SUBMISSION : ''
     return `Prompt Trail 无法写入 Collection Boundary（${failure.category}），未启用采集。${damage}`
   }
 

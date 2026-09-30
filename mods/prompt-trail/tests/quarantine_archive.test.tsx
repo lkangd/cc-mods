@@ -19,6 +19,7 @@ import type { ArchiveRow, TargetOptions } from './support'
    empty generation, or disable itself. */
 
 const archiveStateKey = `prompt-trail:archive-state:${projectId}`
+const reconcileKey = `prompt-trail:reconcile:${projectId}`
 const branchKey = `prompt-trail:branch:${projectId}:${runId}:${sessionId}`
 const otherRun = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb'
 const DAMAGE_CHOICES = ['重新检查完整性', '隔离并开始新档案', '清除全部档案', '禁用当前 Run 后继续']
@@ -77,6 +78,102 @@ test('damage offers a recheck, a quarantine, a clear, or disabling the Run', asy
     category: 'archive-integrity',
     generation: 'gen-1',
   })
+})
+
+/* A pending the pre-write staged before the damage showed: the confirmation
+   meets it, and the transcript proves the prompt entered, so settling the
+   pending confirms it. The damage lifts once the person has chosen. */
+function damagedWhileOwed(
+  store: Record<string, unknown>,
+  choice: TargetOptions,
+): { options: TargetOptions; unavailableAsked: string[]; unavailableOffered: string[][] } {
+  const unavailableAsked: string[] = []
+  const unavailableOffered: string[][] = []
+  const options: TargetOptions = {
+    store,
+    archive: [earlierEntry()],
+    confirmFails: 'archive-integrity',
+    messages: [{ role: 'user', text: SECRET }],
+    fills: [],
+    unavailableAsked,
+    unavailableOffered,
+    duringAsk: () => { options.confirmFails = undefined },
+    ...choice,
+  }
+  return { options, unavailableAsked, unavailableOffered }
+}
+
+test('damage met while settling a pending offers the same choices, not an endless reconciliation', async ($, on) => {
+  const store = consentedStore()
+  onBranch(store, 'gen-1')
+  const { options, unavailableAsked, unavailableOffered } = damagedWhileOwed(store, {
+    unavailableAnswers: ['隔离并开始新档案'],
+  })
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+  expect((await composerPrompt($)).text).toBe(SECRET)
+
+  const next = await composerPrompt($, { text: 'PT-SECRET-NEXT' })
+
+  expect(unavailableOffered).toStrictEqual([DAMAGE_CHOICES])
+  expect(unavailableAsked[0]).toContain('archive-integrity')
+  expect(unavailableAsked[0]).not.toContain('PT-SECRET')
+  /* The quarantine took the pending with the damaged generation; the new
+     prompt starts the next one. */
+  expect(captureCalls(calls, 'quarantine').map(call => call.argv[4])).toStrictEqual(['gen-1'])
+  expect(next.text).toBe('PT-SECRET-NEXT')
+  expect(store[reconcileKey]).toBeUndefined()
+})
+
+test('a recheck that passes over an owed pending settles it first', async ($, on) => {
+  const store = consentedStore()
+  onBranch(store, 'gen-1')
+  const { options } = damagedWhileOwed(store, { unavailableAnswers: ['重新检查完整性'] })
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+  await composerPrompt($)
+
+  const next = await composerPrompt($, { text: 'PT-SECRET-NEXT' })
+
+  expect(captureCalls(calls, 'integrity-check')).toHaveLength(1)
+  /* Settled from the transcript; the new prompt comes back to send again. */
+  expect(options.archive?.filter(row => row.kind === 'prompt').map(row => row.text)).toContain(SECRET)
+  expect(next.drop).toContain('已完成对账')
+  expect(store[reconcileKey]).toBeUndefined()
+})
+
+test('a clear over an owed pending takes the pending with it', async ($, on) => {
+  const store = consentedStore()
+  onBranch(store, 'gen-1')
+  const { options } = damagedWhileOwed(store, {
+    unavailableAnswers: ['清除全部档案'],
+    clearAnswers: ['delete all prompts'],
+  })
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+  await composerPrompt($)
+
+  const next = await composerPrompt($, { text: 'PT-SECRET-NEXT' })
+
+  expect(captureCalls(calls, 'clear-all')).toHaveLength(1)
+  expect(next.text).toBe('PT-SECRET-NEXT')
+  expect(store[reconcileKey]).toBeUndefined()
+})
+
+test('disabling the Run over an owed pending lets the prompt through and keeps the pending', async ($, on) => {
+  const store = consentedStore()
+  onBranch(store, 'gen-1')
+  const { options } = damagedWhileOwed(store, { unavailableAnswers: ['禁用当前 Run 后继续'] })
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+  await composerPrompt($)
+
+  const next = await composerPrompt($, { text: 'PT-SECRET-NEXT' })
+
+  expect(next.text).toBe('PT-SECRET-NEXT')
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
+  /* Still owed: enable settles it before collection resumes. */
+  expect(store[reconcileKey]).toBeDefined()
 })
 
 test('other shared failures keep the plain retry', async ($, on) => {
@@ -383,6 +480,24 @@ test('enable that meets damage names the choices the next submission offers', as
   expect(store[archiveStateKey]).toMatchObject({ category: 'archive-integrity', generation: 'gen-1' })
 })
 
+test('enable that meets damage while settling a pending names the choices, not a read failure', async ($, on) => {
+  const store = consentedStore()
+  installSupportedTarget(on, {
+    store,
+    confirmFails: 'archive-integrity',
+    messages: [{ role: 'user', text: SECRET }],
+  })
+  await $.session.start(session)
+  await composerPrompt($)
+  await promptHistory($, 'disable')
+
+  const enabled = (await promptHistory($, 'enable')).text ?? ''
+
+  expect(enabled).toContain('archive-integrity')
+  expect(enabled).toContain('下一次提交时可选择重新检查完整性、隔离并开始新档案')
+  expect(enabled).not.toContain('无法读取')
+})
+
 test('a recheck that finds a newer generation damaged quarantines that one', async ($, on) => {
   const store = consentedStore()
   const generation = { value: 'gen-1' }
@@ -547,5 +662,5 @@ test('a reconciliation owed in a replaced generation is dropped, not asked about
   expect(captureCalls(calls, 'capture-confirm').map(call => call.argv[4])).not.toContain(
     'pppppppp-0000-4000-8000-000000000001',
   )
-  expect(store[`prompt-trail:reconcile:${projectId}`]).toBeUndefined()
+  expect(store[reconcileKey]).toBeUndefined()
 })

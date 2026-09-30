@@ -245,6 +245,8 @@ test('a clear that leaves files behind says what is left and holds the archive',
 
   const stopped = await promptHistory($, 'clear-all')
 
+  expect(stopped.text).toContain('逻辑删除已完成')
+  expect(stopped.text).toContain('物理清除未完成')
   expect(stopped.text).toContain('切点已生效，旧记录不会再被读写')
   expect(stopped.text).toContain(`${projectId}.sqlite3-wal`)
   expect(stopped.text).toContain('可再次执行 /prompt-history clear-all 继续')
