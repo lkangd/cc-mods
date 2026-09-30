@@ -1,0 +1,681 @@
+==== started (250x60)
+
+           Claude Code v2.1.283
+           Haiku 4.5 · Claude API
+           <tmp>/ptr-eka6g6yv/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-eka6g6yv/project
+
+
+❯ <marker:373>································ 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives/1fa77d9770606b9904ce33259736243026958e67813b4df9a18afe0b24d1d4fb.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-eka6g6yv/project
+
+
+❯ <marker:373>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 11:55 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+                                                                                                                                                                              You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-eka6g6yv/project
+
+
+❯ <marker:373>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 11:55 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives/1fa77d9770606b9904ce33259736243026958e67813b4df9a18afe0b24d1d4fb.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f758cba-6abd30fa-2d8150d9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-eka6g6yv/project
+     database root: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/.function-hook-locators/prompt-trail/8575f60d-936d-4ab0-9883-346252f1bd6c.29802-1790783731-11090.json
+     run: ddc0e73b-4c59-4b2a-b662-6665b969f36d
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+                                                                                                                                                                              You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== waiting when killed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-eka6g6yv/project
+
+
+❯ <marker:373>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 11:55 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives/1fa77d9770606b9904ce33259736243026958e67813b4df9a18afe0b24d1d4fb.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f758cba-6abd30fa-2d8150d9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-eka6g6yv/project
+     database root: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/.function-hook-locators/prompt-trail/8575f60d-936d-4ab0-9883-346252f1bd6c.29802-1790783731-11090.json
+     run: ddc0e73b-4c59-4b2a-b662-6665b969f36d
+
+❯ <marker:374>································ 这是自动化验收的测试输入，请只回复 ok
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+✽ Sprouting…
+  ⎿  Tip: Use Plan Mode to prepare for a complex request before making changes. Press shift+tab twice to enable.
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+                                                                                                                                                                              You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== started (250x60)
+Claude Code's fullscreen renderer didn't finish starting last time on this machine, so this launch is using the classic renderer. It will try fullscreen again next launch; /tui default keeps the classic renderer.
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-eka6g6yv/project
+
+
+❯ <marker:373>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 11:55 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives/1fa77d9770606b9904ce33259736243026958e67813b4df9a18afe0b24d1d4fb.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f758cba-6abd30fa-2d8150d9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-eka6g6yv/project
+     database root: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/.function-hook-locators/prompt-trail/8575f60d-936d-4ab0-9883-346252f1bd6c.29802-1790783731-11090.json
+     run: ddc0e73b-4c59-4b2a-b662-6665b969f36d
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (250x60)
+Claude Code's fullscreen renderer didn't finish starting last time on this machine, so this launch is using the classic renderer. It will try fullscreen again next launch; /tui default keeps the classic renderer.
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-eka6g6yv/project
+
+
+❯ <marker:373>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 11:55 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives/1fa77d9770606b9904ce33259736243026958e67813b4df9a18afe0b24d1d4fb.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f758cba-6abd30fa-2d8150d9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-eka6g6yv/project
+     database root: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/.function-hook-locators/prompt-trail/8575f60d-936d-4ab0-9883-346252f1bd6c.29802-1790783731-11090.json
+     run: ddc0e73b-4c59-4b2a-b662-6665b969f36d
+
+❯ <marker:375>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 5s · done 11:55 PM
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents                                                                                                                           You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== /prompt-history status (250x60)
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives/1fa77d9770606b9904ce33259736243026958e67813b4df9a18afe0b24d1d4fb.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f758cba-6abd30fa-2d8150d9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-eka6g6yv/project
+     database root: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/.function-hook-locators/prompt-trail/8575f60d-936d-4ab0-9883-346252f1bd6c.29802-1790783731-11090.json
+     run: ddc0e73b-4c59-4b2a-b662-6665b969f36d
+
+❯ <marker:375>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 5s · done 11:55 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: ready · <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives/1fa77d9770606b9904ce33259736243026958e67813b4df9a18afe0b24d1d4fb.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f758cba-6abd30fa-2d8150d9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-eka6g6yv/project
+     database root: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/.function-hook-locators/prompt-trail/8575f60d-936d-4ab0-9883-346252f1bd6c.30287-1790783746-13259.json
+     run: ddc0e73b-4c59-4b2a-b662-6665b969f36d
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents                                                                                                                           You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+
+
+==== before /clear (250x60)
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives/1fa77d9770606b9904ce33259736243026958e67813b4df9a18afe0b24d1d4fb.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f758cba-6abd30fa-2d8150d9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-eka6g6yv/project
+     database root: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/.function-hook-locators/prompt-trail/8575f60d-936d-4ab0-9883-346252f1bd6c.29802-1790783731-11090.json
+     run: ddc0e73b-4c59-4b2a-b662-6665b969f36d
+
+❯ <marker:375>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 5s · done 11:55 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: ready · <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives/1fa77d9770606b9904ce33259736243026958e67813b4df9a18afe0b24d1d4fb.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f758cba-6abd30fa-2d8150d9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-eka6g6yv/project
+     database root: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-eka6g6yv/home/.claude/plugins/data/.function-hook-locators/prompt-trail/8575f60d-936d-4ab0-9883-346252f1bd6c.30287-1790783746-13259.json
+     run: ddc0e73b-4c59-4b2a-b662-6665b969f36d
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents                                                                                                                           You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+
+
+==== cleared while busy (250x60)
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-eka6g6yv/project
+
+
+❯ /clear
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (250x60)
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-eka6g6yv/project
+
+
+❯ /clear
+
+❯ <marker:376>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ I'm ready to help. What would you like to work on?
+
+✻ Cooked for 5s · done 11:56 PM
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

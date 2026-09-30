@@ -1,0 +1,929 @@
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ <marker:157>································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-pweg2rxi/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/260fb832f11a2479392c6f045a35024d867be0e524556bbcd7c42e39263fd642.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ <marker:157>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 6s · done 11:01 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ <marker:158>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 11:01 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ <marker:157>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 6s · done 11:01 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.273
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/260fb832f11a2479392c6f045a35024d867be0e524556bbcd7c42e39263fd642.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f74ab7b-6abd244e-1fd2f087
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pweg2rxi/project
+     database root: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/83bc9eda-082b-4f3d-aa56-4b4382d35259.31692-1790780489-769959.json
+     run: 1a6d6298-6548-4e30-a3ad-3d4db697c118
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 清除档案 dialog (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ /prompt-history clear-all
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除档案
+
+│ Prompt Trail 将永久删除这个 Project Timeline 的全部档案。
+│ 项目：<tmp>/ptr-pweg2rxi/project
+│ 活动档案：2 条 Prompt Entry、0 个 Pending Capture
+│ 文件：260fb832f11a2479392c6f045a35024d867be0e524556bbcd7c42e39263fd642.sqlite3-shm（32768 字节）
+│ 文件：260fb832f11a2479392c6f045a35024d867be0e524556bbcd7c42e39263fd642.sqlite3-wal（0 字节）
+│ 文件：260fb832f11a2479392c6f045a35024d867be0e524556bbcd7c42e39263fd642.sqlite3（53248 字节）
+│ 另有 2 个正在运行的 Run 使用本项目；它们会在新的时间线中继续，但在下次读取前仍可能显示旧内容。
+│ 正在提交中的 prompt 也会被清除。Collection consent 与当前 Run 的采集模式不变。
+│ Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+│ 上的数据在物理上不可恢复。
+│ 确认删除请选对话框的自由输入项，输入：delete all prompts
+
+❯ 1. 取消
+  2. 返回
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== /prompt-history clear-all answered (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 已清除本项目的 Prompt Trail 档案：2 条 Prompt Entry、1 个 Pending Capture、0 个隔离档案。
+     Collection consent 与当前 Run 的采集模式未改变；新时间线从下一次提交开始。
+     Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+     上的数据在物理上不可恢复。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== held prompt landed after the cut (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ <marker:157>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 6s · done 11:01 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.273
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/260fb832f11a2479392c6f045a35024d867be0e524556bbcd7c42e39263fd642.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f74ab7b-6abd244e-1fd2f087
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pweg2rxi/project
+     database root: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/83bc9eda-082b-4f3d-aa56-4b4382d35259.31692-1790780489-769959.json
+     run: 1a6d6298-6548-4e30-a3ad-3d4db697c118
+
+❯ <marker:159>································· 这是自动化验收的测试输入，请只回复 ok PT-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Baked for 7s · done 11:01 PM
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                          [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ <marker:157>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 6s · done 11:01 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.273
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/260fb832f11a2479392c6f045a35024d867be0e524556bbcd7c42e39263fd642.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f74ab7b-6abd244e-1fd2f087
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pweg2rxi/project
+     database root: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/83bc9eda-082b-4f3d-aa56-4b4382d35259.31692-1790780489-769959.json
+     run: 1a6d6298-6548-4e30-a3ad-3d4db697c118
+
+❯ <marker:159>································· 这是自动化验收的测试输入，请只回复 ok PT-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Baked for 7s · done 11:01 PM
+
+❯ <marker:160>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 1s · done 11:02 PM
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ <marker:158>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 11:01 PM
+
+❯ <marker:161>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 3s · done 11:02 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/260fb832f11a2479392c6f045a35024d867be0e524556bbcd7c42e39263fd642.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f74ab7b-6abd244e-1fd2f087
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pweg2rxi/project
+     database root: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/83bc9eda-082b-4f3d-aa56-4b4382d35259.31692-1790780489-769959.json
+     run: 1a6d6298-6548-4e30-a3ad-3d4db697c118
+
+❯ <marker:159>································· 这是自动化验收的测试输入，请只回复 ok PT-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Baked for 7s · done 11:01 PM
+
+❯ <marker:160>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 1s · done 11:02 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.273
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/260fb832f11a2479392c6f045a35024d867be0e524556bbcd7c42e39263fd642.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f74ac6a-6abd2468-5d61266
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pweg2rxi/project
+     database root: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/83bc9eda-082b-4f3d-aa56-4b4382d35259.31692-1790780489-769959.json
+     run: 1a6d6298-6548-4e30-a3ad-3d4db697c118
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ <marker:158>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 11:01 PM
+
+❯ <marker:161>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 3s · done 11:02 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.273
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/260fb832f11a2479392c6f045a35024d867be0e524556bbcd7c42e39263fd642.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f74ac6a-6abd2468-5d61266
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pweg2rxi/project
+     database root: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/5572ea66-4649-435a-a3e2-81ed49f42f6a.32054-1790780500-861681.json
+     run: 4a6ab510-6a18-4cc8-8fc3-b445f57b930b
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-pweg2rxi/project
+
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 已清除本项目的 Prompt Trail 档案：2 条 Prompt Entry、1 个 Pending Capture、0 个隔离档案。
+     Collection consent 与当前 Run 的采集模式未改变；新时间线从下一次提交开始。
+     Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+     上的数据在物理上不可恢复。
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.273
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: 1000012-1f74ac6a-6abd2468-5d61266
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-pweg2rxi/project
+     database root: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-pweg2rxi/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/7a17f1a6-1103-4a1c-9e28-8e0c37401068.32303-1790780507-566158.json
+     run: f4d91636-1f56-4d10-8d6f-9d0ff83a97c7
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

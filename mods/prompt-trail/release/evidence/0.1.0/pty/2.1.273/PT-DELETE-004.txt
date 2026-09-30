@@ -1,0 +1,433 @@
+==== started (120x60)
+
+ ▐▟███▟█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-qc3gx56v/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-qc3gx56v/project
+
+
+❯ <marker:95>··································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-qc3gx56v/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/058f65f5cc144de7ab4d605e02554c3731a08886bc47c74b44567e58f433bd2f.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-qc3gx56v/project
+
+
+❯ <marker:95>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 10:44 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 清除当前 Run dialog (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-qc3gx56v/project
+
+
+❯ <marker:95>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 10:44 PM
+
+❯ /prompt-history clear-run
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除当前 Run
+
+│ Prompt Trail 将永久删除当前 Run 的全部记录。
+│ 范围：当前 Run 的整条会话谱系，包括它此前所有进程接入（共 1 次）中的记录，最早一条在 2026-09-30 22:44。
+│ 1 条 Prompt Entry、0 个 Pending Capture、1 条边界事件。
+│ 其他 Run 的记录保持不变，但其后条目的编号可能前移。Collection consent 与当前 Run 的采集模式不变。
+│ Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+│ 上的数据在物理上不可恢复。
+
+❯ 1. 清除当前 Run
+  2. 取消
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== /prompt-history clear-run answered (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-qc3gx56v/project
+
+
+❯ <marker:95>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 10:44 PM
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 已取消，未删除任何内容。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 清除档案 dialog (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-qc3gx56v/project
+
+
+❯ <marker:95>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 10:44 PM
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 已取消，未删除任何内容。
+
+❯ /prompt-history clear-all
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除档案
+
+│ Prompt Trail 将永久删除这个 Project Timeline 的全部档案。
+│ 项目：<tmp>/ptr-qc3gx56v/project
+│ 活动档案：1 条 Prompt Entry、0 个 Pending Capture
+│ 文件：058f65f5cc144de7ab4d605e02554c3731a08886bc47c74b44567e58f433bd2f.sqlite3（53248 字节）
+│ 文件：058f65f5cc144de7ab4d605e02554c3731a08886bc47c74b44567e58f433bd2f.sqlite3-shm（32768 字节）
+│ 文件：058f65f5cc144de7ab4d605e02554c3731a08886bc47c74b44567e58f433bd2f.sqlite3-wal（0 字节）
+│ 正在提交中的 prompt 也会被清除。Collection consent 与当前 Run 的采集模式不变。
+│ Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+│ 上的数据在物理上不可恢复。
+│ 确认删除请选对话框的自由输入项，输入：delete all prompts
+
+❯ 1. 取消
+  2. 返回
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== /prompt-history clear-all answered (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-qc3gx56v/project
+
+
+❯ <marker:95>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 10:44 PM
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 已取消，未删除任何内容。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 已取消，未删除任何内容。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

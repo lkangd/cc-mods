@@ -1,0 +1,6 @@
+$ <repo>/mods/prompt-trail/scripts/build-artifacts.sh
+exit 0
+
+--- stdout
+
+--- stderr
