@@ -196,6 +196,26 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 - [status 与清除回复不再误导](issues/48-misleading-status-and-clear-text.md)：
   status 显示完整的 generation（前 12 位只是设备号与 inode 高位，区分不了）；接着完成的清除读不到条数时不再说档案损坏；
   目标不受支持或 helper 不可用时，`archive:` 写 `unknown` 而不是 `not created`。
+- [以真实 PTY 证明兼容与故障场景](issues/39-pty-compat-failures.md)：
+  `PT-COMPAT-002/003/005`、`PT-STORE-002/003/006/008/009` 与 `PT-FAIL-001..006` 的 PTY 场景覆盖：
+  - 不受支持的目标：2.1.272、Rosetta 下的 x64、没有 locator；
+  - 六种不可信的 helper，以及 reload 后 helper 被替换；
+  - 双 Run 并发、busy 的有界等待、损坏的三种选择、在途捕获遇到 `clear-all`、项目隔离；
+  - 预写与确认失败、重试与禁用、宿主崩溃留下的 Gap 及其清除，以及一条真实宿主的故障巡回。
+
+  在两个版本上通过。故障全从外部注入，hook 代码没有为注入而改；只能改代码造出的故障由 plugin test 与单测证明。
+  探测中发现四处缺陷，拆为 49、50、51、52，均已修好。
+- [helper 不可用时 status 不再执行 helper](issues/49-status-runs-untrusted-helper.md)：
+  status 只在目标受支持时才向 helper 查询档案与 pending，不可用时 `pending reconciliation:` 写 `unknown`。
+  原来一个被换掉、组可写或换成符号链接的 helper，只要执行一次 status 就会被运行。
+- [另一个 Run 的 pending 不再被当成本 Run 的对账](issues/50-foreign-pending-adopted.md)：
+  待对账记录按 Run 存放在 `$.store`，只接管本 Run 的；旧的按项目存放的记录只在属于本 Run 时接管。其他 Run 的 pending 交给 archive 列表，
+  仍在运行的 Run 的 pending 不会被别人问起或丢弃。`clear-all` 忘掉所有 Run 的记录。
+- [写入成功不再撤掉损坏报告](issues/51-write-lifts-damage-report.md)：
+  记录里有损坏时，提交在对账、补写 lifecycle 与预写之前就给出损坏的选择；普通写入成功不撤掉损坏记录，只有重新检查通过、隔离或清除才撤掉。
+- [档案拒绝写入时报 `archive-read-only`](issues/52-refused-write-called-conflict.md)：
+  helper 把 `SQLITE_READONLY`、`SQLITE_PERM` 与 EPERM/EACCES/EROFS 的 I/O 错误归为 `archive-read-only`，作为共享故障记录在案；
+  原来预写遇到它时报成 `capture-conflict`，只算本 Run 的失败。
 
 ## Not yet specified
 
