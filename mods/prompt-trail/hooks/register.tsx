@@ -1894,8 +1894,6 @@ async function markUnavailable(
   return archiveFailure
 }
 
-/* A write the archive took proves it works, for this Run and every other:
-   whichever Run lands one first lifts the record. */
 /* A write that succeeds proves the archive takes writes again, which is all
    a busy, full or read-only archive needed. It proves nothing of damage: a
    page it did not touch may still be broken. Damage is lifted only by what
