@@ -1,0 +1,461 @@
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-5otqbpl6/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-5otqbpl6/project
+
+
+❯ <marker:266>······························ 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-5otqbpl6/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/b22a3d4a73946ea39ad4b6a105d1ce17ddba036e24c6432e75188e7d2a9b0faa.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-5otqbpl6/project
+
+
+❯ <marker:266>······························ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 6s · done 11:28 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-5otqbpl6/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                   [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-5otqbpl6/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  ↑ 点此向上浏览 · 底部不响应触控板  ctrl+x tab 键盘选择                           [-]
+× 18. PT-FIXTURE 31 继续
+× 19. PT-FIXTURE 32 继续
+× 20. PT-FIXTURE 33 继续
+× 21. PT-FIXTURE 34 继续
+× 22. PT-FIXTURE 35 继续
+× 23. PT-FIXTURE 36 继续
+× 24. PT-FIXTURE 37 继续
+× 25. PT-FIXTURE 38 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PT-FIXTURE 41 继续
+× 27. PT-FIXTURE 42 继续
+× 28. PT-FIXTURE 43 继续
+—— Run 未记录离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-5otqbpl6/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  ↑ 点此向上浏览 · 底部不响应触控板  ctrl+x tab 键盘选择                           [-]
+× 18. PT-FIXTURE 31 继续
+× 19. PT-FIXTURE 32 继续
+× 20. PT-FIXTURE 33 继续
+× 21. PT-FIXTURE 34 继续
+× 22. PT-FIXTURE 35 继续
+× 23. PT-FIXTURE 36 继续
+× 24. PT-FIXTURE 37 继续
+× 25. PT-FIXTURE 38 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PT-FIXTURE 41 继续
+× 27. PT-FIXTURE 42 继续
+× 28. PT-FIXTURE 43 继续
+—— Run 未记录离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== away from the bottom (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-5otqbpl6/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  ↑ 点此向上浏览  ctrl+x tab 键盘选择                                              [-]
+—— Run 开始（从 Run 6b0404f2 分出）——
+× 10. PT-FIXTURE 19 继续
+× 11. PT-FIXTURE 20 继续
+—— Run 离开 ——
+—— Run 开始（从 Run fd234065 分出）——
+× 12. PT-FIXTURE 23 继续
+× 13. PT-FIXTURE 24 继续
+× 14. PT-FIXTURE 25 继续
+× 15. PT-FIXTURE 26 继续
+× 16. PT-FIXTURE 27 继续
+× 17. PT-FIXTURE 28 继续
+—— Run 离开 ——
+—— Run 续接 ——
+↓ 14 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== dialog up (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-5otqbpl6/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ <marker:267>······························ 请调用 AskUserQuestion
+  工具问我一个问题：选甲还是乙？选项只有「甲」和「乙」。不要做别的事。
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 选择
+
+选甲还是乙？
+
+❯ 1. 甲
+     选择甲
+  2. 乙
+     选择乙
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dialog answered (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-5otqbpl6/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ <marker:267>······························ 请调用 AskUserQuestion
+  工具问我一个问题：选甲还是乙？选项只有「甲」和「乙」。不要做别的事。
+
+⏺ User answered Claude's questions:
+  ⎿  · 选甲还是乙？ → 甲
+
+⏺ 您选择了甲。
+
+✻ Churned for 11s · done 11:28 PM
+
+
+▾ Prompt Trail · 1 条新条目  ↑ 点此向上浏览  ctrl+x tab 键盘选择                                 [-]
+—— Run 开始（从 Run 6b0404f2 分出）——
+× 10. PT-FIXTURE 19 继续
+× 11. PT-FIXTURE 20 继续
+—— Run 离开 ——
+—— Run 开始（从 Run fd234065 分出）——
+× 12. PT-FIXTURE 23 继续
+× 13. PT-FIXTURE 24 继续
+× 14. PT-FIXTURE 25 继续
+× 15. PT-FIXTURE 26 继续
+× 16. PT-FIXTURE 27 继续
+× 17. PT-FIXTURE 28 继续
+—— Run 离开 ——
+↓ 1 条新条目
+↓ 17 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== dialog up (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-5otqbpl6/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ <marker:267>······························ 请调用 AskUserQuestion
+  工具问我一个问题：选甲还是乙？选项只有「甲」和「乙」。不要做别的事。
+
+⏺ User answered Claude's questions:
+  ⎿  · 选甲还是乙？ → 甲
+
+⏺ 您选择了甲。
+
+✻ Churned for 11s · done 11:28 PM
+
+❯ <marker:268>······························ 请调用 AskUserQuestion
+  工具问我一个问题：选甲还是乙？选项只有「甲」和「乙」。不要做别的事。
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 选择
+
+选甲还是乙？
+
+❯ 1. 甲
+     选择甲
+  2. 乙
+     选择乙
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+==== dialog cancelled (100x40)
+
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ <marker:267>······························ 请调用 AskUserQuestion
+  工具问我一个问题：选甲还是乙？选项只有「甲」和「乙」。不要做别的事。
+
+⏺ User answered Claude's questions:
+  ⎿  · 选甲还是乙？ → 甲
+
+⏺ 您选择了甲。
+
+✻ Churned for 11s · done 11:28 PM
+
+❯ <marker:268>······························ 请调用 AskUserQuestion
+  工具问我一个问题：选甲还是乙？选项只有「甲」和「乙」。不要做别的事。
+
+⏺ User declined to answer questions
+  ⎿  · 选甲还是乙？ (甲 / 乙)
+
+✻ Baked for 2s · done 11:28 PM
+▾ Prompt Trail · 2 条新条目  ↑ 点此向上浏览  ctrl+x tab 键盘选择                                 [-]
+—— Run 开始（从 Run 6b0404f2 分出）——
+× 10. PT-FIXTURE 19 继续
+× 11. PT-FIXTURE 20 继续
+—— Run 离开 ——
+—— Run 开始（从 Run fd234065 分出）——
+× 12. PT-FIXTURE 23 继续
+× 13. PT-FIXTURE 24 继续
+× 14. PT-FIXTURE 25 继续
+× 15. PT-FIXTURE 26 继续
+× 16. PT-FIXTURE 27 继续
+× 17. PT-FIXTURE 28 继续
+—— Run 离开 ——
+↓ 2 条新条目
+↓ 18 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

@@ -1,0 +1,2541 @@
+==== started (250x60)
+
+ ▐█▟███▟   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ <marker:319>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives/5c875ce3650cea6650b671ad9eb3639f76a2cdb2fb20679d1c22ad26b9a9a6b8.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ <marker:319>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 4s · done 11:44 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+                                                                                                                                                                              You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ <marker:319>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 4s · done 11:44 PM
+
+❯ <marker:320>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 1s · done 11:44 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+                                                                                                                                                                              You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-missing
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-missing
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-0/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/30f3cac7-0b95-4c0e-8f49-eec96230a395.11290-1790783093-836343.json
+     run: e8f614bf-10ed-485f-ad31-1c166c6d3a77
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-missing
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-missing
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-0/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/30f3cac7-0b95-4c0e-8f49-eec96230a395.11290-1790783093-836343.json
+     run: e8f614bf-10ed-485f-ad31-1c166c6d3a77
+
+❯ <marker:321>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：helper-missing
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-missing
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-missing
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-0/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/30f3cac7-0b95-4c0e-8f49-eec96230a395.11290-1790783093-836343.json
+     run: e8f614bf-10ed-485f-ad31-1c166c6d3a77
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-missing），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                                                                                                                                                            [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-missing
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-missing
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-0/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/30f3cac7-0b95-4c0e-8f49-eec96230a395.11290-1790783093-836343.json
+     run: e8f614bf-10ed-485f-ad31-1c166c6d3a77
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-missing），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== missing: band (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-missing
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-missing
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-0/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/30f3cac7-0b95-4c0e-8f49-eec96230a395.11290-1790783093-836343.json
+     run: e8f614bf-10ed-485f-ad31-1c166c6d3a77
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-missing），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-not-regular
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-regular
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-1/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/43a08686-12f1-43ff-81d7-bcd9d174b2b7.11523-1790783103-184659.json
+     run: b6d67c65-699e-4279-b7a4-db8f631b95b2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-not-regular
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-regular
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-1/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/43a08686-12f1-43ff-81d7-bcd9d174b2b7.11523-1790783103-184659.json
+     run: b6d67c65-699e-4279-b7a4-db8f631b95b2
+
+❯ <marker:322>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：helper-not-regular
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-not-regular
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-regular
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-1/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/43a08686-12f1-43ff-81d7-bcd9d174b2b7.11523-1790783103-184659.json
+     run: b6d67c65-699e-4279-b7a4-db8f631b95b2
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-not-regular），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                                                                                                                                                            [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-not-regular
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-regular
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-1/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/43a08686-12f1-43ff-81d7-bcd9d174b2b7.11523-1790783103-184659.json
+     run: b6d67c65-699e-4279-b7a4-db8f631b95b2
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-not-regular），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== a symlink: band (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-not-regular
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-regular
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-1/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/43a08686-12f1-43ff-81d7-bcd9d174b2b7.11523-1790783103-184659.json
+     run: b6d67c65-699e-4279-b7a4-db8f631b95b2
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-not-regular），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-not-executable
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-executable
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-2/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/9a8cd944-767c-48a4-9689-0ed69badc021.11802-1790783112-342921.json
+     run: ce478892-3e4c-42d1-ac47-04db16938f61
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-not-executable
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-executable
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-2/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/9a8cd944-767c-48a4-9689-0ed69badc021.11802-1790783112-342921.json
+     run: ce478892-3e4c-42d1-ac47-04db16938f61
+
+❯ <marker:323>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：helper-not-executable
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-not-executable
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-executable
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-2/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/9a8cd944-767c-48a4-9689-0ed69badc021.11802-1790783112-342921.json
+     run: ce478892-3e4c-42d1-ac47-04db16938f61
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-not-executable），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                                                                                                                                                            [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-not-executable
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-executable
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-2/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/9a8cd944-767c-48a4-9689-0ed69badc021.11802-1790783112-342921.json
+     run: ce478892-3e4c-42d1-ac47-04db16938f61
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-not-executable），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== not executable: band (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-not-executable
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-executable
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-2/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/9a8cd944-767c-48a4-9689-0ed69badc021.11802-1790783112-342921.json
+     run: ce478892-3e4c-42d1-ac47-04db16938f61
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-not-executable），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-untrusted
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-untrusted
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-3/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/1abc7a31-c534-4030-859e-3e326c28d134.12062-1790783121-513712.json
+     run: f3b33e32-f95c-4c55-8840-73308b613761
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-untrusted
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-untrusted
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-3/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/1abc7a31-c534-4030-859e-3e326c28d134.12062-1790783121-513712.json
+     run: f3b33e32-f95c-4c55-8840-73308b613761
+
+❯ <marker:324>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：helper-untrusted
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-untrusted
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-untrusted
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-3/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/1abc7a31-c534-4030-859e-3e326c28d134.12062-1790783121-513712.json
+     run: f3b33e32-f95c-4c55-8840-73308b613761
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-untrusted），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                                                                                                                                                            [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-untrusted
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-untrusted
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-3/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/1abc7a31-c534-4030-859e-3e326c28d134.12062-1790783121-513712.json
+     run: f3b33e32-f95c-4c55-8840-73308b613761
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-untrusted），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== group-writable: band (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: helper-untrusted
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-untrusted
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-3/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/1abc7a31-c534-4030-859e-3e326c28d134.12062-1790783121-513712.json
+     run: f3b33e32-f95c-4c55-8840-73308b613761
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（helper-untrusted），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-4/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/ed50d7b8-fa88-4e97-86eb-16d5f37b42b0.12335-1790783130-674827.json
+     run: 169d926e-bbb4-4bc3-9004-13f06aafa900
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-4/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/ed50d7b8-fa88-4e97-86eb-16d5f37b42b0.12335-1790783130-674827.json
+     run: 169d926e-bbb4-4bc3-9004-13f06aafa900
+
+❯ <marker:325>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：digest-mismatch
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-4/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/ed50d7b8-fa88-4e97-86eb-16d5f37b42b0.12335-1790783130-674827.json
+     run: 169d926e-bbb4-4bc3-9004-13f06aafa900
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（digest-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                                                                                                                                                            [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-4/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/ed50d7b8-fa88-4e97-86eb-16d5f37b42b0.12335-1790783130-674827.json
+     run: 169d926e-bbb4-4bc3-9004-13f06aafa900
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（digest-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== another build: band (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-4/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/ed50d7b8-fa88-4e97-86eb-16d5f37b42b0.12335-1790783130-674827.json
+     run: 169d926e-bbb4-4bc3-9004-13f06aafa900
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（digest-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: protocol-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · protocol-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: protocol-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · protocol-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+❯ <marker:326>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：protocol-mismatch
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: protocol-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · protocol-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（protocol-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+▸ Prompt Trail · 档案不可用                                                                                                                                                                                                                            [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: protocol-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · protocol-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（protocol-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== a locator of another protocol: band (250x60)
+ ▝▝   ▝▝   <tmp>/ptr-telagkaj/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: helper unavailable
+     reason: protocol-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · protocol-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-telagkaj/project
+     database root: <tmp>/ptr-telagkaj/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: unavailable · <tmp>/ptr-telagkaj/plugin-5/bin/prompt-trail-helper
+     locator: <tmp>/ptr-telagkaj/home/.claude/plugins/data/.function-hook-locators/prompt-trail/4633bc38-b31f-4759-96b1-d4a3eeb16c99.12616-1790783140-83153.json
+     run: 864d307c-2f09-4e03-82bd-22a96110773b
+
+⏺ Prompt dropped by a hook: Prompt Trail 当前不可采集（protocol-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+▾ Prompt Trail  档案不可用                                                                                                                                                                                                                             [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

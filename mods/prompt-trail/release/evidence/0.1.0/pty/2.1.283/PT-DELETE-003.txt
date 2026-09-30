@@ -1,0 +1,929 @@
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-0nv2tb6d/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history clear-run (120x60)
+
+           Claude Code v2.1.283
+ ▐▛███▛█   Haiku 4.5 · Claude API
+·▜██████·  <tmp>/ptr-0nv2tb6d/project
+
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 当前 Run 没有可清除的 Prompt Trail 记录。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history clear-all (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-0nv2tb6d/project
+
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 当前 Run 没有可清除的 Prompt Trail 记录。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 没有可清除的 Prompt Trail 档案。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-0nv2tb6d/project
+
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 当前 Run 没有可清除的 Prompt Trail 记录。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 没有可清除的 Prompt Trail 档案。
+
+❯ <marker:283>·································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-0nv2tb6d/project
+
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 当前 Run 没有可清除的 Prompt Trail 记录。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 没有可清除的 Prompt Trail 档案。
+
+❯ <marker:283>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 7s · done 11:33 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 清除档案 dialog (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-0nv2tb6d/project
+
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 当前 Run 没有可清除的 Prompt Trail 记录。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 没有可清除的 Prompt Trail 档案。
+
+❯ <marker:283>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 7s · done 11:33 PM
+
+❯ /prompt-history clear-all
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除档案
+
+│ Prompt Trail 将永久删除这个 Project Timeline 的全部档案。
+│ 项目：<tmp>/ptr-0nv2tb6d/project
+│ 活动档案：1 条 Prompt Entry、0 个 Pending Capture
+│ 文件：b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3（53248 字节）
+│ 文件：b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-shm（32768 字节）
+│ 文件：b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-wal（0 字节）
+│ 正在提交中的 prompt 也会被清除。Collection consent 与当前 Run 的采集模式不变。
+│ Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+│ 上的数据在物理上不可恢复。
+│ 确认删除请选对话框的自由输入项，输入：delete all prompts
+
+❯ 1. 取消
+  2. 返回
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== phrase typed (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-0nv2tb6d/project
+
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 当前 Run 没有可清除的 Prompt Trail 记录。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 没有可清除的 Prompt Trail 档案。
+
+❯ <marker:283>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 7s · done 11:33 PM
+
+❯ /prompt-history clear-all
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除档案
+
+│ Prompt Trail 将永久删除这个 Project Timeline 的全部档案。
+│ 项目：<tmp>/ptr-0nv2tb6d/project
+│ 活动档案：1 条 Prompt Entry、0 个 Pending Capture
+│ 文件：b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3（53248 字节）
+│ 文件：b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-shm（32768 字节）
+│ 文件：b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-wal（0 字节）
+│ 正在提交中的 prompt 也会被清除。Collection consent 与当前 Run 的采集模式不变。
+│ Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+│ 上的数据在物理上不可恢复。
+│ 确认删除请选对话框的自由输入项，输入：delete all prompts
+
+  1. 取消
+  2. 返回
+❯ 3. delete all prompts
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · ctrl+g to edit in Vim · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== /prompt-history clear-all answered (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-0nv2tb6d/project
+
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 当前 Run 没有可清除的 Prompt Trail 记录。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 没有可清除的 Prompt Trail 档案。
+
+❯ <marker:283>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 7s · done 11:33 PM
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 逻辑删除已完成（切点已生效，旧记录不会再被读写），但物理清除未完成；以下残留未能删除：
+     - <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prompt-trail-inli
+       ne/archives/b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-wal（0 字节）
+       清除完成前，本项目的档案不可用；可再次执行 /prompt-history clear-all 继续。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                          [-]
+                                            You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-0nv2tb6d/project
+
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 当前 Run 没有可清除的 Prompt Trail 记录。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 没有可清除的 Prompt Trail 档案。
+
+❯ <marker:283>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 7s · done 11:33 PM
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 逻辑删除已完成（切点已生效，旧记录不会再被读写），但物理清除未完成；以下残留未能删除：
+     - <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prompt-trail-inli
+       ne/archives/b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-wal（0 字节）
+       清除完成前，本项目的档案不可用；可再次执行 /prompt-history clear-all 继续。
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     latest collection boundary: none
+     pending reconciliation: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unavailable · 范围 archive · 类别 clear-unfinished
+     Archive generation: none
+     clear: unfinished · 1 residual（/prompt-history clear-all 可继续）
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-0nv2tb6d/project
+     database root: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/8bf5c328-8794-46dd-a74d-6f8a2e2b6320.86250-1790782377-493334.json
+     run: 444cc122-273f-4915-be8a-c231a400b696
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                          [-]
+                                            You've used 96% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (120x60)
+
+❯ <marker:283>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 7s · done 11:33 PM
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 逻辑删除已完成（切点已生效，旧记录不会再被读写），但物理清除未完成；以下残留未能删除：
+     - <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prompt-trail-inli
+       ne/archives/b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-wal（0 字节）
+       清除完成前，本项目的档案不可用；可再次执行 /prompt-history clear-all 继续。
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     latest collection boundary: none
+     pending reconciliation: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unavailable · 范围 archive · 类别 clear-unfinished
+     Archive generation: none
+     clear: unfinished · 1 residual（/prompt-history clear-all 可继续）
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-0nv2tb6d/project
+     database root: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/8bf5c328-8794-46dd-a74d-6f8a2e2b6320.86250-1790782377-493334.json
+     run: 444cc122-273f-4915-be8a-c231a400b696
+
+❯ <marker:284>·································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 无法读取未决的 Pending Capture，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本项目所有 Run
+│ 类别：clear-unfinished
+│ 本项目的清除已切断旧记录，但以下文件还未删除：
+│ - <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prompt-trail-inline/
+│ archives/b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-wal（0 字节）
+│ “继续清除”删除剩下的文件，完成后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 继续清除
+  2. 禁用当前 Run 后继续
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+==== dismissed (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-0nv2tb6d/project
+
+
+❯ /prompt-history clear-run
+  ⎿  prompt-trail: 当前 Run 没有可清除的 Prompt Trail 记录。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 没有可清除的 Prompt Trail 档案。
+
+❯ <marker:283>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 7s · done 11:33 PM
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 逻辑删除已完成（切点已生效，旧记录不会再被读写），但物理清除未完成；以下残留未能删除：
+     - <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prompt-trail-inli
+       ne/archives/b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-wal（0 字节）
+       清除完成前，本项目的档案不可用；可再次执行 /prompt-history clear-all 继续。
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     latest collection boundary: none
+     pending reconciliation: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unavailable · 范围 archive · 类别 clear-unfinished
+     Archive generation: none
+     clear: unfinished · 1 residual（/prompt-history clear-all 可继续）
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-0nv2tb6d/project
+     database root: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/8bf5c328-8794-46dd-a74d-6f8a2e2b6320.86250-1790782377-493334.json
+     run: 444cc122-273f-4915-be8a-c231a400b696
+
+⏺ Prompt dropped by a hook: Prompt Trail 无法读取未决的 Pending
+  Capture（clear-unfinished），草稿已恢复；为避免漏记，本次提交已阻止。
+▸ Prompt Trail · 档案不可用                                                                                          [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 继续清除 dialog (120x60)
+
+❯ <marker:283>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 7s · done 11:33 PM
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 逻辑删除已完成（切点已生效，旧记录不会再被读写），但物理清除未完成；以下残留未能删除：
+     - <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prompt-trail-inli
+       ne/archives/b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-wal（0 字节）
+       清除完成前，本项目的档案不可用；可再次执行 /prompt-history clear-all 继续。
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     latest collection boundary: none
+     pending reconciliation: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unavailable · 范围 archive · 类别 clear-unfinished
+     Archive generation: none
+     clear: unfinished · 1 residual（/prompt-history clear-all 可继续）
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-0nv2tb6d/project
+     database root: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/8bf5c328-8794-46dd-a74d-6f8a2e2b6320.86250-1790782377-493334.json
+     run: 444cc122-273f-4915-be8a-c231a400b696
+
+⏺ Prompt dropped by a hook: Prompt Trail 无法读取未决的 Pending
+  Capture（clear-unfinished），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history clear-all
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 继续清除
+
+│ 上一次清除尚未完成：切点已生效，旧记录不会再被读写，但以下文件还未删除：
+│ - <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prompt-trail-inline/
+│ archives/b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-wal（0 字节）
+│ 清除完成前，本项目的档案不可用。
+
+❯ 1. 继续清除
+  2. 取消
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+==== /prompt-history clear-all answered (120x60)
+
+  ⎿  prompt-trail: 当前 Run 没有可清除的 Prompt Trail 记录。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 没有可清除的 Prompt Trail 档案。
+
+❯ <marker:283>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 7s · done 11:33 PM
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 逻辑删除已完成（切点已生效，旧记录不会再被读写），但物理清除未完成；以下残留未能删除：
+     - <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prompt-trail-inli
+       ne/archives/b249d18b7c2dfaaf53245e64498161a7d881f19ea943cad7c2420f0c027572df.sqlite3-wal（0 字节）
+       清除完成前，本项目的档案不可用；可再次执行 /prompt-history clear-all 继续。
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     latest collection boundary: none
+     pending reconciliation: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unavailable · 范围 archive · 类别 clear-unfinished
+     Archive generation: none
+     clear: unfinished · 1 residual（/prompt-history clear-all 可继续）
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-0nv2tb6d/project
+     database root: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/8bf5c328-8794-46dd-a74d-6f8a2e2b6320.86250-1790782377-493334.json
+     run: 444cc122-273f-4915-be8a-c231a400b696
+
+⏺ Prompt dropped by a hook: Prompt Trail 无法读取未决的 Pending
+  Capture（clear-unfinished），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 已清除本项目的 Prompt Trail 档案：活动档案（条数无法读取，可能已在上一次清除中删除）、0 个隔离档案。
+     Collection consent 与当前 Run 的采集模式未改变；新时间线从下一次提交开始。
+     Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+     上的数据在物理上不可恢复。
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+     Run collection mode: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     latest collection boundary: none
+     pending reconciliation: unknown · 未决 Pending Capture 不可读（clear-unfinished）
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unavailable · 范围 archive · 类别 clear-unfinished
+     Archive generation: none
+     clear: unfinished · 1 residual（/prompt-history clear-all 可继续）
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-0nv2tb6d/project
+     database root: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/8bf5c328-8794-46dd-a74d-6f8a2e2b6320.86250-1790782377-493334.json
+     run: 444cc122-273f-4915-be8a-c231a400b696
+
+⏺ Prompt dropped by a hook: Prompt Trail 无法读取未决的 Pending
+  Capture（clear-unfinished），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 已清除本项目的 Prompt Trail 档案：活动档案（条数无法读取，可能已在上一次清除中删除）、0 个隔离档案。
+     Collection consent 与当前 Run 的采集模式未改变；新时间线从下一次提交开始。
+     Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+     上的数据在物理上不可恢复。
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-0nv2tb6d/project
+     database root: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/8bf5c328-8794-46dd-a74d-6f8a2e2b6320.86250-1790782377-493334.json
+     run: 444cc122-273f-4915-be8a-c231a400b696
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+     archive: unavailable · 范围 archive · 类别 clear-unfinished
+     Archive generation: none
+     clear: unfinished · 1 residual（/prompt-history clear-all 可继续）
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-0nv2tb6d/project
+     database root: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/8bf5c328-8794-46dd-a74d-6f8a2e2b6320.86250-1790782377-493334.json
+     run: 444cc122-273f-4915-be8a-c231a400b696
+
+⏺ Prompt dropped by a hook: Prompt Trail 无法读取未决的 Pending
+  Capture（clear-unfinished），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-trail: 已清除本项目的 Prompt Trail 档案：活动档案（条数无法读取，可能已在上一次清除中删除）、0 个隔离档案。
+     Collection consent 与当前 Run 的采集模式未改变；新时间线从下一次提交开始。
+     Prompt Trail 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+     上的数据在物理上不可恢复。
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-0nv2tb6d/project
+     database root: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-0nv2tb6d/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/8bf5c328-8794-46dd-a74d-6f8a2e2b6320.86250-1790782377-493334.json
+     run: 444cc122-273f-4915-be8a-c231a400b696
+
+❯ <marker:284>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 4s · done 11:33 PM
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

@@ -216,6 +216,10 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 - [档案拒绝写入时报 `archive-read-only`](issues/52-refused-write-called-conflict.md)：
   helper 把 `SQLITE_READONLY`、`SQLITE_PERM` 与 EPERM/EACCES/EROFS 的 I/O 错误归为 `archive-read-only`，作为共享故障记录在案；
   原来预写遇到它时报成 `capture-conflict`，只算本 Run 的失败。
+- [0.1.0 发布门禁与证据](issues/41-release-0-1-0-evidence.md)：
+  在提交 `b61296e` 的干净工作树上完整跑 `release-evidence.sh`，结果 PASS：56 个场景全部通过，0 失败、0 缺失、0 跳过、0 泄漏，
+  52 个 PTY 场景在两个版本上都通过。报告、门禁日志与脱敏 trace 提交在 `mods/prompt-trail/release/evidence/0.1.0/`，
+  提交前已把本机路径换成 `<repo>`、`<home>`、`<tmp>`。
 
 ## Not yet specified
 

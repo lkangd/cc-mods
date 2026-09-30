@@ -1,0 +1,619 @@
+==== started (250x60)
+
+           Claude Code v2.1.283
+           Haiku 4.5 · Claude API
+           <tmp>/ptr-nrzowb9m/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (250x60)
+
+           Claude Code v2.1.283
+ ▐▛███▛█   Haiku 4.5 · Claude API
+~▜██████~  <tmp>/ptr-nrzowb9m/project
+
+
+❯ <marker:269>··································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-nrzowb9m/home/.claude/plugins/data/prompt-trail-inline/archives/bb6aa156a1c3078e566a8ad771029c098f961c081a0be37a1c34a7adedb526d2.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nrzowb9m/project
+
+
+❯ <marker:269>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 7s · done 11:29 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+                                                                                                                                                                              You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nrzowb9m/project
+
+
+❯ <marker:269>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 7s · done 11:29 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-nrzowb9m/home/.claude/plugins/data/prompt-trail-inline/archives/bb6aa156a1c3078e566a8ad771029c098f961c081a0be37a1c34a7adedb526d2.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f7517ce-6abd2abc-30ea4ec6
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-nrzowb9m/project
+     database root: <tmp>/ptr-nrzowb9m/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-nrzowb9m/home/.claude/plugins/data/.function-hook-locators/prompt-trail/bfd78ccc-222b-4985-bd3f-1c84058dc503.79162-1790782134-563812.json
+     run: 3d6f852a-f239-4fd2-89cb-7519d6840a5c
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+                                                                                                                                                                              You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nrzowb9m/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nrzowb9m/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 5 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: not created
+     Archive generation: 1000012-1f7517ce-6abd2abc-30ea4ec6
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-nrzowb9m/project
+     database root: <tmp>/ptr-nrzowb9m/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-nrzowb9m/home/.claude/plugins/data/.function-hook-locators/prompt-trail/17022fc3-3c18-44c3-9d7f-efe811478278.79618-1790782149-27592.json
+     run: a9bef637-2622-49bc-8617-4a207cada472
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nrzowb9m/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nrzowb9m/project
+
+
+❯ <marker:269>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 7s · done 11:29 PM
+
+❯ <marker:269>··································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 档案当前不可用，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本项目所有 Run
+│ 类别：archive-integrity
+│ “重新检查完整性”只读检查档案，通过后提交；“隔离并开始新档案”把旧记录原样保留在隔离目录，新时间线从空开始，之后提交；“清除全部档案”在输入确认短语后永久删除本项目的全部档案，之后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt
+│ 不会入档。Prompt Trail 不会修复或覆盖损坏的档案。
+
+❯ 1. 重新检查完整性
+  2. 隔离并开始新档案
+  3. 清除全部档案
+  4. 禁用当前 Run 后继续
+  5. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  6. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nrzowb9m/project
+
+
+❯ <marker:269>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 7s · done 11:29 PM
+
+⏺ Prompt dropped by a hook: Prompt Trail 档案当前不可用（archive-integrity），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                                                                                                                                                            [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nrzowb9m/project
+
+
+❯ <marker:269>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 7s · done 11:29 PM
+
+⏺ Prompt dropped by a hook: Prompt Trail 档案当前不可用（archive-integrity），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 未决 Pending Capture 待对账
+     latest collection boundary: none
+     pending reconciliation: 0b810d73 · 待对账
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 5 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: unavailable · 范围 archive · 类别 archive-integrity
+     choices: 重新检查完整性 / 隔离并开始新档案 / 清除全部档案 / 禁用当前 Run 后继续（在下一次提交时选择）
+     Archive generation: 1000012-1f7517ce-6abd2abc-30ea4ec6
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-nrzowb9m/project
+     database root: <tmp>/ptr-nrzowb9m/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-nrzowb9m/home/.claude/plugins/data/.function-hook-locators/prompt-trail/e3fb3a1f-a891-4ae6-a158-afacdfd11c1a.79734-1790782150-778882.json
+     run: f9dcb7e8-7eb5-4f7d-bdb0-4fc322be0109
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                                                                                                                                                            [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

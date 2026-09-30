@@ -1,0 +1,293 @@
+==== started (120x40)
+
+ ▐█▟███▟   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-b6axwhr_/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-b6axwhr_/project
+
+
+❯ <marker:10>···································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-b6axwhr_/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/819d17aa2600b9887d22ff139aa7c231a74ab3dd05b2936a11005631e3447a39.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-b6axwhr_/project
+
+
+❯ <marker:10>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 11s · done 10:23 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== confirmation refused (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-b6axwhr_/project
+
+
+❯ <marker:10>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 11s · done 10:23 PM
+
+❯ <marker:11>···································· 这是自动化验收的测试输入，请只回复 ok PT-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Cooked for 7s · done 10:23 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail · 档案不可用                                                                                          [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x40)
+
+
+❯ <marker:11>···································· 这是自动化验收的测试输入，请只回复 ok PT-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Cooked for 7s · done 10:23 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.273
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 未决 Pending Capture 待对账
+     latest collection boundary: none
+     pending reconciliation: 6bb7b308 · 待对账
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: unavailable · 范围 archive · 类别 archive-busy
+     Archive generation: 1000012-1f740881-6abd1b43-12251e2c
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-b6axwhr_/project
+     database root: <tmp>/ptr-b6axwhr_/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-b6axwhr_/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/1dd18c6c-579b-4d6b-8636-2e44b4666cd3.62463-1790778173-758620.json
+     run: b8b17216-e13f-40d7-a6b8-e4258cde00e6
+▸ Prompt Trail · 档案不可用                                                                                          [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== reconciled (120x40)
+
+
+⏺ ok
+
+✻ Cooked for 7s · done 10:23 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.273
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 未决 Pending Capture 待对账
+     latest collection boundary: none
+     pending reconciliation: 6bb7b308 · 待对账
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: unavailable · 范围 archive · 类别 archive-busy
+     Archive generation: 1000012-1f740881-6abd1b43-12251e2c
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-b6axwhr_/project
+     database root: <tmp>/ptr-b6axwhr_/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-b6axwhr_/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/1dd18c6c-579b-4d6b-8636-2e44b4666cd3.62463-1790778173-758620.json
+     run: b8b17216-e13f-40d7-a6b8-e4258cde00e6
+
+⏺ Prompt dropped by a hook: Prompt Trail 已完成对账，草稿已恢复；请重新提交。
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ <marker:12>···································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on
+
+==== resubmitted (120x40)
+
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.273
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 未决 Pending Capture 待对账
+     latest collection boundary: none
+     pending reconciliation: 6bb7b308 · 待对账
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: unavailable · 范围 archive · 类别 archive-busy
+     Archive generation: 1000012-1f740881-6abd1b43-12251e2c
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-b6axwhr_/project
+     database root: <tmp>/ptr-b6axwhr_/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-b6axwhr_/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/1dd18c6c-579b-4d6b-8636-2e44b4666cd3.62463-1790778173-758620.json
+     run: b8b17216-e13f-40d7-a6b8-e4258cde00e6
+
+⏺ Prompt dropped by a hook: Prompt Trail 已完成对账，草稿已恢复；请重新提交。
+
+❯ <marker:12>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 3s · done 10:23 PM
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

@@ -1,0 +1,760 @@
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+▗▟▛███▛█▄  Claude Code v2.1.273
+ ▜██████▘  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+❯ <marker:75>······························· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-bpqraklt/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/8225c150c1cd5693e2d6b4a4268cb8f10a073e49a3994939092e1e6e94104163.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+❯ <marker:75>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 9s · done 10:38 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 94% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                   [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  ↑ 点此向上浏览 · 底部不响应触控板  ctrl+x tab 键盘选择                           [-]
+× 18. PT-FIXTURE 31 继续
+× 19. PT-FIXTURE 32 继续
+× 20. PT-FIXTURE 33 继续
+× 21. PT-FIXTURE 34 继续
+× 22. PT-FIXTURE 35 继续
+× 23. PT-FIXTURE 36 继续
+× 24. PT-FIXTURE 37 继续
+× 25. PT-FIXTURE 38 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PT-FIXTURE 41 继续
+× 27. PT-FIXTURE 42 继续
+× 28. PT-FIXTURE 43 继续
+—— Run 未记录离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  ↑ 点此向上浏览 · 底部不响应触控板  ctrl+x tab 键盘选择                           [-]
+× 18. PT-FIXTURE 31 继续
+× 19. PT-FIXTURE 32 继续
+× 20. PT-FIXTURE 33 继续
+× 21. PT-FIXTURE 34 继续
+× 22. PT-FIXTURE 35 继续
+× 23. PT-FIXTURE 36 继续
+× 24. PT-FIXTURE 37 继续
+× 25. PT-FIXTURE 38 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PT-FIXTURE 41 继续
+× 27. PT-FIXTURE 42 继续
+× 28. PT-FIXTURE 43 继续
+—— Run 未记录离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== away from the bottom (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.273
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ 中文😀é <marker:73>······························· 这是自动化验收的测试输入，请只回复 ok
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38 PM
+
+
+
+
+▾ Prompt Trail  ↑ 点此向上浏览  ctrl+x tab 键盘选择                                              [-]
+× 11. PT-FIXTURE 20 继续
+—— Run 离开 ——
+—— Run 开始（从 Run fd234065 分出）——
+× 12. PT-FIXTURE 23 继续
+× 13. PT-FIXTURE 24 继续
+× 14. PT-FIXTURE 25 继续
+× 15. PT-FIXTURE 26 继续
+× 16. PT-FIXTURE 27 继续
+× 17. PT-FIXTURE 28 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PT-FIXTURE 31 继续
+× 19. PT-FIXTURE 32 继续
+↓ 14 more
+                        You've used 94% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (100x40)
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ 中文😀é <marker:73>······························· 这是自动化验收的测试输入，请只回复 ok
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38 PM
+
+❯ <marker:74>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38 PM
+▾ Prompt Trail · 1 条新条目  ↑ 点此向上浏览  ctrl+x tab 键盘选择                                 [-]
+× 11. PT-FIXTURE 20 继续
+—— Run 离开 ——
+—— Run 开始（从 Run fd234065 分出）——
+× 12. PT-FIXTURE 23 继续
+× 13. PT-FIXTURE 24 继续
+× 14. PT-FIXTURE 25 继续
+× 15. PT-FIXTURE 26 继续
+× 16. PT-FIXTURE 27 继续
+× 17. PT-FIXTURE 28 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PT-FIXTURE 31 继续
+↓ 1 条新条目
+↓ 16 more
+                        You've used 94% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== before resizing (100x40)
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ 中文😀é <marker:73>······························· 这是自动化验收的测试输入，请只回复 ok
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38 PM
+
+❯ <marker:74>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38 PM
+▾ Prompt Trail · 1 条新条目  ↑ 点此向上浏览  ctrl+x tab 键盘选择                                 [-]
+× 11. PT-FIXTURE 20 继续
+—— Run 离开 ——
+—— Run 开始（从 Run fd234065 分出）——
+× 12. PT-FIXTURE 23 继续
+× 13. PT-FIXTURE 24 继续
+× 14. PT-FIXTURE 25 继续
+× 15. PT-FIXTURE 26 继续
+× 16. PT-FIXTURE 27 继续
+× 17. PT-FIXTURE 28 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PT-FIXTURE 31 继续
+↓ 1 条新条目
+↓ 16 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== cramped at (27, 40) (27x40)
+
+           Claude Code
+ ▐▛███▛█   v2.1.273
+▝▜██████▀  Haiku 4.5
+  ▝▝ ▝▝    Claude API
+           /…/project
+
+
+❯ /prompt-history
+  ⎿ prompt-trail: Prompt
+    Trail 已展开。
+
+❯ 中文😀é
+  <marker:73>·············
+  4d0e0852-PT-UI-007
+  这是自动化验收的测试输入
+  ，请只回复 ok
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38
+  PM
+
+❯ <marker:74>·············
+  ad90613a-PT-UI-007
+  这是自动化验收的测试输入
+  ，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38
+  PM
+▾ Prompt Trail · 空间不 [-]
+
+───────────────────────────
+❯
+───────────────────────────
+  ⏸ manual mode on · ? f…
+
+==== restored after (27, 40) (100x40)
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ 中文😀é <marker:73>······························· 这是自动化验收的测试输入，请只回复 ok
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38 PM
+
+❯ <marker:74>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38 PM
+▾ Prompt Trail · 1 条新条目  ↑ 点此向上浏览  ctrl+x tab 键盘选择                                 [-]
+× 11. PT-FIXTURE 20 继续
+—— Run 离开 ——
+—— Run 开始（从 Run fd234065 分出）——
+× 12. PT-FIXTURE 23 继续
+× 13. PT-FIXTURE 24 继续
+× 14. PT-FIXTURE 25 继续
+× 15. PT-FIXTURE 26 继续
+× 16. PT-FIXTURE 27 继续
+× 17. PT-FIXTURE 28 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PT-FIXTURE 31 继续
+↓ 1 条新条目
+↓ 16 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== cramped at (100, 21) (100x21)
+
+
+❯ 中文😀é <marker:73>······························· 这是自动化验收的测试输入，请只回复 ok
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38 PM
+
+❯ <marker:74>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38 PM
+▾ Prompt Trail · 空间不足                                                                        [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== restored after (100, 21) (100x40)
+▝▜██████▀  Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-bpqraklt/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ 中文😀é <marker:73>······························· 这是自动化验收的测试输入，请只回复 ok
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38 PM
+
+❯ <marker:74>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38 PM
+▾ Prompt Trail · 1 条新条目  ↑ 点此向上浏览  ctrl+x tab 键盘选择                                 [-]
+× 11. PT-FIXTURE 20 继续
+—— Run 离开 ——
+—— Run 开始（从 Run fd234065 分出）——
+× 12. PT-FIXTURE 23 继续
+× 13. PT-FIXTURE 24 继续
+× 14. PT-FIXTURE 25 继续
+× 15. PT-FIXTURE 26 继续
+× 16. PT-FIXTURE 27 继续
+× 17. PT-FIXTURE 28 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PT-FIXTURE 31 继续
+↓ 1 条新条目
+↓ 16 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== room at (28, 40) (28x40)
+▝▜██████▀  Haiku 4.5 · Claud
+  ▝▝ ▝▝    /private/var/fold
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Tr
+
+❯ 中文😀é <marker:73>·······
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38
+
+❯ <marker:74>···············
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38
+▾ Prompt Trail · 1 条新条目
+× 11. PT-FIXTURE 20 继续
+—— Run 离开 ——
+—— Run 开始（从 Run fd234065
+× 12. PT-FIXTURE 23 继续
+× 13. PT-FIXTURE 24 继续
+× 14. PT-FIXTURE 25 继续
+× 15. PT-FIXTURE 26 继续
+× 16. PT-FIXTURE 27 继续
+× 17. PT-FIXTURE 28 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PT-FIXTURE 31 继续
+↓ 1 条新条目
+↓ 16 more
+
+────────────────────────────
+❯
+────────────────────────────
+  ⏸ manual mode on · ? for s
+
+==== room at (100, 22) (100x22)
+
+✻ Baked for 2s · done 10:38
+▾ Prompt Trail · 1 条新条目
+× 11. PT-FIXTURE 20 继续
+—— Run 离开 ——
+—— Run 开始（从 Run fd234065
+× 12. PT-FIXTURE 23 继续
+× 13. PT-FIXTURE 24 继续
+× 14. PT-FIXTURE 25 继续
+× 15. PT-FIXTURE 26 继续
+× 16. PT-FIXTURE 27 继续
+× 17. PT-FIXTURE 28 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PT-FIXTURE 31 继续
+↓ 1 条新条目
+↓ 16 more
+
+────────────────────────────
+❯
+────────────────────────────
+  ⏸ manual mode on · ? for s
+
+==== 30 columns (30x40)
+▝▜██████▀  Haiku 4.5 · Claude
+  ▝▝ ▝▝    /private/var/folder
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trai
+
+❯ 中文😀é <marker:73>·········
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38 PM
+
+❯ <marker:74>·················
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38 PM
+▾ Prompt Trail  ↑ 点此向上浏览
+× 21. PT-FIXTURE 34 继续
+× 22. PT-FIXTURE 35 继续
+× 23. PT-FIXTURE 36 继续
+× 24. PT-FIXTURE 37 继续
+× 25. PT-FIXTURE 38 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PT-FIXTURE 41 继续
+× 27. PT-FIXTURE 42 继续
+× 28. PT-FIXTURE 43 继续
+—— Run 未记录离开 ——
+—— Run 开始 ——
+29. 中文😀é <marker:73>·······
+30. <marker:74>···············
+
+──────────────────────────────
+❯
+──────────────────────────────
+  ⏸ manual mode on · ? for sho
+
+==== 34 columns (34x40)
+▝▜██████▀  Haiku 4.5 · Claude
+  ▝▝ ▝▝    /private/var/folder
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trai
+
+❯ 中文😀é <marker:73>·········
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38 PM
+
+❯ <marker:74>·················
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38 PM
+▾ Prompt Trail  ↑ 点此向上浏览
+× 21. PT-FIXTURE 34 继续
+× 22. PT-FIXTURE 35 继续
+× 23. PT-FIXTURE 36 继续
+× 24. PT-FIXTURE 37 继续
+× 25. PT-FIXTURE 38 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PT-FIXTURE 41 继续
+× 27. PT-FIXTURE 42 继续
+× 28. PT-FIXTURE 43 继续
+—— Run 未记录离开 ——
+—— Run 开始 ——
+29. 中文😀é <marker:73>·······
+30. <marker:74>···············
+
+──────────────────────────────
+❯
+──────────────────────────────
+  ⏸ manual mode on · ? for sho
+
+==== 40 columns (40x40)
+▝▜██████▀  Haiku 4.5 · Claude
+  ▝▝ ▝▝    /private/var/folder
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trai
+
+❯ 中文😀é <marker:73>·········
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38 PM
+
+❯ <marker:74>·················
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38 PM
+▾ Prompt Trail  ↑ 点此向上浏览
+× 21. PT-FIXTURE 34 继续
+× 22. PT-FIXTURE 35 继续
+× 23. PT-FIXTURE 36 继续
+× 24. PT-FIXTURE 37 继续
+× 25. PT-FIXTURE 38 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PT-FIXTURE 41 继续
+× 27. PT-FIXTURE 42 继续
+× 28. PT-FIXTURE 43 继续
+—— Run 未记录离开 ——
+—— Run 开始 ——
+29. 中文😀é <marker:73>·······
+30. <marker:74>···············
+
+──────────────────────────────
+❯
+──────────────────────────────
+  ⏸ manual mode on · ? for sho
+
+==== folded and opened while cramped (27x40)
+
+           Claude Code
+ ▐▛███▛█   v2.1.273
+▝▜██████▀  Haiku 4.5
+  ▝▝ ▝▝    Claude API
+           /…/project
+
+
+❯ /prompt-history
+  ⎿ prompt-trail: Prompt
+    Trail 已展开。
+
+❯ 中文😀é
+  <marker:73>·············
+  4d0e0852-PT-UI-007
+  这是自动化验收的测试输入
+  ，请只回复 ok
+
+  第二行 宽字符
+
+⏺ ok
+
+✻ Baked for 5s · done 10:38
+  PM
+
+❯ <marker:74>·············
+  ad90613a-PT-UI-007
+  这是自动化验收的测试输入
+  ，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 2s · done 10:38
+  PM
+▾ Prompt Trail · 空间不 [-]
+
+───────────────────────────
+❯
+───────────────────────────
+  ⏸ manual mode on · ? f…

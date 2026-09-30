@@ -1,0 +1,377 @@
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-ehgjvudx/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-ehgjvudx/project
+
+
+❯ <marker:196>··································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-ehgjvudx/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/46f22f08a0fd996de5c5765446273fb61c6845ba9c7f6568c97e8bbffc38bb8f.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-ehgjvudx/project
+
+
+❯ <marker:196>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 4s · done 11:09 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /cost (120x40)
+
+✻ Churned for 4s · done 11:09 PM
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔ You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai) ▔
+   Settings  Status   Config   Usage   Stats
+
+   Session
+
+   Total cost:            $0.0177
+   Total duration (API):  5s
+   Total duration (wall): 9s
+   Total code changes:    0 lines added, 0 lines removed
+   Usage by model:
+       claude-haiku-4-5:  947 input, 145 output, 14.7k cache read, 7.3k cache write ($0.0177)
+   Prompt cache (main):   1 request · 67% of input tokens from cache · no misses · warm (1h TTL, last activity 4s
+   ago)
+
+   Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== /prompt-history status (120x40)
+
+❯ <marker:196>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 4s · done 11:09 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-ehgjvudx/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/46f22f08a0fd996de5c5765446273fb61c6845ba9c7f6568c97e8bbffc38bb8f.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f74c9ec-6abd2608-3a709eb9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-ehgjvudx/project
+     database root: <tmp>/ptr-ehgjvudx/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-ehgjvudx/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/57a58644-3325-48f1-866d-6d9d0be72193.45558-1790780931-977095.json
+     run: 12fb8beb-e2e6-4ca4-acb1-4aeafa8594a0
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /reload-plugins (120x40)
+
+
+✻ Churned for 4s · done 11:09 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-ehgjvudx/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/46f22f08a0fd996de5c5765446273fb61c6845ba9c7f6568c97e8bbffc38bb8f.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f74c9ec-6abd2608-3a709eb9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-ehgjvudx/project
+     database root: <tmp>/ptr-ehgjvudx/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-ehgjvudx/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/57a58644-3325-48f1-866d-6d9d0be72193.45558-1790780931-977095.json
+     run: 12fb8beb-e2e6-4ca4-acb1-4aeafa8594a0
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /compact (120x40)
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.273 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.283
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-ehgjvudx/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/46f22f08a0fd996de5c5765446273fb61c6845ba9c7f6568c97e8bbffc38bb8f.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f74c9ec-6abd2608-3a709eb9
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-ehgjvudx/project
+     database root: <tmp>/ptr-ehgjvudx/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-ehgjvudx/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/57a58644-3325-48f1-866d-6d9d0be72193.45558-1790780931-977095.json
+     run: 12fb8beb-e2e6-4ca4-acb1-4aeafa8594a0
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+❯ /compact
+
+✢ Compacting conversation… (0s)
+  ⎿  Tip: Use /memory to view and manage Claude memory
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== /clear (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-ehgjvudx/project
+
+
+❯ /clear
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /rewind menu (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-ehgjvudx/project
+
+
+❯ /clear
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Rewind
+
+   Restore the code and/or conversation to the point before…
+
+     ↑ 1 more above
+     /clear
+     No code changes
+
+   ❯ (current)
+
+
+
+
+   Enter to continue · Esc to cancel

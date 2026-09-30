@@ -1,0 +1,293 @@
+==== started (120x40)
+
+           Claude Code v2.1.283
+           Haiku 4.5 · Claude API
+           <tmp>/ptr-svo45jd0/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+▗▟▛███▛█▄  Claude Code v2.1.283
+ ▜██████▘  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-svo45jd0/project
+
+
+❯ <marker:197>··································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-svo45jd0/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/bebd08ad960bddce2dfbe807307a4c86b4420f8148243a2a8229c21d744dd485.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-svo45jd0/project
+
+
+❯ <marker:197>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 11:10 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /compact (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-svo45jd0/project
+
+
+❯ <marker:197>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 11:10 PM
+
+❯ /compact
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+✻ Compacting conversation… (0s)
+  ⎿  Tip: Start with small features or bug fixes, tell Claude to propose a plan, and verify its suggested edits
+▸ Prompt Trail                                                                                                       [-]
+                                            You've used 95% of your weekly limit · resets Oct 4 at 8am (Asia/Shanghai)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== /prompt-history (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-svo45jd0/project
+
+
+❯ <marker:197>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 11:10 PM
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ Prompt Trail  ctrl+x tab 键盘选择                                                                                  [-]
+—— Run 开始 ——
+1. <marker:197>··································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-svo45jd0/project
+
+
+❯ <marker:197>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 11:10 PM
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已折叠。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /reload-plugins (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.283
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-svo45jd0/project
+
+
+❯ <marker:197>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 11:10 PM
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已折叠。
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

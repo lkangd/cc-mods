@@ -1,0 +1,17 @@
+$ npx -y @anthropic-ai/claude-code@2.1.273 plugin validate <repo>/mods/prompt-trail
+exit 0
+
+--- stdout
+Validating plugin manifest: <repo>/mods/prompt-trail/.claude-plugin/plugin.json
+
+Validating hooks: <repo>/mods/prompt-trail/hooks/hooks.json
+
+  ❯ ./register.tsx hooks: session.start, ui.render{component=PromptHint, surface=terminal}, ui.render{component=UserMessage, surface=terminal}, classic.SessionEnd, classic.SessionStart, session.compact, command.run{command=prompt-history}, prompt.submit, ui.close, ui.render{component=Pane}, ui.scroll{component=AbovePrompt}, ui.focus{component=AbovePrompt}, tool.call{tool=AskUserQuestion}, ui.render{component=AbovePrompt, surface=terminal}
+  ❯ ./register.tsx calls: $.clock.after, $.clock.now (via appendBoundary, applyLifecycleEvent, detachAbandonedRuns, ensureRunAttached, flushForeignLifecycles, gapFields, markUnavailable, quarantineArchive, recordIntegrityGap, settleInflight, submitCollected, writeMarker), $.clock.sleep (via awaitStartup), $.command.register, $.env.get (via inspectTarget), $.fs.exists (via canonicalProjectRoot), $.fs.list (via inspectTarget), $.fs.read (via inspectTarget), $.process.run (via run), $.prompt.fill (via restoreDraft), $.session.id, $.session.messages (via alignOnce, recheckRows, reconcilePending, settleAlignment), $.store.delete (via archiveRecovered, clearReconcile, forgetClearedHistory, forgetMarkers, removeMarker, settleInflight), $.store.get, $.store.keys, $.store.set (via answerDamage, branchState, detachAbandonedRuns, enableCollection, enterNewGeneration, flushForeignLifecycles, forgetCollectionBoundary, forgetOwedLifecycle, markCompacted, markUnavailable, noteDiskSpace, reconcilePending,… [+440 chars]
+  ❯ ./register.tsx env writes: nothing
+  ❯ ./register.tsx env reads: HOME
+
+✔ Validation passed
+
+--- stderr
+npm warn Unknown user config "is-current". This will stop working in the next major version of npm.

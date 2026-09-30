@@ -1,0 +1,7 @@
+$ npx -y -p typescript@5.9.3 tsc -p <repo>/mods/prompt-trail/tsconfig.json
+exit 0
+
+--- stdout
+
+--- stderr
+npm warn Unknown user config "is-current". This will stop working in the next major version of npm.
