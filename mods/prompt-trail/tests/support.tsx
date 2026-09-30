@@ -162,6 +162,9 @@ export type TargetOptions = {
   statusFails?: string
   /* The bytes `archive-status` gives for the archive in place. */
   archiveBytes?: number
+  /* `clear-all` could not read the archive's counts: it was damaged, or an
+     earlier clear had already removed it. */
+  clearCountsUnknown?: boolean
   /* Another Run settled every listed pending first: a confirmation finds it
      gone and an abort finds it confirmed, as the helper answers each. */
   settledElsewhere?: boolean
@@ -315,6 +318,9 @@ export function installSupportedTarget(
   const currentLocatorPath = () =>
     `${locatorDirectory}/${locatorName(classic.id, identity.hostPid)}`
   const archive = options.archive ?? []
+  /* A clear leaves no file at the archive's path until the next write, and
+     `archive-status` then names no generation. */
+  let emptied = false
   let allocateSequence = sequenceAllocator(archive)
   const generation = options.generation ?? { value: 'gen-1' }
   const quarantined = options.quarantined ?? []
@@ -609,8 +615,8 @@ export function installSupportedTarget(
                       },
                 }),
             generation: held ? generation.value : null,
-            entries: archive.filter(row => row.kind === 'prompt').length,
-            pending: options.pendingUnknown ? null : staged.size,
+            entries: options.clearCountsUnknown ? null : archive.filter(row => row.kind === 'prompt').length,
+            pending: options.pendingUnknown || options.clearCountsUnknown ? null : staged.size,
             otherLiveRuns: options.otherLiveRuns === undefined ? 0 : options.otherLiveRuns,
             files,
             quarantined,
@@ -701,6 +707,7 @@ export function installSupportedTarget(
       /* The path stands empty; the next write begins another generation,
          and damage the old one had went with it. */
       generation.value = `${generation.value}-cleared`
+      emptied = true
       if (options.beginFails === 'archive-integrity') options.beginFails = undefined
       if (options.clearLeaves?.length) {
         if (options.clearUnderway) options.clearUnderway.value = true
@@ -711,7 +718,9 @@ export function installSupportedTarget(
         value: {
           exitCode: 0,
           stdout: JSON.stringify({
-            projectId, cleared: true, entries, pending: options.pendingUnknown ? null : pending,
+            projectId, cleared: true,
+            entries: options.clearCountsUnknown ? null : entries,
+            pending: options.pendingUnknown || options.clearCountsUnknown ? null : pending,
             quarantined: moved, sessionsRemoved: 0, sessionsFailed: options.sessionsFailed ?? 0,
           }),
           stderr: '',
@@ -975,7 +984,7 @@ export function installSupportedTarget(
           exitCode: 0,
           stdout: JSON.stringify({
             projectId,
-            generation: generation.value,
+            generation: emptied && archive.length === 0 && staged.size === 0 ? null : generation.value,
             quarantineUnderway: options.quarantineUnderway?.value
               ?? options.quarantineFails === 'quarantine-failed',
             clearUnderway: options.clearUnderway?.value === true,

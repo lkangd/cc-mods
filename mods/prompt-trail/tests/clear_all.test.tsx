@@ -13,7 +13,7 @@ import {
   session,
   sessionId,
 } from './support'
-import type { ArchiveRow } from './support'
+import type { ArchiveRow, TargetOptions } from './support'
 
 const PHRASE = 'delete all prompts'
 const branchKey = `prompt-trail:branch:${projectId}:${runId}:${sessionId}`
@@ -297,6 +297,63 @@ test('clear-all takes up an unfinished clear with one confirmation and no phrase
   expect(clearOffered).toEqual([['继续清除', '取消']])
   expect(captureCalls(calls, 'clear-all')).toHaveLength(1)
   expect(finished.text).toContain('已清除本项目的 Prompt Trail 档案')
+})
+
+test('finishing a clear whose archive is already gone does not call it damaged', async ($, on) => {
+  installSupportedTarget(on, {
+    store: collectingStore(), clearUnderway: { value: true }, clearLeaves: [], clearCountsUnknown: true,
+    clearAnswers: ['继续清除'],
+  })
+  await $.session.start(session)
+
+  const finished = (await promptHistory($, 'clear-all')).text ?? ''
+
+  expect(finished).toContain('已清除本项目的 Prompt Trail 档案')
+  expect(finished).toContain('条数无法读取')
+  expect(finished).not.toContain('损坏')
+})
+
+test('a clear another Run began during the confirmation is not called damage', async ($, on) => {
+  const clearUnderway = { value: false }
+  const options: TargetOptions = {
+    store: collectingStore(), archive: archivedBefore(), clearUnderway, clearLeaves: [], clearAnswers: [PHRASE],
+    /* While the person reads the confirmation, another Run cuts and
+       removes the archive, so this clear only finishes that one. */
+    duringAsk: () => {
+      clearUnderway.value = true
+      options.clearCountsUnknown = true
+    },
+  }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+
+  const cleared = (await promptHistory($, 'clear-all')).text ?? ''
+
+  expect(cleared).toContain('已清除本项目的 Prompt Trail 档案')
+  expect(cleared).not.toContain('损坏')
+})
+
+test('after a clear status says no archive is in place', async ($, on) => {
+  installSupportedTarget(on, { store: collectingStore(), archive: archivedBefore(), clearAnswers: [PHRASE] })
+  await $.session.start(session)
+  await composerPrompt($, { text: 'PT-SECRET-BEFORE' })
+  expect((await promptHistory($, 'status')).text).toContain('archive: ready')
+
+  await promptHistory($, 'clear-all')
+  const status = (await promptHistory($, 'status')).text ?? ''
+
+  expect(status).toContain('archive: not created')
+})
+
+test('a first clear of a damaged archive says it was damaged', async ($, on) => {
+  installSupportedTarget(on, {
+    store: collectingStore(), archive: archivedBefore(), clearCountsUnknown: true, clearAnswers: [PHRASE],
+  })
+  await $.session.start(session)
+
+  const cleared = (await promptHistory($, 'clear-all')).text ?? ''
+
+  expect(cleared).toContain('损坏的活动档案（条数无法读取）')
 })
 
 test('opening the timeline after another Run cleared it shows nothing cleared', async ($, on) => {
