@@ -1177,8 +1177,29 @@ function archiveStateKey(projectId: string): string {
   return `prompt-trail:archive-state:${projectId}`
 }
 
-function reconcileKey(projectId: string): string {
+/* Keyed by the Run reconciling, not by project: `$.store` is shared by every
+   process, and a project-level record would hand one Run's pending to another
+   still running, or let two Runs owing a pending each erase the other's. What
+   another Run left behind is found in the archive, which leaves out the
+   pendings of Runs still live. */
+function reconcileKey(projectId: string, forRunId: string): string {
+  return `prompt-trail:reconcile:${projectId}:${forRunId}`
+}
+
+/* Where earlier builds kept the one record of a project. */
+function legacyReconcileKey(projectId: string): string {
   return `prompt-trail:reconcile:${projectId}`
+}
+
+/* This Run's own record: the one under its key, or one an earlier build
+   kept for the project, when it is this Run's. */
+async function ownReconcile($: EngineInterface, projectId: string): Promise<ReconcileState | undefined> {
+  const own = startup.runId
+  if (!own) return undefined
+  const kept = storedReconcile(await $.store.get(reconcileKey(projectId, own)))
+  if (kept) return kept
+  const legacy = storedReconcile(await $.store.get(legacyReconcileKey(projectId)))
+  return legacy?.runId === own ? legacy : undefined
 }
 
 /* Keyed by Run, not by project. The record is a read-modify-write of a whole
@@ -1715,7 +1736,7 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
   let owed: ReconcileState | undefined
   let owedUnknown = false
   try {
-    owed = storedReconcile(await $.store.get(reconcileKey(id)))
+    owed = await ownReconcile($, id)
   } catch {
     owedUnknown = true
   }
@@ -2618,7 +2639,8 @@ async function saveReconcile(
 ): Promise<void> {
   reconcile = { state, text }
   try {
-    await $.store.set(reconcileKey(currentProject.id), state)
+    if (!startup.runId) throw new Error('capture-identity')
+    await $.store.set(reconcileKey(currentProject.id, startup.runId), state)
   } catch {
     /* The in-memory block still holds for this module instance; a reload
        re-discovers the pending from the archive. */
@@ -2636,7 +2658,12 @@ async function clearReconcile(
      reconciliation. */
   pendingDiscovered = false
   try {
-    await $.store.delete(reconcileKey(currentProject.id))
+    const own = startup.runId
+    if (own) {
+      await $.store.delete(reconcileKey(currentProject.id, own))
+      const legacy = storedReconcile(await $.store.get(legacyReconcileKey(currentProject.id)))
+      if (legacy?.runId === own) await $.store.delete(legacyReconcileKey(currentProject.id))
+    }
   } catch {
     // The archive no longer holds the pending, so a stale record self-heals.
   }
@@ -4871,6 +4898,10 @@ async function forgetClearedHistory($: EngineInterface, currentProject: ProjectS
         await forgetOwedLifecycle($, key)
       } else if (key.startsWith(`prompt-trail:run-mode:${currentProject.id}:`)) {
         await forgetCollectionBoundary($, key)
+      } else if (key === legacyReconcileKey(currentProject.id)
+          || key.startsWith(`${legacyReconcileKey(currentProject.id)}:`)) {
+        /* Every Run's pending went with the cut. */
+        await $.store.delete(key)
       }
     }
     /* A Run live elsewhere may still be submitting: its marker stays with it.
@@ -6382,8 +6413,7 @@ async function forgetClearedRun($: EngineInterface, currentProject: ProjectState
   if (lifecycle?.key === lifecycleOwn) lifecycle = { key: lifecycleOwn, value: withoutOwed(lifecycle.value) }
   let forgotten = true
   try {
-    if (reconcile?.state.runId === own
-        || storedReconcile(await $.store.get(reconcileKey(currentProject.id)))?.runId === own) {
+    if (reconcile?.state.runId === own || (await ownReconcile($, currentProject.id))?.runId === own) {
       await clearReconcile($, currentProject)
     }
     const branches = `prompt-trail:branch:${currentProject.id}:${own}:`

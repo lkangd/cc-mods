@@ -709,7 +709,7 @@ test('a clear waits for an unsettled pre-clear Pending Capture', async ($, on) =
   /* The confirmation fails, so this prompt is owed a reconciliation and has
      taken no sequence yet. */
   await composerPrompt($)
-  expect(store[`prompt-trail:reconcile:${projectId}`]).toBeDefined()
+  expect(store[`prompt-trail:reconcile:${projectId}:${runId}`]).toBeDefined()
 
   const before = boundaryCalls(calls).length
   /* A `/clear` landing here must not take the sequence between them: the

@@ -19,7 +19,7 @@ import type { ArchiveRow, TargetOptions } from './support'
    empty generation, or disable itself. */
 
 const archiveStateKey = `prompt-trail:archive-state:${projectId}`
-const reconcileKey = `prompt-trail:reconcile:${projectId}`
+const reconcileKey = `prompt-trail:reconcile:${projectId}:${runId}`
 const branchKey = `prompt-trail:branch:${projectId}:${runId}:${sessionId}`
 const otherRun = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb'
 const DAMAGE_CHOICES = ['重新检查完整性', '隔离并开始新档案', '清除全部档案', '禁用当前 Run 后继续']

@@ -7,6 +7,7 @@ import {
   installSupportedTarget,
   projectId,
   promptHistory,
+  runId,
   session,
   type TargetOptions,
 } from './support'
@@ -189,7 +190,7 @@ test('a confirmation failure keeps collection blocked across a reload', async ($
   /* The prompt did enter the session, so the unresolved Pending Capture
      persists. The archive's refusal is on record for the other Runs too, until
      any write it takes lifts it (Issue 25). */
-  expect(store[`prompt-trail:reconcile:${projectId}`]).toMatchObject({
+  expect(store[`prompt-trail:reconcile:${projectId}:${runId}`]).toMatchObject({
     version: 1,
     eventId: expect.any(String),
   })

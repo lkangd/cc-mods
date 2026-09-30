@@ -17,7 +17,12 @@ function consentedStore(): Record<string, unknown> {
   return { [`prompt-trail:consent:${projectId}`]: consentGranted }
 }
 
-function reconcileKey(): string {
+function reconcileKey(forRunId: string = runId): string {
+  return `prompt-trail:reconcile:${projectId}:${forRunId}`
+}
+
+/* Where earlier builds kept the one record of a project. */
+function legacyReconcileKey(): string {
   return `prompt-trail:reconcile:${projectId}`
 }
 
@@ -534,6 +539,51 @@ const HELD_ELSEWHERE = {
   occurredAtMs: 1_795_000_000_000,
   attachmentCount: 0,
 }
+
+/* What a Run that could not confirm its submission records for itself. */
+const RECORD_ELSEWHERE = {
+  version: 1,
+  eventId: HELD_ELSEWHERE.eventId,
+  runId: HELD_ELSEWHERE.runId,
+  branchId: HELD_ELSEWHERE.branchId,
+  parentEventId: null,
+  attachmentCount: 0,
+}
+
+test("another live Run's reconciliation record is left to that Run", async ($, on) => {
+  const store = { ...consentedStore(), [legacyReconcileKey()]: { ...RECORD_ELSEWHERE } }
+  const calls = installSupportedTarget(on, {
+    store,
+    pendingList: [{ ...HELD_ELSEWHERE }],
+    liveRuns: [HELD_ELSEWHERE.runId],
+    reconcileAnswer: '未进入',
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
+  expect(captureCalls(calls, 'capture-confirm').map(call => call.argv[4]))
+    .not.toContain(HELD_ELSEWHERE.eventId)
+  expect(store[legacyReconcileKey()]).toStrictEqual(RECORD_ELSEWHERE)
+})
+
+test("a Run's own pending leaves another Run's record as it was", async ($, on) => {
+  const store = { ...consentedStore(), [legacyReconcileKey()]: { ...RECORD_ELSEWHERE } }
+  installSupportedTarget(on, {
+    store,
+    pendingList: [{ ...HELD_ELSEWHERE }],
+    liveRuns: [HELD_ELSEWHERE.runId],
+    confirmFails: true,
+  })
+  await $.session.start(session)
+
+  await composerPrompt($)
+
+  expect(store[legacyReconcileKey()]).toStrictEqual(RECORD_ELSEWHERE)
+  expect(store[reconcileKey()]).toMatchObject({ runId })
+})
 
 test('a pending another live Run holds is left to that Run', async ($, on) => {
   const store = consentedStore()
