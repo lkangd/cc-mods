@@ -33,7 +33,8 @@ Not introduced by this change: before Issue 51 every successful write deleted th
 unconditionally, so the window was wider. It cannot be closed with the host's store: `$.store`
 has only `get`/`set`/`delete`/`keys`, with no conditional write (only `$.state.set` has
 `ifVersion`, and `$.state` is per session, not shared between Runs). Closing it needs a design
-decision about where the damage record lives.
+decision about where the damage record lives. The person chose on 2026-09-30 to keep it here
+rather than open an issue, and to go on with Issue 41.
 
 ## Suggested fix approach
 
