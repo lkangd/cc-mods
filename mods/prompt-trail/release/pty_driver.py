@@ -232,7 +232,7 @@ class Terminal:
         with self.lock:
             return self.screen.buffer[row][column]
 
-    def wait_for(self, predicate, what: str, timeout: float = 30.0):
+    def wait_for(self, predicate, what: str, timeout: float = 30.0, interval: float = 0.1):
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             result = predicate(self) if callable(predicate) else (predicate in self.text())
@@ -240,7 +240,7 @@ class Terminal:
                 return result
             if self.closed:
                 break
-            time.sleep(0.1)
+            time.sleep(interval)
         self.env.snap(self, f"timed out: {what}")
         raise ScenarioFailure(f"timed out waiting for {what}")
 
