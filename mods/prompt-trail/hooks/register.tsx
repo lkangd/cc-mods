@@ -5523,6 +5523,8 @@ function boundarySummary(mode: RunModeState | undefined): string {
 function reconcileSummary(): string {
   const elsewhere = pendingElsewhere ? ` · 另有 ${pendingElsewhere} 条属于正在运行的其他 Run` : ''
   if (reconcile) return `${reconcile.state.eventId.slice(0, 8)} · 待对账${elsewhere}`
+  /* The archive was not asked, so nothing owed there can be ruled out. */
+  if (startup.support !== 'supported') return `unknown · ${startup.support}，无法检查档案`
   if (pendingUnknown) return `unknown · 未决 Pending Capture 不可读（${pendingUnknown}）`
   return `none${elsewhere}`
 }
@@ -6776,36 +6778,41 @@ export const register: Register = on => {
             const owner = markerOwner(key, currentProject.id)
             if (owner && owner.runOf === startup.runId && !liveCalls.has(owner.call)) unsettledCalls += 1
           }
-          try {
-            archiveStatus = undefined
-            archiveStatus = await readArchiveStatus($, currentProject)
-            if (archiveStatus.clearUnderway) {
-              const left = await readClearInventory($, currentProject)
-              archiveStatus.clearResidual = left.files.length + left.quarantined.length
+          archiveStatus = undefined
+          /* Only a helper the preflight vouched for is run: one found missing,
+             changed or untrusted is never executed, and what it would have
+             said of the archive and its pendings stays unknown. */
+          if (startup.support === 'supported') {
+            try {
+              archiveStatus = await readArchiveStatus($, currentProject)
+              if (archiveStatus.clearUnderway) {
+                const left = await readClearInventory($, currentProject)
+                archiveStatus.clearResidual = left.files.length + left.quarantined.length
+              }
+              if (archiveStatus.clearRunUnderway) {
+                archiveStatus.clearRunResidual = runResidue(await readClearInventory($, currentProject)).length
+              }
+            } catch {
+              // Reported as unknown; the rest of the report stands.
             }
-            if (archiveStatus.clearRunUnderway) {
-              archiveStatus.clearRunResidual = runResidue(await readClearInventory($, currentProject)).length
+            /* Best effort: a pending this Run has not met yet still blocks it,
+               so status says so rather than reading as healthy. A failure here
+               never costs the rest of the report. */
+            try {
+              if (reconcile) {
+                pendingElsewhere = undefined
+                pendingElsewhere = (await listPending($, currentProject)).skipped
+              } else {
+                /* Listed afresh, and anything owed is taken up rather than
+                   dropped with the count. */
+                pendingDiscovered = false
+                await discoverPending($, currentProject)
+              }
+            } catch {
+              /* `discoverPending` has already recorded that the archive could
+                 not be asked, so the report says "unknown" rather than reading
+                 as healthy; the other lines still stand. */
             }
-          } catch {
-            // Reported as unknown; the rest of the report stands.
-          }
-          /* Best effort: a pending this Run has not met yet still blocks it,
-             so status says so rather than reading as healthy. A failure here
-             never costs the rest of the report. */
-          try {
-            if (reconcile) {
-              pendingElsewhere = undefined
-              pendingElsewhere = (await listPending($, currentProject)).skipped
-            } else {
-              /* Listed afresh, and anything owed is taken up rather than
-                 dropped with the count. */
-              pendingDiscovered = false
-              await discoverPending($, currentProject)
-            }
-          } catch {
-            /* `discoverPending` has already recorded that the archive could
-               not be asked, so the report says "unknown" rather than reading
-               as healthy; the other lines still stand. */
           }
         } catch {
           // status stays available without a proven project identity.

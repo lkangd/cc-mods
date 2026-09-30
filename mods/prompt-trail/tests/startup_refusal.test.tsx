@@ -1,6 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from '../hooks/artifact'
+import * as supported from './support'
 
 const session = {
   cwd: '/tmp/prompt-trail-project',
@@ -551,4 +552,23 @@ test('rejects a group-writable manifest before execution', async ($, on) => {
   expect(result.text).toContain('support: helper unavailable')
   expect(result.text).toContain('reason: manifest-untrusted')
   expect(calls.some(argv => argv[0] === helperPath)).toBe(false)
+})
+
+test('status runs no helper it cannot trust, even for a project that collects', async ($, on) => {
+  const calls = supported.installSupportedTarget(on, {
+    store: {
+      [`prompt-trail:consent:${supported.projectId}`]: { policyVersion: 1, decision: 'enabled' },
+    },
+    helperDigest: { value: '0'.repeat(64) },
+  })
+  await $.session.start(supported.session)
+
+  const result = await supported.promptHistory($, 'status')
+
+  expect(result.text).toContain('support: helper unavailable')
+  expect(result.text).toContain('reason: digest-mismatch')
+  expect(result.text).toContain('collection consent: granted')
+  expect(result.text).toContain('archive: unknown')
+  expect(result.text).toContain('pending reconciliation: unknown')
+  expect(calls.filter(call => call.argv[0] === supported.helperPath)).toStrictEqual([])
 })
