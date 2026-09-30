@@ -369,6 +369,50 @@ test('an arrow down from the last entry shows the rows still below it and follow
   expect(latest.labels.at(-1)).toBe('31. PT-SECRET-NEW')
 })
 
+test('each arrow walks on from the row the view followed to, even while the engine refuses the ring there', async ($, on) => {
+  /* The row an arrow heads for above the view is focused once the drawing
+     shows it. The engine can refuse that focus while its new frame is not
+     yet in (the test engine refuses every focus the plugin asks for), and
+     keeps the ring by position meanwhile; the next arrow still walks on. */
+  let clock: MockClock | undefined
+  installSupportedTarget(on, {
+    store: consentedStore(),
+    archive: archiveOf(600),
+    onClock: mocked => { clock = mocked },
+  })
+  await $.session.start(session)
+  await promptHistory($)
+  await renderBand($, { maxRows: 12 })
+  await scrollBand($, -5)
+  const drawn = band(await renderBand($, { maxRows: 12 }))
+  expect(drawn.prompts[0]).toBe(`prompt-trail:prompt:${entry(585).eventId}`)
+  await focusRow($, drawn.prompts[0]!)
+
+  const tops: string[] = []
+  for (let press = 0; press < 3; press++) {
+    await scrollBand($, -1, 'keys')
+    tops.push(band(await renderBand($, { maxRows: 12 })).prompts[0]!)
+    await clock!.settle()
+  }
+
+  expect(tops).toEqual([584, 583, 582].map(sequence => `prompt-trail:prompt:${entry(sequence).eventId}`))
+})
+
+test('arrows pressed faster than the band draws each walk a row', async ($, on) => {
+  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600) })
+  await $.session.start(session)
+  await promptHistory($)
+  await renderBand($, { maxRows: 12 })
+  await scrollBand($, -5)
+  const drawn = band(await renderBand($, { maxRows: 12 }))
+  await focusRow($, drawn.prompts[0]!)
+
+  await scrollBand($, -1, 'keys')
+  await scrollBand($, -1, 'keys')
+
+  expect(band(await renderBand($, { maxRows: 12 })).prompts[0]).toBe(`prompt-trail:prompt:${entry(583).eventId}`)
+})
+
 test('the ring reaching the window\'s first row fetches the batch before it', async ($, on) => {
   const calls = installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600) })
   await $.session.start(session)

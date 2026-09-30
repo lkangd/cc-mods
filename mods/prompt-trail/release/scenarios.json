@@ -1125,6 +1125,14 @@
         },
         {
           "kind": "plugin",
+          "ref": "tests/long_timeline.test.tsx::each arrow walks on from the row the view followed to, even while the engine refuses the ring there"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/long_timeline.test.tsx::arrows pressed faster than the band draws each walk a row"
+        },
+        {
+          "kind": "plugin",
           "ref": "tests/long_timeline.test.tsx::the ring reaching the window's first row fetches the batch before it"
         },
         {
