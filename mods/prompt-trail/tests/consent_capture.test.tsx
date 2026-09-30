@@ -6,7 +6,9 @@ import {
   databasePath,
   installSupportedTarget,
   projectId,
+  promptHistory,
   session,
+  type TargetOptions,
 } from './support'
 
 test('declining consent lets the prompt enter without creating archive state', async ($, on) => {
@@ -55,6 +57,20 @@ test('enabled consent stages through stdin and confirms the final prompt atomica
   expect(status.text).toContain('Run collection mode: enabled')
   expect(status.text).toContain(`archive: ready · ${databasePath}`)
   expect(status.text).not.toContain('PT-SECRET')
+})
+
+test('status gives the size of the archive in place, or says it is unknown', async ($, on) => {
+  const options: TargetOptions = { ask: '启用', archiveBytes: 20_480 }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+  await composerPrompt($)
+
+  const sized = (await promptHistory($, 'status')).text
+  options.statusFails = 'archive-busy'
+  const unknown = (await promptHistory($, 'status')).text
+
+  expect(sized).toContain(`archive: ready · ${databasePath} · 20480 bytes`)
+  expect(unknown).toContain(`archive: ready · ${databasePath} · size unknown`)
 })
 
 test('stored current-policy consent survives reload without another question', async ($, on) => {
@@ -194,3 +210,4 @@ test('a store write failure never blocks a prompt the person declined to collect
   expect(JSON.stringify(result)).not.toContain('PT-SECRET-STORE')
   expect(calls.some(call => call.argv[1]?.startsWith('capture-'))).toBe(false)
 })
+

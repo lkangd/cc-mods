@@ -4323,6 +4323,8 @@ type ArchiveStatus = {
   integrityGaps: number | null
   /* The Runs other live processes hold; null when that cannot be read. */
   liveRuns: string[] | null
+  /* The bytes the archive in place takes; null when the helper did not say. */
+  archiveBytes: number | null
 }
 
 type SubmitOutcome = { done: PromptSubmitResult } | { blocked: Blocked }
@@ -4480,6 +4482,9 @@ async function readArchiveStatus(
       : null,
     liveRuns: Array.isArray(value.liveRuns) && value.liveRuns.every(isSafeId)
       ? value.liveRuns as string[]
+      : null,
+    archiveBytes: Number.isSafeInteger(value.archiveBytes) && (value.archiveBytes as number) >= 0
+      ? value.archiveBytes as number
       : null,
     quarantined: value.quarantined.map((kept: unknown) => {
       if (
@@ -5605,6 +5610,11 @@ function integritySummary(): string {
   return parts.join(' · ')
 }
 
+function archiveSize(): string {
+  const bytes = archiveStatus?.archiveBytes
+  return bytes === undefined || bytes === null ? 'size unknown' : `${bytes} bytes`
+}
+
 function integrityGapsSummary(): string {
   const gaps = archiveStatus?.integrityGaps
   if (gaps === undefined || gaps === null) return 'unknown'
@@ -5634,7 +5644,7 @@ function statusText(): string {
   const archive = archiveFailure
     ? `unavailable · 范围 ${archiveFailure.scope} · 类别 ${archiveFailure.category}${archiveFailure.elsewhere ? ' · 由另一个 Run 报告' : ''}${archiveFailure.recheck ? ` · ${recheckNote(archiveFailure.recheck)}` : ''}`
     : project?.archiveReady && project.databasePath
-      ? `ready · ${statusValue(project.databasePath)}`
+      ? `ready · ${statusValue(project.databasePath)} · ${archiveSize()}`
       : 'not created'
   const damageChoices = archiveFailure && DAMAGE_FAILURES.has(archiveFailure.category)
     ? ['choices: 重新检查完整性 / 隔离并开始新档案 / 清除全部档案 / 禁用当前 Run 后继续（在下一次提交时选择）']

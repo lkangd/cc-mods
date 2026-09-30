@@ -3885,7 +3885,7 @@ class HelperProtocolTests(unittest.TestCase):
             self.archive_status(project_id),
             {"projectId": project_id, "generation": None, "quarantined": [], "quarantineUnderway": False,
              "clearUnderway": False, "clearRunUnderway": False, "integrityGaps": 0,
-             "liveRuns": []},
+             "liveRuns": [], "archiveBytes": 0},
         )
         self.assertFalse((self.plugin_data / "archives").exists())
 
@@ -4922,6 +4922,17 @@ class HelperProtocolTests(unittest.TestCase):
 
         self.assertIsNone(status["integrityGaps"])
         self.assertEqual(archive.read_bytes(), b"PT-NOT-AN-ARCHIVE" * 512)
+
+    def test_archive_status_gives_the_size_of_the_archive_in_place(self) -> None:
+        project_id = "d6" * 32
+        self.capture("PT-SECRET-SIZED", identity=self.identity(project_id))
+        root = self.plugin_data / "archives"
+        files = [root / f"{project_id}.sqlite3{suffix}" for suffix in ("", "-wal", "-shm")]
+
+        size = self.archive_status(project_id)["archiveBytes"]
+
+        self.assertGreater(size, 0)
+        self.assertEqual(size, sum(path.stat().st_size for path in files if path.exists()))
 
     def test_archive_status_names_the_runs_live_in_other_processes(self) -> None:
         # This test process stands for a live Run.
