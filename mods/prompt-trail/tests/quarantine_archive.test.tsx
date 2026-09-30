@@ -80,6 +80,42 @@ test('damage offers a recheck, a quarantine, a clear, or disabling the Run', asy
   })
 })
 
+test('damage another Run found stops this Run before it writes anything', async ($, on) => {
+  const store = consentedStore()
+  store[archiveStateKey] = {
+    version: 2, state: 'unavailable', category: 'archive-integrity', since: 1, runId: otherRun, generation: 'gen-1',
+  }
+  const unavailableAsked: string[] = []
+  const unavailableOffered: string[][] = []
+  const calls = installSupportedTarget(on, { store, fills: [], unavailableAsked, unavailableOffered })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(unavailableOffered).toStrictEqual([DAMAGE_CHOICES])
+  expect(unavailableAsked[0]).toContain('由另一个 Run 报告')
+  /* Neither this Run's start nor a pending goes into the damaged generation. */
+  expect(captureCalls(calls, 'boundary-append')).toStrictEqual([])
+  expect(captureCalls(calls, 'capture-begin')).toStrictEqual([])
+  expect(result.drop).toContain('草稿已恢复')
+  expect(store[archiveStateKey]).toMatchObject({ category: 'archive-integrity', runId: otherRun })
+})
+
+test('a write that succeeds past the damage does not lift it for the other Runs', async ($, on) => {
+  const store = consentedStore()
+  store[archiveStateKey] = {
+    version: 2, state: 'unavailable', category: 'archive-integrity', since: 1, runId: otherRun, generation: 'gen-1',
+  }
+  const calls = installSupportedTarget(on, { store, fills: [], unavailableAnswers: ['禁用当前 Run 后继续'] })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(captureCalls(calls, 'boundary-append').length).toBeGreaterThan(0)
+  expect(store[archiveStateKey]).toMatchObject({ category: 'archive-integrity', runId: otherRun })
+})
+
 /* A pending the pre-write staged before the damage showed: the confirmation
    meets it, and the transcript proves the prompt entered, so settling the
    pending confirms it. The damage lifts once the person has chosen. */
