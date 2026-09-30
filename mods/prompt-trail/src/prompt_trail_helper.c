@@ -3729,6 +3729,25 @@ static void write_quarantined(const char *database_root, const char *project_id)
   fputs("]", stdout);
 }
 
+/* How many bytes the archive in place takes: the file with its WAL and
+   shared memory, 0 before it exists. */
+static void write_archive_bytes(const char *database_root, const char *project_id) {
+  static const char *const suffixes[] = { "", "-wal", "-shm" };
+  unsigned long long bytes = 0;
+  for (size_t index = 0; database_root && index < sizeof(suffixes) / sizeof(suffixes[0]); index += 1) {
+    char path[PATH_MAX];
+    struct stat status;
+    int length = snprintf(path, PATH_MAX, "%s/%s.sqlite3%s", database_root, project_id, suffixes[index]);
+    if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+    if (lstat(path, &status) == 0) {
+      bytes += (unsigned long long)status.st_size;
+    } else if (errno != ENOENT) {
+      archive_error("database-unavailable");
+    }
+  }
+  printf(",\"archiveBytes\":%llu", bytes);
+}
+
 static sqlite3 *clear_open_archive(const char *database_path);
 static long long clear_count(sqlite3 *database, const char *sql, const char *bound);
 
@@ -3811,6 +3830,7 @@ static void archive_status(int argc, char **argv) {
     free(live.run_ids);
   }
   write_quarantined(root_present ? database_root : NULL, project_id);
+  write_archive_bytes(root_present ? database_root : NULL, project_id);
   fputs("}\n", stdout);
 }
 

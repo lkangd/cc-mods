@@ -160,6 +160,8 @@ export type TargetOptions = {
   liveRuns?: string[]
   /* `archive-status` fails with this category. */
   statusFails?: string
+  /* The bytes `archive-status` gives for the archive in place. */
+  archiveBytes?: number
   /* Another Run settled every listed pending first: a confirmation finds it
      gone and an abort finds it confirmed, as the helper answers each. */
   settledElsewhere?: boolean
@@ -981,6 +983,7 @@ export function installSupportedTarget(
             integrityGaps: archive.filter(row => row.kind === 'integrity-gap').length,
             liveRuns: options.liveRuns ?? [],
             quarantined,
+            archiveBytes: options.archiveBytes ?? 0,
           }),
           stderr: '',
         },
