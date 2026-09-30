@@ -949,9 +949,7 @@ def jump_001(ctx: Context) -> str:
             ctx.click_row(terminal, rows[0], marker[: evidence.MARKER_PREFIX])
         terminal.wait_for(lambda t: collapsed(ctx, t) and in_transcript(t, marker), f"the {how} jump", 15)
         ctx.env.snap(terminal, f"jumped by {how}")
-        terminal.type("zz")
-        terminal.wait_for(lambda t: t.rows()[_prompt_box(t)][1:].strip() == "zz", "typing to reach the prompt box", 5)
-        terminal.key("backspace", "backspace")
+        typed(terminal)
     return "Enter and a click each brought an off-screen entry into view, collapsed the band and gave typing back to the prompt box"
 
 
@@ -1030,7 +1028,7 @@ def park(terminal: Terminal) -> None:
     time.sleep(0.2)
 
 
-def typed(ctx: Context, terminal: Terminal) -> None:
+def typed(terminal: Terminal) -> None:
     """Typing reaches the prompt box, and is taken back out."""
     terminal.type("zz")
     terminal.wait_for(lambda t: t.rows()[_prompt_box(t)][1:].strip() == "zz", "typing to reach the prompt box", 5)
@@ -1064,6 +1062,8 @@ def ui_001(ctx: Context) -> str:
     )
     ctx.env.snap(terminal, "opened by a click")
     check(FOCUS_HINT in band[0], "the open band does not say how to take its keyboard")
+    row = max(i for i, text in enumerate(terminal.rows()) if text.startswith("▾ Prompt Trail"))
+    check(terminal.cell(terminal.column(row, FOCUS_HINT), row).fg == DIM, "the keyboard hint is not dimmed")
     click_title(ctx, terminal, "Prompt Trail")
     terminal.wait_for(lambda t: collapsed(ctx, t), "the title click to fold the band", 15)
     ctx.env.snap(terminal, "folded by a click")
@@ -1071,14 +1071,14 @@ def ui_001(ctx: Context) -> str:
     band = ctx.expand(terminal, marker)
     check(FOCUS_HINT in band[0], "the band opened by the command does not say how to take its keyboard")
     check(not focused(ctx, terminal), "opening the band took the keyboard")
-    typed(ctx, terminal)
+    typed(terminal)
     # ctrl+x tab gives the band the keyboard, on the latest entry; Esc gives
     # it back to the prompt box and leaves the band open.
     terminal.key("ctrl-x", "tab", pause=0.5)
     check(focused(ctx, terminal) == shown(ctx.band(terminal), marker), "ctrl+x tab did not land on the entry")
     ctx.env.snap(terminal, "band holds the keyboard")
     terminal.key("esc", pause=0.5)
-    typed(ctx, terminal)
+    typed(terminal)
     check(ctx.band(terminal)[0].startswith("▾"), "Esc folded the band")
     ctx.env.snap(terminal, "keyboard given back")
     # The command folds the open band again.
@@ -1106,6 +1106,7 @@ BOUNDARY_ROWS = {
     "—— 采集已停止": "collection-stopped",
     "—— 采集已恢复": "collection-resumed",
 }
+DRAWN_KINDS = set(BOUNDARY_ROWS.values())
 
 
 def boundary_kind(row: str) -> str | None:
@@ -1214,8 +1215,8 @@ def ui_002(ctx: Context) -> str:
                 sequence = int(match.group(1))
                 if last is not None:
                     check(last < sequence, "entries are not drawn old to new")
-                    archived = iter([kinds[s] for s in range(last + 1, sequence) if s in kinds])
-                    check(all(kind in archived for kind in between), "boundary rows do not match the archive between two entries")
+                    archived = [kinds[s] for s in range(last + 1, sequence) if kinds.get(s) in DRAWN_KINDS]
+                    check(between == archived, "boundary rows do not match the archive between two entries")
                 last, between = sequence, []
 
     each(frame(terminal))
@@ -1374,19 +1375,17 @@ def ui_005(ctx: Context) -> str:
 
 
 def p95(samples: list[float]) -> float:
+    """The nearest-rank 95th percentile."""
     ordered = sorted(samples)
-    return ordered[-(-len(ordered) * 95 // 100) - 1]
+    rank = (len(ordered) * 95 + 99) // 100  # ceil(0.95 n) in integers
+    return ordered[rank - 1]
 
 
 def timed(terminal: Terminal, press, done, what: str, timeout: float = 10) -> float:
     """Seconds from `press()` until `done(terminal)`, read every 10 ms."""
     started = time.monotonic()
     press()
-    while not done(terminal):
-        if time.monotonic() - started > timeout:
-            terminal.env.snap(terminal, f"timed out: {what}")
-            raise ScenarioFailure(f"timed out waiting for {what}")
-        time.sleep(0.01)
+    terminal.wait_for(done, what, timeout, interval=0.01)
     return time.monotonic() - started
 
 
