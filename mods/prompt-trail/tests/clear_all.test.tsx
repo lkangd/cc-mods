@@ -185,6 +185,7 @@ test('clear-all shows what it removes and clears only on the exact phrase', asyn
 test('after a clear the Run goes on collecting in an empty timeline', async ($, on) => {
   const store = collectingStore()
   store[reconcileKey] = { version: 1, eventId: 'e'.repeat(64), runId: otherRun, branchId: 'b'.repeat(64), parentEventId: null, attachmentCount: 2 }
+  store[`${reconcileKey}:${otherRun}`] = { version: 1, eventId: 'f'.repeat(64), runId: otherRun, branchId: 'b'.repeat(64), parentEventId: null, attachmentCount: 0 }
   store[lifecycleKey(otherRun)] = { version: 1, queue: [owedClear('gen-1')] }
   const archive = archivedBefore()
   const calls = installSupportedTarget(on, { store, archive, clearAnswers: [PHRASE] })
@@ -196,6 +197,7 @@ test('after a clear the Run goes on collecting in an empty timeline', async ($, 
 
   expect(JSON.stringify(await renderBand($))).not.toContain('PT-SECRET-BEFORE')
   expect(store[reconcileKey]).toBeUndefined()
+  expect(store[`${reconcileKey}:${otherRun}`]).toBeUndefined()
   expect((store[lifecycleKey(otherRun)] as { queue: unknown[] }).queue).toEqual([])
 
   const result = await composerPrompt($, { text: 'PT-SECRET-AFTER' })

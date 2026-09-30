@@ -483,7 +483,7 @@ test('a confirmation the archive refused is put on record for the other Runs', a
 
   /* The prompt entered; the pending stays owed. */
   expect(result.text).toBe(SECRET)
-  expect(store[`prompt-trail:reconcile:${projectId}`]).toBeDefined()
+  expect(store[`prompt-trail:reconcile:${projectId}:${runId}`]).toBeDefined()
   expect(store[archiveStateKey]).toMatchObject({ state: 'unavailable', category: 'archive-full' })
 })
 
