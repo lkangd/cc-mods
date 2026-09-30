@@ -400,10 +400,15 @@ let bandView: {
   shown: string[]
   fits: boolean
 } = { rowKeys: [], stops: [], capacity: 1, shown: [], fits: true }
-/* The band element holding its focus ring, as the last move left it, and a
-   row the ring moves to once the next drawing shows it. */
+/* The band element holding its focus ring, as the last move left it or the
+   last row a drawing sent it to, and a row the ring moves to once the next
+   drawing shows it. */
 let ringKey: string | undefined
 let pendingFocus: string | undefined
+/* A drawing's move of the ring the engine refused, while its new frame was
+   not yet in, is sent again this many times, this far apart. */
+const RING_RETRIES = 3
+const RING_RETRY_MS = 50
 /* Whether the band last drew too small for its rows (under 28 columns or 6
    rows), and the element its ring stood on then, to return to with room. */
 let cramped = false
@@ -2501,10 +2506,28 @@ async function stepRing($: EngineInterface, by: 1 | -1): Promise<void> {
     }
   } else {
     pendingFocus = target
+    ringKey = target
     $.ui.invalidate('ui.render')
   }
   if (target === stops[0] && timelineEdges.earlier) await extendWindow($, 'earlier')
   else if (target === stops.at(-1) && timelineEdges.later) await extendWindow($, 'later')
+}
+
+/* Moves the ring onto a row a drawing now shows. Refused, the move is sent
+   again while the ring is still headed there: the engine keeps its ring by
+   position meanwhile, and the next arrow walks on from `ringKey`. */
+function sendRing($: EngineInterface, requestId: string, key: string, left = RING_RETRIES): void {
+  if (ringKey !== key) return
+  const again = () => {
+    if (left > 0) $.clock.after(RING_RETRY_MS, () => sendRing($, requestId, key, left - 1))
+  }
+  void (async () => {
+    try {
+      if ((await $.ui.focus({ requestId, key })).deny) again()
+    } catch {
+      again()
+    }
+  })()
 }
 
 /* Back to the latest events, the band's bottom. */
@@ -7026,12 +7049,8 @@ export const register: Register = on => {
     const focusTo = pendingFocus !== undefined && shownKeys.includes(pendingFocus) ? pendingFocus : undefined
     if (focusTo !== undefined) {
       pendingFocus = undefined
-      $.clock.after(0, () => {
-        void $.ui.focus({ requestId: e.requestId, key: focusTo }).then(
-          moved => { if (!moved.deny) ringKey = focusTo },
-          () => undefined,
-        )
-      })
+      ringKey = focusTo
+      $.clock.after(0, () => sendRing($, e.requestId, focusTo))
     }
     const lastShownStop = stops.filter(key => shownKeys.includes(key)).at(-1)
     const below = rows.length - view.top - shown.length
