@@ -829,9 +829,10 @@
       "title": "Fork",
       "steps": [
         "分别用后台 `/fork` 与 `--fork-session` 分叉",
-        "在分叉中提交"
+        "在分叉中提交",
+        "来源 `/compact` 后再提交一条，再分别用后台 `/fork` 与 `--fork-session` 分叉并提交"
       ],
-      "expected": "创建新 Run 与新 Conversation Branch；共享前缀不重复；fork 参数作为 composer 提交时产生新 Prompt Entry。",
+      "expected": "创建新 Run 与新 Conversation Branch；共享前缀不重复；fork 参数作为 composer 提交时产生新 Prompt Entry。compact 过的 session 分叉后，第一条同样挂在来源的最后一条 Prompt Entry 上。",
       "layers": [
         "plugin",
         "pty",
@@ -849,6 +850,18 @@
         {
           "kind": "plugin",
           "ref": "tests/resume_fork_branch.test.tsx::a fork whose shared history matches several lineages archives from a marked root"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/resume_fork_branch.test.tsx::a fork of a compacted session places its shared history among truncated lineages"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/resume_fork_branch.test.tsx::a fork whose transcript only quotes the compaction summary later is matched whole"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/jump_target.test.tsx::a fork of a compacted session ties its shared history before it submits anything"
         },
         {
           "kind": "unit",

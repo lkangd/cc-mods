@@ -805,10 +805,36 @@ def branch_002(ctx: Context) -> str:
     check(child["parentEventId"] == entry(entries, b)["eventId"], "--fork-session does not go on from the shared history")
     check(child["branchId"] not in (entry(entries, b)["branchId"], forked["branchId"]), "--fork-session did not start a branch")
     check_branched_off(ctx, cli, h, run)
+
+    # Compacted, the source hands its forks a transcript that opens on the
+    # summary; they still go on from its last entry (Issue 34).
+    c, k, m = (ctx.marker("PT-BRANCH-002") for _ in range(3))
+    ctx.command(source, "/compact", "ompact", timeout=120)
+    source.wait_idle()
+    ctx.submit(source, prompt(c))
+    entries = ctx.wait_entries(5)
+    last = entry(entries, c)
+    ctx.send(source, f"/fork {prompt(k)}")
+    entries = ctx.wait_entries(6, timeout=90)
+    check(len(entries) == 6, f"{len(entries)} entries after the fork of the compacted session")
+    compacted_fork = entry(entries, k)
+    check(compacted_fork["runId"] not in (run, forked["runId"], child["runId"]), "the fork of the compacted session did not start a Run")
+    check(compacted_fork["parentEventId"] == last["eventId"], "the fork of the compacted session does not go on from its last entry")
+    compacted_cli = ctx.relaunch("--resume", session, "--fork-session", lines=60)
+    band = ctx.expand(compacted_cli, c)
+    check_bound(band, (c,), "--fork-session of the compacted session")
+    ctx.submit(compacted_cli, prompt(m))
+    entries = ctx.wait_entries(7)
+    check(len(entries) == 7, f"{len(entries)} entries after --fork-session of the compacted session")
+    compacted_child = entry(entries, m)
+    check(compacted_child["parentEventId"] == last["eventId"], "--fork-session of the compacted session does not go on from its last entry")
+    check(compacted_child["runId"] not in (run, compacted_fork["runId"]), "--fork-session of the compacted session did not start a Run")
+    check_branched_off(ctx, compacted_cli, m, run)
     return (
         "a background /fork archived its argument once in a new Run and branch after the shared history; "
         "--fork-session bound the shared history, marked the other fork ×, and started a Run of its own "
-        "that says which Run it branched off"
+        "that says which Run it branched off; after /compact both forks still went on from the source's "
+        "last entry, and --fork-session bound it before submitting"
     )
 
 

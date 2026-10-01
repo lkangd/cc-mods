@@ -18,6 +18,7 @@ import {
   forkSources,
   isPersonRow,
   markTranscript,
+  opensOnCompactionSummary,
   settleBranch,
   transcriptKept,
   transcriptRows,
@@ -3081,8 +3082,10 @@ async function alignOnce($: EngineInterface): Promise<void> {
   /* Only rows drawn before the read: one drawn while it was on its way may
      be missing from it without being gone. */
   const asked = drawnRows.slice()
+  let messages: readonly SessionMessage[] | undefined
   try {
-    const held = (await $.session.messages()).filter(isPersonRow).map(message => message.text)
+    messages = await $.session.messages()
+    const held = messages.filter(isPersonRow).map(message => message.text)
     if (generation === drawnGeneration) forgetRows($, vanishedRows(asked, held))
   } catch {
     // Unread, the transcript proves nothing gone; a jump still finds out.
@@ -3095,7 +3098,7 @@ async function alignOnce($: EngineInterface): Promise<void> {
   const stored = activeBranch?.key === key ? activeBranch.value : undefined
   let aligned: { row: number; eventId: string }[]
   try {
-    const compacted = await sessionCompacted($, currentProject.id, startup.sessionId)
+    const compacted = await sessionCompacted($, currentProject.id, startup.sessionId, messages)
     /* Scoped even for a root somebody chose: its rows are tied among the
        session's own entries before anyone else's. */
     const stdout = await runBranchMatch($, currentProject, stored, compacted, input, true, true)
@@ -3283,7 +3286,7 @@ async function settleAlignment(
       if (stored) rememberBranch(key, stored)
       return { messages }
     }
-    const compacted = await sessionCompacted($, currentProject.id, startup.sessionId)
+    const compacted = await sessionCompacted($, currentProject.id, startup.sessionId, messages)
     found = await matchBranch($, currentProject, stored, compacted, messages)
     /* The branch was staged in a generation since replaced: nothing in the
        one now in place is its lineage, so it starts over there rather than
@@ -3411,18 +3414,22 @@ async function settleParentChoice(
   $.ui.toast(`Prompt Trail 已确认父节点，${draftNote(restored)}；请检查后重新提交。`)
 }
 
+/* `messages`, the session's transcript when the caller holds it. */
 async function sessionCompacted(
   $: EngineInterface,
   projectId: string,
   sessionId: string,
+  messages?: readonly SessionMessage[],
 ): Promise<boolean> {
   const key = compactedKey(projectId, sessionId)
   if ((await $.store.get(key)) === true) return true
   /* A session the conversation was moved to carries the transcript of the one
-     it came from, compaction and all. */
-  const inherited = sessionId === startup.sessionId
+     it came from, compaction and all; so does a fork of a compacted one,
+     which only the summary its transcript opens on tells. */
+  const inherited = (sessionId === startup.sessionId
     && startup.continuedFrom !== undefined
-    && (await $.store.get(compactedKey(projectId, startup.continuedFrom))) === true
+    && (await $.store.get(compactedKey(projectId, startup.continuedFrom))) === true)
+    || (messages !== undefined && opensOnCompactionSummary(messages))
   if (!inherited && !compactedSessions.has(sessionId)) return false
   try {
     await $.store.set(key, true)

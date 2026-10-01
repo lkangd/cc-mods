@@ -249,6 +249,51 @@ test('a fork starts its branch from the entry its shared history ends on', async
   expect(store[branchKey()]).toMatchObject({ branchId: begin.branchId, parentEventId: expect.any(String) })
 })
 
+/* What the engine writes where a compaction replaced the rows before it; a
+   fork of a compacted session opens on it. */
+const COMPACTION_SUMMARY =
+  'This session is being continued from a previous conversation that ran out of context. '
+  + 'The summary below covers the earlier portion of the conversation.\n\nSummary: PT-SECRET-SUMMARY'
+
+test('a fork of a compacted session places its shared history among truncated lineages', async ($, on) => {
+  const store = consentedStore()
+  const calls = installSupportedTarget(on, {
+    store,
+    messages: [
+      { role: 'user', text: COMPACTION_SUMMARY },
+      { role: 'assistant', text: 'ok' },
+      { role: 'user', text: 'PT-SECRET-SHARED' },
+    ],
+    branchMatch: unique(forkPoint),
+  })
+  await $.session.start(session)
+
+  await composerPrompt($)
+
+  expect(matchCalls(calls)[0]?.argv.slice(4, 8)).toEqual(['-', '-', 'truncated', '-'])
+  expect(parentOf(captureCalls(calls, 'capture-begin')[0]).parent).toBe(forkPoint)
+  /* Kept, so the session stays matched as compacted after a reload. */
+  expect(store[compactedKey()]).toBe(true)
+})
+
+test('a fork whose transcript only quotes the compaction summary later is matched whole', async ($, on) => {
+  const store = consentedStore()
+  const calls = installSupportedTarget(on, {
+    store,
+    messages: [
+      { role: 'user', text: 'PT-SECRET-SHARED' },
+      { role: 'user', text: COMPACTION_SUMMARY },
+    ],
+    branchMatch: unique(forkPoint),
+  })
+  await $.session.start(session)
+
+  await composerPrompt($)
+
+  expect(matchCalls(calls)[0]?.argv[6]).toBe('whole')
+  expect(store).not.toHaveProperty(compactedKey())
+})
+
 test('a session is aligned in full once, then again only when the session changes', async ($, on) => {
   const classicSession = { id: sessionId }
   const calls = installSupportedTarget(on, { store: consentedStore(), classicSession, transcript: [] })

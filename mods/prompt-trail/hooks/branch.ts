@@ -179,6 +179,20 @@ export function transcriptRows(
   return { stdin, truncated: truncated || messages.length >= TRANSCRIPT_ROW_LIMIT }
 }
 
+/* How the engine's compaction summary opens: 2.1.273 and 2.1.283 alike. */
+export const COMPACTION_SUMMARY_OPENING =
+  'This session is being continued from a previous conversation that ran out of context.'
+
+/* Whether the transcript opens on a compaction summary: a fork or a
+   `--fork-session` of a compacted session gets the compacted transcript, and
+   nothing else in its own session says so. The engine marks the summary only
+   in the transcript file, which such a session has not written yet when it
+   first submits. */
+export function opensOnCompactionSummary(messages: readonly TranscriptMessage[]): boolean {
+  const first = messages[0]
+  return first !== undefined && isPersonRow(first) && first.text.startsWith(COMPACTION_SUMMARY_OPENING)
+}
+
 /* A person-side `user` row the transcript has to keep holding: its index
    among those rows and its text, or -1 for a transcript that held none.
    Held in memory only. */
