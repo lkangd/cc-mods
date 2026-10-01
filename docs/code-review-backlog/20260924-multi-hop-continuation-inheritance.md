@@ -15,6 +15,11 @@ target: Prompt Trail uncommitted working tree, Issue 33 continued session keeps 
 `startup.continuedFrom`（直接来源）的分支键；`sessionCompacted()` 也只看直接来源的 compacted
 键。插件只有在采集、写边界时才会给一个 session 写这两个键。
 
+（2026-10-01 更新）Issue 34 之后，`sessionCompacted()` 还会认 transcript 开头的 compact 摘要。
+接续用的是 `--resume <旧 transcript> --fork-session`，Issue 34 的探针证明这样得到的 transcript 以摘要开头，
+所以 C 的 compacted 状态不再依赖 B 的键，这里只剩分支记录的继承缺口。这一点只是推断，没有在连续接续上实测过：
+宿主目前造不出这样的链。
+
 场景：A 已 `/compact`，接续到 B，B 从未提交；B 再接续到 C。B 没有分支键，也没有 compacted
 键，C 只查 B，于是新建 `parentEventId: null` 的分支，并把 compact 过的 transcript 当作没
 compact 过。C 的第一次提交得到 `none`，按 `settleBranch()` 的「尚无 lineage」规则静默开根

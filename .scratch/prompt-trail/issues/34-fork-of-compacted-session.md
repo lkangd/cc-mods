@@ -33,7 +33,7 @@ compact 过的 session 被后台 `/fork` 或 `--resume S --fork-session` 分叉�
 - **已知代价**：
   - 依赖宿主摘要的固定措辞。将来措辞变了，只会退回修复前的样子（新开无父根），不会挂错父节点。
   - 如果有人第一条 prompt 恰好以这句话开头，这个 session 会按 `truncated` 匹配。
-- **观察到但没有处理**：两个版本并行跑场景时，2.1.283 有一次在原有断言「--fork-session did not bind the shared history once」上失败：band 展开时 A、B 还是 ×。单独重跑两次都通过，最近一次完整门禁也通过了。我判断是负载下绑定比断言慢，没有深挖。
+- **偶发失败与 code review**：两个版本并行跑场景时，2.1.283 有一次在原有断言「--fork-session did not bind the shared history once」上失败：band 展开时 A、B 还是 ×。code review（`.code-review/runs/20261001-104344/round-1`）把它列为 #1。修法：BRANCH-002 的两处 `--fork-session` 检查改用 `wait_bound`，最多等 15 秒，直到条目可以跳转。修改后两个版本并行跑都通过。
 - **版本**：插件版本号没动，`release/evidence/0.1.0/` 仍对应 `b61296e`（Q3）。
 
 ## Comments
