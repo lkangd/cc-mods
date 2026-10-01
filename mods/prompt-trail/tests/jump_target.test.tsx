@@ -233,6 +233,35 @@ test('replayed rows the helper places become jump targets; the rest are marked �
   expect(call?.argv.slice(4, 8)).toEqual([runId, sessionId, 'whole', third])
 })
 
+test('a fork of a compacted session ties its shared history before it submits anything', async ($, on) => {
+  const store: Record<string, unknown> = {
+    [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' },
+  }
+  const { calls, settle } = install(on, {
+    store,
+    archive: lineage(),
+    messages: holding(
+      'This session is being continued from a previous conversation that ran out of context. PT-SECRET-SUMMARY',
+      'PT-SECRET-TWO',
+    ),
+    branchMatch: aligned(third, [{ row: 0, eventId: third }]),
+  })
+  await drawRow($, 'row-3', 'PT-SECRET-TWO')
+  await $.session.start(session)
+  await settle()
+  await promptHistory($)
+
+  expect(entryLabels(await renderBand($, { maxRows: 40 }))).toEqual([
+    '× 1. PT-SECRET-ONE',
+    '× 2. PT-SECRET-TWO',
+    '3. PT-SECRET-TWO',
+  ])
+  /* Its earliest rows went with the compaction, so the lineage it shows may
+     begin before them. */
+  expect(alignCalls(calls)[0]?.argv[6]).toBe('truncated')
+  expect(store[`prompt-trail:compacted:${projectId}:${sessionId}`]).toBe(true)
+})
+
 test('previews, notifications and rows drawn twice never reach the alignment', async ($, on) => {
   const { calls, settle } = install(on, {
     store: storeOn(first),

@@ -220,6 +220,10 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   在提交 `b61296e` 的干净工作树上完整跑 `release-evidence.sh`，结果 PASS：56 个场景全部通过，0 失败、0 缺失、0 跳过、0 泄漏，
   52 个 PTY 场景在两个版本上都通过。报告、门禁日志与脱敏 trace 提交在 `mods/prompt-trail/release/evidence/0.1.0/`，
   提交前已把本机路径换成 `<repo>`、`<home>`、`<tmp>`。
+- [fork compact 过的 session 时沿用来源的 Active Branch](issues/34-fork-of-compacted-session.md)：
+  bridge 执行 SessionStart:fork 时，复制过来的行还没写到磁盘上（`--fork-session` 的文件到第一次提交时都还不存在），所以没有采用票面的 bridge 标记。
+  改为插件对齐时识别：transcript 的第一行是宿主的 compact 摘要，就补写 compacted 键，按 `truncated` 匹配。
+  后台 `/fork` 与 `--fork-session` 的第一条都挂在来源的最后一条上；`PT-BRANCH-002` 扩展覆盖。
 
 ## Not yet specified
 
