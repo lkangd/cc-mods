@@ -678,6 +678,17 @@ def check_bound(band: list[str], markers, what: str) -> None:
         check(len(rows) == 1 and jumpable(rows[0], marker), f"{what} did not bind the shared history once")
 
 
+def wait_bound(ctx: Context, terminal: Terminal, markers, what: str) -> list[str]:
+    """The open band once each entry the markers name is shown once with a
+    Jump Target: the alignment that binds them may finish after the band opens."""
+    def bound(t: Terminal) -> list[str] | None:
+        band = ctx.band(t)
+        return band if all(
+            len(rows := shown(band, marker)) == 1 and jumpable(rows[0], marker) for marker in markers
+        ) else None
+    return terminal.wait_for(bound, f"{what} to bind the shared history once", 15)
+
+
 def check_fold(band: list[str], count: int, before: str, after: str, hidden) -> int:
     """The one fold row of `count` entries stands between the entries `before`
     and `after` name, and the entries it folds are not shown; its row index."""
@@ -793,8 +804,8 @@ def branch_002(ctx: Context) -> str:
     check(forked["runId"] in [x["runId"] for x in boundaries(ctx, "run-started")], "the fork's Run did not start")
 
     cli = ctx.relaunch("--resume", session, "--fork-session", lines=60)
-    band = ctx.expand(cli, b)
-    check_bound(band, (a, b), "--fork-session")
+    ctx.expand(cli, b)
+    band = wait_bound(ctx, cli, (a, b), "--fork-session")
     rows = shown(band, g)
     check(len(rows) == 1 and not jumpable(rows[0], g), "the other fork's entry is not shown once without a Jump Target")
     ctx.submit(cli, prompt(h))
@@ -821,8 +832,8 @@ def branch_002(ctx: Context) -> str:
     check(compacted_fork["runId"] not in (run, forked["runId"], child["runId"]), "the fork of the compacted session did not start a Run")
     check(compacted_fork["parentEventId"] == last["eventId"], "the fork of the compacted session does not go on from its last entry")
     compacted_cli = ctx.relaunch("--resume", session, "--fork-session", lines=60)
-    band = ctx.expand(compacted_cli, c)
-    check_bound(band, (c,), "--fork-session of the compacted session")
+    ctx.expand(compacted_cli, c)
+    wait_bound(ctx, compacted_cli, (c,), "--fork-session of the compacted session")
     ctx.submit(compacted_cli, prompt(m))
     entries = ctx.wait_entries(7)
     check(len(entries) == 7, f"{len(entries)} entries after --fork-session of the compacted session")
