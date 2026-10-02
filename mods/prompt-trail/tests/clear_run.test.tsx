@@ -11,7 +11,7 @@ import {
   session,
   sessionId,
 } from './support'
-import type { ArchiveRow } from './support'
+import type { ArchiveRow, TargetOptions } from './support'
 
 /* Issue 29: clearing the current Run. Its records go from the archive in
    place and every other Run's stay; the person confirms once. */
@@ -140,6 +140,25 @@ test('clear-run shows the Run it removes and cancelling removes nothing', async 
   expect(archive).toHaveLength(4)
 })
 
+test('clear-run with unknown health explains explicit recovery without deleting records', async ($, on) => {
+  const archive = archivedBefore()
+  const calls = installSupportedTarget(on, {
+    store: collectingStore(), archive, clearAnswers: ['清除当前 Run'],
+    health: { state: 'unknown', generation: 'gen-1', token: null },
+  })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-run')
+
+  expect(answer.text).toContain('档案健康状态未知')
+  expect(answer.text).toContain('/prompt-history enable')
+  expect(answer.text).toContain('初始化并完整复检')
+  expect(answer.text).toContain('/prompt-history clear-all')
+  expect(answer.text).toContain('未删除任何内容')
+  expect(archive).toHaveLength(4)
+  expect(captureCalls(calls, 'archive-health-init')).toHaveLength(0)
+})
+
 test('a confirmed clear-run removes this Run and leaves every other Run as it was', async ($, on) => {
   const store = collectingStore()
   const archive = archivedBefore()
@@ -179,6 +198,33 @@ test('a confirmed clear-run removes this Run and leaves every other Run as it wa
   expect(captureCalls(calls, 'capture-begin').at(-1)?.argv[7]).toBe('-')
   expect(archive.filter(row => row.runId === runId && row.kind === 'prompt').map(row => row.text))
     .toEqual(['PT-SECRET-AFTER'])
+})
+
+test('clear-run cannot remove or recover damage published after its inventory was read', async ($, on) => {
+  const archive = archivedBefore()
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'healthy', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
+  const calls = installSupportedTarget(on, {
+    store: collectingStore(), archive, health, fills: [], clearAnswers: ['清除当前 Run'],
+    processResponder: call => {
+      if (call.argv[1] === 'clear-run') {
+        Object.assign(health, { state: 'damaged', token: '33333333-3333-4333-8333-333333333333' })
+      }
+      return undefined
+    },
+  })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-run')
+
+  expect(answer.text).toContain('档案已损坏')
+  expect(answer.text).toContain('未删除任何内容')
+  expect(archive).toHaveLength(4)
+  expect(health.state).toBe('damaged')
+  expect((await composerPrompt($)).drop).toContain('草稿已恢复')
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+  expect(captureCalls(calls, 'archive-health-reset')).toHaveLength(0)
 })
 
 test('clear-run refuses while the project holds a quarantined archive', async ($, on) => {

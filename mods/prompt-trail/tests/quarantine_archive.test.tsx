@@ -51,6 +51,292 @@ function onBranch(store: Record<string, unknown>, generation?: string): void {
   }
 }
 
+test('helper damage blocks a submission even when the display store has no report', async ($, on) => {
+  const store = consentedStore()
+  const unavailableOffered: string[][] = []
+  const calls = installSupportedTarget(on, {
+    store,
+    health: { state: 'damaged', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111' },
+    fills: [], unavailableOffered,
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.drop).toContain('草稿已恢复')
+  expect(unavailableOffered).toStrictEqual([DAMAGE_CHOICES])
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+  expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
+  expect(captureCalls(calls, 'archive-health').length).toBeGreaterThan(0)
+})
+
+test('late helper damage remains visible when ordinary success deletes an older display mirror', async ($, on) => {
+  const store = consentedStore()
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'healthy', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
+  let confirmed = false
+  const calls = installSupportedTarget(on, {
+    store, health, fills: [],
+    processResponder: call => {
+      if (call.argv[1] === 'capture-confirm') confirmed = true
+      return undefined
+    },
+    beforeStoreDelete: key => {
+      if (key === archiveStateKey && confirmed) {
+        Object.assign(health, { state: 'damaged', token: '33333333-3333-4333-8333-333333333333' })
+        store[archiveStateKey] = { version: 2, state: 'unavailable', category: 'archive-integrity', generation: 'gen-1', runId: otherRun }
+      }
+    },
+  })
+  await $.session.start(session)
+
+  expect((await composerPrompt($)).text).toBe(SECRET)
+  /* The old get→delete raced with the other Run's report and erased its
+     mirror, but cannot erase the helper's guarded damage state. */
+  expect(store[archiveStateKey]).toBeUndefined()
+  expect(JSON.stringify(await renderBand($))).toContain('档案不可用')
+  const held = await composerPrompt($, { text: 'PT-SECRET-LATER' })
+  expect(held.drop).toContain('草稿已恢复')
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
+})
+
+test('damage arriving after the health query is refused by the helper capture mutation', async ($, on) => {
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'healthy', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
+  const unavailableOffered: string[][] = []
+  const archive: ArchiveRow[] = []
+  const calls = installSupportedTarget(on, {
+    store: consentedStore(), health, archive, fills: [], unavailableOffered,
+    processResponder: call => {
+      if (call.argv[1] === 'capture-begin') {
+        Object.assign(health, { state: 'damaged', token: '33333333-3333-4333-8333-333333333333' })
+      }
+      return undefined
+    },
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.drop).toContain('草稿已恢复')
+  expect(unavailableOffered).toStrictEqual([DAMAGE_CHOICES])
+  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(0)
+  expect(archive.filter(row => row.kind === 'prompt')).toHaveLength(0)
+})
+
+test('a helper healthy tombstone prevents an old damage mirror from blocking collection', async ($, on) => {
+  const store = consentedStore()
+  store[archiveStateKey] = {
+    version: 2, state: 'unavailable', category: 'archive-integrity', runId: otherRun, generation: 'gen-1',
+  }
+  const calls = installSupportedTarget(on, {
+    store,
+    health: { state: 'healthy', generation: 'gen-1', token: '22222222-2222-4222-8222-222222222222' },
+    fills: [],
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
+  expect(captureCalls(calls, 'archive-health-reset')).toHaveLength(0)
+})
+
+test('damage recovery uses the generation and token bound helper reset receipt', async ($, on) => {
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'damaged', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
+  const calls = installSupportedTarget(on, {
+    store: consentedStore(), health, fills: [], unavailableAnswers: ['重新检查完整性'],
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  const resets = captureCalls(calls, 'archive-health-reset')
+  expect(resets).toHaveLength(1)
+  expect(resets[0]?.argv.slice(4, 6)).toStrictEqual(['gen-1', '11111111-1111-4111-8111-111111111111'])
+  expect(health.state).toBe('healthy')
+  expect(health.token).not.toBe('11111111-1111-4111-8111-111111111111')
+})
+
+test('a reset receipt without a generation is not recovery proof', async ($, on) => {
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'damaged', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
+  const calls = installSupportedTarget(on, {
+    store: consentedStore(), health, fills: [], unavailableAnswers: ['重新检查完整性'],
+    processResponder: call => call.argv[1] === 'archive-health-reset'
+      ? { exitCode: 0, stdout: JSON.stringify({ projectId, state: 'healthy', token: '22222222-2222-4222-8222-222222222222' }), stderr: '' }
+      : undefined,
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.drop).toContain('草稿已恢复')
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+  expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
+  expect(health.state).toBe('damaged')
+})
+
+test('an existing archive with unknown health requires explicit initialization before collecting', async ($, on) => {
+  const health: NonNullable<TargetOptions['health']> = { state: 'unknown', generation: 'gen-1', token: null }
+  const store = consentedStore()
+  store[archiveStateKey] = { version: 1, state: 'unavailable', category: 'archive-integrity' }
+  const unavailableAsked: string[] = []
+  const options: TargetOptions = { store, health, fills: [], unavailableAsked }
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+
+  const held = await composerPrompt($)
+
+  expect(held.drop).toContain('草稿已恢复')
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+  expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
+  expect(unavailableAsked[0]).toContain('档案健康状态未知')
+  expect(unavailableAsked[0]).not.toContain('档案已损坏')
+
+  store[archiveStateKey] = { version: 2, state: 'unavailable', category: 'archive-integrity', generation: 'gen-1' }
+  expect((await composerPrompt($)).drop).toContain('草稿已恢复')
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+  options.unavailableAnswers = ['初始化并完整复检']
+  expect((await composerPrompt($)).text).toBe(SECRET)
+  expect(captureCalls(calls, 'archive-health-init')).toHaveLength(1)
+  expect(health.state).toBe('healthy')
+})
+
+test('a brand new absent archive may start collection without a health initialization dialog', async ($, on) => {
+  const health: NonNullable<TargetOptions['health']> = { state: 'unknown', generation: null, token: null }
+  const unavailableOffered: string[][] = []
+  const calls = installSupportedTarget(on, { store: consentedStore(), health, unavailableOffered })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(unavailableOffered).toHaveLength(0)
+  expect(captureCalls(calls, 'archive-health-init')).toHaveLength(0)
+  expect(captureCalls(calls, 'archive-health-reset')).toHaveLength(0)
+  expect(health.state).toBe('healthy')
+  expect(health.generation).toBe('gen-1')
+})
+
+test('an absent archive ignores a retired generation damage mirror and starts collecting', async ($, on) => {
+  const store = consentedStore()
+  store[archiveStateKey] = {
+    version: 2, state: 'unavailable', category: 'archive-integrity', runId: otherRun, generation: 'retired-gen',
+  }
+  const health: NonNullable<TargetOptions['health']> = { state: 'unknown', generation: null, token: null }
+  const unavailableOffered: string[][] = []
+  const calls = installSupportedTarget(on, { store, health, unavailableOffered, fills: [] })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(unavailableOffered).toHaveLength(0)
+  expect(captureCalls(calls, 'archive-health-init')).toHaveLength(0)
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
+  expect(health.state).toBe('healthy')
+})
+
+test('a plain retry cannot bypass unknown health and status directs explicit initialization', async ($, on) => {
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'healthy', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
+  const unavailableOffered: string[][] = []
+  const options: TargetOptions = {
+    store: consentedStore(), health, fills: [], beginFails: 'archive-busy',
+    unavailableAnswers: ['重试'], unavailableOffered,
+    duringAsk: () => {
+      options.beginFails = false
+      Object.assign(health, { state: 'unknown', token: null })
+    },
+  }
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+
+  const held = await composerPrompt($)
+
+  expect(held.drop).toContain('草稿已恢复')
+  expect(unavailableOffered).toStrictEqual([
+    ['重试', '禁用当前 Run 后继续'], ['初始化并完整复检', '禁用当前 Run 后继续'],
+  ])
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
+  const status = await promptHistory($, 'status')
+  expect(status.text).toContain('档案健康状态未知')
+  expect(status.text).toContain('初始化并完整复检')
+
+  options.duringAsk = undefined
+  options.unavailableAnswers = ['初始化并完整复检']
+  expect((await composerPrompt($)).text).toBe(SECRET)
+  expect(captureCalls(calls, 'archive-health-init')).toHaveLength(1)
+  expect(captureCalls(calls, 'archive-health-reset')).toHaveLength(0)
+})
+
+test('enable refuses unknown helper health before writing any collection boundary', async ($, on) => {
+  const store = consentedStore()
+  store[`prompt-trail:run-mode:${projectId}:${runId}`] = { version: 1, mode: 'disabled' }
+  const calls = installSupportedTarget(on, {
+    store, health: { state: 'unknown', generation: 'gen-1', token: null },
+  })
+  await $.session.start(session)
+
+  const enabled = await promptHistory($, 'enable')
+
+  expect(enabled.text).toContain('未启用采集')
+  expect(enabled.text).toContain('档案健康状态未知')
+  expect(enabled.text).toContain('初始化并完整复检')
+  expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
+  expect(store[`prompt-trail:run-mode:${projectId}:${runId}`]).toMatchObject({ mode: 'disabled' })
+})
+
+test('a disabled Run can explicitly initialize unknown health while enabling', async ($, on) => {
+  const store = consentedStore()
+  store[`prompt-trail:run-mode:${projectId}:${runId}`] = { version: 1, mode: 'disabled' }
+  const health: NonNullable<TargetOptions['health']> = { state: 'unknown', generation: 'gen-1', token: null }
+  const archive = [earlierEntry()]
+  const unavailableAsked: string[] = []
+  const calls = installSupportedTarget(on, {
+    store, health, archive, unavailableAsked, unavailableAnswers: ['初始化并完整复检'],
+  })
+  await $.session.start(session)
+
+  const enabled = await promptHistory($, 'enable')
+
+  expect(enabled.text).toContain('已恢复采集')
+  expect(captureCalls(calls, 'archive-health-init')).toHaveLength(1)
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+  expect(archive[0]?.text).toBe('PT-SECRET-EARLIER')
+  expect(health.state).toBe('healthy')
+  expect(store[`prompt-trail:run-mode:${projectId}:${runId}`]).toMatchObject({ mode: 'enabled' })
+  expect(unavailableAsked[0]).not.toContain('本次提交尚未进入会话')
+})
+
+test('enable keeps a disabled Run off when explicit initialization finds damage', async ($, on) => {
+  const store = consentedStore()
+  store[`prompt-trail:run-mode:${projectId}:${runId}`] = { version: 1, mode: 'disabled' }
+  const health: NonNullable<TargetOptions['health']> = { state: 'unknown', generation: 'gen-1', token: null }
+  const calls = installSupportedTarget(on, {
+    store, health, unavailableAnswers: ['初始化并完整复检'], integrity: { result: 'damaged', problems: 1 },
+  })
+  await $.session.start(session)
+
+  const enabled = await promptHistory($, 'enable')
+
+  expect(enabled.text).toContain('未启用采集')
+  expect(health.state).toBe('damaged')
+  expect(store[`prompt-trail:run-mode:${projectId}:${runId}`]).toMatchObject({ mode: 'disabled' })
+  expect(captureCalls(calls, 'archive-health-init')).toHaveLength(1)
+  expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+})
+
 test('damage offers a recheck, a quarantine, a clear, or disabling the Run', async ($, on) => {
   const store = consentedStore()
   const unavailableAsked: string[] = []
@@ -87,7 +373,10 @@ test('damage another Run found stops this Run before it writes anything', async 
   }
   const unavailableAsked: string[] = []
   const unavailableOffered: string[][] = []
-  const calls = installSupportedTarget(on, { store, fills: [], unavailableAsked, unavailableOffered })
+  const calls = installSupportedTarget(on, {
+    store, fills: [], unavailableAsked, unavailableOffered,
+    health: { state: 'damaged', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111' },
+  })
   await $.session.start(session)
 
   const result = await composerPrompt($)
@@ -101,19 +390,23 @@ test('damage another Run found stops this Run before it writes anything', async 
   expect(store[archiveStateKey]).toMatchObject({ category: 'archive-integrity', runId: otherRun })
 })
 
-test('a write that succeeds past the damage does not lift it for the other Runs', async ($, on) => {
+test('ordinary success retires a stale damage mirror when helper health is healthy', async ($, on) => {
   const store = consentedStore()
   store[archiveStateKey] = {
     version: 2, state: 'unavailable', category: 'archive-integrity', since: 1, runId: otherRun, generation: 'gen-1',
   }
-  const calls = installSupportedTarget(on, { store, fills: [], unavailableAnswers: ['禁用当前 Run 后继续'] })
+  const calls = installSupportedTarget(on, {
+    store, fills: [],
+    health: { state: 'healthy', generation: 'gen-1', token: '22222222-2222-4222-8222-222222222222' },
+  })
   await $.session.start(session)
 
   const result = await composerPrompt($)
 
   expect(result.text).toBe(SECRET)
   expect(captureCalls(calls, 'boundary-append').length).toBeGreaterThan(0)
-  expect(store[archiveStateKey]).toMatchObject({ category: 'archive-integrity', runId: otherRun })
+  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(1)
+  expect(store[archiveStateKey]).toBeUndefined()
 })
 
 /* A pending the pre-write staged before the damage showed: the confirmation
@@ -171,7 +464,7 @@ test('a recheck that passes over an owed pending settles it first', async ($, on
 
   const next = await composerPrompt($, { text: 'PT-SECRET-NEXT' })
 
-  expect(captureCalls(calls, 'integrity-check')).toHaveLength(1)
+  expect(captureCalls(calls, 'archive-health-reset')).toHaveLength(1)
   /* Settled from the transcript; the new prompt comes back to send again. */
   expect(options.archive?.filter(row => row.kind === 'prompt').map(row => row.text)).toContain(SECRET)
   expect(next.drop).toContain('已完成对账')
@@ -242,7 +535,7 @@ test('a recheck that passes lifts the report and submits the prompt once', async
   const result = await composerPrompt($)
 
   expect(result.text).toBe(SECRET)
-  expect(captureCalls(calls, 'integrity-check')).toHaveLength(1)
+  expect(captureCalls(calls, 'archive-health-reset')).toHaveLength(1)
   expect(captureCalls(calls, 'quarantine')).toHaveLength(0)
   expect(captureCalls(calls, 'capture-confirm')).toHaveLength(1)
   expect(store[archiveStateKey]).toBeUndefined()
@@ -380,9 +673,13 @@ test('after a restart, a branch from a replaced generation starts over before it
 test('a quarantine another Run already made is taken as done', async ($, on) => {
   const store = consentedStore()
   const generation = { value: 'gen-1' }
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'healthy', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
   const options: TargetOptions = {
     store,
     generation,
+    health,
     beginFails: 'archive-integrity',
     fills: [],
     unavailableAnswers: ['隔离并开始新档案'],
@@ -390,6 +687,7 @@ test('a quarantine another Run already made is taken as done', async ($, on) => 
     duringAsk: () => {
       options.beginFails = false
       generation.value = 'gen-2'
+      Object.assign(health, { state: 'healthy', generation: 'gen-2', token: '22222222-2222-4222-8222-222222222222' })
     },
   }
   const calls = installSupportedTarget(on, options)
@@ -400,6 +698,58 @@ test('a quarantine another Run already made is taken as done', async ($, on) => 
   expect(result.text).toBe(SECRET)
   expect(captureCalls(calls, 'quarantine').map(call => call.argv[4])).toStrictEqual(['gen-1'])
   expect(store[archiveStateKey]).toBeUndefined()
+})
+
+test('a stale quarantine reply cannot attach or capture in a newer damaged generation', async ($, on) => {
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'healthy', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
+  const generation = { value: 'gen-1' }
+  const options: TargetOptions = {
+    store: consentedStore(), health, generation, beginFails: 'archive-integrity', fills: [],
+    unavailableAnswers: ['隔离并开始新档案'],
+    duringAsk: () => {
+      options.beginFails = false
+      generation.value = 'gen-2'
+      Object.assign(health, { state: 'damaged', generation: 'gen-2', token: '33333333-3333-4333-8333-333333333333' })
+    },
+  }
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.drop).toContain('草稿已恢复')
+  expect(captureCalls(calls, 'boundary-append').filter(call => call.argv[7] === 'run-attached')).toHaveLength(0)
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
+  expect(health.state).toBe('damaged')
+})
+
+test('damage published after an old reset receipt must quarantine the current generation', async ($, on) => {
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'damaged', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
+  const generation = { value: 'gen-1' }
+  const calls = installSupportedTarget(on, {
+    store: consentedStore(), health, generation, fills: [],
+    unavailableAnswers: ['重新检查完整性', '隔离并开始新档案'],
+    processResponder: call => {
+      if (call.argv[1] !== 'archive-health-reset') return undefined
+      generation.value = 'gen-5'
+      Object.assign(health, { state: 'damaged', generation: 'gen-5', token: '33333333-3333-4333-8333-333333333333' })
+      return {
+        exitCode: 0, stderr: '',
+        stdout: JSON.stringify({ projectId, state: 'healthy', generation: 'gen-1', token: '22222222-2222-4222-8222-222222222222' }),
+      }
+    },
+  })
+  await $.session.start(session)
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  expect(captureCalls(calls, 'quarantine').map(call => call.argv[4])).toStrictEqual(['gen-5'])
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
 })
 
 test('a quarantine that fails keeps the Run held and asks again', async ($, on) => {
@@ -589,7 +939,10 @@ test('a record left by another Run shows its recheck in status', async ($, on) =
     generation: 'gen-1',
     recheck: { result: 'unreadable', problems: 0 },
   }
-  installSupportedTarget(on, { store })
+  installSupportedTarget(on, {
+    store,
+    health: { state: 'damaged', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111' },
+  })
   await $.session.start(session)
 
   const status = (await promptHistory($, 'status')).text ?? ''

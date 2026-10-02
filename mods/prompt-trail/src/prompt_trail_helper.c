@@ -614,6 +614,20 @@ static void usage(void);
    actually ran into: a lock held past the wait, or a full disk, is not the
    corruption or refusal the calling site otherwise names. */
 static sqlite3 *active_archive;
+static bool archive_writing;
+static const char *health_database_root;
+static const char *health_project_id;
+static bool publishing_damage;
+static void archive_error(const char *category);
+static void record_archive_damage(void);
+static void lock_archive_health(const char *database_root, const char *project_id);
+static void guard_archive_write(const char *database_root, const char *project_id);
+static void establish_archive_health(
+  const char *database_root,
+  const char *project_id,
+  const char *generation,
+  bool recovering
+);
 static long long wait_deadline_ms;
 /* The generation this invocation opened, named beside damage it met there:
    a quarantine moves that generation and no later one. */
@@ -624,6 +638,10 @@ static char opened_generation[129];
 static bool clear_run_past_cut;
 
 static void archive_failure_exit(const char *category) {
+  if (strcmp(category, "archive-integrity") == 0 && opened_generation[0]
+      && health_database_root && !publishing_damage) {
+    record_archive_damage();
+  }
   if (clear_run_past_cut) json_error(EXIT_ARCHIVE_UNAVAILABLE, "clear-run-unfinished");
   if (strcmp(category, "archive-integrity") == 0 && opened_generation[0]) {
     fprintf(
@@ -638,8 +656,8 @@ static void archive_failure_exit(const char *category) {
 }
 
 static void close_archive(sqlite3 *database) {
+  if (sqlite3_close(database) != SQLITE_OK) archive_error("database-unavailable");
   if (database == active_archive) active_archive = NULL;
-  sqlite3_close(database);
 }
 
 static const char *archive_failure(sqlite3 *database, const char *category) {
@@ -1401,6 +1419,8 @@ static bool project_generation(
   return archive_generation(database_path, output);
 }
 
+static sqlite3 *open_read_only(const char *database_path);
+
 static sqlite3 *open_archive_at(
   const char *database_root,
   const char *project_id,
@@ -1437,8 +1457,45 @@ static sqlite3 *open_archive(
   }
   lock_project(database_root, project_id, false);
   refuse_unfinished_replacement(database_root, project_id);
-  if (!archive_generation(database_path, opened_generation)) opened_generation[0] = '\0';
-  return open_archive_at(database_root, project_id, database_path, create);
+  health_database_root = database_root;
+  health_project_id = project_id;
+  if (archive_writing) guard_archive_write(database_root, project_id);
+  bool generated = archive_generation(database_path, opened_generation);
+  if (!generated) opened_generation[0] = '\0';
+  if (!archive_writing && generated) {
+    if (!pt_path_is_private_file(database_path)) {
+      archive_error(owner_read_only(database_path, S_IFREG)
+        ? "archive-read-only" : "database-permissions");
+    }
+    sqlite3 *reader = open_read_only(database_path);
+    int version = archive_schema_version(reader);
+    if (version < 0 || version > ARCHIVE_SCHEMA_VERSION) archive_error("schema-version");
+    bool maintenance = version != ARCHIVE_SCHEMA_VERSION;
+    if (!maintenance) {
+      int policy = archive_policy_version(reader, project_id);
+      if (policy != 0 && policy != 1) archive_error("project-identity");
+      maintenance = policy == 0;
+      for (int previous = 1; previous < ARCHIVE_SCHEMA_VERSION; previous += 1) {
+        char backup[PATH_MAX];
+        char partial[PATH_MAX];
+        migration_backup_paths(database_path, previous, backup, partial);
+        bool backup_present = false;
+        bool partial_present = false;
+        if (!backup_path_trusted(backup, &backup_present)
+            || !backup_path_trusted(partial, &partial_present)) archive_error("migration-backup");
+        maintenance = maintenance || backup_present || partial_present;
+      }
+    }
+    if (!maintenance) return reader;
+    close_archive(reader);
+    guard_archive_write(database_root, project_id);
+  }
+  sqlite3 *database = open_archive_at(database_root, project_id, database_path, create);
+  if (!generated && archive_writing) {
+    if (!archive_generation(database_path, opened_generation)) archive_error("database-unavailable");
+    establish_archive_health(database_root, project_id, opened_generation, false);
+  }
+  return database;
 }
 
 static sqlite3 *open_archive_at(
@@ -3357,10 +3414,10 @@ static void branch_match(int argc, char **argv) {
   free(input);
 }
 
-/* Runs one checking pragma and counts what it reports: every row but a sole
-   "ok", and a page it could not read. Answers false when SQLite cannot read
-   the file as a database at all. */
-static bool count_problems(sqlite3 *database, const char *sql, long long *problems) {
+/* Runs one checking pragma and counts its logical findings, including a
+   corrupt page. A failure category is captured while SQLite still holds the
+   error, before finalizing the statement or closing the read-only connection. */
+static const char *count_problems(sqlite3 *database, const char *sql, long long *problems) {
   sqlite3_stmt *check = NULL;
   int result = sqlite3_prepare_v2(database, sql, -1, &check, NULL);
   bool rows = false;
@@ -3370,16 +3427,12 @@ static bool count_problems(sqlite3 *database, const char *sql, long long *proble
     rows = true;
     result = SQLITE_OK;
   }
-  sqlite3_finalize(check);
   int code = result & 0xff;
-  if (code == SQLITE_DONE) return true;
-  if (code == SQLITE_NOTADB) return false;
-  if (code == SQLITE_CORRUPT) {
-    *problems += 1;
-    return true;
-  }
-  archive_error("archive-sqlite");
-  return false;
+  const char *failure = code == SQLITE_DONE || code == SQLITE_CORRUPT
+    ? NULL : archive_failure(database, "archive-sqlite");
+  if (code == SQLITE_CORRUPT) *problems += 1;
+  sqlite3_finalize(check);
+  return failure;
 }
 
 /* The archive on a connection that only reads. It never folds the WAL back
@@ -3419,6 +3472,7 @@ static sqlite3 *open_read_only(const char *database_path) {
   }
   active_archive = database;
   sqlite3_busy_handler(database, archive_busy_wait, NULL);
+  archive_sql(database, "PRAGMA temp_store=MEMORY");
   return database;
 }
 
@@ -3455,15 +3509,18 @@ static void integrity_check(int argc, char **argv) {
   const char *result = "absent";
   long long problems = 0;
   if (archived) {
+    health_database_root = database_root;
+    health_project_id = project_id;
+    snprintf(opened_generation, sizeof(opened_generation), "%s", generation);
     sqlite3 *database = open_read_only(database_path);
-    sqlite3_exec(database, "PRAGMA temp_store=MEMORY", NULL, NULL, NULL);
-    if (!count_problems(database, "PRAGMA integrity_check", &problems)) {
-      result = "unreadable";
-    } else {
-      count_problems(database, "PRAGMA foreign_key_check", &problems);
-      result = problems == 0 ? "ok" : "damaged";
-    }
+    const char *failure = count_problems(database, "PRAGMA integrity_check", &problems);
+    if (!failure) failure = count_problems(database, "PRAGMA foreign_key_check", &problems);
     close_archive(database);
+    if (failure && strcmp(failure, "archive-integrity") != 0) archive_failure_exit(failure);
+    result = failure ? "unreadable" : problems == 0 ? "ok" : "damaged";
+    /* Only explicit corruption or logical findings publish damage; ordinary
+       failures keep their own category and a clean diagnostic never lifts it. */
+    if (failure || problems > 0) record_archive_damage();
   }
   write_status_string("{\"projectId\":", project_id);
   write_status_string(",\"result\":", result);
@@ -3480,7 +3537,9 @@ static void integrity_check(int argc, char **argv) {
    journals, SQLite's index of the WAL, and any migration backup, which may be
    the one sound copy. */
 static bool quarantine_suffix(int index, char output[64]) {
-  static const char *const fixed[] = { "", "-wal", "-shm", "-journal" };
+  static const char *const fixed[] = {
+    "", "-wal", "-shm", "-journal", ".health", ".health.partial", ".health.ready"
+  };
   int fixed_count = (int)(sizeof(fixed) / sizeof(fixed[0]));
   if (index < fixed_count) {
     snprintf(output, 64, "%s", fixed[index]);
@@ -3530,6 +3589,7 @@ static void quarantine(int argc, char **argv) {
   }
   capture_runtime(database_root, argv[10], argv[11], PT_ROOT_REQUIRE);
   lock_project(database_root, project_id, true);
+  lock_archive_health(database_root, project_id);
   char clearing[PATH_MAX];
   if (!clear_intent_path(database_root, project_id, clearing)) archive_error("database-path");
   if (intent_present(clearing)) archive_error("clear-unfinished");
@@ -3609,8 +3669,16 @@ static void quarantine(int argc, char **argv) {
       || !pt_ensure_private_directory(target)) {
     quarantine_error();
   }
+  char kept_database[PATH_MAX];
+  length = snprintf(kept_database, PATH_MAX, "%s/%s.sqlite3", target, project_id);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  char kept_generation[129];
+  char current_generation[129];
+  bool replacement_in_place = archive_generation(kept_database, kept_generation)
+    && archive_generation(database_path, current_generation)
+    && strcmp(kept_generation, current_generation) != 0;
   char suffix[64];
-  for (int index = 0; quarantine_suffix(index, suffix); index += 1) {
+  for (int index = 0; !replacement_in_place && quarantine_suffix(index, suffix); index += 1) {
     char source[PATH_MAX];
     char destination[PATH_MAX];
     int source_length = snprintf(source, PATH_MAX, "%s%s", database_path, suffix);
@@ -3682,13 +3750,12 @@ static void quarantine(int argc, char **argv) {
     if (unlink(fresh_index) != 0 && errno != ENOENT) quarantine_error();
     if (!sync_file(fresh) || rename(fresh, database_path) != 0) quarantine_error();
   }
-  /* The new generation's name is durable before the intent goes. An intent
-     that a crash brings back afterwards is finished again, moving nothing. */
-  if (!sync_directory(database_root) || unlink(intent) != 0) quarantine_error();
-  (void)sync_directory(database_root);
-
   char generation[129];
   if (!archive_generation(database_path, generation)) quarantine_error();
+  establish_archive_health(database_root, project_id, generation, true);
+  /* The new generation and its health are durable before the intent goes. */
+  if (!sync_directory(database_root) || unlink(intent) != 0) quarantine_error();
+  (void)sync_directory(database_root);
   write_status_string("{\"projectId\":", project_id);
   write_status_string(",\"generation\":", generation);
   write_status_string(",\"moved\":", moved);
@@ -3784,6 +3851,344 @@ static long long integrity_gaps(const char *database_root, const char *project_i
    whether a quarantine or clear is under way, each quarantined archive with
    its place and size, and how many Integrity gaps the archive holds. Only
    that count reads the archive, and it never writes. */
+typedef struct {
+  char generation[129];
+  char token[37];
+  char state[9];
+} ArchiveHealth;
+
+static int health_lock = -1;
+
+static void health_path(
+  const char *database_root,
+  const char *project_id,
+  const char *suffix,
+  char path[PATH_MAX]
+) {
+  int length = snprintf(path, PATH_MAX, "%s/%s.sqlite3.health%s", database_root, project_id, suffix);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+}
+
+static void lock_archive_health(const char *database_root, const char *project_id) {
+  if (health_lock >= 0) return;
+  char path[PATH_MAX];
+  int length = snprintf(path, PATH_MAX, "%s/%s.health.lock", database_root, project_id);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  int descriptor = open(path, O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0600);
+  if (descriptor < 0) archive_error("database-unavailable");
+  if (!pt_path_is_private_file(path)) {
+    close(descriptor);
+    archive_error("database-permissions");
+  }
+  for (int attempts = 0; flock(descriptor, LOCK_EX | LOCK_NB) != 0; attempts += 1) {
+    if (errno != EWOULDBLOCK || !archive_busy_wait(NULL, attempts)) {
+      close(descriptor);
+      archive_error(errno == EWOULDBLOCK ? "archive-busy" : "database-unavailable");
+    }
+  }
+  health_lock = descriptor;
+}
+
+static bool health_token_valid(const char *token) {
+  if (strlen(token) != 36 || token[14] != '4'
+      || !strchr("89ab", token[19])) return false;
+  for (size_t index = 0; index < 36; index += 1) {
+    bool separator = index == 8 || index == 13 || index == 18 || index == 23;
+    if (separator ? token[index] != '-'
+        : !strchr("0123456789abcdef", token[index])) return false;
+  }
+  return true;
+}
+
+static bool read_archive_health_receipt(
+  const char *database_root,
+  const char *project_id,
+  ArchiveHealth *health
+) {
+  char path[PATH_MAX];
+  health_path(database_root, project_id, "", path);
+  int descriptor = open(path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+  if (descriptor < 0) {
+    if (errno == ENOENT) return false;
+    archive_error("database-unavailable");
+  }
+  if (!pt_path_is_private_file(path)) {
+    close(descriptor);
+    archive_error("database-permissions");
+  }
+  char *text = NULL;
+  size_t size = 0;
+  bool read = pt_read_fd_limited(descriptor, &text, &size, 512);
+  close(descriptor);
+  int64_t version = 0;
+  char recorded_project[65];
+  bool valid = read && strlen(text) == size && pt_json_validate(text)
+    && pt_json_get_i64(text, "formatVersion", &version) && version == 1
+    && pt_json_get_string(text, "projectId", recorded_project, sizeof(recorded_project))
+    && strcmp(recorded_project, project_id) == 0
+    && pt_json_get_string(text, "generation", health->generation, sizeof(health->generation))
+    && pt_is_safe_identifier(health->generation)
+    && pt_json_get_string(text, "token", health->token, sizeof(health->token))
+    && health_token_valid(health->token)
+    && pt_json_get_string(text, "state", health->state, sizeof(health->state))
+    && (strcmp(health->state, "healthy") == 0 || strcmp(health->state, "damaged") == 0);
+  free(text);
+  if (!valid) archive_error("database-unavailable");
+  return true;
+}
+
+static bool read_archive_health(
+  const char *database_root,
+  const char *project_id,
+  ArchiveHealth *health
+) {
+  char partial[PATH_MAX];
+  char ready[PATH_MAX];
+  health_path(database_root, project_id, ".partial", partial);
+  health_path(database_root, project_id, ".ready", ready);
+  if (intent_present(partial) || intent_present(ready)) archive_error("database-unavailable");
+  bool recorded = read_archive_health_receipt(database_root, project_id, health);
+  /* A query does not own the health guard: a publisher may have installed the
+     receipt while it was being read, before completing the directory sync. */
+  if (intent_present(partial) || intent_present(ready)) archive_error("database-unavailable");
+  return recorded;
+}
+
+static void guard_archive_write(const char *database_root, const char *project_id) {
+  lock_archive_health(database_root, project_id);
+  char generation[129];
+  bool generated = project_generation(database_root, project_id, generation);
+  if (generated) snprintf(opened_generation, sizeof(opened_generation), "%s", generation);
+  ArchiveHealth health;
+  if (!read_archive_health(database_root, project_id, &health)) {
+    if (generated) {
+      char path[PATH_MAX];
+      int length = snprintf(path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
+      if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+      sqlite3 *reader = open_read_only(path);
+      int version = archive_schema_version(reader);
+      close_archive(reader);
+      if (version < 0 || version > ARCHIVE_SCHEMA_VERSION) archive_error("schema-version");
+      archive_error("archive-health-unknown");
+    }
+    return;
+  }
+  if (!generated || strcmp(health.generation, generation) != 0) {
+    archive_error("archive-generation");
+  }
+  if (strcmp(health.state, "damaged") == 0) archive_error("archive-integrity");
+}
+
+static void publish_archive_health(
+  const char *database_root,
+  const char *project_id,
+  const ArchiveHealth *health
+) {
+  char path[PATH_MAX];
+  char partial[PATH_MAX];
+  char ready[PATH_MAX];
+  health_path(database_root, project_id, "", path);
+  health_path(database_root, project_id, ".partial", partial);
+  health_path(database_root, project_id, ".ready", ready);
+  int descriptor = open(partial, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+  if (descriptor < 0) archive_error("database-unavailable");
+  char text[512];
+  int size = snprintf(
+    text,
+    sizeof(text),
+    "{\"formatVersion\":1,\"projectId\":\"%s\",\"generation\":\"%s\","
+    "\"state\":\"%s\",\"token\":\"%s\"}\n",
+    project_id, health->generation, health->state, health->token
+  );
+  bool written = size > 0 && (size_t)size < sizeof(text)
+    && write(descriptor, text, (size_t)size) == size
+    && (fcntl(descriptor, F_FULLFSYNC) == 0 || fsync(descriptor) == 0);
+  close(descriptor);
+  /* Keep a durable incomplete-publication gate across rename and its directory
+     sync. Renaming a second link must not consume the only failure evidence. */
+  if (!written || link(partial, ready) != 0 || !sync_directory(database_root)
+      || rename(ready, path) != 0 || !sync_directory(database_root)) {
+    archive_error("database-unavailable");
+  }
+  if (unlink(partial) != 0) archive_error("database-unavailable");
+  /* The receipt is already durable. An interrupted cleanup may bring back the
+     gate after a restart, conservatively requiring explicit recovery again. */
+  (void)sync_directory(database_root);
+}
+
+static void record_archive_damage(void) {
+  publishing_damage = true;
+  /* A reader must release SQLite before waiting for the health writer. */
+  if (active_archive) {
+    sqlite3_stmt *statement;
+    while ((statement = sqlite3_next_stmt(active_archive, NULL)) != NULL) {
+      sqlite3_finalize(statement);
+    }
+    sqlite3_exec(active_archive, "ROLLBACK", NULL, NULL, NULL);
+    sqlite3 *database = active_archive;
+    active_archive = NULL;
+    if (sqlite3_close(database) != SQLITE_OK) archive_error("database-unavailable");
+  }
+  lock_archive_health(health_database_root, health_project_id);
+  char generation[129];
+  if (!project_generation(health_database_root, health_project_id, generation)
+      || strcmp(generation, opened_generation) != 0) {
+    archive_error("archive-generation");
+  }
+  ArchiveHealth health;
+  if (read_archive_health(health_database_root, health_project_id, &health)) {
+    if (strcmp(health.generation, generation) != 0) archive_error("archive-generation");
+    if (strcmp(health.state, "damaged") == 0) return;
+  }
+  snprintf(health.generation, sizeof(health.generation), "%s", generation);
+  snprintf(health.state, sizeof(health.state), "damaged");
+  pt_random_uuid(health.token);
+  publish_archive_health(health_database_root, health_project_id, &health);
+}
+
+static const char *archive_health_check_failure(sqlite3 *database, const char *project_id) {
+  if (!archive_checks_clean(database, false)) return archive_failure(database, "archive-integrity");
+  int version = archive_schema_version(database);
+  if (version <= 0 || version > ARCHIVE_SCHEMA_VERSION) archive_error("schema-version");
+  if (archive_policy_version(database, project_id) != 1) archive_error("project-identity");
+  return NULL;
+}
+
+static void establish_archive_health(
+  const char *database_root,
+  const char *project_id,
+  const char *generation,
+  bool recovering
+) {
+  char partial[PATH_MAX];
+  char ready[PATH_MAX];
+  health_path(database_root, project_id, ".partial", partial);
+  health_path(database_root, project_id, ".ready", ready);
+  bool partial_present = intent_present(partial);
+  bool ready_present = intent_present(ready);
+  bool interrupted = recovering && (partial_present || ready_present);
+  if (interrupted && ((partial_present && !pt_path_is_private_file(partial))
+      || (ready_present && !pt_path_is_private_file(ready)))) {
+    archive_error("database-permissions");
+  }
+  ArchiveHealth health;
+  bool recorded = interrupted
+    ? read_archive_health_receipt(database_root, project_id, &health)
+    : read_archive_health(database_root, project_id, &health);
+  if (recorded) {
+    if (strcmp(health.generation, generation) != 0) archive_error("archive-generation");
+    if (!interrupted) return;
+  }
+  snprintf(opened_generation, sizeof(opened_generation), "%s", generation);
+  bool owns_reader = active_archive == NULL;
+  sqlite3 *database = active_archive;
+  if (owns_reader) {
+    char path[PATH_MAX];
+    int length = snprintf(path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
+    if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+    database = open_read_only(path);
+  }
+  const char *failure = archive_health_check_failure(database, project_id);
+  bool clean = failure == NULL;
+  if (owns_reader) close_archive(database);
+  if (failure && strcmp(failure, "archive-integrity") != 0) archive_failure_exit(failure);
+  if (!recorded || (!clean && strcmp(health.state, "damaged") != 0)) {
+    snprintf(health.generation, sizeof(health.generation), "%s", generation);
+    snprintf(health.state, sizeof(health.state), "%s", clean ? "healthy" : "damaged");
+    pt_random_uuid(health.token);
+  }
+  /* Only the explicit replacement recovery may discard an unpublished stage;
+     any already-published damage and its token stay on record. */
+  if (interrupted) {
+    if (ready_present && unlink(ready) != 0) archive_error("database-unavailable");
+    if (partial_present && unlink(partial) != 0) archive_error("database-unavailable");
+  }
+  publish_archive_health(database_root, project_id, &health);
+  if (!clean) archive_failure_exit("archive-integrity");
+}
+
+static void write_archive_health(
+  const char *project_id,
+  const char *generation,
+  const ArchiveHealth *health
+) {
+  write_status_string("{\"projectId\":", project_id);
+  write_status_string(",\"state\":", health ? health->state : "unknown");
+  if (generation) write_status_string(",\"generation\":", generation);
+  else fputs(",\"generation\":null", stdout);
+  if (health) write_status_string(",\"token\":", health->token);
+  else fputs(",\"token\":null", stdout);
+  fputs("}\n", stdout);
+}
+
+static void archive_health(int argc, char **argv) {
+  if (argc != 6) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  bool root_present =
+    capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
+  char generation[129];
+  bool generated = false;
+  if (root_present) {
+    lock_project(database_root, project_id, false);
+    generated = project_generation(database_root, project_id, generation);
+  }
+  ArchiveHealth health;
+  bool known = root_present && read_archive_health(database_root, project_id, &health)
+    && generated && strcmp(health.generation, generation) == 0;
+  write_archive_health(project_id, generated ? generation : NULL, known ? &health : NULL);
+}
+
+static void archive_health_init(int argc, char **argv) {
+  bool reset = strcmp(argv[1], "archive-health-reset") == 0;
+  if (argc != (reset ? 8 : 7)) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  const char *expected = argv[4];
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  if (!pt_is_safe_identifier(expected)) archive_error("archive-generation");
+  if (reset && !pt_is_safe_identifier(argv[5])) archive_error("archive-health-stale");
+  capture_runtime(database_root, argv[reset ? 6 : 5], argv[reset ? 7 : 6], PT_ROOT_REQUIRE);
+  lock_project(database_root, project_id, false);
+  refuse_unfinished_replacement(database_root, project_id);
+  lock_archive_health(database_root, project_id);
+  char generation[129];
+  if (!project_generation(database_root, project_id, generation)
+      || strcmp(generation, expected) != 0) {
+    archive_error("archive-generation");
+  }
+  ArchiveHealth health;
+  bool recorded = read_archive_health(database_root, project_id, &health);
+  if (recorded) {
+    if (strcmp(health.generation, generation) != 0) archive_error("archive-generation");
+    if (reset && strcmp(health.token, argv[5]) != 0) archive_error("archive-health-stale");
+  } else if (reset) {
+    archive_error("archive-health-unknown");
+  }
+  char database_path[PATH_MAX];
+  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
+  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  snprintf(opened_generation, sizeof(opened_generation), "%s", generation);
+  sqlite3 *database = open_read_only(database_path);
+  const char *failure = archive_health_check_failure(database, project_id);
+  bool clean = failure == NULL;
+  close_archive(database);
+  if (failure && strcmp(failure, "archive-integrity") != 0) archive_failure_exit(failure);
+  /* Init always checks, but only a generation/token-bound clean reset can
+     lift recorded damage. A clean init of a healthy receipt is idempotent. */
+  if (recorded && ((!reset && clean)
+      || (strcmp(health.state, "damaged") == 0 && (!reset || !clean)))) {
+    write_archive_health(project_id, generation, &health);
+    return;
+  }
+  snprintf(health.generation, sizeof(health.generation), "%s", generation);
+  snprintf(health.state, sizeof(health.state), "%s", clean ? "healthy" : "damaged");
+  pt_random_uuid(health.token);
+  publish_archive_health(database_root, project_id, &health);
+  write_archive_health(project_id, generation, &health);
+}
+
 static void archive_status(int argc, char **argv) {
   if (argc != 6) usage();
   const char *database_root = argv[2];
@@ -3954,7 +4359,9 @@ static void clear_read_archive(const char *database_path, ClearFindings *found) 
 static bool clear_owns_name(const char *name, const char *project_id) {
   size_t length = strlen(project_id);
   if (strncmp(name, project_id, length) != 0 || name[length] != '.') return false;
-  return strcmp(name + length, ".lock") != 0 && strcmp(name + length, ".clearing") != 0;
+  return strcmp(name + length, ".lock") != 0
+    && strcmp(name + length, ".health.lock") != 0
+    && strcmp(name + length, ".clearing") != 0;
 }
 
 /* Removes `path`, and what a directory holds down to `depth` levels,
@@ -4124,7 +4531,10 @@ static void clear_all(int argc, char **argv) {
   free(listed);
   bool root_present =
     capture_runtime(database_root, argv[5], argv[6], PT_ROOT_OPTIONAL);
-  if (root_present) lock_project(database_root, project_id, true);
+  if (root_present) {
+    lock_project(database_root, project_id, true);
+    lock_archive_health(database_root, project_id);
+  }
   char intent[PATH_MAX];
   /* A Run clear this one takes over may already have deleted its Run's
      rows; the intent still names the Run whose sessions go. */
@@ -4485,6 +4895,11 @@ static void clear_run(int argc, char **argv) {
     write_clear_run(project_id, false, false, false, counts);
     return;
   }
+  if (archived) {
+    health_database_root = database_root;
+    health_project_id = project_id;
+    guard_archive_write(database_root, project_id);
+  }
   sqlite3 *database = archived
     ? open_archive_at(database_root, project_id, database_path, false)
     : NULL;
@@ -4549,6 +4964,12 @@ static void usage(void) {
 int main(int argc, char **argv) {
   umask(0077);
   wait_deadline_ms = monotonic_ms() + ARCHIVE_WAIT_MS;
+  archive_writing = argc > 1 && (
+    strcmp(argv[1], "capture-begin") == 0
+    || strcmp(argv[1], "capture-confirm") == 0
+    || strcmp(argv[1], "capture-abort") == 0
+    || strcmp(argv[1], "boundary-append") == 0
+  );
   if (argc == 4
       && strcmp(argv[1], "probe") == 0
       && strcmp(argv[2], "--protocol") == 0) {
@@ -4610,6 +5031,15 @@ int main(int argc, char **argv) {
   }
   if (argc > 1 && strcmp(argv[1], "clear-run") == 0) {
     clear_run(argc, argv);
+    return 0;
+  }
+  if (argc > 1 && (strcmp(argv[1], "archive-health-init") == 0
+                   || strcmp(argv[1], "archive-health-reset") == 0)) {
+    archive_health_init(argc, argv);
+    return 0;
+  }
+  if (argc > 1 && strcmp(argv[1], "archive-health") == 0) {
+    archive_health(argc, argv);
     return 0;
   }
   if (argc > 1 && strcmp(argv[1], "archive-status") == 0) {

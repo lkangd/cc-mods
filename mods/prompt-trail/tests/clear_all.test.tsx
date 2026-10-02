@@ -209,6 +209,34 @@ test('after a clear the Run goes on collecting in an empty timeline', async ($, 
   expect(boundaryCalls(calls).map(call => call.argv[7])).not.toContain('clear')
 })
 
+test('clear-all reports its completed cut without recovering damage in the next generation', async ($, on) => {
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'healthy', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
+  const generation = { value: 'gen-1' }
+  let cut = false
+  const calls = installSupportedTarget(on, {
+    store: collectingStore(), archive: archivedBefore(), health, generation, fills: [], clearAnswers: [PHRASE],
+    processResponder: call => {
+      if (call.argv[1] === 'clear-all') cut = true
+      if (call.argv[1] === 'archive-health' && cut) {
+        generation.value = 'gen-new'
+        Object.assign(health, { state: 'damaged', generation: 'gen-new', token: '33333333-3333-4333-8333-333333333333' })
+      }
+      return undefined
+    },
+  })
+  await $.session.start(session)
+
+  const cleared = await promptHistory($, 'clear-all')
+
+  expect(cleared.text).toContain('已清除本项目')
+  expect(cleared.text).not.toContain('未删除任何内容')
+  expect((await composerPrompt($)).drop).toContain('草稿已恢复')
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+  expect(health.state).toBe('damaged')
+})
+
 test('damage offers a clear, which lets the held submission through once confirmed', async ($, on) => {
   const store = collectingStore()
   const archive = archivedBefore()
@@ -448,6 +476,34 @@ test('clear-all says so when the clear it would continue has finished elsewhere'
 
   expect(answer.text).toBe('上一次清除已由其他 Run 完成，未删除任何新记录。')
   expect(archive).toHaveLength(1)
+})
+
+test('continuing a clear completed elsewhere retires its leftover damage mirror', async ($, on) => {
+  const store = collectingStore()
+  const archiveStateKey = `prompt-trail:archive-state:${projectId}`
+  const clearUnderway = { value: true }
+  const health: NonNullable<TargetOptions['health']> = {
+    state: 'healthy', generation: 'gen-1', token: '11111111-1111-4111-8111-111111111111',
+  }
+  const calls = installSupportedTarget(on, {
+    store, archive: [], clearUnderway, clearLeaves: [], health,
+    clearAnswers: ['继续清除'],
+    duringAsk: () => {
+      clearUnderway.value = false
+      Object.assign(health, { state: 'unknown', generation: null, token: null })
+      store[archiveStateKey] = {
+        version: 2, state: 'unavailable', category: 'archive-integrity', generation: 'gen-1', runId: otherRun,
+      }
+    },
+  })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-all')
+
+  expect(answer.text).toBe('上一次清除已由其他 Run 完成，未删除任何新记录。')
+  expect(store[archiveStateKey]).toBeUndefined()
+  expect(captureCalls(calls, 'clear-all').map(call => call.argv[8])).toEqual(['--continue'])
+  expect(captureCalls(calls, 'archive-health-init')).toHaveLength(0)
 })
 
 test('a clear the host cut short after the cut is reported as unfinished', async ($, on) => {

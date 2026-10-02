@@ -36,6 +36,42 @@ has only `get`/`set`/`delete`/`keys`, with no conditional write (only `$.state.s
 decision about where the damage record lives. The person chose on 2026-09-30 to keep it here
 rather than open an issue, and to go on with Issue 41.
 
+On 2026-10-01 the person chose to reopen this work as
+[Issue 53](../../.scratch/prompt-trail/issues/53-serialize-damage-state-across-runs.md).
+Its implementation plan was subsequently approved, with helper-owned generation/state/token
+health receipts and all concurrent writers required to upgrade first (schema 2 / protocol 1
+unchanged). The initial implementation passed the unified non-model startup gate on
+2026-10-01. A single-pass review then identified recovery and health-publication gaps;
+Issue 53 and this backlog were reopened on 2026-10-02 while those fixes are verified.
+Helper mutation guards and token-bound recovery have targeted coverage. Interrupted health
+publication now keeps a durable gate across rename and directory sync; a temporary-child
+filesystem adapter reproduced the previous failed-reset/healthy-query path, then passed after
+the fix. A 165-test ordinary-file subset passed; later stage-trust and query-interleaving
+additions have targeted passes. Both fixed host versions passed 475 plugin tests and validation;
+TypeScript 5.9.3 passed. The single authorized startup verification exited 0, including all
+177 helper tests and 74 other Python tests, artifact consistency and protocol probes.
+Real PTY/model acceptance, deployment and release were not performed.
+Real-host fault injection is still not authorized; the issue records the separate, bounded
+TemporaryDirectory-only helper/startup test approval.
+
+On 2026-10-02 all 13 single-pass review findings were checked against the current code and
+fixed (10 CONFIRMED, 3 cleanup PLAUSIBLE; the latter had no independent verifier and were
+checked by the main session). The final ordinary-file helper subset passed 173/173 after AST
+screening 249 methods and their self-fixture closure; 11 of the full suite's 184 tests were
+excluded because they reach hdiutil/chflags. Both fixed hosts passed 480/480 plugin tests and
+validation; TypeScript 5.9.3, the other 74 Python tests, artifact rebuild SHA/type/mode equality,
+and protocol probes passed. The PTY inventory was corrected but only syntax-checked.
+Full diagnostics now publish real damage after closing the reader and rechecking the generation;
+ordinary failure categories do not publish damage, and healthy diagnostics do not authorize
+recovery. Init rechecks even an existing receipt without lifting recorded damage. Post-cut
+clear-run integrity failures publish damage before reporting the unfinished clear.
+The existing busy diagnostic regression was already GREEN before the final classification
+cleanup; no new busy RED is claimed. Details and every finding's disposition are in Issue 53.
+This backlog remains open, and Issue 53 claimed, pending a newly authorized post-fix full
+helper/startup system-test gate. The one-shot system-operation budgets are already used; the
+2026-10-01 startup PASS is not evidence for the reviewed-and-fixed version. No real PTY/model
+acceptance, deployment, version upgrade, stage, commit or push was performed.
+
 ## Suggested fix approach
 
 Keep the damage fact where writes are already serialized: have the helper record damage beside
@@ -45,9 +81,12 @@ that passes, a quarantine or a clear removes it. The `$.store` record then only 
 display. A cheaper, partial step is to reread the record right before the submit-time check,
 which narrows but does not close the second window.
 
-Done: a helper unit test in which one connection records damage while another is between its
-check and its write shows the write refused; the plugin test
-`a write that succeeds past the damage does not lift it for the other Runs` still passes.
+Targeted evidence: helper CLI tests show a mutation refused after another caller persists
+damage. The plugin retains separate late-helper-damage and mirror-delete-race blocking tests.
+The earlier `a write that succeeds past the damage does not lift it for the other Runs` test
+only constructed a store mirror while helper health was healthy; it was renamed and made
+explicit as `ordinary success retires a stale damage mirror when helper health is healthy`.
+It is not evidence that an actual helper damage receipt can be cleared by ordinary success.
 
 ## Recommended tools
 
