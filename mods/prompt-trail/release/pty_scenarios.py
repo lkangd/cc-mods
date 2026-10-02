@@ -1992,7 +1992,7 @@ def delete_002(ctx: Context) -> str:
     cleared = replied(ctx, terminal, "/prompt-history clear-all", "已清除本项目的 Prompt Trail 档案")
     check("1 个隔离档案" in cleared, "the answer does not count the quarantined archive")
     left = sorted(path.name for path in root.iterdir() if path.name.startswith(database.stem))
-    check(left == [f"{database.stem}.lock"], f"clear-all left {left}")
+    check(left == [f"{database.stem}.health.lock", f"{database.stem}.lock"], f"clear-all left {left}")
     check(not quarantined.exists(), "clear-all left the quarantined archive")
     status = ctx.status(terminal)
     check("collection consent: granted" in status and "Run collection mode: enabled" in status, "clear-all changed consent or the Run mode")
@@ -2004,7 +2004,7 @@ def delete_002(ctx: Context) -> str:
     check(new_generation not in (generation, "none"), "status shows the timeline after clear-all as the same generation")
     return (
         "the confirmation listed the quarantined archive; a mistyped phrase removed nothing; the phrase removed the active "
-        "archive with its WAL/SHM and the quarantine, leaving only the lock; consent and the Run mode stayed; "
+        "archive with its WAL/SHM and the quarantine, leaving only the two stable locks; consent and the Run mode stayed; "
         "the next prompt started a new generation with no consent question"
     )
 

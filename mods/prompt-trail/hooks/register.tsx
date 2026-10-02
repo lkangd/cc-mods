@@ -230,6 +230,8 @@ const SAFE_ERROR_CATEGORIES = new Set([
   'archive-full',
   'archive-generation',
   'archive-integrity',
+  'archive-health-unknown',
+  'archive-health-stale',
   'archive-read-only',
   'archive-sqlite',
   'boundary-conflict',
@@ -303,6 +305,8 @@ const SHARED_FAILURES = new Set([
   'archive-busy',
   'archive-full',
   'archive-integrity',
+  'archive-health-unknown',
+  'archive-health-stale',
   'archive-read-only',
   'archive-sqlite',
   'database-path',
@@ -323,6 +327,7 @@ const SHARED_FAILURES = new Set([
 /* Damage to the archive, or a quarantine of it left unfinished: beside
    disabling the Run, the person may check it again or quarantine it. */
 const DAMAGE_FAILURES = new Set(['archive-integrity', 'quarantine-failed'])
+const HEALTH_FAILURES = new Set([...DAMAGE_FAILURES, 'archive-health-unknown', 'archive-health-stale'])
 const DAMAGE_NEXT_SUBMISSION = '档案已损坏：下一次提交时可选择重新检查完整性、隔离并开始新档案，或禁用当前 Run 后继续。'
 /* What the plugin itself names a failure it met, beside the helper's own
    categories. Nothing else a failure carries is ever shown. */
@@ -1783,6 +1788,34 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
 async function readArchiveState($: EngineInterface, currentProject: ProjectState): Promise<void> {
   const before = JSON.stringify(archiveFailure)
   await readArchiveRecord($, currentProject)
+  if (startup.support === 'supported' && startup.helperPath && startup.databaseRoot) {
+    try {
+      const health = await readArchiveHealth($, currentProject)
+      /* A proven absent archive has no active generation for an old damage
+         mirror to block. Unknown existing archives still require a full check. */
+      if ((health.state === 'healthy' || (health.state === 'unknown' && health.generation === null))
+          && archiveFailure?.scope === 'archive' && HEALTH_FAILURES.has(archiveFailure.category)) {
+        archiveFailure = undefined
+      }
+      if (health.state === 'unknown' && health.generation !== null) {
+        archiveFailure = {
+          scope: 'archive', category: 'archive-health-unknown', blocking: true, elsewhere: false,
+          ...(health.generation ? { generation: health.generation } : {}),
+        }
+      }
+      if (health.state === 'damaged') {
+        archiveFailure = {
+          scope: 'archive', category: 'archive-integrity', blocking: true,
+          elsewhere: archiveFailure?.elsewhere ?? false,
+          generation: health.generation,
+          ...(archiveFailure?.generation === health.generation && archiveFailure.recheck
+            ? { recheck: archiveFailure.recheck } : {}),
+        }
+      }
+    } catch {
+      archiveFailure = { scope: 'archive', category: 'archive-health-unknown', blocking: true, elsewhere: false }
+    }
+  }
   forgetOtherRunsFailure()
   /* The band says what this Run knows, which a read can change either way. */
   if (JSON.stringify(archiveFailure) !== before) $.ui.invalidate('ui.render')
@@ -1895,22 +1928,21 @@ async function markUnavailable(
   return archiveFailure
 }
 
-/* A write that succeeds proves the archive takes writes again, which is all
-   a busy, full or read-only archive needed. It proves nothing of damage: a
-   page it did not touch may still be broken. Damage is lifted only by what
-   settles it, a recheck that passes, a quarantine or a clear. */
+/* Success may retire a display mirror, never helper damage. A recovery
+   receipt is accepted only while the helper still reports that exact healthy
+   generation and token. Clearing an archive forgets its mirror separately. */
 async function archiveRecovered(
   $: EngineInterface,
   currentProject: ProjectState,
-  settles?: 'settles-damage',
+  receipt?: ArchiveHealth,
 ): Promise<void> {
-  if (!settles) {
-    if (archiveFailure && DAMAGE_FAILURES.has(archiveFailure.category)) return
-    try {
-      const stored = await $.store.get(archiveStateKey(currentProject.id))
-      if (isRecord(stored) && typeof stored.category === 'string' && DAMAGE_FAILURES.has(stored.category)) return
-    } catch {
-      return
+  if (receipt) {
+    if (receipt.state !== 'healthy') throw new Error('archive-health-unknown')
+    const current = await readArchiveHealth($, currentProject)
+    if (current.state === 'damaged') throw new Error('archive-integrity')
+    if (current.state === 'unknown' && current.generation !== null) throw new Error('archive-health-unknown')
+    if (current.state !== receipt.state || current.generation !== receipt.generation || current.token !== receipt.token) {
+      throw new Error('archive-health-stale')
     }
   }
   if (archiveFailure) {
@@ -1920,8 +1952,9 @@ async function archiveRecovered(
   try {
     await $.store.delete(archiveStateKey(currentProject.id))
   } catch {
-    // Left on record, the next Run to read it retries before it collects.
+    // The display mirror is best effort; helper health remains authoritative.
   }
+  await readArchiveState($, currentProject)
 }
 
 async function requestConsent(
@@ -4378,6 +4411,50 @@ type ArchiveStatus = {
   archiveBytes: number | null
 }
 
+type ArchiveHealth =
+  | { state: 'unknown'; generation: string | null; token: null }
+  | { state: 'healthy' | 'damaged'; generation: string; token: string }
+
+async function readArchiveHealth(
+  $: EngineInterface,
+  currentProject: ProjectState,
+): Promise<ArchiveHealth> {
+  if (startup.support !== 'supported' || !startup.helperPath || !startup.databaseRoot) {
+    throw new Error('archive-health-unknown')
+  }
+  const result = await runArchive($, [
+    startup.helperPath, 'archive-health', startup.databaseRoot, currentProject.id,
+    EXPECTED_HELPER_SHA256, String(HELPER_PROTOCOL),
+  ], 10_000)
+  if (result.exitCode !== 0) throw new Error('archive-health-unknown')
+  return parseArchiveHealth(result.stdout, currentProject.id)
+}
+
+function parseArchiveHealth(text: string, projectId: string): ArchiveHealth {
+  const value: unknown = JSON.parse(text)
+  if (!isRecord(value) || value.projectId !== projectId) throw new Error('archive-health-unknown')
+  const generation = nullableGeneration(value.generation, 'archive-health-unknown')
+  if (value.state === 'unknown' && value.token === null) return { state: 'unknown', generation, token: null }
+  if ((value.state === 'healthy' || value.state === 'damaged') && generation && isSafeId(value.token)) {
+    return { state: value.state, generation, token: value.token }
+  }
+  throw new Error('archive-health-unknown')
+}
+
+async function resetArchiveHealth($: EngineInterface, currentProject: ProjectState): Promise<ArchiveHealth> {
+  const health = await readArchiveHealth($, currentProject)
+  if (!health.generation) throw new Error('archive-health-unknown')
+  const command = health.state === 'unknown' ? 'archive-health-init' : 'archive-health-reset'
+  const result = await runArchive($, [
+    startup.helperPath!, command, startup.databaseRoot!, currentProject.id, health.generation,
+    ...(health.token ? [health.token] : []), EXPECTED_HELPER_SHA256, String(HELPER_PROTOCOL),
+  ], 10_000)
+  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'archive-health-unknown'))
+  const receipt = parseArchiveHealth(result.stdout, currentProject.id)
+  if (receipt.generation !== health.generation || receipt.state === 'unknown') throw new Error('archive-health-unknown')
+  return receipt
+}
+
 type SubmitOutcome = { done: PromptSubmitResult } | { blocked: Blocked }
 
 /* The archive this Run was writing to was replaced by a quarantine, this
@@ -4571,13 +4648,16 @@ async function askUnavailable(
 ): Promise<'retry' | 'recheck' | 'quarantine' | 'clear' | 'continue-clear' | 'disable' | undefined> {
   const scope = failure.scope === 'archive' ? '本项目所有 Run' : '本 Run（其他 Run 不受影响）'
   const damaged = DAMAGE_FAILURES.has(failure.category)
+  const unknownHealth = failure.category === 'archive-health-unknown' || failure.category === 'archive-health-stale'
   const clearingRun = failure.category === 'clear-run-unfinished'
   const clearing = failure.category === 'clear-unfinished' || clearingRun
   const choices = damaged
     ? ['重新检查完整性', '隔离并开始新档案', '清除全部档案', '禁用当前 Run 后继续']
-    : clearing
-      ? ['继续清除', '禁用当前 Run 后继续']
-      : ['重试', '禁用当前 Run 后继续']
+    : unknownHealth
+      ? ['初始化并完整复检', '禁用当前 Run 后继续']
+      : clearing
+        ? ['继续清除', '禁用当前 Run 后继续']
+        : ['重试', '禁用当前 Run 后继续']
   /* What an unfinished clear still has to remove, as far as it can be
      listed; the dialog says so either way. */
   let leftovers: string[] = []
@@ -4596,6 +4676,7 @@ async function askUnavailable(
         `Prompt Trail ${failure.reason}，无法证明这次提交能被正确保存；本次提交尚未进入会话。`,
         `范围：${scope}`,
         `类别：${failure.category}${failure.elsewhere ? '（由另一个 Run 报告）' : ''}`,
+        ...(unknownHealth ? ['档案健康状态未知：必须显式初始化并完整复检，或禁用当前 Run；不会尝试普通写入来解除。'] : []),
         ...(failure.recheck ? [recheckNote(failure.recheck)] : []),
         ...(clearingRun
           ? ['之前确认过的一次按 Run 清除已删除记录，但物理清除未完成，以下残留还在：', ...leftovers.map(line => `- ${line}`)]
@@ -4604,6 +4685,8 @@ async function askUnavailable(
             : []),
         damaged
           ? '“重新检查完整性”只读检查档案，通过后提交；“隔离并开始新档案”把旧记录原样保留在隔离目录，新时间线从空开始，之后提交；“清除全部档案”在输入确认短语后永久删除本项目的全部档案，之后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。Prompt Trail 不会修复或覆盖损坏的档案。'
+          : unknownHealth
+            ? '“初始化并完整复检”由 helper 检查当前档案并建立健康记录，通过后提交；检查失败仍停止采集。'
           : clearingRun
             ? '“继续清除”完成那次按 Run 清除，之后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。'
             : clearing
@@ -4616,7 +4699,7 @@ async function askUnavailable(
     return undefined
   }
   if (answer === '重试') return 'retry'
-  if (answer === '重新检查完整性') return 'recheck'
+  if (answer === '重新检查完整性' || answer === '初始化并完整复检') return 'recheck'
   if (answer === '隔离并开始新档案') return 'quarantine'
   if (answer === '清除全部档案') return 'clear'
   if (answer === '继续清除') return 'continue-clear'
@@ -4650,7 +4733,7 @@ async function answerClear(
       $.ui.toast('Prompt Trail 已清除本项目的全部档案，新时间线从这次提交开始。')
     } else {
       /* Another Run finished it: the archive is usable again. */
-      await archiveRecovered($, currentProject, 'settles-damage')
+      await archiveRecovered($, currentProject)
     }
     return true
   } catch (error) {
@@ -4676,11 +4759,12 @@ async function answerDamage(
   }
   try {
     if (choice === 'recheck') {
-      const found = await recheckArchive($, currentProject)
-      if (found.result === 'ok' || found.result === 'absent') {
-        await archiveRecovered($, currentProject, 'settles-damage')
+      const receipt = await resetArchiveHealth($, currentProject)
+      if (receipt.state === 'healthy') {
+        await archiveRecovered($, currentProject, receipt)
         return true
       }
+      const found = await recheckArchive($, currentProject)
       /* What was checked is what a quarantine now moves: another Run may
          have replaced the generation this failure first named. */
       damagedGeneration = found.generation ?? undefined
@@ -4703,14 +4787,21 @@ async function answerDamage(
       /* Nothing named the damaged generation; only one found damaged now
          may be moved. */
       const found = await recheckArchive($, currentProject)
-      if (found.result === 'ok' || found.result === 'absent' || !found.generation) {
-        await archiveRecovered($, currentProject, 'settles-damage')
+      if (!found.generation) throw new Error('archive-health-unknown')
+      if (found.result === 'ok') {
+        const receipt = await resetArchiveHealth($, currentProject)
+        if (receipt.state !== 'healthy') throw new Error('archive-integrity')
+        await archiveRecovered($, currentProject, receipt)
         return true
       }
       damaged = found.generation
     }
     const moved = await quarantineArchive($, currentProject, damaged)
-    await archiveRecovered($, currentProject, 'settles-damage')
+    const health = await readArchiveHealth($, currentProject)
+    if (health.state !== 'healthy' || health.generation !== moved.generation) {
+      throw new Error(health.state === 'damaged' ? 'archive-integrity' : 'archive-health-unknown')
+    }
+    await archiveRecovered($, currentProject, health)
     damagedGeneration = undefined
     await enterNewGeneration($, currentProject, damaged)
     try {
@@ -4725,7 +4816,13 @@ async function answerDamage(
     return true
   } catch (error) {
     const category = failureCategory(error, choice === 'recheck' ? 'integrity-check' : 'quarantine')
-    Object.assign(failure, await markUnavailable($, currentProject, category))
+    if (category === 'archive-integrity' || category === 'archive-health-stale' || category === 'archive-health-unknown') {
+      await readArchiveState($, currentProject)
+      damagedGeneration = archiveFailure?.generation
+      Object.assign(failure, await markUnavailable($, currentProject, archiveFailure?.category ?? category))
+    } else {
+      Object.assign(failure, await markUnavailable($, currentProject, category))
+    }
     return false
   }
 }
@@ -4902,7 +4999,15 @@ type Cleared = {
    next capture starts over in the new one. */
 async function forgetClearedHistory($: EngineInterface, currentProject: ProjectState): Promise<boolean> {
   await clearReconcile($, currentProject)
-  await archiveRecovered($, currentProject, 'settles-damage')
+  /* The helper already cut the old history. Forget only its display mirror;
+     a health report in the next generation must survive this cleanup. */
+  archiveFailure = undefined
+  try {
+    await $.store.delete(archiveStateKey(currentProject.id))
+  } catch {
+    // The mirror cannot authorize a write; helper health is read below.
+  }
+  await readArchiveState($, currentProject)
   damagedGeneration = undefined
   archiveStatus = undefined
   /* A `/clear` this Run saw and never recorded belongs to the cleared
@@ -5103,7 +5208,7 @@ async function clearAllCommand($: EngineInterface): Promise<string> {
   try {
     const cleared = await clearTimeline($, currentProject, inventory.clearUnderway)
     if (!cleared.cleared && inventory.clearUnderway) {
-      await archiveRecovered($, currentProject, 'settles-damage')
+      await archiveRecovered($, currentProject)
       return '上一次清除已由其他 Run 完成，未删除任何新记录。'
     }
     return clearedText(cleared, inventory.entries === null && !inventory.clearUnderway)
@@ -5249,7 +5354,7 @@ async function submitCollected(
   /* Damage on record stops the submission before anything is settled or
      written in the damaged generation; the damage choices settle a pending
      too. A person's choice to try again has already dealt with it. */
-  if (!retrying && archiveFailure?.blocking && DAMAGE_FAILURES.has(archiveFailure.category)) {
+  if (archiveFailure?.blocking && HEALTH_FAILURES.has(archiveFailure.category)) {
     return { blocked: { ...archiveFailure, reason: '档案当前不可用' } }
   }
 
@@ -5725,7 +5830,9 @@ function statusText(): string {
         : 'not created'
   const damageChoices = archiveFailure && DAMAGE_FAILURES.has(archiveFailure.category)
     ? ['choices: 重新检查完整性 / 隔离并开始新档案 / 清除全部档案 / 禁用当前 Run 后继续（在下一次提交时选择）']
-    : []
+    : archiveFailure && HEALTH_FAILURES.has(archiveFailure.category)
+      ? ['档案健康状态未知：初始化并完整复检 / 禁用当前 Run 后继续（在下一次提交时选择）']
+      : []
   return [
     'Prompt Trail status',
     `support: ${startup.support}`,
@@ -5899,6 +6006,36 @@ async function enableCollection($: EngineInterface): Promise<string> {
   }
   if (decision !== 'enabled') {
     return '请选择“启用”或“继续但不启用”后再运行 /prompt-history enable。'
+  }
+
+  await readArchiveState($, currentProject)
+  if (archiveFailure && HEALTH_FAILURES.has(archiveFailure.category)) {
+    if (DAMAGE_FAILURES.has(archiveFailure.category)) {
+      return `Prompt Trail 档案当前不可用（${archiveFailure.category}），未启用采集。${DAMAGE_NEXT_SUBMISSION}`
+    }
+    let answer: string | undefined
+    try {
+      answer = await $.ui.ask(
+        '档案健康状态未知，尚未启用采集。“初始化并完整复检”由 helper 检查当前档案并建立健康记录，不修改档案正文；只有检查通过后才继续启用，失败或取消均保持当前采集模式。',
+        { header: '档案健康', options: ['初始化并完整复检', '取消'] },
+      )
+    } catch {
+      // Closing or losing the confirmation never authorizes initialization.
+    }
+    if (answer !== '初始化并完整复检') {
+      return 'Prompt Trail 未启用采集。档案健康状态未知；可再次执行 /prompt-history enable 选择初始化并完整复检。'
+    }
+    try {
+      const receipt = await resetArchiveHealth($, currentProject)
+      if (receipt.state !== 'healthy') throw new Error('archive-integrity')
+      await archiveRecovered($, currentProject, receipt)
+    } catch (error) {
+      const failure = await markUnavailable($, currentProject, failureCategory(error, 'archive-health-unknown'))
+      return `Prompt Trail 完整复检未能证明档案健康（${failure.category}），未启用采集；当前采集模式未改变。`
+    }
+    if (archiveFailure?.blocking) {
+      return `Prompt Trail 档案当前不可用（${archiveFailure.category}），未启用采集。`
+    }
   }
 
   /* Resuming over an unreconciled submission would archive the next prompt
@@ -6576,6 +6713,9 @@ function runClearRefusal(category: string): string {
   }
   if (category === 'clear-unfinished') {
     return '本项目的 clear-all 尚未完成，档案不可用；请执行 /prompt-history clear-all 继续，未删除任何内容。'
+  }
+  if (category === 'archive-health-unknown' || category === 'archive-health-stale') {
+    return '档案健康状态未知，无法按 Run 删除，未删除任何内容。请执行 /prompt-history enable 选择初始化并完整复检；失败时仍阻止采集。若决定删除本项目全部档案，可另行使用需强确认的 /prompt-history clear-all。'
   }
   return `Prompt Trail 未能开始清除当前 Run（${category}），未删除任何内容。`
 }

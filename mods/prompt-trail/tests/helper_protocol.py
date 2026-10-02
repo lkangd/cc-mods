@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+import fcntl
 import json
 import os
 import pathlib
 import pwd
+import select
 import shutil
 import sqlite3
 import stat
@@ -57,6 +59,1029 @@ class HelperProtocolTests(unittest.TestCase):
             text=True,
             env=self.environment,
         )
+
+    def test_health_of_an_absent_archive_creates_nothing(self) -> None:
+        project_id = "f1" * 32
+        result = self.run_helper(
+            "archive-health",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertEqual(
+            json.loads(result.stdout),
+            {"projectId": project_id, "state": "unknown", "generation": None, "token": None},
+        )
+        self.assertFalse((self.plugin_data / "archives").exists())
+
+    def test_health_query_names_an_untracked_archive_without_changing_it(self) -> None:
+        project_id = "f2" * 32
+        self.schema_1_archive(project_id, count=1, tracked=False)
+        generation = self.check(project_id)["generation"]
+        before = self.evidence(project_id)
+
+        result = self.run_helper(
+            "archive-health",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertEqual(
+            json.loads(result.stdout),
+            {"projectId": project_id, "state": "unknown", "generation": generation, "token": None},
+        )
+        self.assertEqual(self.evidence(project_id), before)
+        self.assertNotIn("PT-SECRET", result.stdout)
+
+    def test_explicit_health_init_establishes_a_persistent_receipt(self) -> None:
+        project_id = "f3" * 32
+        legacy = self.schema_1_archive(project_id, count=1, tracked=False)
+        generation = self.check(project_id)["generation"]
+        before = legacy["path"].read_bytes()
+
+        initialized = self.run_helper(
+            "archive-health-init",
+            str(self.plugin_data / "archives"),
+            project_id,
+            generation,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+        self.assertEqual(initialized.returncode, 0, initialized.stderr)
+        receipt = json.loads(initialized.stdout)
+        self.assertEqual(
+            (receipt["projectId"], receipt["state"], receipt["generation"]),
+            (project_id, "healthy", generation),
+        )
+        self.assertRegex(receipt["token"], r"^[0-9a-f-]{36}$")
+        queried = self.run_helper(
+            "archive-health",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+        self.assertEqual(queried.returncode, 0, queried.stderr)
+        self.assertEqual(json.loads(queried.stdout), receipt)
+        self.assertEqual(legacy["path"].read_bytes(), before)
+        self.assertNotIn("PT-SECRET", initialized.stdout + queried.stdout)
+
+    def test_explicit_health_init_keeps_damage_on_record(self) -> None:
+        project_id = "f4" * 32
+        legacy = self.schema_1_archive(project_id, count=1, tracked=False)
+        generation = self.check(project_id)["generation"]
+        self.overwrite_header(legacy["path"])
+        before = legacy["path"].read_bytes()
+
+        initialized = self.run_helper(
+            "archive-health-init",
+            str(self.plugin_data / "archives"),
+            project_id,
+            generation,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+        self.assertEqual(initialized.returncode, 0, initialized.stderr)
+        receipt = json.loads(initialized.stdout)
+        self.assertEqual((receipt["state"], receipt["generation"]), ("damaged", generation))
+        self.assertRegex(receipt["token"], r"^[0-9a-f-]{36}$")
+        queried = self.run_helper(
+            "archive-health",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+        self.assertEqual(queried.returncode, 0, queried.stderr)
+        self.assertEqual(json.loads(queried.stdout), receipt)
+        self.assertEqual(legacy["path"].read_bytes(), before)
+
+    def test_recorded_damage_refuses_a_write_even_after_the_file_is_repaired(self) -> None:
+        project_id = "f5" * 32
+        legacy = self.schema_1_archive(project_id, count=1, tracked=False)
+        generation = self.check(project_id)["generation"]
+        original = legacy["path"].read_bytes()
+        self.overwrite_header(legacy["path"])
+        recorded = self.run_helper(
+            "archive-health-init",
+            str(self.plugin_data / "archives"),
+            project_id,
+            generation,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+        self.assertEqual(recorded.returncode, 0, recorded.stderr)
+        with legacy["path"].open("r+b") as database:
+            database.write(original)
+            database.truncate()
+
+        refused = self.run_helper(*self.boundary_argv(
+            str(uuid.uuid4()), kind="collection-stopped", **legacy["identity"]
+        ))
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(
+            json.loads(refused.stderr),
+            {"category": "archive-integrity", "generation": generation},
+        )
+        self.assertEqual(legacy["path"].read_bytes(), original)
+        queried = self.run_helper(
+            "archive-health",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+        self.assertEqual(queried.returncode, 0, queried.stderr)
+        self.assertEqual(json.loads(queried.stdout), json.loads(recorded.stdout))
+
+    def test_a_new_archive_establishes_health_before_its_first_capture(self) -> None:
+        project_id = "f6" * 32
+        self.capture("PT-SECRET-FIRST-HEALTH", identity=self.identity(project_id))
+        generation = self.check(project_id)["generation"]
+
+        queried = self.run_helper(
+            "archive-health",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+        self.assertEqual(queried.returncode, 0, queried.stderr)
+        health = json.loads(queried.stdout)
+        self.assertEqual((health["state"], health["generation"]), ("healthy", generation))
+        self.assertRegex(health["token"], r"^[0-9a-f-]{36}$")
+        self.assertNotIn("PT-SECRET", queried.stdout + queried.stderr)
+
+    def test_an_existing_untracked_archive_refuses_writes_until_explicit_init(self) -> None:
+        project_id = "f7" * 32
+        legacy = self.schema_1_archive(project_id, count=1, tracked=False)
+        generation = self.check(project_id)["generation"]
+        original = legacy["path"].read_bytes()
+        argv = self.boundary_argv(
+            str(uuid.uuid4()), kind="collection-stopped", **legacy["identity"]
+        )
+
+        refused = self.run_helper(*argv)
+
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertEqual(json.loads(refused.stderr)["category"], "archive-health-unknown")
+        self.assertEqual(legacy["path"].read_bytes(), original)
+        initialized = self.run_helper(
+            "archive-health-init",
+            str(self.plugin_data / "archives"),
+            project_id,
+            generation,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+        self.assertEqual(initialized.returncode, 0, initialized.stderr)
+        accepted = self.run_helper(*argv)
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+    def test_damage_met_by_a_reader_is_persisted_before_a_later_writer(self) -> None:
+        project_id = "f8" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-READER-DAMAGE", identity=identity)
+        path = self.plugin_data / "archives" / f"{project_id}.sqlite3"
+        original = path.read_bytes()
+        generation = self.check(project_id)["generation"]
+        self.overwrite_header(path)
+
+        failed = self.run_helper(*self.read_argv(project_id=project_id))
+
+        self.assertEqual(failed.returncode, 25, failed.stderr)
+        self.assertEqual(json.loads(failed.stderr)["category"], "archive-integrity")
+        queried = self.run_helper(
+            "archive-health", str(path.parent), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        self.assertEqual(queried.returncode, 0, queried.stderr)
+        health = json.loads(queried.stdout)
+        self.assertEqual((health["state"], health["generation"]), ("damaged", generation))
+        with path.open("r+b") as database:
+            database.write(original)
+            database.truncate()
+        refused = self.run_helper(*self.boundary_argv(
+            str(uuid.uuid4()), kind="collection-stopped", **identity
+        ))
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr)["category"], "archive-integrity")
+        self.assertEqual(path.read_bytes(), original)
+
+    def archive_health_receipt(self, project_id: str) -> dict[str, object]:
+        result = self.run_helper(
+            "archive-health", str(self.plugin_data / "archives"), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("PT-SECRET", result.stdout + result.stderr)
+        return json.loads(result.stdout)
+
+    def test_full_diagnostic_publishes_damage_without_authorizing_repair(self) -> None:
+        project_id = "b1" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-FULL-DIAGNOSTIC", identity=identity)
+        path = self.archive_path(project_id)
+        original = path.read_bytes()
+        healthy = self.archive_health_receipt(project_id)
+        # A stale index is readable and passes quick_check; only the full
+        # diagnostic finds it, rather than the ordinary read error path.
+        self.redefine_index(path)
+        self.leave_wal_unfolded(path)
+        before = self.evidence(project_id)
+
+        checked = self.check(project_id)
+
+        self.assertEqual(checked["result"], "damaged")
+        damaged = self.archive_health_receipt(project_id)
+        self.assertEqual((damaged["state"], damaged["generation"]),
+                         ("damaged", healthy["generation"]))
+        self.assertNotEqual(damaged["token"], healthy["token"])
+        self.assertEqual(
+            {name: data for name, data in self.evidence(project_id).items()
+             if not name.endswith(".health")},
+            {name: data for name, data in before.items() if not name.endswith(".health")},
+        )
+        self.fold_wal(path)
+        with path.open("r+b") as database:
+            database.write(original)
+            database.truncate()
+        self.assertEqual(self.check(project_id)["result"], "ok")
+        self.assertEqual(self.archive_health_receipt(project_id), damaged)
+        refused = self.run_helper(*self.boundary_argv(
+            str(uuid.uuid4()), kind="collection-stopped", **identity
+        ))
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr)["category"], "archive-integrity")
+        self.assertEqual(path.read_bytes(), original)
+        self.assertEqual(self.archive_health_receipt(project_id), damaged)
+
+    def test_full_diagnostic_publishes_foreign_key_damage_without_changing_db_or_wal(self) -> None:
+        project_id = "b9" * 32
+        self.capture("PT-SECRET-FK-DIAGNOSTIC", identity=self.identity(project_id))
+        path = self.archive_path(project_id)
+        healthy = self.archive_health_receipt(project_id)
+        with sqlite3.connect(path) as database:
+            database.executescript(
+                "CREATE TABLE diagnostic_parent(id INTEGER PRIMARY KEY);"
+                "CREATE TABLE diagnostic_child(parent_id INTEGER REFERENCES diagnostic_parent(id));"
+                "INSERT INTO diagnostic_child VALUES(42);"
+            )
+        self.leave_wal_unfolded(path)
+        before = self.evidence(project_id)
+
+        checked = self.check(project_id)
+
+        self.assertEqual((checked["result"], checked["problems"], checked["generation"]),
+                         ("damaged", 1, healthy["generation"]))
+        damaged = self.archive_health_receipt(project_id)
+        self.assertEqual((damaged["state"], damaged["generation"]),
+                         ("damaged", healthy["generation"]))
+        self.assertNotEqual(damaged["token"], healthy["token"])
+        self.assertEqual(
+            {name: data for name, data in self.evidence(project_id).items()
+             if not name.endswith(".health")},
+            {name: data for name, data in before.items() if not name.endswith(".health")},
+        )
+        self.assertEqual(self.check(project_id), checked)
+        self.assertEqual(self.archive_health_receipt(project_id), damaged)
+
+    def test_health_init_rechecks_an_initialized_generation_without_lifting_damage(self) -> None:
+        project_id = "b2" * 32
+        self.capture("PT-SECRET-INIT-RECHECK", identity=self.identity(project_id))
+        path = self.archive_path(project_id)
+        original = path.read_bytes()
+        healthy = self.archive_health_receipt(project_id)
+
+        def initialize() -> dict[str, object]:
+            result = self.run_helper(
+                "archive-health-init", str(path.parent), project_id,
+                healthy["generation"], json.loads(MANIFEST.read_text())["sha256"], "1",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return json.loads(result.stdout)
+
+        self.assertEqual(initialize(), healthy)
+        self.redefine_index(path)
+        self.leave_wal_unfolded(path)
+        before = self.evidence(project_id)
+
+        damaged = initialize()
+
+        self.assertEqual((damaged["state"], damaged["generation"]),
+                         ("damaged", healthy["generation"]))
+        self.assertNotEqual(damaged["token"], healthy["token"])
+        self.assertEqual(self.archive_health_receipt(project_id), damaged)
+        self.assertEqual(
+            {name: data for name, data in self.evidence(project_id).items()
+             if not name.endswith(".health")},
+            {name: data for name, data in before.items() if not name.endswith(".health")},
+        )
+        self.assertEqual(initialize(), damaged)
+        self.fold_wal(path)
+        with path.open("r+b") as database:
+            database.write(original)
+            database.truncate()
+        repaired = self.evidence(project_id)
+        self.assertEqual(initialize(), damaged)
+        self.assertEqual(self.evidence(project_id), repaired)
+        self.assertEqual(self.check(project_id)["result"], "ok")
+        self.assertEqual(self.archive_health_receipt(project_id), damaged)
+
+    def test_health_init_with_a_receipt_still_refuses_schema_and_project_mismatch(self) -> None:
+        for index, (sql, category) in enumerate((
+            ("PRAGMA user_version=3", "schema-version"),
+            (f"UPDATE metadata SET project_id='{'0f' * 32}'", "project-identity"),
+        )):
+            with self.subTest(category=category):
+                project_id = f"b{index + 4}" * 32
+                self.capture("PT-SECRET-INIT-REFUSAL", identity=self.identity(project_id))
+                path = self.archive_path(project_id)
+                health_before = self.archive_health_receipt(project_id)
+                with sqlite3.connect(path) as database:
+                    database.execute(sql)
+                before = self.evidence(project_id)
+
+                refused = self.run_helper(
+                    "archive-health-init", str(path.parent), project_id,
+                    health_before["generation"], json.loads(MANIFEST.read_text())["sha256"], "1",
+                )
+
+                self.assertEqual(refused.returncode, 25, refused.stderr)
+                self.assertEqual(json.loads(refused.stderr)["category"], category)
+                self.assertEqual(self.evidence(project_id), before)
+                self.assert_refusal_health(project_id, health_before)
+
+    def test_diagnostic_and_init_failures_preserve_healthy_and_damaged_receipts(self) -> None:
+        for index, recorded_damage in enumerate((False, True)):
+            with self.subTest(recorded_damage=recorded_damage):
+                project_id = f"b{index + 6}" * 32
+                legacy = self.schema_1_archive(project_id, count=1, journal="DELETE")
+                path = legacy["path"]
+                original = path.read_bytes()
+                if recorded_damage:
+                    self.overwrite_header(path)
+                    self.assertEqual(self.check(project_id)["result"], "unreadable")
+                    with path.open("r+b") as database:
+                        database.write(original)
+                        database.truncate()
+                health_before = self.archive_health_receipt(project_id)
+                self.assertEqual(health_before["state"], "damaged" if recorded_damage else "healthy")
+                argv = (
+                    "archive-health-init", str(path.parent), project_id,
+                    health_before["generation"], json.loads(MANIFEST.read_text())["sha256"], "1",
+                )
+                holder = sqlite3.connect(path)
+                self.addCleanup(holder.close)
+                before = self.evidence(project_id)
+                holder.execute("BEGIN EXCLUSIVE")
+                for args in (self.check_argv(project_id=project_id), argv):
+                    refused = self.run_helper(*args)
+                    self.assertEqual(refused.returncode, 25, refused.stderr)
+                    self.assertEqual(json.loads(refused.stderr)["category"], "archive-busy")
+                    self.assert_refusal_health(project_id, health_before)
+                holder.rollback()
+                holder.close()
+                # Opening/closing a snapshot fd while the parent holds a POSIX
+                # SQLite lock releases that process's lock, so compare afterward.
+                self.assertEqual(self.evidence(project_id), before)
+                for mode in (0o400, 0o000):
+                    path.chmod(mode)
+                    try:
+                        for args in (self.check_argv(project_id=project_id), argv):
+                            refused = self.run_helper(*args)
+                            self.assertEqual(refused.returncode, 25, refused.stderr)
+                            self.assertEqual(json.loads(refused.stderr)["category"], "database-permissions")
+                    finally:
+                        path.chmod(0o600)
+                    self.assertEqual(self.evidence(project_id), before)
+                    self.assert_refusal_health(project_id, health_before)
+
+    def test_health_reset_restores_a_repaired_generation_with_a_new_token(self) -> None:
+        project_id = "f9" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-BOUND-RESET", identity=identity)
+        path = self.plugin_data / "archives" / f"{project_id}.sqlite3"
+        original = path.read_bytes()
+        self.overwrite_header(path)
+        failed = self.run_helper(*self.read_argv(project_id=project_id))
+        self.assertEqual(failed.returncode, 25, failed.stderr)
+        queried = self.run_helper(
+            "archive-health", str(path.parent), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        damaged = json.loads(queried.stdout)
+        with path.open("r+b") as database:
+            database.write(original)
+            database.truncate()
+        argv = (
+            "archive-health-reset", str(path.parent), project_id,
+            damaged["generation"], damaged["token"],
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+
+        reset = self.run_helper(*argv)
+
+        self.assertEqual(reset.returncode, 0, reset.stderr)
+        healthy = json.loads(reset.stdout)
+        self.assertEqual((healthy["state"], healthy["generation"]),
+                         ("healthy", damaged["generation"]))
+        self.assertNotEqual(healthy["token"], damaged["token"])
+        self.assertEqual(path.read_bytes(), original)
+        stale = self.run_helper(*argv)
+        self.assertEqual(stale.returncode, 25, stale.stderr)
+        self.assertEqual(json.loads(stale.stderr)["category"], "archive-health-stale")
+        queried = self.run_helper(
+            "archive-health", str(path.parent), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        self.assertEqual(json.loads(queried.stdout), healthy)
+        accepted = self.run_helper(*self.boundary_argv(
+            str(uuid.uuid4()), kind="collection-stopped", **identity
+        ))
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+    def test_health_reset_does_not_lift_damage_when_the_archive_is_still_unreadable(self) -> None:
+        project_id = "fa" * 32
+        self.capture("PT-SECRET-STILL-DAMAGED", identity=self.identity(project_id))
+        path = self.plugin_data / "archives" / f"{project_id}.sqlite3"
+        self.overwrite_header(path)
+        failed = self.run_helper(*self.read_argv(project_id=project_id))
+        self.assertEqual(failed.returncode, 25, failed.stderr)
+        queried = self.run_helper(
+            "archive-health", str(path.parent), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        damaged = json.loads(queried.stdout)
+        before = path.read_bytes()
+
+        reset = self.run_helper(
+            "archive-health-reset", str(path.parent), project_id,
+            damaged["generation"], damaged["token"],
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+
+        self.assertEqual(reset.returncode, 0, reset.stderr)
+        self.assertEqual(json.loads(reset.stdout), damaged)
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_a_read_that_needs_migration_cannot_bypass_recorded_damage(self) -> None:
+        project_id = "fb" * 32
+        legacy = self.schema_1_archive(project_id, count=1, tracked=False)
+        generation = self.check(project_id)["generation"]
+        original = legacy["path"].read_bytes()
+        self.overwrite_header(legacy["path"])
+        recorded = self.run_helper(
+            "archive-health-init", str(legacy["path"].parent), project_id,
+            generation, json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        self.assertEqual(recorded.returncode, 0, recorded.stderr)
+        with legacy["path"].open("r+b") as database:
+            database.write(original)
+            database.truncate()
+
+        refused = self.run_helper(*self.read_argv(project_id=project_id))
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr)["category"], "archive-integrity")
+        self.assertEqual(legacy["path"].read_bytes(), original)
+
+    def test_clearing_a_run_cannot_lift_recorded_archive_damage(self) -> None:
+        project_id = "fc" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-RUN-CLEAR-DAMAGE", identity=identity)
+        path = self.archive_path(project_id)
+        original = path.read_bytes()
+        self.overwrite_header(path)
+        failed = self.run_helper(*self.read_argv(project_id=project_id))
+        self.assertEqual(failed.returncode, 25, failed.stderr)
+        with path.open("r+b") as database:
+            database.write(original)
+            database.truncate()
+
+        refused = self.run_helper(*self.clear_run_argv(
+            project_id=project_id, run_id=identity["run_id"]
+        ))
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr)["category"], "archive-integrity")
+        self.assertEqual(path.read_bytes(), original)
+
+    def test_quarantine_keeps_old_health_and_establishes_the_new_generation(self) -> None:
+        project_id = "fd" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-QUARANTINE-HEALTH", identity=identity)
+        path = self.archive_path(project_id)
+        self.overwrite_header(path)
+        failed = self.run_helper(*self.read_argv(project_id=project_id))
+        self.assertEqual(failed.returncode, 25, failed.stderr)
+        query = (
+            "archive-health", str(path.parent), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        damaged = json.loads(self.run_helper(*query).stdout)
+        health_path = path.with_name(path.name + ".health")
+        old_health = health_path.read_bytes()
+        original = path.read_bytes()
+
+        replaced = self.quarantine(project_id, damaged["generation"], identity=identity)
+
+        queried = self.run_helper(*query)
+        self.assertEqual(queried.returncode, 0, queried.stderr)
+        healthy = json.loads(queried.stdout)
+        self.assertEqual((healthy["state"], healthy["generation"]),
+                         ("healthy", replaced["generation"]))
+        self.assertNotEqual(healthy["generation"], damaged["generation"])
+        kept = self.quarantined(project_id)[replaced["moved"]]
+        self.assertEqual(kept[path.name], original)
+        self.assertEqual(kept[health_path.name], old_health)
+        accepted = self.run_helper(*self.boundary_argv(
+            str(uuid.uuid4()), kind="collection-stopped", **identity
+        ))
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+    def test_clear_all_retires_health_without_replacing_the_health_lock(self) -> None:
+        project_id = "fe" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-CLEAR-HEALTH", identity=identity)
+        path = self.archive_path(project_id)
+        lock = path.parent / f"{project_id}.health.lock"
+        before = lock.stat().st_ino
+        query = (
+            "archive-health", str(path.parent), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        previous = json.loads(self.run_helper(*query).stdout)
+
+        cleared = self.clear(project_id)
+
+        self.assertTrue(cleared["cleared"])
+        self.assertTrue(lock.exists())
+        self.assertEqual(lock.stat().st_ino, before)
+        queried = self.run_helper(*query)
+        self.assertEqual(queried.returncode, 0, queried.stderr)
+        self.assertEqual(json.loads(queried.stdout), {
+            "projectId": project_id, "state": "unknown", "generation": None, "token": None,
+        })
+        self.capture("PT-SECRET-AFTER-CLEAR-HEALTH", identity=identity)
+        current = json.loads(self.run_helper(*query).stdout)
+        self.assertEqual(current["state"], "healthy")
+        self.assertNotEqual(current["generation"], previous["generation"])
+        self.assertEqual(lock.stat().st_ino, before)
+
+    def test_a_writer_started_after_the_damage_publisher_holds_the_guard_is_refused(self) -> None:
+        project_id = "ef" * 32
+        legacy = self.schema_1_archive(
+            project_id, count=1, journal="DELETE", tracked=False,
+            extra="CREATE TABLE bad_fk(parent REFERENCES metadata(project_id));"
+                  "INSERT INTO bad_fk VALUES('missing');",
+        )
+        generation = self.check(project_id)["generation"]
+        path = legacy["path"]
+        before = path.read_bytes()
+        holder = sqlite3.connect(path)
+        self.addCleanup(holder.close)
+        holder.execute("BEGIN EXCLUSIVE")
+        recorder = subprocess.Popen(
+            [str(HELPER), "archive-health-init", str(path.parent), project_id,
+             generation, json.loads(MANIFEST.read_text())["sha256"], "1"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self.environment,
+        )
+        self.addCleanup(lambda: recorder.poll() is None and recorder.kill())
+        lock_path = path.parent / f"{project_id}.health.lock"
+        deadline = time.monotonic() + 3
+        while True:
+            if lock_path.exists():
+                with lock_path.open("rb") as lock:
+                    try:
+                        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    except BlockingIOError:
+                        break
+                    else:
+                        fcntl.flock(lock, fcntl.LOCK_UN)
+            self.assertIsNone(recorder.poll(), "recorder exited before acquiring the guard")
+            self.assertLess(time.monotonic(), deadline, "recorder never acquired the guard")
+            time.sleep(0.01)
+        writer = subprocess.Popen(
+            [str(HELPER), *self.boundary_argv(
+                str(uuid.uuid4()), kind="collection-stopped", **legacy["identity"]
+            )], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self.environment,
+        )
+        self.addCleanup(lambda: writer.poll() is None and writer.kill())
+        holder.execute("ROLLBACK")
+
+        recorded_out, recorded_err = recorder.communicate(timeout=10)
+        written_out, written_err = writer.communicate(timeout=10)
+
+        self.assertEqual(recorder.returncode, 0, recorded_err)
+        self.assertEqual(json.loads(recorded_out)["state"], "damaged")
+        self.assertEqual(writer.returncode, 25, written_err)
+        self.assertEqual(json.loads(written_err)["category"], "archive-integrity")
+        self.assertEqual(written_out, "")
+        self.assertEqual(path.read_bytes(), before)
+        self.assertNotIn("PT-SECRET", recorded_out + recorded_err + written_err)
+
+    def test_health_init_cannot_authorize_an_unsupported_schema(self) -> None:
+        project_id = "0a" * 32
+        path = self.hand_built_archive(
+            project_id,
+            "CREATE TABLE future_layout(value TEXT);"
+            "INSERT INTO future_layout VALUES('PT-SECRET-FUTURE');"
+            "PRAGMA user_version=3;",
+        )
+        generation = self.check(project_id)["generation"]
+        before = path.read_bytes()
+
+        refused = self.run_helper(
+            "archive-health-init", str(path.parent), project_id,
+            generation, json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr)["category"], "schema-version")
+        self.assertEqual(path.read_bytes(), before)
+        queried = self.run_helper(
+            "archive-health", str(path.parent), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        self.assertEqual(queried.returncode, 0, queried.stderr)
+        self.assertEqual(json.loads(queried.stdout)["state"], "unknown")
+
+    def test_finishing_an_old_untracked_quarantine_cannot_retire_new_damage(self) -> None:
+        project_id = "0b" * 32
+        legacy = self.schema_1_archive(project_id, count=1, tracked=False)
+        replaced = self.quarantine(project_id, self.check(project_id)["generation"])
+        kept = self.quarantined(project_id)
+        self.overwrite_header(legacy["path"])
+        failed = self.run_helper(*self.read_argv(project_id=project_id))
+        self.assertEqual(failed.returncode, 25, failed.stderr)
+        query = (
+            "archive-health", str(legacy["path"].parent), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        damaged = json.loads(self.run_helper(*query).stdout)
+        self.assertEqual(damaged["state"], "damaged")
+        # A durable old intent may reappear after its final removal was interrupted.
+        intent = legacy["path"].parent / f"{project_id}.quarantine"
+        intent.write_text(replaced["moved"])
+        intent.chmod(0o600)
+
+        finished = self.quarantine(project_id, "stale")
+
+        self.assertEqual(finished["generation"], replaced["generation"])
+        self.assertEqual(json.loads(self.run_helper(*query).stdout), damaged)
+        self.assertEqual(self.quarantined(project_id), kept)
+
+    def test_finishing_quarantine_with_missing_health_cannot_bless_a_damaged_replacement(self) -> None:
+        project_id = "0c" * 32
+        self.capture("PT-SECRET-QUARANTINE-RECHECK", identity=self.identity(project_id))
+        path = self.archive_path(project_id)
+        replaced = self.quarantine(project_id, self.check(project_id)["generation"])
+        path.with_name(path.name + ".health").unlink()
+        self.overwrite_header(path)
+        before = path.read_bytes()
+        intent = path.parent / f"{project_id}.quarantine"
+        intent.write_text(replaced["moved"])
+        intent.chmod(0o600)
+
+        refused = self.run_helper(*self.quarantine_argv(project_id=project_id, generation="stale"))
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        queried = self.run_helper(
+            "archive-health", str(path.parent), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        self.assertEqual(queried.returncode, 0, queried.stderr)
+        self.assertEqual(json.loads(queried.stdout)["state"], "damaged")
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_a_malformed_health_token_never_authorizes_a_write(self) -> None:
+        project_id = "0d" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-MALFORMED-HEALTH", identity=identity)
+        path = self.archive_path(project_id)
+        before = path.read_bytes()
+        health_path = path.with_name(path.name + ".health")
+        health = json.loads(health_path.read_text())
+        health["token"] = "not_a_state_token"
+        health_path.write_text(json.dumps(health))
+        evidence = self.evidence(project_id)
+
+        refused = self.run_helper(*self.boundary_argv(
+            str(uuid.uuid4()), kind="collection-stopped", **identity
+        ))
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr)["category"], "database-unavailable")
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(self.evidence(project_id), evidence)
+        self.assertNotIn("PT-SECRET", refused.stdout + refused.stderr)
+
+    def initialize_health(self, project_id: str) -> dict[str, object]:
+        generation = self.check(project_id)["generation"]
+        initialized = self.run_helper(
+            "archive-health-init", str(self.plugin_data / "archives"), project_id,
+            generation, json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        self.assertEqual(initialized.returncode, 0, initialized.stderr)
+        return json.loads(initialized.stdout)
+
+    def test_unknown_health_evidence_never_authorizes_a_write(self) -> None:
+        for index, damage in enumerate(("missing", "json", "permissions", "symlink", "partial", "ready")):
+            with self.subTest(evidence=damage):
+                project_id = f"1{index}" * 32
+                identity = self.identity(project_id)
+                self.capture("PT-SECRET-UNKNOWN-HEALTH", identity=identity)
+                path = self.archive_path(project_id)
+                before = path.read_bytes()
+                health = path.with_name(path.name + ".health")
+                if damage == "missing":
+                    health.unlink()
+                elif damage == "json":
+                    health.write_text("not a health receipt")
+                elif damage == "permissions":
+                    health.chmod(0o644)
+                elif damage == "symlink":
+                    health.unlink()
+                    health.symlink_to(path)
+                else:
+                    partial = path.with_name(path.name + f".health.{damage}")
+                    partial.write_text("interrupted publication")
+                    partial.chmod(0o600)
+                evidence = self.evidence(project_id)
+
+                refused = self.run_helper(*self.boundary_argv(
+                    str(uuid.uuid4()), kind="collection-stopped", **identity
+                ))
+
+                self.assertEqual(refused.returncode, 25, refused.stderr)
+                self.assertEqual(path.read_bytes(), before)
+                self.assertEqual(self.evidence(project_id), evidence)
+                self.assertNotIn("PT-SECRET", refused.stdout + refused.stderr)
+
+    def test_current_archive_reads_do_not_wait_for_the_health_writer(self) -> None:
+        project_id = "15" * 32
+        self.capture("PT-SECRET-READ-HEALTH-LOCK", identity=self.identity(project_id))
+        lock_path = self.plugin_data / "archives" / f"{project_id}.health.lock"
+        with lock_path.open("rb") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            started = time.monotonic()
+
+            read = self.read(project_id=project_id)
+
+            self.assertEqual([event["text"] for event in read["events"]],
+                             ["PT-SECRET-READ-HEALTH-LOCK"])
+            self.assertLess(time.monotonic() - started, 3)
+
+    def test_quarantine_finishes_an_interrupted_new_health_publication(self) -> None:
+        for index, partial_data in enumerate((b"", b"interrupted health JSON")):
+            with self.subTest(partial=partial_data):
+                project_id = f"2{index}" * 32
+                self.capture("PT-SECRET-INTERRUPTED-HEALTH", identity=self.identity(project_id))
+                path = self.archive_path(project_id)
+                replaced = self.quarantine(project_id, self.check(project_id)["generation"])
+                # The replacement is in place, but its new health publication never finished.
+                health_path = path.with_name(path.name + ".health")
+                health_path.unlink()
+                partial = path.with_name(path.name + ".health.partial")
+                partial.write_bytes(partial_data)
+                partial.chmod(0o600)
+                intent = path.parent / f"{project_id}.quarantine"
+                intent.write_text(replaced["moved"])
+                intent.chmod(0o600)
+                before = path.read_bytes()
+
+                finished = self.quarantine(project_id, "stale")
+
+                self.assertEqual(finished["generation"], replaced["generation"])
+                self.assertFalse(partial.exists())
+                self.assertFalse(intent.exists())
+                self.assertEqual(path.read_bytes(), before)
+                queried = self.run_helper(
+                    "archive-health", str(path.parent), project_id,
+                    json.loads(MANIFEST.read_text())["sha256"], "1",
+                )
+                self.assertEqual(queried.returncode, 0, queried.stderr)
+                receipt = json.loads(queried.stdout)
+                self.assertEqual((receipt["state"], receipt["generation"]),
+                                 ("healthy", replaced["generation"]))
+
+    def test_quarantine_does_not_discard_untrusted_health_publication_stages(self) -> None:
+        for index, (stage, damage) in enumerate((("partial", "permissions"),
+                                                ("partial", "symlink"),
+                                                ("ready", "permissions"),
+                                                ("ready", "symlink"))):
+            with self.subTest(stage=stage, damage=damage):
+                project_id = f"4{index}" * 32
+                self.capture("PT-SECRET-UNTRUSTED-STAGE", identity=self.identity(project_id))
+                path = self.archive_path(project_id)
+                replaced = self.quarantine(project_id, self.check(project_id)["generation"])
+                interrupted = path.with_name(path.name + f".health.{stage}")
+                if damage == "permissions":
+                    interrupted.write_bytes(b"interrupted health publication")
+                    interrupted.chmod(0o644)
+                else:
+                    interrupted.symlink_to(path)
+                intent = path.parent / f"{project_id}.quarantine"
+                intent.write_text(replaced["moved"])
+                intent.chmod(0o600)
+                before = path.read_bytes()
+                health = path.with_name(path.name + ".health").read_bytes()
+
+                refused = self.run_helper(*self.quarantine_argv(
+                    project_id=project_id, generation="stale"
+                ))
+
+                self.assertEqual(refused.returncode, 25, refused.stdout + refused.stderr)
+                self.assertTrue(interrupted.exists())
+                self.assertTrue(intent.exists())
+                self.assertEqual(path.read_bytes(), before)
+                self.assertEqual(path.with_name(path.name + ".health").read_bytes(), health)
+
+    def test_quarantine_finishes_health_stages_without_lifting_published_damage(self) -> None:
+        for index, stage in enumerate(("ready", "both", "renamed")):
+            with self.subTest(stage=stage):
+                project_id = f"3{index}" * 32
+                self.capture("PT-SECRET-HEALTH-STAGES", identity=self.identity(project_id))
+                path = self.archive_path(project_id)
+                replaced = self.quarantine(project_id, self.check(project_id)["generation"])
+                original = path.read_bytes()
+                self.overwrite_header(path)
+                detected = self.run_helper(*self.read_argv(project_id=project_id))
+                self.assertEqual(detected.returncode, 25, detected.stderr)
+                health_path = path.with_name(path.name + ".health")
+                queried = self.run_helper(
+                    "archive-health", str(path.parent), project_id,
+                    json.loads(MANIFEST.read_text())["sha256"], "1",
+                )
+                self.assertEqual(queried.returncode, 0, queried.stderr)
+                damaged = json.loads(queried.stdout)
+                self.assertEqual(damaged["state"], "damaged")
+                with path.open("r+b") as database:
+                    database.write(original)
+                    database.truncate()
+                partial = path.with_name(path.name + ".health.partial")
+                ready = path.with_name(path.name + ".health.ready")
+                if stage in ("both", "renamed"):
+                    os.link(health_path, partial)
+                if stage in ("ready", "both"):
+                    os.link(health_path, ready)
+                intent = path.parent / f"{project_id}.quarantine"
+                intent.write_text(replaced["moved"])
+                intent.chmod(0o600)
+
+                finished = self.quarantine(project_id, "stale")
+
+                self.assertEqual(finished["generation"], replaced["generation"])
+                self.assertFalse(partial.exists())
+                self.assertFalse(ready.exists())
+                self.assertFalse(intent.exists())
+                queried = self.run_helper(
+                    "archive-health", str(path.parent), project_id,
+                    json.loads(MANIFEST.read_text())["sha256"], "1",
+                )
+                self.assertEqual(queried.returncode, 0, queried.stderr)
+                self.assertEqual(json.loads(queried.stdout), damaged)
+                self.assertEqual(path.read_bytes(), original)
+
+    def test_a_failed_directory_sync_cannot_publish_a_healthy_reset(self) -> None:
+        project_id = "22" * 32
+        legacy = self.schema_1_archive(project_id, count=1, tracked=False)
+        path = legacy["path"]
+        original = path.read_bytes()
+        generation = self.check(project_id)["generation"]
+        self.overwrite_header(path)
+        damaged = self.initialize_health(project_id)
+        self.assertEqual(damaged["state"], "damaged")
+        with path.open("r+b") as database:
+            database.write(original)
+            database.truncate()
+        # Inject EIO at the filesystem boundary of this one test child, only
+        # after the reset's healthy receipt is visible in this temporary root.
+        adapter = pathlib.Path(self.temporary.name) / "directory-sync.c"
+        library = adapter.with_suffix(".dylib")
+        adapter.write_text(r'''
+#include <errno.h>
+#include <fcntl.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+static int failing_directory_sync(int descriptor) {
+  struct stat status;
+  char directory[4096];
+  const char *root = getenv("PT_TEST_SYNC_ROOT");
+  const char *receipt = getenv("PT_TEST_SYNC_RECEIPT");
+  if (root && receipt && fstat(descriptor, &status) == 0 && S_ISDIR(status.st_mode)
+      && fcntl(descriptor, F_GETPATH, directory) == 0 && strcmp(directory, root) == 0) {
+    int file = open(receipt, O_RDONLY | O_NOFOLLOW);
+    if (file >= 0) {
+      char text[512] = {0};
+      ssize_t size = read(file, text, sizeof(text) - 1);
+      close(file);
+      if (size > 0 && strstr(text, "\"state\":\"healthy\"")) {
+        errno = EIO;
+        return -1;
+      }
+    }
+  }
+  return fsync(descriptor);
+}
+static int pausing_health_open(const char *path, int flags, ...) {
+  int mode = 0;
+  if (flags & O_CREAT) {
+    va_list arguments;
+    va_start(arguments, flags);
+    mode = va_arg(arguments, int);
+    va_end(arguments);
+  }
+  const char *receipt = getenv("PT_TEST_PAUSE_HEALTH");
+  const char *ready = getenv("PT_TEST_READ_READY_FD");
+  const char *resume = getenv("PT_TEST_READ_GO_FD");
+  static int paused = 0;
+  if (!paused && receipt && ready && resume && strcmp(path, receipt) == 0) {
+    paused = 1;
+    char signal = 'R';
+    if (write(atoi(ready), &signal, 1) != 1 || read(atoi(resume), &signal, 1) != 1) {
+      errno = EIO;
+      return -1;
+    }
+  }
+  return flags & O_CREAT ? open(path, flags, mode) : open(path, flags);
+}
+__attribute__((used)) static struct {
+  const void *replacement;
+  const void *original;
+} interpose[] __attribute__((section("__DATA,__interpose"))) = {
+  {(const void *)failing_directory_sync, (const void *)fsync},
+  {(const void *)pausing_health_open, (const void *)open}
+};
+''')
+        compiled = subprocess.run(
+            ["cc", "-dynamiclib", "-Wall", "-Wextra", "-Werror", str(adapter), "-o", str(library)],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(compiled.returncode, 0, compiled.stderr)
+        ready_read, ready_write = os.pipe()
+        go_read, go_write = os.pipe()
+        for descriptor in (ready_read, ready_write, go_read, go_write):
+            self.addCleanup(os.close, descriptor)
+        # This reader has passed the initial stage checks before the reset starts.
+        reader = subprocess.Popen(
+            [str(HELPER), "archive-health", str(path.parent), project_id,
+             json.loads(MANIFEST.read_text())["sha256"], "1"],
+            env={**self.environment, "DYLD_INSERT_LIBRARIES": str(library),
+                 "PT_TEST_PAUSE_HEALTH": str(path.with_name(path.name + ".health")),
+                 "PT_TEST_READ_READY_FD": str(ready_write),
+                 "PT_TEST_READ_GO_FD": str(go_read)},
+            pass_fds=(ready_write, go_read), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True,
+        )
+        def stop_reader() -> None:
+            if reader.poll() is None:
+                reader.kill()
+            reader.communicate(timeout=10)
+        self.addCleanup(stop_reader)
+        self.assertTrue(select.select([ready_read], [], [], 10)[0], "health reader never paused")
+        self.assertEqual(os.read(ready_read, 1), b"R")
+        reset = subprocess.run(
+            [str(HELPER), "archive-health-reset", str(path.parent), project_id,
+             generation, damaged["token"], json.loads(MANIFEST.read_text())["sha256"], "1"],
+            env={**self.environment, "DYLD_INSERT_LIBRARIES": str(library),
+                 "PT_TEST_SYNC_ROOT": str(path.parent),
+                 "PT_TEST_SYNC_RECEIPT": str(path.with_name(path.name + ".health"))},
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(reset.returncode, 25, reset.stderr)
+        self.assertEqual(json.loads(reset.stderr)["category"], "database-unavailable")
+        os.write(go_write, b"G")
+        reader_stdout, reader_stderr = reader.communicate(timeout=10)
+        self.assertEqual(reader.returncode, 25, reader_stdout + reader_stderr)
+        self.assertEqual(json.loads(reader_stderr)["category"], "database-unavailable")
+        queried = self.run_helper(
+            "archive-health", str(path.parent), project_id,
+            json.loads(MANIFEST.read_text())["sha256"], "1",
+        )
+        self.assertEqual(queried.returncode, 25, queried.stdout + queried.stderr)
+        refused = self.run_helper(*self.boundary_argv(
+            str(uuid.uuid4()), kind="collection-stopped", **legacy["identity"]
+        ))
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(path.read_bytes(), original)
+        self.assertNotIn("PT-SECRET", reset.stdout + reset.stderr + queried.stdout + queried.stderr)
 
     def begin_argv(
         self,
@@ -1246,6 +2271,7 @@ class HelperProtocolTests(unittest.TestCase):
         legacy.commit()
         legacy.close()
         database_path.chmod(0o600)
+        self.initialize_health(project_id)
 
         boundary_event, sequence = self.boundary(
             identity={"project_id": project_id, **identity},
@@ -1407,6 +2433,7 @@ class HelperProtocolTests(unittest.TestCase):
             "branch_id": str(uuid.uuid4()),
         }
 
+        self.initialize_health(project_id)
         _, first = self.boundary(identity=identity, kind="collection-stopped")
         _, second = self.boundary(identity=identity, kind="collection-resumed")
 
@@ -2882,14 +3909,41 @@ class HelperProtocolTests(unittest.TestCase):
     def archive_files(self, project_id: str) -> dict[str, bytes]:
         """The archive and any backup beside it, byte for byte. SQLite's own
         `-wal`/`-shm` companions come and go with connections and are left
-        out; the database header records a switch to WAL anyway."""
+        out; the database header records a switch to WAL anyway. Health
+        receipts are metadata, checked separately through `archive-health`."""
         prefix = f"{project_id}.sqlite3"
         return {
             path.name: path.read_bytes()
             for path in (self.plugin_data / "archives").iterdir()
             if path.name.startswith(prefix)
-            and not path.name.endswith(("-wal", "-shm"))
+            and not path.name.endswith(("-wal", "-shm", ".health", ".health.partial", ".health.ready"))
         }
+
+    def test_health_publication_stages_are_metadata_not_sqlite_bytes(self) -> None:
+        project_id = "b3" * 32
+        identity = self.identity(project_id)
+        self.capture("PT-SECRET-READY-METADATA", identity=identity)
+        path = self.archive_path(project_id)
+        healthy = self.archive_health_receipt(project_id)
+        before = self.archive_files(project_id)
+        stages = [path.with_name(path.name + suffix)
+                  for suffix in (".health.partial", ".health.ready")]
+        for stage in stages:
+            stage.write_bytes(b"interrupted publication evidence")
+            stage.chmod(0o600)
+        evidence = self.evidence(project_id)
+
+        self.assertEqual(self.archive_files(project_id), before)
+        refused = self.run_helper(*self.boundary_argv(
+            str(uuid.uuid4()), kind="collection-stopped", **identity,
+        ))
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr)["category"], "database-unavailable")
+        # Invalid sidecars remain negative evidence, including the old receipt.
+        self.assertEqual(self.evidence(project_id), evidence)
+        for stage in stages:
+            stage.unlink()
+        self.assertEqual(self.archive_health_receipt(project_id), healthy)
 
     def test_a_newer_schema_is_refused_before_anything_is_written(self) -> None:
         for version in (3, -1):
@@ -2902,6 +3956,7 @@ class HelperProtocolTests(unittest.TestCase):
                     f"PRAGMA user_version={version};",
                 )
                 before = self.archive_files(project_id)
+                health_before = self.archive_health_receipt(project_id)
                 # Refusing needs no write lock, so another writer holding one
                 # does not turn the answer into a wait.
                 holder = self.hold_write_lock(project_id)
@@ -2929,6 +3984,7 @@ class HelperProtocolTests(unittest.TestCase):
                     self.assertNotIn("PT-SECRET", result.stderr)
                 self.assertLess(elapsed, 3.0)
                 self.assertEqual(self.archive_files(project_id), before)
+                self.assert_refusal_health(project_id, health_before)
 
 
     def test_reads_of_a_current_archive_answer_while_another_run_holds_the_write_lock(self) -> None:
@@ -2955,7 +4011,7 @@ class HelperProtocolTests(unittest.TestCase):
 
     def schema_1_archive(
         self, project_id: str, count: int, *, extra: str = "", text_bytes: int = 0,
-        journal: str = "WAL",
+        journal: str = "WAL", tracked: bool = True,
     ) -> dict[str, object]:
         """A schema-1 archive as the first helpers left it: `count` Prompt
         Entries on one Run and one staged capture, each text a marker padded
@@ -2986,6 +4042,9 @@ class HelperProtocolTests(unittest.TestCase):
         script.append(extra)
         script.append("PRAGMA user_version=1;")
         path = self.hand_built_archive(project_id, "".join(script))
+        if tracked:
+            # Existing archives join the new writer contract through the public check.
+            self.initialize_health(project_id)
         return {"identity": identity, "entries": entries, "pending": pending, "path": path}
 
     def timeline(self, project_id: str) -> list[tuple[str, int, str, str | None]]:
@@ -3072,12 +4131,27 @@ class HelperProtocolTests(unittest.TestCase):
         category: str,
         project_id: str,
         before: dict[str, bytes],
+        health_before: dict[str, object],
+        *,
+        publishes_damage: bool = False,
     ) -> None:
         self.assertEqual(result.returncode, 25, result.stderr)
         self.assertEqual(result.stdout, "")
         self.assertEqual(json.loads(result.stderr)["category"], category)
         self.assertNotIn("PT-SECRET", result.stderr)
         self.assertEqual(self.archive_files(project_id), before)
+        self.assert_refusal_health(project_id, health_before, publishes_damage=publishes_damage)
+
+    def assert_refusal_health(
+        self, project_id: str, before: dict[str, object], *, publishes_damage: bool = False,
+    ) -> None:
+        after = self.archive_health_receipt(project_id)
+        if publishes_damage and before["state"] != "damaged":
+            self.assertEqual((after["state"], after["generation"]),
+                             ("damaged", before["generation"]))
+            self.assertNotEqual(after["token"], before["token"])
+        else:
+            self.assertEqual(after, before)
 
     @staticmethod
     def corrupt_page(path: pathlib.Path, fraction: float = 0.5) -> None:
@@ -3121,6 +4195,7 @@ class HelperProtocolTests(unittest.TestCase):
                 occupy(backup)
                 before = legacy["path"].read_bytes()
                 occupant = backup.lstat()
+                health_before = self.archive_health_receipt(project_id)
 
                 result = self.migrate(legacy)
 
@@ -3129,6 +4204,7 @@ class HelperProtocolTests(unittest.TestCase):
                 self.assertEqual(legacy["path"].read_bytes(), before)
                 self.assertEqual(backup.lstat().st_ino, occupant.st_ino)
                 self.assertFalse(backup.with_name(backup.name + ".partial").exists())
+                self.assert_refusal_health(project_id, health_before)
 
     def test_an_archive_failing_its_integrity_check_is_not_migrated(self) -> None:
         damages = {
@@ -3147,11 +4223,13 @@ class HelperProtocolTests(unittest.TestCase):
                 )
                 damage(legacy["path"])
                 before = self.archive_files(project_id)
+                health_before = self.archive_health_receipt(project_id)
 
                 result = self.migrate(legacy)
 
                 self.assert_refused_untouched(
-                    result, "archive-integrity", project_id, before
+                    result, "archive-integrity", project_id, before, health_before,
+                    publishes_damage=True,
                 )
 
     @staticmethod
@@ -3171,10 +4249,11 @@ class HelperProtocolTests(unittest.TestCase):
         project_id = "d7" * 32
         legacy = self.schema_1_archive(project_id, 3)
         before = self.archive_files(project_id)
+        health_before = self.archive_health_receipt(project_id)
 
         result = self.migrate(legacy)
 
-        self.assert_refused_untouched(result, "archive-full", project_id, before)
+        self.assert_refused_untouched(result, "archive-full", project_id, before, health_before)
 
     def test_a_migration_step_that_fails_rolls_back_and_drops_its_backup(self) -> None:
         project_id = "d8" * 32
@@ -3184,10 +4263,11 @@ class HelperProtocolTests(unittest.TestCase):
             project_id, 3, extra="CREATE TABLE timeline_events(unexpected TEXT);"
         )
         before = self.archive_files(project_id)
+        health_before = self.archive_health_receipt(project_id)
 
         result = self.migrate(legacy)
 
-        self.assert_refused_untouched(result, "migration-verify", project_id, before)
+        self.assert_refused_untouched(result, "migration-verify", project_id, before, health_before)
         with sqlite3.connect(f"file:{legacy['path']}?mode=ro", uri=True) as database:
             self.assertEqual(database.execute("PRAGMA user_version").fetchone()[0], 1)
 
@@ -3220,21 +4300,23 @@ class HelperProtocolTests(unittest.TestCase):
         backup = self.backup_path(project_id)
         kept = backup.read_bytes()
         self.corrupt_page(legacy["path"], fraction=0.3)
+        health_before = self.archive_health_receipt(project_id)
 
         result = self.run_helper(*self.list_argv(project_id=project_id))
 
         self.assertEqual(result.returncode, 25, result.stderr)
         self.assertEqual(json.loads(result.stderr)["category"], "archive-integrity")
         self.assertEqual(backup.read_bytes(), kept)
+        self.assert_refusal_health(project_id, health_before, publishes_damage=True)
 
 
-    def remount_read_only(self, volume: pathlib.Path) -> None:
-        """Detach a volume from `mount_small_volume` and attach it again,
-        read-only, at the same place."""
+    def remount_volume(self, volume: pathlib.Path, *, read_only: bool = True) -> None:
+        """Reattach a volume from `mount_small_volume` at the same place."""
         subprocess.run(["/usr/bin/hdiutil", "detach", str(volume), "-quiet"], check=True)
         subprocess.run(
             ["/usr/bin/hdiutil", "attach", str(pathlib.Path(self.temporary.name) / "small.dmg"),
-             "-readonly", "-mountpoint", str(volume), "-nobrowse", "-noverify", "-quiet"],
+             *(["-readonly"] if read_only else []),
+             "-mountpoint", str(volume), "-nobrowse", "-noverify", "-quiet"],
             check=True,
         )
 
@@ -3245,7 +4327,11 @@ class HelperProtocolTests(unittest.TestCase):
         self.capture("PT-SECRET-CURRENT", identity=current)
         legacy_id = "dc" * 32
         legacy = self.schema_1_archive(legacy_id, 2)
-        self.remount_read_only(volume)
+        health_before = {
+            project_id: self.archive_health_receipt(project_id)
+            for project_id in (current_id, legacy_id)
+        }
+        self.remount_volume(volume)
         before = {
             project_id: self.archive_files(project_id)
             for project_id in (current_id, legacy_id)
@@ -3258,11 +4344,14 @@ class HelperProtocolTests(unittest.TestCase):
             ),
             legacy_id: self.migrate(legacy),
         }
+        # archive-health itself needs the existing project lock opened writable;
+        # restore the test volume before comparing its public health receipt.
+        self.remount_volume(volume, read_only=False)
 
         for project_id, result in writes.items():
             with self.subTest(project=project_id[:2]):
                 self.assert_refused_untouched(
-                    result, "archive-read-only", project_id, before[project_id]
+                    result, "archive-read-only", project_id, before[project_id], health_before[project_id]
                 )
 
 
@@ -3279,6 +4368,7 @@ class HelperProtocolTests(unittest.TestCase):
                     leftover.unlink()
             path.write_bytes(template)
             path.chmod(0o600)
+            self.initialize_health(project_id)
 
         def start() -> subprocess.Popen[str]:
             return subprocess.Popen(
@@ -3322,6 +4412,7 @@ class HelperProtocolTests(unittest.TestCase):
         path.chmod(0o400)
         self.addCleanup(path.chmod, 0o600)
         before = self.archive_files(project_id)
+        health_before = self.archive_health_receipt(project_id)
         file_results = [
             self.run_helper(*self.read_argv(project_id=project_id)),
             self.run_helper(
@@ -3337,7 +4428,7 @@ class HelperProtocolTests(unittest.TestCase):
         database_root.chmod(0o700)
 
         for result in [*file_results, directory_result]:
-            self.assert_refused_untouched(result, "archive-read-only", project_id, before)
+            self.assert_refused_untouched(result, "archive-read-only", project_id, before, health_before)
 
 
     # Corrupt archives (Issue 28). A damaged archive is found where SQLite
@@ -3369,7 +4460,10 @@ class HelperProtocolTests(unittest.TestCase):
             project_id = f"e{index}" * 32
             legacy = self.current_archive(project_id)
             damage(legacy["path"])
+            health_before = self.archive_health_receipt(project_id)
             damaged = self.check(project_id)["generation"]
+            self.assert_refusal_health(project_id, health_before, publishes_damage=True)
+            health_before = self.archive_health_receipt(project_id)
             before = self.archive_files(project_id)
             argvs = {
                 "timeline-read": self.read_argv(project_id=project_id),
@@ -3391,6 +4485,7 @@ class HelperProtocolTests(unittest.TestCase):
                     )
                     self.assertNotIn("PT-SECRET", result.stderr)
                     self.assertEqual(self.archive_files(project_id), before)
+                    self.assert_refusal_health(project_id, health_before)
 
     def check_argv(self, *, project_id: str) -> tuple[str, ...]:
         return (
@@ -3465,15 +4560,29 @@ class HelperProtocolTests(unittest.TestCase):
                 if name not in ("folded", "not-a-database"):
                     self.leave_wal_unfolded(legacy["path"])
                 before = self.evidence(project_id)
+                health_before = self.archive_health_receipt(project_id)
 
                 first = self.check(project_id)
+                health_after = self.archive_health_receipt(project_id)
                 second = self.check(project_id)
 
                 self.assertEqual(first["result"], expected)
                 self.assertRegex(first["generation"], r"^[A-Za-z0-9_-]{1,128}$")
                 self.assertEqual(first, second)
                 self.assertEqual(first["problems"] > 0, expected == "damaged")
-                self.assertEqual(self.evidence(project_id), before)
+                self.assertEqual(
+                    {name: data for name, data in self.evidence(project_id).items()
+                     if not name.endswith(".health")},
+                    {name: data for name, data in before.items() if not name.endswith(".health")},
+                )
+                if expected == "ok":
+                    self.assertEqual(health_after, health_before)
+                    self.assertEqual(self.evidence(project_id), before)
+                else:
+                    self.assertEqual((health_after["state"], health_after["generation"]),
+                                     ("damaged", first["generation"]))
+                    self.assertNotEqual(health_after["token"], health_before["token"])
+                self.assertEqual(self.archive_health_receipt(project_id), health_after)
 
     def test_an_integrity_check_of_an_absent_archive_creates_nothing(self) -> None:
         project_id = "e6" * 32
@@ -3552,7 +4661,7 @@ class HelperProtocolTests(unittest.TestCase):
         }
         self.assertEqual(
             sorted(files),
-            sorted([prefix, f"{prefix}-wal", f"{prefix}-shm", f"{prefix}.pre-migration-v1"]),
+            sorted([prefix, f"{prefix}-wal", f"{prefix}-shm", f"{prefix}.health", f"{prefix}.pre-migration-v1"]),
         )
         identity = self.identity(project_id)
         event_id = str(uuid.uuid4())
@@ -3579,7 +4688,8 @@ class HelperProtocolTests(unittest.TestCase):
         # Nothing the quarantine built its generation with is left behind.
         self.assertLessEqual(
             {path.name for path in (self.plugin_data / "archives").iterdir() if path.name.startswith(project_id)},
-            {f"{prefix}", f"{prefix}-wal", f"{prefix}-shm", f"{project_id}.lock"},
+            {f"{prefix}", f"{prefix}-wal", f"{prefix}-shm", f"{prefix}.health",
+             f"{project_id}.lock", f"{project_id}.health.lock"},
         )
         # Another project's archive is none of this quarantine's business.
         self.assertEqual(self.evidence(other_id), other_before)
@@ -3755,6 +4865,7 @@ class HelperProtocolTests(unittest.TestCase):
             path.name: path.read_bytes()
             for path in archives.iterdir()
             if path.name.startswith(f"{project_id}.sqlite3")
+            and not path.name.endswith(".health")
         }
         intent = archives / f"{project_id}.quarantine"
 
@@ -3766,6 +4877,7 @@ class HelperProtocolTests(unittest.TestCase):
             for name, data in template.items():
                 (archives / name).write_bytes(data)
                 (archives / name).chmod(0o600)
+            self.initialize_health(project_id)
             return self.check(project_id)["generation"]
 
         def start(generation: str) -> subprocess.Popen[str]:
@@ -3817,7 +4929,9 @@ class HelperProtocolTests(unittest.TestCase):
                 {path.name for path in archives.iterdir() if path.name.startswith(project_id)},
                 {
                     f"{project_id}.lock",
+                    f"{project_id}.health.lock",
                     f"{project_id}.sqlite3",
+                    f"{project_id}.sqlite3.health",
                     f"{project_id}.sqlite3-wal",
                     f"{project_id}.sqlite3-shm",
                 },
@@ -4056,7 +5170,7 @@ class HelperProtocolTests(unittest.TestCase):
             {"projectId": project_id, "cleared": True, "entries": 1, "pending": 1,
              "quarantined": 1, "sessionsRemoved": 0, "sessionsFailed": 0},
         )
-        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.health.lock", f"{project_id}.lock"])
         self.assertEqual(
             [path for path in self.markers_left() if project_id in path], []
         )
@@ -4078,7 +5192,7 @@ class HelperProtocolTests(unittest.TestCase):
         lock = self.plugin_data / "archives" / f"{project_id}.lock"
         lock.touch(mode=0o600)
         self.assertEqual(self.clear(project_id), nothing)
-        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.health.lock", f"{project_id}.lock"])
 
 
     def test_a_clear_that_leaves_a_file_behind_refuses_the_archive_until_one_finishes(self) -> None:
@@ -4113,7 +5227,7 @@ class HelperProtocolTests(unittest.TestCase):
                 self.assertEqual(json.loads(result.stderr)["category"], "clear-unfinished")
         self.assertEqual(
             self.project_files(project_id),
-            [f"{project_id}.clearing", f"{project_id}.lock", f"quarantine/{project_id}"],
+            [f"{project_id}.clearing", f"{project_id}.health.lock", f"{project_id}.lock", f"quarantine/{project_id}"],
         )
         self.assertTrue(self.archive_status(project_id)["clearUnderway"])
 
@@ -4121,7 +5235,7 @@ class HelperProtocolTests(unittest.TestCase):
         finished = self.clear(project_id)
 
         self.assertTrue(finished["cleared"])
-        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.health.lock", f"{project_id}.lock"])
         self.assertFalse(self.archive_status(project_id)["clearUnderway"])
         self.assertEqual([path for path in self.markers_left() if project_id in path], [])
 
@@ -4166,7 +5280,7 @@ class HelperProtocolTests(unittest.TestCase):
         aborted = self.run_helper(*self.abort_argv(pending, project_id=project_id))
         self.assertEqual(aborted.returncode, 0, aborted.stderr)
         self.assertEqual(json.loads(aborted.stdout), {"aborted": False})
-        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.health.lock", f"{project_id}.lock"])
 
         # What arrives after the clear without a generation begins the next.
         attached, _ = self.boundary(identity=identity, kind="run-attached")
@@ -4335,7 +5449,7 @@ class HelperProtocolTests(unittest.TestCase):
         # The write under way landed before the cut and went with the rest.
         self.assertEqual(writer.returncode, 0, writer.stderr.read())
         self.assertEqual((answer["entries"], answer["pending"]), (3, 2))
-        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.health.lock", f"{project_id}.lock"])
         self.assertEqual(self.markers_left(b"PT-SECRET-UNDER-WAY"), [])
 
     def test_a_clear_cut_short_is_finished_by_the_next(self) -> None:
@@ -4364,7 +5478,7 @@ class HelperProtocolTests(unittest.TestCase):
 
                 self.assertTrue(finished["cleared"])
                 self.assertEqual(finished["entries"], None if removed else 1)
-                self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+                self.assertEqual(self.project_files(project_id), [f"{project_id}.health.lock", f"{project_id}.lock"])
                 self.assertEqual([path for path in self.markers_left() if project_id in path], [])
 
     def test_a_staged_intent_left_by_a_clear_that_never_began_refuses_nothing(self) -> None:
@@ -4377,7 +5491,7 @@ class HelperProtocolTests(unittest.TestCase):
 
         self.assertEqual(self.read(project_id=project_id)["events"][-1]["text"], "PT-SECRET-KEPT")
         self.assertTrue(self.clear(project_id)["cleared"])
-        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.health.lock", f"{project_id}.lock"])
 
     def test_a_clear_refuses_a_run_it_cannot_name_and_removes_nothing(self) -> None:
         project_id = "ba" * 32
@@ -4461,7 +5575,7 @@ class HelperProtocolTests(unittest.TestCase):
         intent.chmod(0o600)
         finished = self.run_helper(*self.clear_argv(project_id=project_id, only_continue=True), input_text="")
         self.assertTrue(json.loads(finished.stdout)["cleared"])
-        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.health.lock", f"{project_id}.lock"])
 
     def test_a_clear_inventory_of_a_folded_archive_creates_no_wal(self) -> None:
         # Found in review: counting opened the archive in a way that put a
@@ -4541,7 +5655,8 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(compacted.execute("PRAGMA freelist_count").fetchone(), (0,))
         self.assertLessEqual(
             set(self.project_files(project_id)),
-            {f"{project_id}.lock", f"{project_id}.sqlite3", f"{project_id}.sqlite3-wal", f"{project_id}.sqlite3-shm"},
+            {f"{project_id}.lock", f"{project_id}.health.lock", f"{project_id}.sqlite3", f"{project_id}.sqlite3.health",
+             f"{project_id}.sqlite3-wal", f"{project_id}.sqlite3-shm"},
         )
 
 
@@ -4572,6 +5687,7 @@ class HelperProtocolTests(unittest.TestCase):
         identity = legacy["identity"]
         self.capture("PT-SECRET-AFTER-QUARANTINE", identity=identity)
         before = self.archive_files(project_id)
+        health_before = self.archive_health_receipt(project_id)
 
         refused = self.run_helper(
             *self.clear_run_argv(project_id=project_id, run_id=identity["run_id"])
@@ -4580,6 +5696,7 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(refused.returncode, 25, refused.stderr)
         self.assertEqual(json.loads(refused.stderr), {"category": "clear-run-quarantined"})
         self.assertEqual(self.archive_files(project_id), before)
+        self.assert_refusal_health(project_id, health_before)
         self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
 
     def test_a_run_clear_cut_short_is_finished_by_any_run(self) -> None:
@@ -4744,7 +5861,7 @@ class HelperProtocolTests(unittest.TestCase):
 
         self.assertTrue(self.clear(project_id)["cleared"])
 
-        self.assertEqual(self.project_files(project_id), [f"{project_id}.lock"])
+        self.assertEqual(self.project_files(project_id), [f"{project_id}.health.lock", f"{project_id}.lock"])
         self.assertEqual(self.markers_left(), [])
         self.assertEqual(self.read(project_id=project_id)["events"], [])
 
@@ -4773,6 +5890,7 @@ class HelperProtocolTests(unittest.TestCase):
         legacy = self.current_archive(project_id, count=60)
         self.corrupt_page(self.archive_path(project_id))
         before = self.archive_files(project_id)
+        health_before = self.archive_health_receipt(project_id)
 
         refused = self.run_helper(
             *self.clear_run_argv(project_id=project_id, run_id=legacy["identity"]["run_id"])
@@ -4781,8 +5899,60 @@ class HelperProtocolTests(unittest.TestCase):
         self.assertEqual(refused.returncode, 25, refused.stderr)
         self.assertEqual(json.loads(refused.stderr)["category"], "archive-integrity")
         self.assertEqual(self.archive_files(project_id), before)
+        self.assert_refusal_health(project_id, health_before, publishes_damage=True)
         self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
 
+
+    def test_a_run_clear_continuation_publishes_post_cut_damage_before_refusing(self) -> None:
+        project_id = "b8" * 32
+        cleared = self.identity(project_id)
+        self.capture("PT-SECRET-POST-CUT-DAMAGE", identity=cleared)
+        path = self.archive_path(project_id)
+        original = path.read_bytes()
+        healthy = self.archive_health_receipt(project_id)
+        # Public clear-run installs its intent before waiting on this real writer.
+        writer = self.hold_write_lock(project_id)
+        stopped = self.run_helper(*self.clear_run_argv(
+            project_id=project_id, run_id=cleared["run_id"],
+        ))
+        self.assertEqual(stopped.returncode, 25, stopped.stderr)
+        self.assertEqual(json.loads(stopped.stderr)["category"], "clear-run-unfinished")
+        writer.rollback()
+        writer.close()
+        self.assertTrue(self.archive_status(project_id)["clearRunUnderway"])
+        self.assertEqual(self.archive_health_receipt(project_id), healthy)
+        intent = path.parent / f"{project_id}.clearing-run"
+        intent_before = intent.read_bytes()
+        self.overwrite_header(path)
+        before = self.evidence(project_id)
+        continuation = self.clear_run_argv(
+            project_id=project_id, run_id=cleared["run_id"], only_continue=True,
+        )
+
+        refused = self.run_helper(*continuation)
+
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr)["category"], "clear-run-unfinished")
+        damaged = self.archive_health_receipt(project_id)
+        self.assertEqual((damaged["state"], damaged["generation"]),
+                         ("damaged", healthy["generation"]))
+        self.assertNotEqual(damaged["token"], healthy["token"])
+        self.assertEqual(intent.read_bytes(), intent_before)
+        self.assertEqual(
+            {name: data for name, data in self.evidence(project_id).items()
+             if not name.endswith(".health")},
+            {name: data for name, data in before.items() if not name.endswith(".health")},
+        )
+        with path.open("r+b") as database:
+            database.write(original)
+            database.truncate()
+        repaired = self.evidence(project_id)
+        still_refused = self.run_helper(*continuation)
+        self.assertEqual(still_refused.returncode, 25, still_refused.stderr)
+        self.assertEqual(json.loads(still_refused.stderr)["category"], "clear-run-unfinished")
+        self.assertEqual(intent.read_bytes(), intent_before)
+        self.assertEqual(self.evidence(project_id), repaired)
+        self.assertEqual(self.archive_health_receipt(project_id), damaged)
 
     def test_a_run_clear_stopped_past_its_cut_says_it_is_unfinished(self) -> None:
         project_id = "c1" * 32
@@ -4866,12 +6036,14 @@ class HelperProtocolTests(unittest.TestCase):
         kept.chmod(0o000)
         self.addCleanup(kept.chmod, 0o700)
         before = self.archive_files(project_id)
+        health_before = self.archive_health_receipt(project_id)
 
         refused = self.run_helper(*self.clear_run_argv(project_id=project_id, run_id=identity["run_id"]))
 
         self.assertEqual(refused.returncode, 25, refused.stderr)
         self.assertEqual(json.loads(refused.stderr), {"category": "database-unavailable"})
         self.assertEqual(self.archive_files(project_id), before)
+        self.assert_refusal_health(project_id, health_before)
         self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
 
     def test_a_clear_all_over_an_unfinished_run_clear_forgets_that_runs_sessions(self) -> None:

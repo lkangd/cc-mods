@@ -13,11 +13,20 @@ Prompt Trail 是一个 Claude Code 插件。它把你在终端 composer 里成�
 
 启动时，插件会先检查平台、宿主版本、locator、helper 摘要、helper protocol 和系统 SQLite 的能力。任何一项无法证明，插件都会失败关闭，`/prompt-history status` 显示 `unsupported target` 或 `helper unavailable`。这时插件不会联网，不会现场编译，也不会退回到内存中的时间线。
 
+## 档案健康与制品升级
+
+Issue 53 的首次实现于 2026-10-01 通过统一非模型 startup 门禁；2026-10-02 单轮代码审查的 13 项修复已完成，普通文件 helper 子集 173 tests、两固定宿主版本各 480 plugin tests 与其余非模型门禁通过。11 项系统操作测试未运行，审查修复后的完整 helper/startup 门禁尚未重跑，票据保持 claimed。本节不表示已部署、已发布或真实 PTY 验收已经通过。
+
+- SQLite schema 仍为 2，helper protocol 仍为 1，插件版本不变；helper 制品和摘要会变化。部署前必须退出所有使用旧制品的 writer（包括采集、生命周期及迁移/隔离/清除等维护调用），再用新制品重新接入。旧 locator 不原地改写，reload 不能替代新的进程接入。helper 无法自动证明旧 writer 均已退出，混版本并发不在保证内。
+- helper 的无正文健康记录绑定 Archive generation、健康状态和随机状态 token，是共享损坏的权威；store 只保存显示镜像。已有档案缺少有效记录时为「档案健康状态未知」，须显式完整复检/初始化，不靠普通写入成功推断健康。这是检查尝试，不保证修好；非法记录或发布残留仍被拒绝时继续阻止采集。若决定删除全部项目档案，可另行使用需强确认的 `/prompt-history clear-all`。
+- 解除已记录损坏必须在 helper 守卫内核验 generation/token 并完整复检，恢复保留 healthy 回执而非删除记录。普通成功和 `clear-run` 不解除项目共享损坏；隔离/`clear-all` 完成后才退休旧 generation。`integrity-check` 不改原 SQLite/WAL 字节，但发现真实损坏会持久发布健康 metadata；健康诊断不解除损坏，普通 busy/full/read-only/I/O 不发布 damaged。`archive-health-init` 已有回执也完整复检，不解除已有 damaged/token。
+- 保证从损坏事实成功持久发布开始。发布期间保留 `.health.partial` 门与 `.health.ready` 暂存链接；健康回执的文件和目录同步完成后才清门。残留一律阻止写入，查询也不能将未完成发布称为健康；隔离续接完整复检后才能清理可信残留，已发布的损坏 token 不因此解除。SQLite、健康记录与 store 之间没有跨资源事务；发布前进程被终止或发布失败，不保证其他进程已经知道损坏。回执持久化后的清门同步是 best-effort，重启若残留回来，只会保守阻止。
+
 ## 使用
 
 - 第一次提交 prompt 时，插件会先询问是否为当前项目启用采集。选「继续但不启用」则什么都不保存。
 - `/prompt-history` 展开或折叠时间线；`/prompt-history status` 查看状态。status 不会显示任何 prompt 原文。
-- `/prompt-history disable` 停用当前 Run 的采集；`/prompt-history enable` 重新启用。
+- `/prompt-history disable` 停用当前 Run 的采集；`/prompt-history enable` 重新启用。已有档案健康未知时，`enable` 提供显式“初始化并完整复检”确认，即使当前 Run 已停用也可使用；失败或取消不改变采集模式，不创建 Prompt Entry。
 - `/prompt-history clear-run` 删除当前 Run 的全部记录；`/prompt-history clear-all` 删除当前项目的全部记录。两者都会先列出将要删除的内容，确认后才执行。
 
 ## 不支持的平台与 surface
@@ -45,14 +54,14 @@ Prompt Trail 只通过 `--plugin-dir` 加载。它不经 Marketplace 发布，�
 - `clear-run` 和 `clear-all` 只删除 Prompt Trail 自己的档案。Claude Code 的 transcript 与 history、文件系统快照、Time Machine 和其他外部备份里的副本都**不会**被删除。
 - 删除不保证 SSD 介质上的数据不可恢复。
 - 物理清除没有完成时（例如 WAL 或备份文件删不掉），插件会报告「逻辑删除完成、物理清除未完成」，列出残留，并保持档案不可用，直到清除完成。
-- Integrity gap 表示那一段历史无法证明完整。只有删除它所在范围的 `clear-run` 或 `clear-all` 才会移除它。
+- Integrity gap 表示那一段历史无法证明完整。只有删除它所在范围的 `clear-run` 或 `clear-all` 才会移除它。它按 Run 归属，与 generation 级的共享损坏事实不同；删除某 Run 的 gap 不等于解除共享损坏。
 
 ## 数据位置
 
 以默认的 Claude Code 配置目录 `~/.claude` 为例：
 
-- 档案：`~/.claude/plugins/data/prompt-trail-inline/archives/`。每个项目一个 SQLite 文件，prompt 以明文保存，同一系统账户或 root 可以读取。
-- 插件状态（consent、Run 模式、恢复队列，不含 prompt 原文）：`~/.claude/plugins/store/prompt-trail_inline-*.json`。
+- 档案：`~/.claude/plugins/data/prompt-trail-inline/archives/`。每个项目一个 SQLite 文件，prompt 以明文保存，同一系统账户或 root 可以读取。该目录内的 `.sqlite3.health` 只保存项目身份、generation/state/token 与格式版本，不含 prompt；稳定 `.health.lock` 不随 `clear-all` 删除或替换。
+- 插件状态（consent、Run 模式、恢复队列、健康显示镜像，不含 prompt 原文）：`~/.claude/plugins/store/prompt-trail_inline-*.json`。
 - 进程 locator：`~/.claude/plugins/data/.function-hook-locators/prompt-trail/`。
 
 ## 移除 `--plugin-dir` 之前的数据清理

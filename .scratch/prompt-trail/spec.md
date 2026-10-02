@@ -130,7 +130,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
    - 不使用会把 worktree 指回主工作树的仓库 root API。
    - 只持久保存规范项目根的稳定 hash；绝对路径只来自当前 Run，并仅在 `status` 中显示。
    - 每个 Project Timeline 在 plugin data 下使用独立 SQLite 数据库；prompt 数据不写入项目目录或 plugin root。
-   - `$.store` 只保存小型、无 prompt 的 consent policy 版本、Run bootstrap、UI 状态和 lifecycle 恢复队列；不得承担档案或无界索引。
+   - `$.store` 只保存小型、无 prompt 的 consent policy 版本、Run bootstrap、UI 状态、lifecycle 恢复队列与健康显示镜像；不得承担档案、无界索引或共享损坏的写入授权。generation/state/token 绑定的无正文健康 sidecar 由 helper 保存并作为权威。
 
 4. **Collection consent 与 Run collection mode**
    - 首次 composer submission 前先执行不建项目数据库的只读 preflight，再让使用者选择“启用”或“继续但不启用”。
@@ -149,7 +149,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 6. **Run 身份、进程接入与 reload**
    - Run 以随机 Run UUID 标识；进程对 Run 的接入由实际宿主进程世代确定，而不是 module instance 或单独环境变量。resume 以 classic session id 找回 Run，session id 本身不充当 Run。
    - 同进程 reload 只有在进程世代一致时延续当前接入；继承环境的 fork 子进程因实际世代不同而不能沿用父进程的接入。
-   - 一次进程接入固定使用启动 locator 中的 helper 路径、摘要和 protocol。reload 只在这些值不变时延续；变化要求恢复原制品或新的进程接入。同一 Run 的不同接入可以使用不同制品。
+   - 一次进程接入固定使用启动 locator 中的 helper 路径、摘要和 protocol。reload 只在这些值不变时延续；变化要求恢复原制品或新的进程接入。同一 Run 的不同接入可以使用不同制品；健康守卫升级须先退出所有并发旧 writer，再以新制品接入，不保证混版本并发安全。
    - Run 边界：`run-started` 只在 Run 首次创建时写；`run-attached` 在进程 resume 接入已有 Run 时写；`run-detached` 在进程退出或 `/resume` 去往别的 Run 时写。会话内 `/resume` 到另一 Run 的会话时，进程改绑到该 Run。
    - 异常退出允许接入保持未闭合；下次读取显示「未记录离开」，不伪造离开。（2026-09-23 Issue 32 修订。）
 
@@ -181,6 +181,8 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 10. **SQLite helper 与档案协议**
     - helper 提供 schema-opaque 的语义操作：只读 preflight/health、创建或打开 generation、预写/确认/丢弃 Pending Capture、追加幂等 Timeline Event、有界范围读取、Run/Branch 对账、状态统计、迁移、完整性检查、隔离、`clear-run` 和 `clear-all`。
     - 写入使用短事务、WAL、`synchronous=FULL`、项目行上的单调 sequence 和唯一 event ID；同一项目多个 Run 共享 sequence。
+    - 健康语义操作为 `archive-health` 查询、`archive-health-init` 显式完整检查/初始化、`archive-health-reset` generation/token 绑定的完整复检/恢复。后两者不修改 SQLite 档案正文，但会持久更新健康 sidecar；init 即使已有回执也执行完整检查，不解除已有 damaged/token。`integrity-check` 不改原 SQLite/WAL 字节；发现真实完整性或外键损坏时，关闭 reader 后在 health 守卫内重核 generation 并持久发布损坏 metadata，健康诊断不解除损坏、不授权恢复。普通 busy/full/read-only/I/O 保留自身错误分类，不发布 damaged。
+    - 锁序固定为 project → health → SQLite。所有档案变更及初始化/迁移/metadata/备份维护在同一 health 守卫内检查当前 generation/状态，并持有到事务与连接结束；再次读取 store 不构成原子修复。当前 schema 无维护的普通读取不取得 health writer 锁；读取发现损坏须先释放 statements、事务和 SQLite 连接，再取得 health 守卫、重核 generation 并发布事实。
     - busy 使用有界退避，总自动等待不超过 10 秒；不得无限后台重试。
     - range read 严格按 sequence 排序，并强制固定最大批次。调用者不能通过协议请求无界全表读取。
     - 不设置应用配额、不轮转、不截断、不自动删除；低于 1 GiB 每个 Run 警告一次，`ENOSPC` 完整回滚。
@@ -200,17 +202,20 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 
 12. **控制命令**
     - 命令面为 `/prompt-history`、`enable`、`disable`、`status`、`clear-run` 和 `clear-all`。
-    - 裸命令只切换展开；控制命令本身不创建 Prompt Entry。
+    - 裸命令只切换展开；控制命令本身不创建 Prompt Entry。已有档案健康 unknown 时，`enable` 必须提供可在 disabled Run 使用的显式初始化/完整复检确认，不能仅指向被 disabled 提交绕过的对话框；失败或取消保持当前采集模式，通过绑定健康证据后才继续启用。
     - `status` 在 unsupported、Helper unavailable、Archive unavailable、损坏和物理清除未完成时仍可运行，且从不显示 prompt。
     - 有数据的 `clear-run` 显示当前 Run、记录数和副本边界并要求一次确认；无数据时 no-op。
     - 有数据的 `clear-all` 显示项目、文件和记录数并要求输入固定确认短语；无数据时 no-op。
 
 13. **Archive unavailable、Integrity gap 与 Quarantined Archive**
     - Run-local locator/helper 故障只阻止受影响 Run；共享数据库损坏、不兼容 schema 或迁移故障阻止该 Archive generation 的所有 Run。
-    - 已启用 Run 在 Archive unavailable 下阻止 composer submission、保留草稿，只提供“重试”与“明确禁用当前 Run 后继续”。
+    - 已启用 Run 在 Archive unavailable 下阻止 composer submission、保留草稿。普通故障提供重试与明确禁用当前 Run 后继续；已有档案健康 unknown 要明确显示未知并提供显式完整复检/初始化，不能称作已损坏或已恢复。损坏恢复另提供 generation/token 绑定复检、隔离与强确认清除。
+    - 所有 Run 的共享损坏阻止以 helper 成功持久发布的 generation 健康事实为准。普通成功、普通错误、重试和旧 store 镜像都不能解除损坏。显式恢复在守卫内完整复检并验证 generation/token，拒绝 stale token，恢复保留 healthy tombstone；缺记录、坏记录、发布残留或无法校验为 unknown。新空档案仅由首个合法创建命令在守卫内建立健康记录。
+    - 保证从损坏事实成功持久发布的线性化点开始；此前已取得守卫的 writer 可能完成，不声称撤销它。健康发布先同步 `.health.partial` 和其 `.health.ready` 暂存链接所在目录，rename 后再同步正式回执所在目录，才移除 partial 门；无锁健康查询读取回执后再次检查残留，不能返回未持久发布的 healthy。最后清门目录同步是 best-effort，重启若门复现只会保守阻止。隔离续接仅清理私有可信暂存文件，并完整复检；已发布 damaged/token 不被旧隔离完成回执解除。SQLite、sidecar 与 store 没有跨资源事务；发布前 kill 或无法落盘不保证其他进程已知，当前调用仍保持阻止并报告不确定性。
+      [Issue 53](issues/53-serialize-damage-state-across-runs.md) 的上述实施决定于 2026-10-01 获批准，首次实现的统一非模型 startup 门禁通过；2026-10-02 单轮审查的 13 项修复完成，普通文件 helper 173 tests、两固定宿主各 480 plugin tests 及其余非模型门禁通过。11 项系统操作测试未运行，修复后的完整 helper/startup 门禁尚未重跑，票据保持 claimed。不表示已部署、发布或真实 PTY 已通过。
     - 禁用后写 Collection Boundary 并允许 Claude Code 继续；它不伪装为连续采集。
     - plugin 自身崩溃导致宿主 fail-open 时，恢复阶段先用 transcript、pending 和 lifecycle 队列对账；无法证明的区间创建不可变 Integrity gap。
-    - 健康恢复时写 Integrity recovery boundary 并允许当前状态回到 healthy；既有 Gap 永久可见且跨 Gap 历史不得称为完整。
+    - 健康恢复时写 Integrity recovery boundary 并允许当前 Run 状态回到 healthy；若欠有共享损坏，须先取得上述 helper 的绑定恢复证据，普通成功不算恢复。既有 Gap 永久可见且跨 Gap 历史不得称为完整。
     - fail-open 由 `$.store` 里不含原文的在途标记发现：已启用、已同意的 Run 在对账前写下标记，预写 Pending Capture 后改为 pending 阶段，hook 结束时删除；`/clear` 从观察到入队期间同样留标记。下一次提交（或 `enable`）判定不属于任何运行中调用的标记：pending 之前或 `/clear` 途中的记为该 Run 的 gap，pending 阶段的交给 Pending Capture 对账。别的 Run 的标记只在该 Run 没有存活进程时判定。标记写不进或读不出时拦下提交。
     - gap 与恢复边界是两种按 Run 归属、不含原文的 Timeline Event。gap 在该 Run 欠下的 lifecycle 写入全部落档后、下一个 Prompt Entry 之前写入，恢复边界紧随其后；停用中的 Run 只写 gap，恢复边界在 `collection-resumed` 之后写。band 以警示色显示两者且从不折叠，`status` 显示当前是否欠 gap 及原因，以及档案中的 gap 数。（2026-09-29 Issue 26 修订。）
     - 损坏时不自动修复、覆盖或重建。选择为：重试完整性检查、原样保留为 Quarantined Archive 后开启新 generation，或强确认 `clear-all`。
@@ -223,6 +228,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
       当前实现状态：schema 已到 2，manifest 声明 `1->2`（只新增非 prompt Timeline Event 表）。
       [Issue 27](issues/27-safe-schema-migration.md) 已落实完整性检查、空间检查、同目录
       `.pre-migration-v<来源版本>` 私有备份、迁移后复检，以及「下一次成功打开并 `quick_check` 通过后才删备份」。
+    - 健康守卫升级保持 schema 2、helper protocol 1 和当前插件版本，不使用 schema 3 兼容屏障。部署前退出所有使用旧制品的采集/lifecycle/初始化/迁移/隔离/清除 writer，再用新制品和新进程接入；不原地改写旧 locator，helper 无法自动证明旧 writer 均已退出，混版本窗口不宣称修复。
     - manifest 固定 target、文件名、SHA-256、helper protocol、可读写 schema 范围、最低 SQLite 能力、编译器/SDK/链接器来源与允许动态依赖。
     - 发布检查验证 Mach-O 架构、PIE、deployment target 和动态依赖；不宣称未经证实的字节级可复现。
     - 不在运行时下载、编译、替换 helper，不修改 quarantine/xattr 或系统安全策略，也不捆绑另一份 SQLite。
@@ -230,6 +236,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 15. **并发与删除**
     - `clear-all` 使用线性化切点和新 Archive generation：切点前记录全部删除，切点后的新提交只写新 generation，旧 writer 被拒绝。切点是项目独占锁下写入的清除意向；意向存在期间一切打开都失败关闭，删完后原路径留空，下一次写入才建出新 generation。（2026-09-28 Issue 30 修订。）
     - `clear-run` 删除当前 Run（整条会话谱系，跨越其所有进程接入）的 Prompt Entries、Pending Captures、相关原文和可关联的敏感元数据；其他 Run 保持不变。`clear-run` 在原档案内删除（Archive generation 不变）：先在项目独占锁下写入按 Run 清除意向作为切点，意向存在期间一切打开都失败关闭；再删除三张表里该 Run 的全部行，并把其他 Run 指向被删条目的父链接置空；sequence 留空洞，不回退；`capture-begin` 在预写前校验父条目，分支停在被清除条目上的 Run 改从新根继续。（2026-09-28 Issue 29 修订。）Run 的 Integrity gap 与恢复边界随该 Run 一起删除，欠着的 gap、丢失标志和在途标记一并清掉；`clear-all` 对所有 Run 如此，只保留仍有存活进程的 Run 的在途标记。（2026-09-29 Issue 26 修订。）
+    - `clear-run` 不解除 generation 级的共享损坏；删除某 Run 的 Integrity gap 与解除共享损坏是不同事实。quarantine/`clear-all` 在 project 独占锁 → health 守卫下协调世代退役，完成后才退休旧事实。隔离原样带走旧健康记录并为新 generation 建立健康状态；旧完成回执不能抹掉新 generation 的损坏。`clear-all` 删除健康内容，但不删除或替换稳定 health 锁文件。
     - 存在无法安全打开的 Quarantined Archive 时，`clear-run` 不得声称完整按 Run 删除，必须拒绝并引导 `clear-all`。
     - `clear-all` 删除活动数据库、WAL/SHM、迁移备份、Quarantined Archives 和 prompt 元数据，并删除会话索引里指向该项目档案中出现过的 Run 的记录（索引不记项目，只能按 Run 找回），之后 resume 这些会话会新建 Run 而不是回到旧 generation 的 Run；locator 生命周期独立，consent 与当前 Run mode 保留。（2026-09-23 Issue 32 修订。）仍在运行、会在新 generation 继续的 Run 保留索引记录。（2026-09-28 Issue 30 修订。）
     - 删除使用 `secure_delete`、WAL checkpoint/truncate 和必要空间回收；`clear-all` 删的是整个文件，只做 `unlink` 与目录 `fsync`，不覆写（写时复制文件系统上覆写不擦除旧块）。（2026-09-28 Issue 30 修订。）事务删除成功但残留清理失败时报告“逻辑删除完成、物理清除未完成”，列出残留并保持 Archive unavailable。`clear-run` 以 checkpoint(TRUNCATE)、`VACUUM`、空 WAL 与迁移备份已删除作为物理完成的判据，任何一步失败都保留意向。（2026-09-28 Issue 29 修订。）
@@ -265,7 +272,8 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 4. **存储 seam：schema-opaque helper CLI**
    - 通过 stdin/stdout/exit status 的正式 helper protocol 黑盒测试每个语义操作。
    - 使用临时目录覆盖 24 个及以上并发 writer、幂等重试、事务中崩溃、WAL 恢复、busy 超时、`ENOSPC`、只读/权限异常、symlink、损坏、迁移中断、高版本拒绝、Quarantined Archive、增量读取、`clear-run`、`clear-all` 与 generation 竞争。
-   - fixture 可以生成旧 schema，但断言通过 protocol verifier 而不是查询当前生产表结构。
+   - fixture 可以生成旧 schema，但断言通过 protocol verifier 而不是查询当前生产表结构。已有档案经公开健康初始化建立 writer 前置状态；健康文件破坏只作负向故障注入，不直接写私有健康数据代替正向 CLI。
+   - 健康守卫覆盖持久损坏发布 → 后续变更拒绝、generation/token 绑定恢复与 stale 拒绝、unknown 显式初始化、普通成功/clear-run 不解除、世代退役、读并发与发布前故障边界。plugin 公开 submit/control 另测早期查询后晚到损坏与重试路径；store 镜像竞态不能授权写入。上述单元门禁不能替代已指定的真实 PTY 发布要求。
 
 5. **静态制品门禁**
    - 验证 thin arm64、`minos 15.0`、PIE、允许的系统 dylib、helper SHA-256、protocol/schema manifest、构建来源和系统 SQLite 能力。

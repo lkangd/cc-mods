@@ -98,7 +98,7 @@ export type TargetOptions = {
   /* The answers the Archive unavailable dialog receives, one per dialog in
      order; once they run out, a dialog is cancelled. */
   unavailableAnswers?: (
-    '重试' | '禁用当前 Run 后继续' | '重新检查完整性' | '隔离并开始新档案' | '清除全部档案' | '继续清除'
+    '重试' | '禁用当前 Run 后继续' | '重新检查完整性' | '初始化并完整复检' | '隔离并开始新档案' | '清除全部档案' | '继续清除'
   )[]
   /* The answers the clear-all confirmation receives, one per dialog in order:
      an option's label, or what the person typed; once they run out, a dialog
@@ -140,6 +140,12 @@ export type TargetOptions = {
   /* The Archive generation standing at the archive's path; a quarantine puts
      the next one in its place. */
   generation?: { value: string }
+  /* The helper's shared health receipt, independent of the display store. */
+  health?: { state: 'unknown' | 'healthy' | 'damaged'; generation: string | null; token: string | null }
+  healthFails?: string
+  /* Schedules another helper operation at the process boundary, or returns a
+     deliberately malformed/stale response; no plugin decision is mocked. */
+  processResponder?: (call: ProcessCall) => { exitCode: number; stdout: string; stderr: string } | undefined
   /* What `integrity-check` finds. */
   integrity?: { result: 'ok' | 'damaged' | 'unreadable' | 'absent'; problems: number }
   /* `quarantine` fails with this category, moving nothing. */
@@ -212,6 +218,7 @@ export type TargetOptions = {
   /* Runs right after a store write lands, as another process writing the
      same key a moment later would. */
   afterStoreSet?: (key: string) => void
+  beforeStoreDelete?: (key: string) => void
   run?: RunIdentity
   /* The session the locator says this one continues: the conversation was
      moved here from it, and this session took up its Run. */
@@ -323,6 +330,25 @@ export function installSupportedTarget(
   let emptied = false
   let allocateSequence = sequenceAllocator(archive)
   const generation = options.generation ?? { value: 'gen-1' }
+  const health: NonNullable<TargetOptions['health']> = options.health ?? {
+    state: 'healthy', generation: generation.value, token: '11111111-1111-4111-8111-111111111111',
+  }
+  const startEmptyArchive = () => {
+    if (health.state === 'unknown' && health.generation === null) {
+      Object.assign(health, { state: 'healthy', generation: generation.value, token: crypto.randomUUID() })
+      emptied = false
+    }
+  }
+  const refuse = (category: boolean | string, foundGeneration?: string) => {
+    if (category === 'archive-integrity'
+        && (health.state !== 'damaged' || health.generation !== (foundGeneration ?? generation.value))) {
+      Object.assign(health, {
+        state: 'damaged', generation: foundGeneration ?? generation.value,
+        token: '33333333-3333-4333-8333-333333333333',
+      })
+    }
+    return failure(category, foundGeneration)
+  }
   const quarantined = options.quarantined ?? []
   const staged = new Map<string, Omit<ArchiveRow, 'sequence'>>()
   let branchWrites = 0
@@ -359,6 +385,7 @@ export function installSupportedTarget(
       return { value: undefined }
     })
     on('store.delete', (_$, e) => {
+      options.beforeStoreDelete?.(e.key)
       delete store[e.key]
       return { value: undefined }
     })
@@ -414,7 +441,8 @@ export function installSupportedTarget(
     const choices = e.questions[0]?.options ?? []
     const labels = choices.map(choice => (typeof choice === 'string' ? choice : choice.label))
     const isReconcile = labels.includes('已进入')
-    if (labels.includes('取消') && !labels.includes('禁用当前 Run 后继续')) {
+    if (labels.includes('取消') && !labels.includes('禁用当前 Run 后继续')
+        && !labels.includes('初始化并完整复检')) {
       options.clearAsked?.push(question)
       options.clearOffered?.push(labels)
       const answer = options.clearAnswers?.shift()
@@ -422,7 +450,7 @@ export function installSupportedTarget(
         result: { questions: e.questions, answers: answer ? { [question]: answer } : {} },
       }
     }
-    if (labels.includes('禁用当前 Run 后继续')) {
+    if (labels.includes('禁用当前 Run 后继续') || labels.includes('初始化并完整复检')) {
       options.unavailableAsked?.push(question)
       options.unavailableOffered?.push(labels)
       const answer = options.unavailableAnswers?.shift()
@@ -491,6 +519,8 @@ export function installSupportedTarget(
   on('process.run', (_$, e) => {
     const argv = [...e.argv]
     calls.push({ argv, stdin: e.init?.stdin })
+    const response = options.processResponder?.(calls[calls.length - 1]!)
+    if (response) return { value: response }
     if (argv[0] === '/usr/bin/uname' && argv[1] === '-s') {
       return { value: { exitCode: 0, stdout: 'Darwin\n', stderr: '' } }
     }
@@ -567,15 +597,39 @@ export function installSupportedTarget(
         },
       }
     }
+    if (argv[0] === helperPath && argv[1] === 'archive-health') {
+      if (options.healthFails) return refuse(options.healthFails)
+      if (!options.health && health.generation !== generation.value && !emptied) {
+        Object.assign(health, {
+          generation: generation.value, token: crypto.randomUUID(),
+        })
+      }
+      return {
+        value: { exitCode: 0, stdout: JSON.stringify({ projectId, ...health }), stderr: '' },
+      }
+    }
+    if (argv[0] === helperPath && ['archive-health-init', 'archive-health-reset'].includes(argv[1] ?? '')) {
+      if (argv[4] !== generation.value) return refuse('archive-generation')
+      const reset = argv[1] === 'archive-health-reset'
+      if (reset && argv[5] !== health.token) return refuse('archive-health-stale')
+      if (reset || health.state === 'unknown') {
+        const clean = (options.integrity?.result ?? 'ok') === 'ok'
+        const state = clean ? 'healthy' : 'damaged'
+        if (clean || health.state !== 'damaged') {
+          Object.assign(health, { state, generation: generation.value, token: crypto.randomUUID() })
+        }
+      }
+      return { value: { exitCode: 0, stdout: JSON.stringify({ projectId, ...health }), stderr: '' } }
+    }
     /* So does an unfinished Run clear. */
     if (argv[0] === helperPath && options.clearRunUnderway?.value
         && !['preflight', 'archive-status', 'clear-inventory', 'clear-all', 'clear-run'].includes(argv[1] ?? '')) {
-      return failure('clear-run-unfinished')
+      return refuse('clear-run-unfinished')
     }
     /* An unfinished clear refuses every command that opens the archive. */
     if (argv[0] === helperPath && options.clearUnderway?.value
         && !['preflight', 'archive-status', 'clear-inventory', 'clear-all'].includes(argv[1] ?? '')) {
-      return failure('clear-unfinished')
+      return refuse('clear-unfinished')
     }
     if (argv[0] === helperPath && argv[1] === 'clear-inventory') {
       const underway = options.clearUnderway?.value === true
@@ -638,7 +692,9 @@ export function installSupportedTarget(
         },
       }
       if (!underway && argv[7] === '--continue') return nothing
-      if (!underway && quarantined.length > 0) return failure('clear-run-quarantined')
+      if (!underway && health.state === 'damaged') return refuse('archive-integrity', health.generation ?? generation.value)
+      if (!underway && health.state === 'unknown' && health.generation !== null) return refuse('archive-health-unknown')
+      if (!underway && quarantined.length > 0) return refuse('clear-run-quarantined')
       const cleared = underway ? options.clearRunUnderway?.runId ?? argv[4] : argv[4]
       const own = archive.filter(row => row.runId === cleared)
       const ownIds = new Set(own.map(row => row.eventId))
@@ -660,7 +716,7 @@ export function installSupportedTarget(
       for (const [eventId] of ownStaged) staged.delete(eventId)
       if (options.clearRunLeaves?.length) {
         if (options.clearRunUnderway) Object.assign(options.clearRunUnderway, { value: true, runId: cleared })
-        return failure('clear-run-unfinished')
+        return refuse('clear-run-unfinished')
       }
       if (options.clearRunUnderway) options.clearRunUnderway.value = false
       if (options.clearRunAnswerLost) throw new Error('killed at the time limit: PT-SECRET-KILLED')
@@ -711,9 +767,10 @@ export function installSupportedTarget(
       if (options.beginFails === 'archive-integrity') options.beginFails = undefined
       if (options.clearLeaves?.length) {
         if (options.clearUnderway) options.clearUnderway.value = true
-        return failure('clear-unfinished')
+        return refuse('clear-unfinished')
       }
       if (options.clearUnderway) options.clearUnderway.value = false
+      Object.assign(health, { state: 'unknown', generation: null, token: null })
       return {
         value: {
           exitCode: 0,
@@ -730,19 +787,27 @@ export function installSupportedTarget(
     /* An unfinished quarantine refuses every command that opens the archive. */
     if (argv[0] === helperPath && options.quarantineUnderway?.value
         && !['preflight', 'archive-status', 'quarantine'].includes(argv[1] ?? '')) {
-      return failure('quarantine-failed')
+      return refuse('quarantine-failed')
+    }
+    /* The helper rechecks health under its mutation guard. A pre-read is
+       advisory: damage may have been published between it and this call. */
+    if (argv[0] === helperPath
+        && ['capture-begin', 'capture-confirm', 'capture-abort', 'boundary-append'].includes(argv[1] ?? '')) {
+      if (health.state === 'damaged') return refuse('archive-integrity', health.generation ?? generation.value)
+      if (health.state === 'unknown' && health.generation !== null) return refuse('archive-health-unknown')
     }
     if (argv[0] === helperPath && argv[1] === 'capture-begin') {
       const eventId = argv[8]
       if (options.beginFails) {
-        return failure(options.beginFails, generation.value)
+        return refuse(options.beginFails, generation.value)
       }
-      if (argv[12] !== '-' && argv[12] !== generation.value) return failure('archive-generation')
+      if (argv[12] !== '-' && argv[12] !== generation.value) return refuse('archive-generation')
       if (options.parentsChecked && argv[7] !== '-'
           && !archive.some(row => row.kind === 'prompt' && row.eventId === argv[7])) {
-        return failure('capture-parent-unknown')
+        return refuse('capture-parent-unknown')
       }
       if (options.beginRejects) throw new Error('timed out: PT-SECRET-KILLED')
+      startEmptyArchive()
       if (eventId && !archive.some(row => row.eventId === eventId)) {
         staged.set(eventId, {
           kind: 'prompt',
@@ -778,7 +843,7 @@ export function installSupportedTarget(
         return { value: { exitCode: 25, stdout: '', stderr: '{"category":"capture-not-found"}' } }
       }
       if (options.confirmFails || (options.confirmFailsOnce && isFirstConfirm)) {
-        return failure(options.confirmFails || true, generation.value)
+        return refuse(options.confirmFails || true, generation.value)
       }
       /* A confirmed capture is no longer pending, exactly as the helper's own
          transaction leaves it. */
@@ -812,10 +877,10 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'boundary-append') {
       if (options.boundaryFails) {
-        return failure(options.boundaryFails, generation.value)
+        return refuse(options.boundaryFails, generation.value)
       }
-      if (options.boundaryFailsFor?.kind === argv[7]) return failure('archive-busy')
-      if (argv[10] !== '-' && argv[10] !== generation.value) return failure('archive-generation')
+      if (options.boundaryFailsFor?.kind === argv[7]) return refuse('archive-busy')
+      if (argv[10] !== '-' && argv[10] !== generation.value) return refuse('archive-generation')
       /* As strict as the helper: a repeated id answers the stored sequence
          only when every recorded fact matches, and a changed one is refused. */
       const [runField, segmentId, branchId, kind, eventId, occurredAt] = argv.slice(4, 10)
@@ -835,6 +900,7 @@ export function installSupportedTarget(
           },
         }
       }
+      startEmptyArchive()
       const sequence = allocateSequence(eventId ?? '')
       if (!existing) {
         archive.push({
@@ -857,7 +923,7 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'timeline-read') {
       if (options.readFails) {
-        return failure(options.readFails, generation.value)
+        return refuse(options.readFails, generation.value)
       }
       return {
         value: {
@@ -869,7 +935,7 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'branch-match') {
       if (options.branchMatchFails) {
-        return failure(options.branchMatchFails, generation.value)
+        return refuse(options.branchMatchFails, generation.value)
       }
       const call = calls[calls.length - 1]!
       const answer = typeof options.branchMatch === 'function'
@@ -891,7 +957,7 @@ export function installSupportedTarget(
     }
     if (argv[0] === helperPath && argv[1] === 'capture-list') {
       if (options.listFails) {
-        return failure(options.listFails, generation.value)
+        return refuse(options.listFails, generation.value)
       }
       if (argv.length !== 7) throw new Error(`unexpected capture-list: ${argv.join(' ')}`)
       const caller = argv[4]
@@ -918,7 +984,7 @@ export function installSupportedTarget(
         return { value: { exitCode: 25, stdout: '', stderr: '{"category":"capture-conflict"}' } }
       }
       if (options.abortFails) {
-        return failure(options.abortFails, generation.value)
+        return refuse(options.abortFails, generation.value)
       }
       /* Only a successful abort removes the row; a failed one leaves the
          pending in the archive, still blocking. */
@@ -940,7 +1006,7 @@ export function installSupportedTarget(
       }
     }
     if (argv[0] === helperPath && argv[1] === 'quarantine') {
-      if (options.quarantineFails) return failure(options.quarantineFails)
+      if (options.quarantineFails) return refuse(options.quarantineFails)
       const resumed = options.quarantineUnderway?.value === true
       if (options.quarantineUnderway) options.quarantineUnderway.value = false
       if (!resumed && argv[4] !== generation.value) {
@@ -969,6 +1035,8 @@ export function installSupportedTarget(
         occurredAt: Number(occurredAt),
       })
       generation.value = `gen-${quarantined.length + 1}`
+      Object.assign(health, { state: 'healthy', generation: generation.value, token: crypto.randomUUID() })
+      emptied = false
       return {
         value: {
           exitCode: 0,
@@ -978,7 +1046,7 @@ export function installSupportedTarget(
       }
     }
     if (argv[0] === helperPath && argv[1] === 'archive-status') {
-      if (options.statusFails) return failure(options.statusFails)
+      if (options.statusFails) return refuse(options.statusFails)
       return {
         value: {
           exitCode: 0,
