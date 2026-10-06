@@ -1,6 +1,6 @@
 ---
 id: restart-reconcile-archives-staged-text
-status: open
+status: resolved
 severity: major
 found: 2026-10-06
 source: /code-review, round 1
@@ -27,3 +27,17 @@ The smallest prompt-free option: persist `rewritten: true` in `ReconcileState` w
 
 - `grep -n "'--pending'\|saveReconcile(\|confirmPending" mods/prompt-trail/hooks/register.tsx`
 - Test with the harness option `rewrite: true` plus a pre-seeded v2 record, as in `tests/queued_capture.test.tsx` "after a restart …".
+
+## Resolved 2026-10-06 (Issue 35 follow-up)
+
+The person chose the prompt-free option. `ReconcileState` now carries `rewritten: true` when
+`next(e)` returned a text other than the one staged. In `reconcilePending`, a pending whose final
+text is gone (`owed.text === undefined`) and which was rewritten is never confirmed with
+`--pending`: a `membership: 'row'` record is no longer confirmed without asking, and no dialog
+offers 已进入. The person gets 不归档 / 新根分支 when the prompt may have entered (未进入 / 新根分支
+when it cannot have), and the dialog says the final text was lost. Helper protocol 1 and schema 2
+are unchanged. A pending found through the archive takes `rewritten` from the record its staging
+Run left in the store, when that record names the same event. With no such record it still cannot
+tell whether it was rewritten and is settled as before. Plugin tests: `a rewritten prompt keeps its
+final text for a reconciliation in the same module instance`, and `after a restart a rewritten
+prompt … is not archived from its staged text` for a `row` record, a queued one and idle ones over two rows and over none, and `a pending found in the archive keeps the staging Run's word that it was rewritten`.

@@ -146,12 +146,19 @@ type ReconcileState = {
      or the rows inside `next` were not exactly one); the person settles it.
      Absent: an earlier build's record, settled as before. */
   membership?: 'row' | 'unproven'
+  /* For an `unproven` pending, whether it was queued behind a running turn.
+     Absent in an earlier build's record, which does not say. */
+  queued?: boolean
   /* For an `unproven` pending, how many composer rows the host stored in its
-     Run since it was queued, beyond those of other submissions; 0 for an idle
-     one, whose own rows proved nothing. `unknown` once that count cannot be
-     proven whole (a write of it failed, or rows went by with no module
-     instance watching). */
+     Run since it was queued, beyond those of other submissions. For an idle
+     one, the rows stored while it was inside `next`, fixed once recorded:
+     one of them may be its own, and no later row can be. `unknown` once that
+     count cannot be proven whole (a write of it failed, or rows went by with
+     no module instance watching). */
   rowsSince?: number | 'unknown'
+  /* A hook beneath rewrote the prompt, so the bytes staged before `next` are
+     not its final text. */
+  rewritten?: boolean
 }
 
 /* One row of the expanded band. Rows read back from the archive and rows this
@@ -1362,7 +1369,23 @@ function storedReconcile(value: unknown): ReconcileState | undefined {
     ...(isSafeId(value.generation) ? { generation: value.generation } : {}),
     ...(membership ? { membership } : {}),
     ...(membership === 'unproven' ? { rowsSince } : {}),
+    ...(membership === 'unproven' && typeof value.queued === 'boolean' ? { queued: value.queued } : {}),
+    ...(value.rewritten === true ? { rewritten: true } : {}),
   }
+}
+
+/* What a reconciliation record says the pending is. `row`: its own row was
+   stored. `queued` / `idle`: unproven, submitted over a running turn or to an
+   idle session. `unproven`: an earlier build's record that does not say
+   which. `legacy`: a record from before stored rows were watched, or one
+   found only in the archive. */
+type PendingKind = 'row' | 'queued' | 'idle' | 'unproven' | 'legacy'
+
+function pendingKind(state: ReconcileState): PendingKind {
+  if (state.membership === 'row') return 'row'
+  if (state.membership !== 'unproven') return 'legacy'
+  if (state.queued === undefined) return 'unproven'
+  return state.queued ? 'queued' : 'idle'
 }
 
 /* A queued lifecycle write is replayed verbatim into `boundary-append`, where
@@ -1782,8 +1805,11 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
     owedUnknown = true
   }
   /* Rows the host stored while no module instance of this Run watched are
-     beyond counting. */
-  if (owed?.membership === 'unproven') owed = { ...owed, rowsSince: 'unknown' }
+     beyond counting for a queued pending. An idle one's count is already
+     fixed. */
+  if (owed && (pendingKind(owed) === 'queued' || pendingKind(owed) === 'unproven')) {
+    owed = { ...owed, rowsSince: 'unknown' }
+  }
   reconcile = owed ? { state: owed } : undefined
   pendingDiscovered = false
   pendingUnknown = undefined
@@ -2742,6 +2768,9 @@ function noteComposerRow($: EngineInterface): void {
   }
   const owed = reconcile
   if (owed?.state.membership !== 'unproven' || typeof owed.state.rowsSince !== 'number') return
+  /* An idle submission's own row is stored inside its `next`; a row after
+     that is no evidence about it. */
+  if (pendingKind(owed.state) === 'idle') return
   /* A row of another Run's conversation, after a `/resume`, is no evidence
      about a prompt queued in this one. */
   if (owed.state.runId !== startup.runId) return
@@ -2816,6 +2845,33 @@ function settledElsewhere(error: unknown, operation: 'confirm' | 'abort'): boole
     && error.message === (operation === 'confirm' ? 'capture-not-found' : 'capture-conflict')
 }
 
+/* How the reconciliation dialog opens, by what the record says the pending
+   is. */
+const PENDING_SITUATION: Record<PendingKind, string> = {
+  row: '这条提交已进入会话，但归档确认没有完成。',
+  queued: '这条提交排进了 Claude Code 的队列，宿主没有说明它是否进入了会话。',
+  idle: '这条提交在会话空闲时交给了 Claude Code，宿主存下的 composer 行无法归属于它。',
+  unproven: '宿主存下的 composer 行无法归属于这条提交，无法证明它是否进入了会话。',
+  legacy: '提交已交给 Claude Code，但归档确认没有完成。',
+}
+
+/* What the stored-row count says, for a pending that has one. */
+function pendingRowsLine(kind: PendingKind, rows: number | 'unknown' | undefined): string[] {
+  const known = typeof rows === 'number'
+  switch (kind) {
+    case 'queued':
+      return [known ? `它排队之后，此后宿主存储了 ${rows} 条 composer 行。` : '它排队之后，无法证明是否有存储行。']
+    case 'idle':
+      return [known ? `提交期间宿主存储了 ${rows} 条 composer 行，不是恰好一条只属于它的行。` : '提交期间是否有存储行，无法证明。']
+    case 'unproven':
+      return [known ? `此后宿主存储了 ${rows} 条 composer 行。` : '无法证明此后是否有存储行。']
+    case 'legacy':
+      return ['时间线无法唯一证明这条提交是否进入会话。']
+    case 'row':
+      return []
+  }
+}
+
 /* Settling one Pending Capture. It answers whether the Run may collect again;
    every path that does not reach a definite answer leaves the block in place
    rather than guessing, and no path resubmits the prompt that was dropped. */
@@ -2882,51 +2938,54 @@ async function reconcilePending(
     return 'resolved'
   }
 
+  /* Without the final text — a reload or restart dropped it — the helper
+     would archive the bytes staged before `next`. When a hook rewrote the
+     prompt those are not what entered, so they are not archived as if they
+     were. */
+  const rewrittenTextLost = owed.text === undefined && owed.state.rewritten === true
+  const kind = pendingKind(owed.state)
+
   /* Its own row was stored: it entered, and only the confirmation is owed.
      Anything else is the person's to settle: the transcript's text proves
      nothing, since the same words may be another prompt's row. */
-  if (owed.state.membership === 'row') return confirmPending()
+  if (kind === 'row' && !rewrittenTextLost) return confirmPending()
 
-  const unproven = owed.state.membership === 'unproven'
-  /* With no composer row stored since it was queued, it cannot have entered:
-     the person is not offered that it did. */
+  /* With no composer row stored since it was queued, or inside an idle
+     submission's `next`, it cannot have entered: the person is not offered
+     that it did. */
   const rows = owed.state.rowsSince
-  const mayHaveEntered = !unproven || rows !== 0
-  const lines = unproven
-    ? [
-        'Prompt Trail 有一条未决的 Pending Capture：这条提交排进了 Claude Code 的队列，宿主没有说明它是否进入了会话。',
-        `事件 ID：${owed.state.eventId.slice(0, 8)}`,
-        typeof rows === 'number'
-          ? `它排队之后，此后宿主存储了 ${rows} 条 composer 行。`
-          : '它排队之后，无法证明是否有存储行。',
-        '请选择如何记录它。',
-      ]
-    : [
-        'Prompt Trail 有一条未决的 Pending Capture：提交已交给 Claude Code，但归档确认没有完成。',
-        `事件 ID：${owed.state.eventId.slice(0, 8)}`,
-        '时间线无法唯一证明这条提交是否进入会话，请选择如何记录它。',
-      ]
+  const mayHaveEntered = !(kind === 'queued' || kind === 'idle' || kind === 'unproven') || rows !== 0
+  const archivable = mayHaveEntered && !rewrittenTextLost
+  /* A prompt that may have entered is not called 未进入 just because its
+     text cannot be archived. */
+  const discardLabel = mayHaveEntered && rewrittenTextLost ? '不归档' : '未进入'
   let answer: string | undefined
   try {
     answer = await $.ui.ask(
       [
-        ...lines,
-        mayHaveEntered
-          ? '“已进入”归档为 Prompt Entry；“未进入”丢弃这条 pending；'
-          : '“未进入”丢弃这条 pending；',
+        `Prompt Trail 有一条未决的 Pending Capture：${PENDING_SITUATION[kind]}`,
+        `事件 ID：${owed.state.eventId.slice(0, 8)}`,
+        ...pendingRowsLine(kind, rows),
+        ...(rewrittenTextLost && mayHaveEntered
+          ? ['它提交时被改写过，改写后的最终文本已随重新载入或重启丢失；Prompt Trail 不会把改写前的文本当作它归档。']
+          : []),
+        '请选择如何记录它。',
+        archivable
+          ? `“已进入”归档为 Prompt Entry；“${discardLabel}”丢弃这条 pending；`
+          : `“${discardLabel}”丢弃这条 pending；`,
         '“新根分支”同样不归档，并让其后的 prompt 从新的根 Conversation Branch 开始。',
       ].join('\n'),
       {
         header: '未决 Pending Capture',
-        options: mayHaveEntered ? ['已进入', '未进入', '新根分支'] : ['未进入', '新根分支'],
+        options: archivable ? ['已进入', discardLabel, '新根分支'] : [discardLabel, '新根分支'],
       },
     )
   } catch {
     return 'blocked'
   }
 
-  if (answer === '已进入' && mayHaveEntered) return confirmPending()
-  if (answer === '未进入') return discardPending()
+  if (answer === '已进入' && archivable) return confirmPending()
+  if (answer === discardLabel) return discardPending()
   if (answer === '新根分支') {
     /* Nothing after an outcome nobody could vouch for is chained onto it. The
        new root is written first: if that write fails the pending is still
@@ -2979,7 +3038,17 @@ async function discoverPending(
   /* Persisted, not just held in memory: a reconciliation that gets partway —
      the entry confirmed but its branch not yet written — must still be owed
      after a restart, and by then the archive no longer lists it. */
-  if (first) await saveReconcile($, currentProject, first, undefined)
+  if (!first) return
+  /* The archive does not know whether a hook rewrote the prompt; the record
+     the staging Run kept does, if it outlived that Run. */
+  let kept: ReconcileState | undefined
+  try {
+    kept = storedReconcile(await $.store.get(reconcileKey(currentProject.id, first.runId)))
+  } catch {
+    // Unread, it is settled as the archive lists it.
+  }
+  const recorded = kept?.eventId === first.eventId && kept.rewritten ? { ...first, rewritten: true } : first
+  await saveReconcile($, currentProject, recorded, undefined)
 }
 
 /* A crash can leave one pending per Run behind, so settling one re-asks the
@@ -5426,14 +5495,14 @@ async function submitCollected(
      where nobody can say yet whether it will enter. While a turn runs the
      person is not asked; the prompt typed over it waits until the session is
      idle, when what the queue held has entered or gone. */
-  if (
-    e.turnId !== undefined
-    && (reconcile?.state.membership === 'unproven' || [...queuedInFlight].some(other => other !== call))
-  ) {
+  const queuing = [...queuedInFlight].some(other => other !== call)
+  if (e.turnId !== undefined && (reconcile?.state.membership === 'unproven' || queuing)) {
+    /* Only a submission known to have been queued is called queued. */
+    const pendingNoun = queuing || (reconcile && pendingKind(reconcile.state) === 'queued') ? '排队提交' : '提交'
     const restored = await restoreDraft($, e.text)
     return {
       done: {
-        drop: `Prompt Trail：上一条排队提交尚未结算，${draftNote(restored)}；等当前回合结束后再提交。`,
+        drop: `Prompt Trail：上一条${pendingNoun}尚未结算，${draftNote(restored)}；等当前回合结束后再提交。`,
       },
     }
   }
@@ -5620,6 +5689,9 @@ async function submitCollected(
     parentEventId: branch.value.parentEventId,
     attachmentCount: attachmentKinds.length,
     generation: staged.generation,
+    /* Kept so a reconciliation that has lost the final text does not archive
+       the staged bytes in its place. */
+    ...(finalText !== e.text ? { rewritten: true } : {}),
   }
   /* A Prompt Entry is a prompt whose own row the host stored: an idle
      submission that stored exactly one composer row inside `next`, with no
@@ -5638,9 +5710,10 @@ async function submitCollected(
         version: 2,
         ...owedState,
         membership: 'unproven',
-        /* Every row since it was queued; an idle submission's own rows prove
-           nothing about it and are not carried over. */
-        rowsSince: e.turnId !== undefined ? window.rows : 0,
+        queued: e.turnId !== undefined,
+        /* Every row since it was queued; for an idle submission, the rows
+           stored inside its `next`, one of which may be its own. */
+        rowsSince: window.rows,
       },
       finalText,
     )

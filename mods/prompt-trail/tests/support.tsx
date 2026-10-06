@@ -79,6 +79,25 @@ export const session = {
   isInteractive: true,
 }
 
+export const consentGranted = { policyVersion: 1, decision: 'enabled' as const }
+
+/* A store whose project has already agreed to collection. */
+export function consentedStore(): Record<string, unknown> {
+  return { [`prompt-trail:consent:${projectId}`]: consentGranted }
+}
+
+export function reconcileKeyFor(forRunId: string = runId): string {
+  return `prompt-trail:reconcile:${projectId}:${forRunId}`
+}
+
+export type StoredBranch = { branchId?: string; parentEventId?: string | null; explicitRoot?: boolean }
+
+/* The one Active Branch record the store holds, or nothing. */
+export function branchStateOf(store: Record<string, unknown>): StoredBranch {
+  const key = Object.keys(store).find(name => name.startsWith('prompt-trail:branch:'))
+  return (key === undefined ? {} : store[key]) as StoredBranch
+}
+
 /* One Timeline Event as the archive holds it. A test that shares one array
    between two phases is sharing the archive across them, the way a reload or a
    restart shares the project's SQLite file. */
@@ -238,7 +257,7 @@ export type TargetOptions = {
      or a headless session would. */
   fillFails?: boolean
   /* The answer a reconciliation dialog receives; `undefined` cancels it. */
-  reconcileAnswer?: '已进入' | '未进入' | '新根分支'
+  reconcileAnswer?: '已进入' | '未进入' | '不归档' | '新根分支'
   /* The text and the choices of every reconciliation dialog. */
   reconcileAsked?: string[]
   reconcileOffered?: string[][]
@@ -492,7 +511,7 @@ export function installSupportedTarget(
     const question = e.questions[0]?.question ?? ''
     const choices = e.questions[0]?.options ?? []
     const labels = choices.map(choice => (typeof choice === 'string' ? choice : choice.label))
-    const isReconcile = labels.includes('未进入')
+    const isReconcile = labels.includes('新根分支')
     if (labels.includes('取消') && !labels.includes('禁用当前 Run 后继续')
         && !labels.includes('初始化并完整复检')) {
       options.clearAsked?.push(question)

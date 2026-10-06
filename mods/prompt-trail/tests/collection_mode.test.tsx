@@ -3,8 +3,11 @@ import { test } from './support'
 import {
   SECRET,
   boundaryCalls,
+  branchStateOf,
   captureCalls,
   composerPrompt,
+  consentGranted,
+  consentedStore,
   installSupportedTarget,
   projectId,
   promptHistory,
@@ -13,19 +16,8 @@ import {
   session,
 } from './support'
 
-const consentGranted = { policyVersion: 1, decision: 'enabled' as const }
-
-function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: consentGranted }
-}
-
 function runModeKey(forRunId: string = runId): string {
   return `prompt-trail:run-mode:${projectId}:${forRunId}`
-}
-
-function branchIds(store: Record<string, unknown>): unknown {
-  const key = Object.keys(store).find(name => name.startsWith('prompt-trail:branch:'))
-  return key === undefined ? undefined : store[key]
 }
 
 test('enable on an unconsented project asks first, then starts collection', async ($, on) => {
@@ -111,7 +103,7 @@ test('re-enabling starts a new root Conversation Branch and back-fills nothing',
   const calls = installSupportedTarget(on, { store })
   await $.session.start(session)
   await composerPrompt($)
-  const beforeDisable = branchIds(store) as { branchId: string; parentEventId: string | null }
+  const beforeDisable = branchStateOf(store)
   expect(beforeDisable.parentEventId).not.toBe(null)
 
   await promptHistory($, 'disable')
@@ -119,7 +111,7 @@ test('re-enabling starts a new root Conversation Branch and back-fills nothing',
   const enabled = await promptHistory($, 'enable')
 
   expect(enabled.text).toContain('新的根 Conversation Branch')
-  const afterEnable = branchIds(store) as { branchId: string; parentEventId: string | null }
+  const afterEnable = branchStateOf(store)
   expect(afterEnable.branchId).not.toBe(beforeDisable.branchId)
   expect(afterEnable.parentEventId).toBe(null)
   expect(boundaryCalls(calls).map(call => call.argv[7]))

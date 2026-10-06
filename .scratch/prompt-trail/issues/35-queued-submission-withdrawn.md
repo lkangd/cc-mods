@@ -194,3 +194,13 @@ PTY（2.1.283，验收项目 `pt21-project`）：使用者提交 `PT-A 只回复
 - PTY 第 5 轮（条件与第 4 轮相同：隔离环境、专用钥匙串条目、1 次启动、最多 8 条提交、10 分钟）**通过**，17/17。用了 6 条 composer 提交和 3 次对话框选择，扫描 554 个文件，0 泄漏。归档依次为 A、N1、N1，没有遗留 pending。[acceptance-evidence.json](../prototypes/queued-capture-proof/acceptance-evidence.json) 已换成本轮的结构摘要，临时报告已删除。
 
 修复后的代码现在已有真实宿主验收。未运行发布门禁，插件版本仍为 0.1.0，未提交，未 push。
+
+### 2026-10-06 · 跟进：空闲多行、措辞与改写文本
+
+使用者在交接后作出三项决定：空闲提交在 `next(e)` 内存下 ≥2 行（或共享窗口内 ≥1 行）时给三项；对账对话框按排队 / 空闲分别措辞；重新载入或重启后最终文本已丢失、且提交时被改写过的 pending 不提供“已进入”（backlog `restart-reconcile-archives-staged-text`，取不改 helper protocol 的方案）。
+
+- `ReconcileState` 新增 `queued` 与 `rewritten`；`pendingKind` 把记录分成 row / queued / idle / unproven（早期 v2 记录，未写明是否排队）/ legacy，对话框首句和计数行按它查表。空闲 pending 的 `rowsSince` 取 `next(e)` 内的行数，此后不再累加，重新载入后不改成 unknown。
+- 改写且丢了最终文本：可能已进入时给“不归档 / 新根分支”，不可能进入时仍是“未进入 / 新根分支”；`membership: 'row'` 也不再自动补确认。从档案发现的 pending 读取暂存它的 Run 留下的 store 记录取得 `rewritten`。
+- 会话忙时被拦下的提示，只有已知排队的才说“排队提交”。
+- 两路 code review（规范 / spec）后修了：跨 Run 的 `rewritten`、早期 v2 记录的中性措辞、spec 漏写的 0 行例外、命名与分支散落。未处理：`runModeKey` 等测试辅助函数在其他文件仍有副本。spec 审查质疑 `finalText !== e.text` 会漏判原地修改，`e` 是冻结值，不成立。
+- 验证：tsc 通过；2.1.290 `plugin test` 500/500。没有重跑 PTY 验收；PTY 第 5 轮的 runner 只匹配排队措辞，这部分文字未变。

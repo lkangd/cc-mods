@@ -61,7 +61,7 @@ The incarnation of a Project Timeline created by the latest clear-all or quarant
 _Avoid_: Run, conversation segment, the `archiveGeneration` token in locators and the session index
 
 **Pending capture**:
-A durably staged composer submission whose final entry into the Claude Code conversation has not yet been confirmed. It is not a Prompt Entry until confirmed. A submission queued behind a running turn stays one until the person reconciles it, since the host ties no stored row to it; so does one interrupted after staging.
+A durably staged composer submission whose final entry into the Claude Code conversation has not yet been confirmed. It is not a Prompt Entry until confirmed. A submission queued behind a running turn stays one until the person reconciles it, since the host ties no stored row to it; so does an idle submission whose `next` stored other than exactly one composer row of its own, and one interrupted after staging.
 _Avoid_: Prompt Entry, timeline gap
 
 **Archive unavailable**:
