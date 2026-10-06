@@ -18,6 +18,7 @@ import {
   TIMELINE_READ_LIMIT,
   captureCalls,
   composerPrompt,
+  helperPath,
   installSupportedTarget,
   projectId,
   promptHistory,
@@ -524,12 +525,15 @@ test('a timeline that cannot be read still lets the Run collect', async ($, on) 
 test('a helper that changes under a running Run stops it until the original returns', async ($, on) => {
   const helperDigest = { value: EXPECTED_HELPER_SHA256 }
   const archive: ArchiveRow[] = []
-  installSupportedTarget(on, { store: consentedStore(), archive, helperDigest })
+  const calls = installSupportedTarget(on, { store: consentedStore(), archive, helperDigest })
   await $.session.start(session)
   await composerPrompt($)
 
   helperDigest.value = 'f'.repeat(64)
+  const ranBefore = calls.length
   const changed = await composerPrompt($)
+  /* Not one call reaches the changed helper, not even a read. */
+  expect(calls.slice(ranBefore).filter(call => call.argv[0] === helperPath).map(call => call.argv[1])).toStrictEqual([])
   const status = await promptHistory($, 'status')
   helperDigest.value = EXPECTED_HELPER_SHA256
   const restored = await composerPrompt($)
@@ -541,6 +545,22 @@ test('a helper that changes under a running Run stops it until the original retu
   expect(archive.filter(event => event.kind === 'prompt')).toHaveLength(2)
   expect(archive.filter(event => event.kind === 'run-started')).toHaveLength(1)
 })
+
+for (const command of ['disable', 'enable'] as const) {
+  test(`/prompt-history ${command} runs no helper that changed under the Run`, async ($, on) => {
+    const helperDigest = { value: EXPECTED_HELPER_SHA256 }
+    const calls = installSupportedTarget(on, { store: consentedStore(), helperDigest })
+    await $.session.start(session)
+    await composerPrompt($)
+    if (command === 'enable') await promptHistory($, 'disable')
+
+    helperDigest.value = 'f'.repeat(64)
+    const ranBefore = calls.length
+    await promptHistory($, command)
+
+    expect(calls.slice(ranBefore).filter(call => call.argv[0] === helperPath).map(call => call.argv[1])).toStrictEqual([])
+  })
+}
 
 test('status names the current Run', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore() })

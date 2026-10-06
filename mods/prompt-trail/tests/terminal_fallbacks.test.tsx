@@ -106,13 +106,18 @@ test('too narrow or too short, the open band shows its title and that space is s
   await $.session.start(session)
   await promptHistory($)
 
-  for (const view of [{ bodyColumns: 27 }, { maxRows: 5 }]) {
+  /* 28 columns of the band's column are 23 of its body, beside the
+     engine's five for `[-]`. The label is cut to the body. */
+  for (const [view, label] of [
+    [{ bodyColumns: 22 }, '▾ Prompt Trail · 空间…'],
+    [{ maxRows: 5 }, '▾ Prompt Trail · 空间不足'],
+  ] as const) {
     const band = drawn(await renderBand($, view))
-    expect(band.labels).toEqual(['▾ Prompt Trail · 空间不足'])
+    expect(band.labels).toEqual([label])
     expect(band.rows).toBe(1)
   }
   /* 28 columns and 6 rows are room enough. */
-  expect(drawn(await renderBand($, { bodyColumns: 28, maxRows: 6 })).labels).toContain('40. PT-SECRET-OLD-40')
+  expect(drawn(await renderBand($, { bodyColumns: 23, maxRows: 6 })).labels).toContain('40. PT-SECRET-OLD-40')
 })
 
 test('the title still folds and opens the band while space is short', async ($, on) => {
@@ -125,7 +130,7 @@ test('the title still folds and opens the band while space is short', async ($, 
   expect(drawn(await renderBand($, { bodyColumns: 20 })).labels).toEqual(['▸ Prompt Trail'])
 
   await $.ui.press({ plugin: 'prompt-trail', key: 'prompt-trail:toggle' })
-  expect(drawn(await renderBand($, { bodyColumns: 20 })).labels).toEqual(['▾ Prompt Trail · 空间不足'])
+  expect(drawn(await renderBand($, { bodyColumns: 20 })).labels).toEqual(['▾ Prompt Trail · 空…'])
 })
 
 test('room again, the band shows the rows and new-entry count it had before', async ($, on) => {
