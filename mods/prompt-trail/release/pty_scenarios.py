@@ -450,7 +450,7 @@ def capture_008(ctx: Context) -> str:
     check(texts == [prompt(first), f"{prompt(held)} PT-FIXTURE-HOLD", prompt(after)], "entries are not the three prompts in order")
     return (
         "a refused confirmation kept the pending and status reported it; the next submission "
-        "confirmed it from the transcript and handed its own text back as a draft, which then went through"
+        "confirmed it from its own stored row and handed its own text back as a draft, which then went through"
     )
 
 
@@ -1498,7 +1498,8 @@ def ui_006(ctx: Context) -> str:
 def cramped(ctx: Context, terminal: Terminal) -> bool:
     """The open band drawn as its title alone, saying space is short."""
     band = [row for row in ctx.band(terminal) if row.strip()]
-    return len(band) == 1 and title(ctx, terminal).startswith("▾ Prompt Trail · 空间不")
+    # The label is cut to the band's body, so only its start is certain.
+    return len(band) == 1 and title(ctx, terminal).startswith("▾ Prompt Trail · 空间")
 
 
 @scenario("PT-UI-007")
@@ -1762,8 +1763,9 @@ def damage(ctx: Context, terminal: Terminal, **size) -> Terminal:
 
 def meet_damage(ctx: Context, terminal: Terminal, marker: str) -> str:
     """Submits until the damage holds a submission, and answers its dialog.
-    The pre-write may not touch the damaged page; the confirmation does, and
-    the pending it leaves then meets the damage at the next submission."""
+    The helper's health check may hold the first try at its pre-write; if the
+    damage is not found there, the confirmation touches the damaged page, and
+    the pending it leaves meets the damage at the next submission."""
     for _ in range(2):
         ctx.send(terminal, prompt(marker))
         deadline = time.monotonic() + 20
@@ -1892,7 +1894,7 @@ def control_002(ctx: Context) -> str:
     ctx.command(terminal, "/prompt-history enable", "已恢复采集")
     check(not ctx.pending(), "enable resumed with the pending still owed")
     confirmed = [e for e in ctx.entries() if e["promptText"] == text]
-    check(len(confirmed) == 1, "enable did not settle the pending from the transcript")
+    check(len(confirmed) == 1, "enable did not settle the pending from its stored row")
     resumed = boundaries(ctx, "collection-resumed")[-1]
     check(confirmed[0]["sequence"] < resumed["sequence"], "the pending was settled after the resume was written")
     ctx.submit(terminal, prompt(after))
@@ -1903,7 +1905,7 @@ def control_002(ctx: Context) -> str:
     )
     return (
         "enable asked for consent first, then recorded the start; disabled, a prompt was neither archived nor staged "
-        "and nothing was deleted; with a pending owed, enable settled it from the transcript, then wrote the resume, "
+        "and nothing was deleted; with a pending owed, enable settled it from its stored row, then wrote the resume, "
         "and the next prompt started its new root branch"
     )
 
@@ -2390,7 +2392,17 @@ def sec_003(ctx: Context) -> str:
 
     terminal = ctx.env.launch(lines=60)
     ctx.start(terminal)
-    ctx.submit(terminal, prompt(first), consent=True)
+    ctx.send(terminal, prompt(first))
+    terminal.wait_for("采集同意", "the consent question", 30)
+    ctx.env.snap(terminal, "consent asked")
+    ctx.choose(terminal, "启用")
+    # No health record vouches for an archive the plugin did not create: it
+    # is checked in full, by the person's choice, before anything is written.
+    asked = dialog(ctx, terminal, DAMAGE_DIALOG)
+    check("类别：archive-health-unknown" in asked, "the archive with no health record was not held for a full check")
+    ctx.choose(terminal, "初始化并完整复检")
+    terminal.wait_idle()
+    ctx.env.snap(terminal, "submitted")
     ctx.wait_entries(1)
     with sqlite3.connect(legacy) as migrated:
         (version,) = migrated.execute("PRAGMA user_version").fetchone()
@@ -2808,16 +2820,30 @@ def store_006(ctx: Context) -> str:
     with database.open("r+b") as file:
         file.seek(offset)
         file.write(page)
-    # The first try entered the session and left a pending; the second is held.
+    # Either the damage stopped the first try at its pre-write, as the helper
+    # now checks health there, or that try entered and left a pending and the
+    # second was held.
+    owed = any(held in (p["promptText"] or "") for p in ctx.pending())
     before = ctx.transcript_rows(held)
     choose_once(terminal, "重新检查完整性")
-    terminal.wait_for("已完成对账", "the recheck to settle the pending", 30)
-    ctx.env.snap(terminal, "recheck passed")
-    entries = ctx.wait_entries(3)
-    check([e["promptText"] for e in entries].count(prompt(held)) == 1, "the prompt held by the damage was not archived once")
-    check(ctx.transcript_rows(held) == before, "the held prompt was sent on the person's behalf")
-    check(held[: evidence.MARKER_PREFIX] in terminal.rows()[_prompt_box(terminal)], "the held prompt did not come back as a draft")
-    empty_prompt_box(terminal)
+    if owed:
+        terminal.wait_for("已完成对账", "the recheck to settle the pending", 30)
+        ctx.env.snap(terminal, "recheck passed")
+        entries = ctx.wait_entries(3)
+        check([e["promptText"] for e in entries].count(prompt(held)) == 1, "the prompt held by the damage was not archived once")
+        check(ctx.transcript_rows(held) == before, "the held prompt was sent on the person's behalf")
+        check(held[: evidence.MARKER_PREFIX] in terminal.rows()[_prompt_box(terminal)], "the held prompt did not come back as a draft")
+        empty_prompt_box(terminal)
+    else:
+        terminal.wait_idle()
+        ctx.env.snap(terminal, "recheck passed")
+        entries = ctx.wait_entries(3)
+        check([e["promptText"] for e in entries].count(prompt(held)) == 1, "the prompt held by the damage was not archived once")
+        check(ctx.transcript_rows(held) - before == once, "the held prompt was not let through once")
+    settled = (
+        "settled the pending the first try left and gave the held prompt back as a draft" if owed
+        else "let the prompt the damage held at its pre-write through once and archived it once"
+    )
     # A quarantine keeps the damaged generation as it was and starts the next.
     _, generation = ctx.identity(terminal)
     ctx.exit(terminal)
@@ -2858,8 +2884,8 @@ def store_006(ctx: Context) -> str:
     check(ctx.transcript_rows(cleared) - before == once, "the held prompt was not let through once")
     return (
         "damage offered its four choices for every Run of the project and held another Run before it wrote anything; "
-        "a recheck with the damage standing asked again and changed nothing, and once the page was put back it passed, "
-        "settled the pending the first try left and gave the held prompt back as a draft; a quarantine kept the damaged archive byte for byte and started a new generation with the "
+        "a recheck with the damage standing asked again and changed nothing, and once the page was put back it passed and "
+        f"{settled}; a quarantine kept the damaged archive byte for byte and started a new generation with the "
         "prompt; a mistyped phrase removed nothing, and the phrase cleared everything and let the prompt through once"
     )
 

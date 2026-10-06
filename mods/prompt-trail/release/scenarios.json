@@ -538,7 +538,7 @@
         "查看 `status`，释放写锁后提交下一条 prompt",
         "对账确认上一条后，重新提交被退回为草稿的这一条"
       ],
-      "expected": "保留 pending 并阻止后续提交；唯一可证时自动确认或丢弃，歧义时只提供「已进入 / 未进入 / 新根分支」。",
+      "expected": "保留 pending 并阻止后续提交；宿主存下了它自己的 composer 行时，下一次提交先自动补确认；无法证明时由使用者在「已进入 / 未进入 / 新根分支」中选择，不可能进入时不提供「已进入」。",
       "layers": [
         "plugin",
         "pty",
@@ -551,15 +551,15 @@
         },
         {
           "kind": "plugin",
-          "ref": "tests/reconcile_pending.test.tsx::a transcript that uniquely proves the prompt entered confirms it"
+          "ref": "tests/reconcile_pending.test.tsx::a confirmation that failed after the prompt's row was stored is confirmed next time"
         },
         {
           "kind": "plugin",
-          "ref": "tests/reconcile_pending.test.tsx::a transcript that proves the prompt never entered discards the pending"
+          "ref": "tests/reconcile_pending.test.tsx::a transcript without the prompt does not settle a pending its rows do not prove"
         },
         {
           "kind": "plugin",
-          "ref": "tests/reconcile_pending.test.tsx::an ambiguous transcript asks, and 已进入 archives the entry"
+          "ref": "tests/reconcile_pending.test.tsx::a pending discovered after a restart offers all three choices, and 已进入 archives it"
         },
         {
           "kind": "plugin",
@@ -1580,7 +1580,7 @@
         },
         {
           "kind": "plugin",
-          "ref": "tests/quarantine_archive.test.tsx::a write that succeeds past the damage does not lift it for the other Runs"
+          "ref": "tests/quarantine_archive.test.tsx::late helper damage remains visible when ordinary success deletes an older display mirror"
         },
         {
           "kind": "pty",
