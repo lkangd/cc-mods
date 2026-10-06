@@ -1778,6 +1778,17 @@ def damage(ctx: Context, terminal: Terminal, **size) -> Terminal:
     return ctx.relaunch(**size)
 
 
+def let_through_once(ctx: Context, marker: str, before: int) -> None:
+    """Checks that a prompt the damage held entered once since `before`
+    human prompt rows. A line count says nothing: on 2.1.290 such a prompt
+    left 3 lines holding its marker where an ordinary one leaves 1, and the
+    host may still be writing them when the entry lands."""
+    deadline = time.monotonic() + 15
+    while (entered := ctx.human_rows(marker) - before) != 1 and time.monotonic() < deadline:
+        time.sleep(0.5)
+    check(entered == 1, f"the held prompt was not let through once: {entered} human prompt rows")
+
+
 def meet_damage(ctx: Context, terminal: Terminal, marker: str) -> str:
     """Submits until the damage holds a submission, and answers its dialog.
     The helper's health check may hold the first try at its pre-write; if the
@@ -2802,8 +2813,6 @@ def store_006(ctx: Context) -> str:
     ctx.submit(terminal, prompt(second))
     ctx.wait_entries(2)
     database = archive_file(ctx)
-    # What one submission leaves in the transcript.
-    once = ctx.transcript_rows(second)
 
     def kept() -> dict[str, bytes]:
         # SQLite's shared memory is rebuilt by any reader.
@@ -2857,13 +2866,7 @@ def store_006(ctx: Context) -> str:
         ctx.env.snap(terminal, "recheck passed")
         entries = ctx.wait_entries(3)
         check([e["promptText"] for e in entries].count(prompt(held)) == 1, "the prompt held by the damage was not archived once")
-        # Counted by human prompt rows: on 2.1.290 the held prompt left 3
-        # lines holding its marker where an ordinary one leaves 1, so a line
-        # count says nothing here; only its human row says it entered.
-        deadline = time.monotonic() + 15
-        while (entered := ctx.human_rows(held) - human_before) != 1 and time.monotonic() < deadline:
-            time.sleep(0.5)
-        check(entered == 1, f"the held prompt was not let through once: {entered} human prompt rows")
+        let_through_once(ctx, held, human_before)
     settled = (
         "settled the pending the first try left and gave the held prompt back as a draft" if owed
         else "let the prompt the damage held at its pre-write through once and archived it once"
@@ -2876,7 +2879,7 @@ def store_006(ctx: Context) -> str:
     quarantined_marker = ctx.marker("PT-STORE-006")
     meet_damage(ctx, terminal, quarantined_marker)
     damaged = kept()
-    before = ctx.transcript_rows(quarantined_marker)
+    before = ctx.human_rows(quarantined_marker)
     ctx.choose(terminal, "隔离并开始新档案")
     terminal.wait_idle()
     ctx.env.snap(terminal, "quarantined")
@@ -2884,7 +2887,7 @@ def store_006(ctx: Context) -> str:
     check(len(copies) == 1, "the quarantine does not hold the damaged archive once")
     check({name: (copies[0] / name).read_bytes() for name in damaged if (copies[0] / name).exists()} == damaged, "the quarantine changed the damaged archive")
     check([e["promptText"] for e in ctx.wait_entries(1)] == [prompt(quarantined_marker)], "the new generation does not hold only the held prompt")
-    check(ctx.transcript_rows(quarantined_marker) - before == once, "the held prompt was not let through once")
+    let_through_once(ctx, quarantined_marker, before)
     _, next_generation = ctx.identity(terminal)
     check(next_generation != generation, "the quarantine kept the generation")
     # A clear takes the strong confirmation, then lets the prompt through once.
@@ -2892,7 +2895,7 @@ def store_006(ctx: Context) -> str:
     break_entries_root(ctx)
     terminal = ctx.relaunch(**size)
     meet_damage(ctx, terminal, cleared)
-    before = ctx.transcript_rows(cleared)
+    before = ctx.human_rows(cleared)
     ctx.choose(terminal, "清除全部档案")
     dialog(ctx, terminal, "清除档案")
     answer_freely(ctx, terminal, "delete all")
@@ -2905,7 +2908,7 @@ def store_006(ctx: Context) -> str:
     ctx.env.snap(terminal, "cleared")
     check(not quarantine_root(ctx).exists(), "the clear left the quarantined archive")
     check([e["promptText"] for e in ctx.wait_entries(1)] == [prompt(cleared)], "the timeline after the clear does not hold only the held prompt")
-    check(ctx.transcript_rows(cleared) - before == once, "the held prompt was not let through once")
+    let_through_once(ctx, cleared, before)
     return (
         "damage offered its four choices for every Run of the project and held another Run before it wrote anything; "
         "a recheck with the damage standing asked again and changed nothing, and once the page was put back it passed and "
