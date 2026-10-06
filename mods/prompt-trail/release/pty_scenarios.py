@@ -201,6 +201,23 @@ class Context:
             sum(1 for line in text.splitlines() if marker in line) for _, text in self.transcripts()
         )
 
+    def human_rows(self, marker: str) -> int:
+        """How many of the host's human prompt rows hold the marker: user rows
+        that are not meta, which is what a prompt that entered leaves once.
+        Other rows (titles, queue operations, attachments) may quote it too."""
+        count = 0
+        for _, text in self.transcripts():
+            for line in text.splitlines():
+                if marker not in line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if row.get("type") == "user" and row.get("isMeta") is not True:
+                    count += 1
+        return count
+
     def transcripts(self):
         """Each host transcript in the scenario's world, with its text."""
         for path in (self.env.config / "projects").rglob("*.jsonl"):
@@ -2825,6 +2842,7 @@ def store_006(ctx: Context) -> str:
     # second was held.
     owed = any(held in (p["promptText"] or "") for p in ctx.pending())
     before = ctx.transcript_rows(held)
+    human_before = ctx.human_rows(held)
     choose_once(terminal, "重新检查完整性")
     if owed:
         terminal.wait_for("已完成对账", "the recheck to settle the pending", 30)
@@ -2839,11 +2857,13 @@ def store_006(ctx: Context) -> str:
         ctx.env.snap(terminal, "recheck passed")
         entries = ctx.wait_entries(3)
         check([e["promptText"] for e in entries].count(prompt(held)) == 1, "the prompt held by the damage was not archived once")
-        # The host may still be writing the turn's rows when the entry lands.
+        # Counted by human prompt rows: on 2.1.290 the held prompt left 3
+        # lines holding its marker where an ordinary one leaves 1, so a line
+        # count says nothing here; only its human row says it entered.
         deadline = time.monotonic() + 15
-        while (lines := ctx.transcript_rows(held) - before) != once and time.monotonic() < deadline:
+        while (entered := ctx.human_rows(held) - human_before) != 1 and time.monotonic() < deadline:
             time.sleep(0.5)
-        check(lines == once, f"the held prompt was not let through once: {lines} transcript lines, one submission writes {once}")
+        check(entered == 1, f"the held prompt was not let through once: {entered} human prompt rows")
     settled = (
         "settled the pending the first try left and gave the held prompt back as a draft" if owed
         else "let the prompt the damage held at its pre-write through once and archived it once"
