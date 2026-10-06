@@ -1,0 +1,743 @@
+==== started (120x60)
+
+           Claude Code v2.1.290
+           Haiku 4.5 · Claude API
+           <tmp>/ptr-3pvrfdg5/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3pvrfdg5/project
+
+
+❯ /prompt-history enable
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/d77f7f5be3812ed9456154eb1f5fc3ceda3cf352e65551d67db574a6a78293cc.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== /prompt-history enable answered (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3pvrfdg5/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3pvrfdg5/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 5s · done 5:53 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history disable (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3pvrfdg5/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 5s · done 5:53 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-trail: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3pvrfdg5/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 5s · done 5:53 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-trail: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:84>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 2s · done 5:54 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3pvrfdg5/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 5s · done 5:53 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-trail: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:84>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 2s · done 5:54 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/d77f7f5be3812ed9456154eb1f5fc3ceda3cf352e65551d67db574a6a78293cc.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c2316-6ac4c52e-205e8b2a
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-3pvrfdg5/project
+     database root: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/dabae736-4151-46ec-be98-77acc303693e.17604-1791280426-169177.json
+     run: 7ba8aad1-5e15-42e3-80ed-45ef5ed14c07
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history enable (120x60)
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3pvrfdg5/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 5s · done 5:53 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-trail: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:84>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 2s · done 5:54 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/d77f7f5be3812ed9456154eb1f5fc3ceda3cf352e65551d67db574a6a78293cc.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c2316-6ac4c52e-205e8b2a
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-3pvrfdg5/project
+     database root: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/dabae736-4151-46ec-be98-77acc303693e.17604-1791280426-169177.json
+     run: 7ba8aad1-5e15-42e3-80ed-45ef5ed14c07
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== confirmation refused (120x60)
+
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 5s · done 5:53 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-trail: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:84>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 2s · done 5:54 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/d77f7f5be3812ed9456154eb1f5fc3ceda3cf352e65551d67db574a6a78293cc.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c2316-6ac4c52e-205e8b2a
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-3pvrfdg5/project
+     database root: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/dabae736-4151-46ec-be98-77acc303693e.17604-1791280426-169177.json
+     run: 7ba8aad1-5e15-42e3-80ed-45ef5ed14c07
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+
+❯ <marker:85>···································· 这是自动化验收的测试输入，请只回复 ok PT-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Churned for 10s · done 5:54 PM
+▸ Prompt Trail · 档案不可用                                                                                         [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history disable (120x60)
+
+
+✻ Churned for 5s · done 5:53 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-trail: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:84>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 2s · done 5:54 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/d77f7f5be3812ed9456154eb1f5fc3ceda3cf352e65551d67db574a6a78293cc.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c2316-6ac4c52e-205e8b2a
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-3pvrfdg5/project
+     database root: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/dabae736-4151-46ec-be98-77acc303693e.17604-1791280426-169177.json
+     run: 7ba8aad1-5e15-42e3-80ed-45ef5ed14c07
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+
+❯ <marker:85>···································· 这是自动化验收的测试输入，请只回复 ok PT-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Churned for 10s · done 5:54 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-trail: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history enable (120x60)
+
+❯ /prompt-history disable
+  ⎿  prompt-trail: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:84>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 2s · done 5:54 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/d77f7f5be3812ed9456154eb1f5fc3ceda3cf352e65551d67db574a6a78293cc.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c2316-6ac4c52e-205e8b2a
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-3pvrfdg5/project
+     database root: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/dabae736-4151-46ec-be98-77acc303693e.17604-1791280426-169177.json
+     run: 7ba8aad1-5e15-42e3-80ed-45ef5ed14c07
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+
+❯ <marker:85>···································· 这是自动化验收的测试输入，请只回复 ok PT-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Churned for 10s · done 5:54 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-trail: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+⏺ ok
+
+✻ Cogitated for 2s · done 5:54 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/d77f7f5be3812ed9456154eb1f5fc3ceda3cf352e65551d67db574a6a78293cc.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c2316-6ac4c52e-205e8b2a
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-3pvrfdg5/project
+     database root: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-3pvrfdg5/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/dabae736-4151-46ec-be98-77acc303693e.17604-1791280426-169177.json
+     run: 7ba8aad1-5e15-42e3-80ed-45ef5ed14c07
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+
+❯ <marker:85>···································· 这是自动化验收的测试输入，请只回复 ok PT-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Churned for 10s · done 5:54 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-trail: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+
+❯ <marker:86>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 1s · done 5:54 PM
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

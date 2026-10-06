@@ -1,0 +1,32 @@
+$ <repo>/mods/prompt-trail/scripts/benchmark-timeline.sh
+exit 0
+
+--- stdout
+{
+  "events": 100000,
+  "fixtureBuildSeconds": 0.9,
+  "warmup": 1,
+  "runs": 10,
+  "machine": "MacBookPro18,3",
+  "cpu": "Apple M1 Pro",
+  "memoryGiB": 32,
+  "macOS": "15.8",
+  "sqliteVersionNumber": 3043002,
+  "helperSha256": "1d0ebafc1011c31bf273744bd4717528451fed223f0b10a47782998aad0dd6c0",
+  "results": {
+    "expand": {
+      "p95Ms": 50.8,
+      "medianMs": 48.7
+    },
+    "loadNextBatch": {
+      "p95Ms": 51.1,
+      "medianMs": 49.5
+    },
+    "showNewEntry": {
+      "p95Ms": 93.7,
+      "medianMs": 90.3
+    }
+  }
+}
+
+--- stderr

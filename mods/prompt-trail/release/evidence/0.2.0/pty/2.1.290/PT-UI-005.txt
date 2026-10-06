@@ -1,0 +1,317 @@
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9o29fxit/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9o29fxit/project
+
+
+❯ <marker:63>······························· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-9o29fxit/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/85720b2b7550d0de1170353437737ede8f368103012ec11675e36405cadfee6a.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9o29fxit/project
+
+
+❯ <marker:63>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 5s · done 5:49 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9o29fxit/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                  [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9o29fxit/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+▾ Prompt Trail  ↑ 点此向上浏览 · 底部不响应触控板  ctrl+x tab 键盘选择                          [-]
+× 288. PT-FIXTURE 395 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 289. PT-FIXTURE 398 继续
+× 290. PT-FIXTURE 399 继续
+× 291. PT-FIXTURE 400 继续
+× 292. PT-FIXTURE 401 继续
+× 293. PT-FIXTURE 402 继续
+—— Run 离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9o29fxit/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+▾ Prompt Trail  ↑ 点此向上浏览 · 底部不响应触控板  ctrl+x tab 键盘选择                          [-]
+× 288. PT-FIXTURE 395 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 289. PT-FIXTURE 398 继续
+× 290. PT-FIXTURE 399 继续
+× 291. PT-FIXTURE 400 继续
+× 292. PT-FIXTURE 401 继续
+× 293. PT-FIXTURE 402 继续
+—— Run 离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== first event by clicks (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9o29fxit/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+▾ Prompt Trail  ctrl+x tab 键盘选择                                                             [-]
+—— Run 开始 ——
+× 1. <marker:63>······························· 这是自动化验收的测试输入，请只回复 ok
+—— Run 离开 ——
+—— Run 开始 ——
+× 2. PT-FIXTURE 5 继续
+× 3. PT-FIXTURE 6 继续
+× 4. PT-FIXTURE 7 继续
+× 5. PT-FIXTURE 8 继续
+↓ 249 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== latest by clicks (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9o29fxit/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+▾ Prompt Trail  ↑ 点此向上浏览 · 底部不响应触控板  ctrl+x tab 键盘选择                          [-]
+× 288. PT-FIXTURE 395 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 289. PT-FIXTURE 398 继续
+× 290. PT-FIXTURE 399 继续
+× 291. PT-FIXTURE 400 继续
+× 292. PT-FIXTURE 401 继续
+× 293. PT-FIXTURE 402 继续
+—— Run 离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== left the bottom by arrows (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9o29fxit/project
+
+
+❯ /prompt-history
+  ⎿  prompt-trail: Prompt Trail 已展开。
+
+
+
+
+
+
+
+▾ Prompt Trail  ↑ 点此向上浏览  ctrl+x tab 键盘选择                                             [-]
+× 287. PT-FIXTURE 394 继续
+× 288. PT-FIXTURE 395 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 289. PT-FIXTURE 398 继续
+× 290. PT-FIXTURE 399 继续
+× 291. PT-FIXTURE 400 继续
+× 292. PT-FIXTURE 401 继续
+↓ 2 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

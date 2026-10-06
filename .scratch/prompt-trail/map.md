@@ -220,6 +220,10 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   在提交 `b61296e` 的干净工作树上完整跑 `release-evidence.sh`，结果 PASS：56 个场景全部通过，0 失败、0 缺失、0 跳过、0 泄漏，
   52 个 PTY 场景在两个版本上都通过。报告、门禁日志与脱敏 trace 提交在 `mods/prompt-trail/release/evidence/0.1.0/`，
   提交前已把本机路径换成 `<repo>`、`<home>`、`<tmp>`。
+- [0.2.0 发布门禁与证据](issues/54-release-0-2-0-evidence.md)：
+  插件升到 0.2.0（最低宿主 2.1.290）。在提交 `a68b4f5` 的干净工作树上完整跑 `release-evidence.sh`，结果 PASS：56 个场景全部通过，0 失败、0 缺失、0 跳过、0 泄漏，
+  52 个 PTY 场景在 2.1.290 上通过。前一次完整运行发现一处真缺陷：提交在校验 helper 摘要之前读档案健康。还发现窄 band 在 2.1.290 上折行。两处都已修复，过时的场景也已更新。
+  证据提交在 `mods/prompt-trail/release/evidence/0.2.0/`，本机路径换成了 `<repo>`、`<home>`、`<tmp>`。
 - [fork compact 过的 session 时沿用来源的 Active Branch](issues/34-fork-of-compacted-session.md)：
   bridge 执行 SessionStart:fork 时，复制过来的行还没写到磁盘上（`--fork-session` 的文件到第一次提交时都还不存在），所以没有采用票面的 bridge 标记。
   改为插件对齐时识别：transcript 的第一行是宿主的 compact 摘要，就补写 compacted 键，按 `truncated` 匹配。
@@ -254,8 +258,8 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 
 ## Current work
 
-- Issue 53 于 2026-10-06 修复后完整 startup 门禁通过，票据与旧 backlog 均 resolved。真实 PTY/模型验收、部署、发布、版本升级与 push 未执行，也未开始下一票据。
-- Issue 35 已改路线并实现（未提交）：成员资格以宿主 `session.append` 存储行为准，排队提交一律显式对账，最低宿主版本 2.1.290；统一 startup 门禁通过；修复后真实 PTY 验收（2.1.290 隔离）第 4 轮通过，前 3 轮为 runner 缺陷；代码审查修复后 startup 门禁与 PTY 第 5 轮均通过，票据 resolved。不修改历史误归档记录；发布门禁与版本号未动。
+- 0.2.0 发布门禁于 2026-10-06 通过（Issue 54），证据已提交。Issue 35 的跟进（空闲多行、措辞、改写文本）与 Issue 53 都已 resolved。尚未 push，也没有部署或发布到 marketplace。
+- 未处理的 backlog 中与本轮相关的：`helper-trust-reused-outside-submissions`（major）、`composer-row-counted-before-storage`（被测试套件卡住）。
 
 ## Not yet specified
 
