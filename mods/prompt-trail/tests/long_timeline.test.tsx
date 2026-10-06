@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import type { Engine, MockClock } from 'claude-code/testing'
 import { TITLE_KEY, arrowStep } from '../hooks/band'
 import { branchStarts, foldTimeline, forkSources } from '../hooks/branch'

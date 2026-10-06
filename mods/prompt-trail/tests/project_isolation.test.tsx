@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import { foldTimeline } from '../hooks/branch'
 import { gitToplevelArgv, projectRootFrom } from '../hooks/project'
 import type { ArchiveRow } from './support'

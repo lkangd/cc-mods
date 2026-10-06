@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import { EXPECTED_HELPER_SHA256 } from '../hooks/artifact'
 import type { LifecycleWrite } from '../hooks/lifecycle'
 import {

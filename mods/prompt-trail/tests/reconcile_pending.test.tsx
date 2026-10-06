@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import {
   FINAL_SECRET,
   SECRET,
@@ -83,18 +84,18 @@ test('a failed confirmation keeps the pending and blocks the next submission', a
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
 })
 
-test('a transcript that uniquely proves the prompt entered confirms it', async ($, on) => {
+test('a confirmation that failed after the prompt\'s row was stored is confirmed next time', async ($, on) => {
   const store = consentedStore()
+  /* The transcript shows the text twice, which proves nothing either way:
+     the row the host stored inside the submission is what settles it. */
   const calls = installSupportedTarget(on, {
     store,
     confirmFailsOnce: true,
-    messages: [
-      { role: 'user', text: SECRET },
-      { role: 'assistant', text: 'PT-SECRET-REPLY' },
-    ],
+    messages: UNPROVABLE,
   })
   await $.session.start(session)
   await composerPrompt($)
+  expect(store[reconcileKey()]).toMatchObject({ version: 1, membership: 'row' })
 
   const blocked = await composerPrompt($, { text: 'PT-SECRET-SECOND' })
 
@@ -103,46 +104,56 @@ test('a transcript that uniquely proves the prompt entered confirms it', async (
   expect(confirms[1]?.argv[4]).toBe(captureCalls(calls, 'capture-begin')[0]?.argv[8])
   expect(blocked.drop).toContain('已完成对账')
   expect(store[reconcileKey()]).toBeUndefined()
-  /* Nothing was asked: the transcript settled it. */
+  /* Nothing was asked: the stored row settled it. */
   expect(calls.some(call => call.argv[1] === 'capture-abort')).toBe(false)
 })
 
-test('a transcript that proves the prompt never entered discards the pending', async ($, on) => {
+test('a transcript without the prompt does not settle a pending its rows do not prove', async ($, on) => {
   const store = consentedStore()
+  const reconcileOffered: string[][] = []
+  /* No row was stored inside the submission, and the transcript does not
+     show the text: an earlier build discarded on that, this one asks. */
   const calls = installSupportedTarget(on, {
     store,
-    confirmFails: true,
+    rowsInSubmit: 0,
     messages: [{ role: 'assistant', text: 'PT-SECRET-UNRELATED' }],
+    reconcileOffered,
   })
   await $.session.start(session)
   await composerPrompt($)
 
   const blocked = await composerPrompt($, { text: 'PT-SECRET-SECOND' })
 
-  expect(captureCalls(calls, 'capture-abort')).toHaveLength(1)
-  expect(blocked.drop).toContain('已完成对账')
-  expect(store[reconcileKey()]).toBeUndefined()
+  expect(reconcileOffered).toStrictEqual([['未进入', '新根分支']])
+  expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
+  expect(blocked.drop).toContain('对账')
+  expect(store[reconcileKey()]).toBeDefined()
 })
 
-test('an ambiguous transcript asks, and 已进入 archives the entry', async ($, on) => {
+test('a pending discovered after a restart offers all three choices, and 已进入 archives it', async ($, on) => {
   const store = consentedStore()
+  const reconcileOffered: string[][] = []
   const calls = installSupportedTarget(on, {
     store,
-    confirmFailsOnce: true,
-    /* The same text twice: which one is the staged submission cannot be told. */
-    messages: [
-      { role: 'user', text: SECRET },
-      { role: 'user', text: SECRET },
-    ],
+    pendingList: [{
+      eventId: '77777777-8888-4999-8aaa-bbbbbbbbbbbb',
+      runId,
+      segmentId: '11111111-2222-4333-8444-555555555555',
+      branchId: '22222222-3333-4444-8555-666666666666',
+      parentEventId: null,
+      occurredAtMs: 1_795_000_000_000,
+      attachmentCount: 0,
+    }],
+    reconcileOffered,
     reconcileAnswer: '已进入',
   })
   await $.session.start(session)
-  await composerPrompt($)
 
   await composerPrompt($, { text: 'PT-SECRET-SECOND' })
 
-  const confirms = captureCalls(calls, 'capture-confirm')
-  expect(confirms).toHaveLength(2)
+  /* What the process that staged it saw went with it: nothing rules entry out. */
+  expect(reconcileOffered).toStrictEqual([['已进入', '未进入', '新根分支']])
+  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(1)
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
   expect(store[reconcileKey()]).toBeUndefined()
 })
@@ -151,11 +162,7 @@ test('未进入 discards the pending and leaves the branch alone', async ($, on)
   const store = consentedStore()
   const calls = installSupportedTarget(on, {
     store,
-    confirmFails: true,
-    messages: [
-      { role: 'user', text: SECRET },
-      { role: 'user', text: SECRET },
-    ],
+    rowsInSubmit: 0,
     reconcileAnswer: '未进入',
   })
   await $.session.start(session)
@@ -173,11 +180,7 @@ test('新根分支 discards the pending and starts a new root branch', async ($,
   const store = consentedStore()
   const calls = installSupportedTarget(on, {
     store,
-    confirmFails: true,
-    messages: [
-      { role: 'user', text: SECRET },
-      { role: 'user', text: SECRET },
-    ],
+    rowsInSubmit: 0,
     reconcileAnswer: '新根分支',
   })
   await $.session.start(session)
@@ -200,11 +203,7 @@ test('a cancelled reconciliation stays blocked and never retries the submission'
   const fills: string[] = []
   const calls = installSupportedTarget(on, {
     store,
-    confirmFails: true,
-    messages: [
-      { role: 'user', text: SECRET },
-      { role: 'user', text: SECRET },
-    ],
+    rowsInSubmit: 0,
     fills,
   })
   await $.session.start(session)
@@ -217,7 +216,7 @@ test('a cancelled reconciliation stays blocked and never retries the submission'
   expect(second.drop).toContain('对账')
   /* Neither default happened, and the original submission was not resubmitted. */
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
-  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(1)
+  expect(captureCalls(calls, 'capture-confirm')).toHaveLength(0)
   expect(store[reconcileKey()]).toBeDefined()
   expect(fills).toStrictEqual(['PT-SECRET-SECOND', 'PT-SECRET-THIRD'])
 })

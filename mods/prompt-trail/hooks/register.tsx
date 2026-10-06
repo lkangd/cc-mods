@@ -130,7 +130,9 @@ type RunModeState = {
    a restart into a new Run still owes an answer for it. It carries identity
    only; the draft never enters `$.store`. */
 type ReconcileState = {
-  version: 1
+  /* 2 when the pending is `unproven`: an earlier build must not settle it by
+     the transcript's text, so it does not read the record at all. */
+  version: 1 | 2
   eventId: string
   runId: string
   branchId: string
@@ -138,6 +140,18 @@ type ReconcileState = {
   attachmentCount: number
   /* The generation the pending was staged in, when known. */
   generation?: string
+  /* What the host's stored rows say. `row`: the prompt's own row was stored
+     while its submission was inside `next`, so it entered and only the
+     confirmation is owed. `unproven`: no row can be tied to it (it was queued,
+     or the rows inside `next` were not exactly one); the person settles it.
+     Absent: an earlier build's record, settled as before. */
+  membership?: 'row' | 'unproven'
+  /* For an `unproven` pending, how many composer rows the host stored in its
+     Run since it was queued, beyond those of other submissions; 0 for an idle
+     one, whose own rows proved nothing. `unknown` once that count cannot be
+     proven whole (a write of it failed, or rows went by with no module
+     instance watching). */
+  rowsSince?: number | 'unknown'
 }
 
 /* One row of the expanded band. Rows read back from the archive and rows this
@@ -215,7 +229,7 @@ type HelperPreflight = {
   sqliteReturning: true
 }
 
-const MINIMUM_CLAUDE_VERSION = [2, 1, 273] as const
+const MINIMUM_CLAUDE_VERSION = [2, 1, 290] as const
 const MINIMUM_CLAUDE_VERSION_TEXT = MINIMUM_CLAUDE_VERSION.join('.')
 const COLLECTION_POLICY_VERSION = 1
 const TARGET = `macOS 15.x arm64 · Claude Code >=${MINIMUM_CLAUDE_VERSION_TEXT} · interactive terminal`
@@ -464,6 +478,16 @@ let runMode: { key: string; value: RunModeState } | undefined
    copy of the prompt, and the helper confirms from them without handing them
    back. */
 let reconcile: { state: ReconcileState; text?: string } | undefined
+
+/* The submissions now inside `next`, each counting the composer rows the host
+   stores meanwhile. Two open at once share every row, so neither is proven. */
+type SubmitWindow = { rows: number; shared: boolean }
+const submitWindows = new Set<SubmitWindow>()
+/* Writes of an `unproven` pending's row count, one after another. */
+let rowCountWrites: Promise<void> = Promise.resolve()
+/* The calls of queued submissions not yet settled into a pending: until one
+   is recorded, another prompt typed over the same turn is held too. */
+const queuedInFlight = new Set<string>()
 /* One archive-side discovery per Run: a restart has to learn that a pending is
    owed, but a healthy Run must not pay for a subprocess on every prompt. */
 let pendingDiscovered = false
@@ -1308,7 +1332,7 @@ function storedRunMode(value: unknown): RunModeState | undefined {
 function storedReconcile(value: unknown): ReconcileState | undefined {
   if (
     !isRecord(value) ||
-    value.version !== 1 ||
+    (value.version !== 1 && value.version !== 2) ||
     !isSafeId(value.eventId) ||
     !isSafeId(value.runId) ||
     !isSafeId(value.branchId)
@@ -1319,14 +1343,25 @@ function storedReconcile(value: unknown): ReconcileState | undefined {
     && (value.attachmentCount as number) >= 0
     ? value.attachmentCount as number
     : 0
+  /* A version 2 record is always `unproven`; one that says otherwise is
+     not this build's. */
+  if (value.version === 2 && value.membership !== 'unproven') return undefined
+  const membership = value.version === 2
+    ? 'unproven'
+    : value.membership === 'row' ? 'row' : undefined
+  const rowsSince = Number.isSafeInteger(value.rowsSince) && (value.rowsSince as number) >= 0
+    ? value.rowsSince as number
+    : 'unknown'
   return {
-    version: 1,
+    version: value.version,
     eventId: value.eventId,
     runId: value.runId,
     branchId: value.branchId,
     parentEventId: parent,
     attachmentCount,
     ...(isSafeId(value.generation) ? { generation: value.generation } : {}),
+    ...(membership ? { membership } : {}),
+    ...(membership === 'unproven' ? { rowsSince } : {}),
   }
 }
 
@@ -1746,6 +1781,9 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
   } catch {
     owedUnknown = true
   }
+  /* Rows the host stored while no module instance of this Run watched are
+     beyond counting. */
+  if (owed?.membership === 'unproven') owed = { ...owed, rowsSince: 'unknown' }
   reconcile = owed ? { state: owed } : undefined
   pendingDiscovered = false
   pendingUnknown = undefined
@@ -2693,6 +2731,38 @@ async function saveReconcile(
   }
 }
 
+/* A composer row the host is storing. Inside a submission's `next` it counts
+   for that submission. Outside every one it is a queued prompt taken from the
+   queue, or one nothing here can name: it is counted for an `unproven`
+   pending, never tied to it. */
+function noteComposerRow($: EngineInterface): void {
+  if (submitWindows.size > 0) {
+    for (const window of submitWindows) window.rows += 1
+    return
+  }
+  const owed = reconcile
+  if (owed?.state.membership !== 'unproven' || typeof owed.state.rowsSince !== 'number') return
+  /* A row of another Run's conversation, after a `/resume`, is no evidence
+     about a prompt queued in this one. */
+  if (owed.state.runId !== startup.runId) return
+  const eventId = owed.state.eventId
+  reconcile = { ...owed, state: { ...owed.state, rowsSince: owed.state.rowsSince + 1 } }
+  const currentProject = project
+  rowCountWrites = rowCountWrites.then(async () => {
+    const counted = reconcile
+    if (counted?.state.eventId !== eventId) return
+    try {
+      if (!startup.runId || !currentProject) throw new Error('capture-identity')
+      await $.store.set(reconcileKey(currentProject.id, startup.runId), counted.state)
+    } catch {
+      /* A count the store does not hold cannot be proven whole later. */
+      if (reconcile?.state.eventId === eventId) {
+        reconcile = { ...reconcile, state: { ...reconcile.state, rowsSince: 'unknown' } }
+      }
+    }
+  })
+}
+
 async function clearReconcile(
   $: EngineInterface,
   currentProject: ProjectState,
@@ -2744,25 +2814,6 @@ async function abortCapture(
 function settledElsewhere(error: unknown, operation: 'confirm' | 'abort'): boolean {
   return error instanceof Error
     && error.message === (operation === 'confirm' ? 'capture-not-found' : 'capture-conflict')
-}
-
-/* `$.session.messages()` answers at most the latest 4096 rows and mixes the
-   engine's own `user` rows in with the person's, so it proves an outcome only
-   in the two unambiguous shapes: the staged text appears exactly once, or it
-   appears nowhere in a transcript short enough to be whole. Anything else is
-   for the person to settle. */
-const TRANSCRIPT_LIMIT = 4096
-
-function transcriptVerdict(
-  messages: readonly { role: string; text: string }[],
-  text: string,
-): 'entered' | 'absent' | 'ambiguous' {
-  const matches = messages.filter(
-    message => message.role === 'user' && message.text === text,
-  ).length
-  if (matches === 1) return 'entered'
-  if (matches === 0 && messages.length < TRANSCRIPT_LIMIT) return 'absent'
-  return 'ambiguous'
 }
 
 /* Settling one Pending Capture. It answers whether the Run may collect again;
@@ -2831,37 +2882,50 @@ async function reconcilePending(
     return 'resolved'
   }
 
-  let verdict: 'entered' | 'absent' | 'ambiguous' = 'ambiguous'
-  if (owed.text !== undefined) {
-    try {
-      verdict = transcriptVerdict(await $.session.messages(), owed.text)
-    } catch {
-      verdict = 'ambiguous'
-    }
-  }
-  if (verdict === 'entered') return confirmPending()
-  if (verdict === 'absent') return discardPending()
+  /* Its own row was stored: it entered, and only the confirmation is owed.
+     Anything else is the person's to settle: the transcript's text proves
+     nothing, since the same words may be another prompt's row. */
+  if (owed.state.membership === 'row') return confirmPending()
 
+  const unproven = owed.state.membership === 'unproven'
+  /* With no composer row stored since it was queued, it cannot have entered:
+     the person is not offered that it did. */
+  const rows = owed.state.rowsSince
+  const mayHaveEntered = !unproven || rows !== 0
+  const lines = unproven
+    ? [
+        'Prompt Trail 有一条未决的 Pending Capture：这条提交排进了 Claude Code 的队列，宿主没有说明它是否进入了会话。',
+        `事件 ID：${owed.state.eventId.slice(0, 8)}`,
+        typeof rows === 'number'
+          ? `它排队之后，此后宿主存储了 ${rows} 条 composer 行。`
+          : '它排队之后，无法证明是否有存储行。',
+        '请选择如何记录它。',
+      ]
+    : [
+        'Prompt Trail 有一条未决的 Pending Capture：提交已交给 Claude Code，但归档确认没有完成。',
+        `事件 ID：${owed.state.eventId.slice(0, 8)}`,
+        '时间线无法唯一证明这条提交是否进入会话，请选择如何记录它。',
+      ]
   let answer: string | undefined
   try {
     answer = await $.ui.ask(
       [
-        'Prompt Trail 有一条未决的 Pending Capture：提交已交给 Claude Code，但归档确认没有完成。',
-        `事件 ID：${owed.state.eventId.slice(0, 8)}`,
-        '时间线无法唯一证明这条提交是否进入会话，请选择如何记录它。',
-        '“已进入”归档为 Prompt Entry；“未进入”丢弃这条 pending；',
+        ...lines,
+        mayHaveEntered
+          ? '“已进入”归档为 Prompt Entry；“未进入”丢弃这条 pending；'
+          : '“未进入”丢弃这条 pending；',
         '“新根分支”同样不归档，并让其后的 prompt 从新的根 Conversation Branch 开始。',
       ].join('\n'),
       {
         header: '未决 Pending Capture',
-        options: ['已进入', '未进入', '新根分支'],
+        options: mayHaveEntered ? ['已进入', '未进入', '新根分支'] : ['未进入', '新根分支'],
       },
     )
   } catch {
     return 'blocked'
   }
 
-  if (answer === '已进入') return confirmPending()
+  if (answer === '已进入' && mayHaveEntered) return confirmPending()
   if (answer === '未进入') return discardPending()
   if (answer === '新根分支') {
     /* Nothing after an outcome nobody could vouch for is chained onto it. The
@@ -5358,6 +5422,23 @@ async function submitCollected(
     return { blocked: { ...archiveFailure, reason: '档案当前不可用' } }
   }
 
+  /* A queued prompt nothing has settled may still be in the host's queue,
+     where nobody can say yet whether it will enter. While a turn runs the
+     person is not asked; the prompt typed over it waits until the session is
+     idle, when what the queue held has entered or gone. */
+  if (
+    e.turnId !== undefined
+    && (reconcile?.state.membership === 'unproven' || [...queuedInFlight].some(other => other !== call))
+  ) {
+    const restored = await restoreDraft($, e.text)
+    return {
+      done: {
+        drop: `Prompt Trail：上一条排队提交尚未结算，${draftNote(restored)}；等当前回合结束后再提交。`,
+      },
+    }
+  }
+  if (e.turnId !== undefined) queuedInFlight.add(call)
+
   /* Anything unresolved is settled before another capture is staged, so a
      second pending can never pile onto the first. This runs ahead of the
      archive block, because a pending the archive still holds is exactly what
@@ -5484,10 +5565,17 @@ async function submitCollected(
   }
   await noteDiskSpace($, currentProject, staged.lowSpace)
 
+  /* The rows the host stores while this submission is inside `next`, and
+     after it until its outcome is recorded: a queued prompt taken from the
+     queue in between still counts for its pending. */
+  const window: SubmitWindow = { rows: 0, shared: submitWindows.size > 0 }
+  for (const open of submitWindows) open.shared = true
+  submitWindows.add(window)
   let result: PromptSubmitResult
   try {
     result = await next(e)
   } catch (error) {
+    submitWindows.delete(window)
     /* The capture is staged and the submission's fate is unknown, so the
        pending must be rediscoverable. The host failed, not the archive:
        nothing is put on record. */
@@ -5496,6 +5584,7 @@ async function submitCollected(
   }
   const finalText = result.text
   if (typeof finalText !== 'string') {
+    submitWindows.delete(window)
     try {
       await abortCapture($, currentProject, eventId)
     } catch (error) {
@@ -5515,11 +5604,46 @@ async function submitCollected(
     stillCollecting = false
   }
   if (!stillCollecting) {
+    submitWindows.delete(window)
     try {
       await abortCapture($, currentProject, eventId)
     } catch (error) {
       await markUnavailable($, currentProject, failureCategory(error, 'capture-abort'))
     }
+    return { done: result }
+  }
+
+  const owedState = {
+    eventId,
+    runId: startup.runId ?? branch.value.branchId,
+    branchId: branch.value.branchId,
+    parentEventId: branch.value.parentEventId,
+    attachmentCount: attachmentKinds.length,
+    generation: staged.generation,
+  }
+  /* A Prompt Entry is a prompt whose own row the host stored: an idle
+     submission that stored exactly one composer row inside `next`, with no
+     other submission sharing the window. Anything else — a prompt the host
+     queued behind a running turn, which it may still withdraw, or rows that
+     do not name one prompt — stays a Pending Capture for the person to
+     settle, and the branch does not move onto it. */
+  /* Closed in the same step that records the pending, so no row falls
+     between the window and the pending's own count. */
+  submitWindows.delete(window)
+  if (e.turnId !== undefined || window.rows !== 1 || window.shared) {
+    await saveReconcile(
+      $,
+      currentProject,
+      {
+        version: 2,
+        ...owedState,
+        membership: 'unproven',
+        /* Every row since it was queued; an idle submission's own rows prove
+           nothing about it and are not carried over. */
+        rowsSince: e.turnId !== undefined ? window.rows : 0,
+      },
+      finalText,
+    )
     return { done: result }
   }
 
@@ -5558,15 +5682,7 @@ async function submitCollected(
     await saveReconcile(
       $,
       currentProject,
-      {
-        version: 1,
-        eventId,
-        runId: startup.runId ?? branch.value.branchId,
-        branchId: branch.value.branchId,
-        parentEventId: branch.value.parentEventId,
-        attachmentCount: attachmentKinds.length,
-        generation: staged.generation,
-      },
+      { version: 1, ...owedState, membership: 'row' },
       finalText,
     )
   }
@@ -5576,6 +5692,22 @@ async function submitCollected(
 /* One composer submission of a collecting Run, held and asked about for as
    long as the archive cannot prove it will be kept. */
 async function collectSubmission(
+  $: EngineInterface,
+  e: PromptSubmitInput,
+  next: (e: PromptSubmitInput) => Promise<PromptSubmitResult>,
+  call: string,
+  markers: Map<string, string>,
+): Promise<PromptSubmitResult> {
+  /* However it ends, a queued submission no longer holds the ones after it:
+     its pending, if any, does. */
+  try {
+    return await collectHeld($, e, next, call, markers)
+  } finally {
+    queuedInFlight.delete(call)
+  }
+}
+
+async function collectHeld(
   $: EngineInterface,
   e: PromptSubmitInput,
   next: (e: PromptSubmitInput) => Promise<PromptSubmitResult>,
@@ -7021,6 +7153,20 @@ export const register: Register = on => {
     if (args === 'clear-all') return { text: await clearAllCommand($) }
     if (args === 'clear-run') return { text: await clearRunCommand($) }
     return { text: '用法：/prompt-history [enable|disable|status|clear-run|clear-all]' }
+  })
+
+  /* The host's own row for a prompt the person sent: the only proof that a
+     submission entered the conversation. The row's id is pinned, and a row the
+     engine appends cannot be refused, so it is counted on its way in. */
+  on('session.append', { door: 'prompt' }, ($, e, next) => {
+    if (
+      e.origin.kind !== 'composer'
+      || e.message.type !== 'user'
+      || e.message.isMeta === true
+      || e.agentId !== undefined
+    ) return next(e)
+    noteComposerRow($)
+    return next(e).finally(() => rowCountWrites)
   })
 
   on('prompt.submit', async ($, e, next) => {

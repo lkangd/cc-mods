@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import type { LifecycleWrite } from '../hooks/lifecycle'
 import {
   boundaryCalls,
@@ -559,12 +560,7 @@ test('what a clear could not forget is reported, not passed over', async ($, on)
 })
 
 test('a clear this Run saw but could not record does not reach the next generation', async ($, on) => {
-  /* The 2.1.273 test kit, whose types this repository checks against, cannot
-     raise a classic hook event; the gate's current version covers this. */
-  const classic = ($ as unknown as {
-    classic?: { SessionEnd: (e: { reason: string }) => Promise<unknown> }
-  }).classic
-  if (!classic) return
+  const classic = $.classic
   const archive = archivedBefore()
   const options = {
     store: collectingStore(), archive, clearAnswers: [PHRASE],

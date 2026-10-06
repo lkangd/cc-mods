@@ -29,7 +29,7 @@ An immutable occurrence in a project timeline, such as a run starting, a process
 _Avoid_: Mutable message
 
 **Prompt entry**:
-A timeline event representing one composer submission confirmed present in the conversation history. It retains the complete final text plus only the count and broad kinds of any attachments, never attachment contents, names, paths, or hashes. It remains archived without a Jump target, and identical text in different entries remains distinct.
+A timeline event representing one composer submission whose own row the host stored in the conversation (`session.append`), or that the person reconciled as entered. It retains the complete final text plus only the count and broad kinds of any attachments, never attachment contents, names, paths, or hashes. It remains archived without a Jump target, and identical text in different entries remains distinct.
 _Avoid_: Render event, deduplicated prompt, attachment archive
 
 **Jump target**:
@@ -61,7 +61,7 @@ The incarnation of a Project Timeline created by the latest clear-all or quarant
 _Avoid_: Run, conversation segment, the `archiveGeneration` token in locators and the session index
 
 **Pending capture**:
-A durably staged composer submission whose final entry into the Claude Code conversation has not yet been confirmed. It is not a Prompt Entry until confirmed and must be explicitly reconciled after an interrupted submission.
+A durably staged composer submission whose final entry into the Claude Code conversation has not yet been confirmed. It is not a Prompt Entry until confirmed. A submission queued behind a running turn stays one until the person reconciles it, since the host ties no stored row to it; so does one interrupted after staging.
 _Avoid_: Prompt Entry, timeline gap
 
 **Archive unavailable**:

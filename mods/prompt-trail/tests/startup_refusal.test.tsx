@@ -1,7 +1,9 @@
 import type { On } from 'claude-code'
-import { expect, mock, test } from 'claude-code/testing'
+import { expect, mock } from 'claude-code/testing'
+import { test } from './support'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from '../hooks/artifact'
 import * as supported from './support'
+import { ran } from './support'
 
 const session = {
   cwd: '/tmp/prompt-trail-project',
@@ -28,8 +30,8 @@ function locator(overrides: Record<string, unknown> = {}) {
     hostPid: 4242,
     hostStartSeconds: 100,
     hostStartMicroseconds: 200,
-    hostExecutable: '/opt/claude/2.1.278',
-    hostVersion: '2.1.278',
+    hostExecutable: '/opt/claude/2.1.290',
+    hostVersion: '2.1.290',
     pluginRoot,
     pluginData,
     databaseRoot,
@@ -70,7 +72,7 @@ function installTarget(
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('fs.list', (_$, e) => ({
     value: e.path === locatorDirectory && !options.locatorAbsent
-      ? [{ name: locatorPath.slice(locatorDirectory.length + 1), kind: 'file' as const, size: 1 }]
+      ? [{ name: locatorPath.slice(locatorDirectory.length + 1), kind: 'file' as const, size: 1, mtimeMs: 0, isLink: false }]
       : [],
   }))
   on('fs.read', () => {
@@ -81,16 +83,16 @@ function installTarget(
     const argv = [...e.argv]
     processCalls.push(argv)
     if (argv[0] === '/usr/bin/uname' && argv[1] === '-s') {
-      return { value: { exitCode: 0, stdout: 'Darwin\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: 'Darwin\n', stderr: '' })
     }
     if (argv[0] === '/usr/bin/uname' && argv[1] === '-m') {
-      return { value: { exitCode: 0, stdout: 'arm64\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: 'arm64\n', stderr: '' })
     }
     if (argv[0] === '/usr/bin/sw_vers') {
-      return { value: { exitCode: 0, stdout: '15.8\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: '15.8\n', stderr: '' })
     }
     if (argv[0] === '/usr/bin/id') {
-      return { value: { exitCode: 0, stdout: '501\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: '501\n', stderr: '' })
     }
     if (argv[0] === '/bin/ls') {
       const path = argv[argv.length - 1]
@@ -100,16 +102,16 @@ function installTarget(
           ? options.locatorDirectoryAcl
           : false
       const acl = hasAcl ? ' 0: group:everyone allow read\n' : ''
-      return { value: { exitCode: 0, stdout: `private path\n${acl}`, stderr: '' } }
+      return ran({ exitCode: 0, stdout: `private path\n${acl}`, stderr: '' })
     }
     if (argv[0] === '/bin/realpath') {
-      return { value: { exitCode: 0, stdout: `${argv[1]}\n`, stderr: '' } }
+      return ran({ exitCode: 0, stdout: `${argv[1]}\n`, stderr: '' })
     }
     if (argv[0] === '/usr/bin/stat') {
       const path = argv[argv.length - 1]
       if ((path === helperPath && options.helperStatFails)
           || (path === manifestPath && options.manifestStatFails)) {
-        return { value: { exitCode: 1, stdout: '', stderr: 'PT-SECRET-MARKER' } }
+        return ran({ exitCode: 1, stdout: '', stderr: 'PT-SECRET-MARKER' })
       }
       const directory = path === locatorDirectory
         || path === pluginData
@@ -130,47 +132,41 @@ function installTarget(
             : path === manifestPath
               ? options.manifestMode ?? '644'
               : '644'
-      return { value: { exitCode: 0, stdout: `${kind}|501|${mode}\n`, stderr: '' } }
+      return ran({ exitCode: 0, stdout: `${kind}|501|${mode}\n`, stderr: '' })
     }
     if (argv[0] === '/usr/bin/shasum') {
-      return {
-        value: {
-          exitCode: 0,
-          stdout: `${options.actualDigest ?? EXPECTED_HELPER_SHA256}  ${helperPath}\n`,
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: `${options.actualDigest ?? EXPECTED_HELPER_SHA256}  ${helperPath}\n`,
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'preflight') {
       if (options.helperThrows) throw new Error('execution denied: PT-SECRET-MARKER')
       if (options.helperFailure) {
-        return {
-          value: {
-            exitCode: options.helperFailure.exitCode,
-            stdout: '',
-            stderr: options.helperFailure.stderr,
-          },
-        }
+        return ran({
+          exitCode: options.helperFailure.exitCode,
+          stdout: '',
+          stderr: options.helperFailure.stderr,
+        })
       }
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            status: 'supported',
-            artifactStatus: 'trusted',
-            sessionId,
-            runId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-            archiveGeneration: '99999999-8888-4777-8666-555555555555',
-            databaseRoot,
-            helperPath,
-            helperProtocol: HELPER_PROTOCOL,
-            macosVersion: '15.8',
-            sqliteVersionNumber: 3049001,
-            sqliteReturning: true,
-          }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          status: 'supported',
+          artifactStatus: 'trusted',
+          sessionId,
+          runId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+          archiveGeneration: '99999999-8888-4777-8666-555555555555',
+          databaseRoot,
+          helperPath,
+          helperProtocol: HELPER_PROTOCOL,
+          macosVersion: '15.8',
+          sqliteVersionNumber: 3049001,
+          sqliteReturning: true,
+        }),
+        stderr: '',
+      })
     }
     throw new Error(`unexpected process: ${argv.join(' ')}`)
   })
@@ -227,13 +223,11 @@ test('rejects a non-arm64 host before reading a locator', async ($, on) => {
   on('process.run', (_$, e) => {
     const argv = [...e.argv]
     calls.push(argv)
-    return {
-      value: {
-        exitCode: 0,
-        stdout: argv[1] === '-s' ? 'Darwin\n' : 'x86_64\n',
-        stderr: '',
-      },
-    }
+    return ran({
+      exitCode: 0,
+      stdout: argv[1] === '-s' ? 'Darwin\n' : 'x86_64\n',
+      stderr: '',
+    })
   })
 
   const result = await status($)
@@ -260,7 +254,7 @@ test('rejects a non-macOS-15 host before reading a locator', async ($, on) => {
       : argv[1] === '-m'
         ? 'arm64\n'
         : '16.0\n'
-    return { value: { exitCode: 0, stdout, stderr: '' } }
+    return ran({ exitCode: 0, stdout, stderr: '' })
   })
 
   const result = await status($)
@@ -290,14 +284,14 @@ test('reports an unproven Claude Code version when the locator is absent', async
 
 test('rejects a Claude Code version below the supported minimum', async ($, on) => {
   const calls = installTarget(on, {
-    locator: locator({ hostVersion: '2.1.272' }),
+    locator: locator({ hostVersion: '2.1.289' }),
   })
 
   const result = await status($)
 
   expect(result.text).toContain('support: unsupported target')
   expect(result.text).toContain('reason: claude-code-version')
-  expect(result.text).toContain('Claude Code 2.1.272')
+  expect(result.text).toContain('Claude Code 2.1.289')
   expect(result.text).toContain('helper: not checked')
   expect(calls.some(argv => argv[0] === helperPath)).toBe(false)
 })
