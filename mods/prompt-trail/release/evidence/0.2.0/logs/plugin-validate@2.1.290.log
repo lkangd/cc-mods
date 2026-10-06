@@ -1,0 +1,26 @@
+$ npx -y @anthropic-ai/claude-code@2.1.290 plugin validate <repo>/mods/prompt-trail
+exit 0
+
+--- stdout
+Validating plugin manifest: <repo>/mods/prompt-trail/.claude-plugin/plugin.json
+
+Validating hooks: <repo>/mods/prompt-trail/hooks/hooks.json
+
+  ❯ ./register.tsx hooks: session.start, ui.render{component=PromptHint, surface=terminal}, ui.render{component=UserMessage, surface=terminal}, classic.SessionEnd, classic.SessionStart, session.compact, command.run{command=prompt-history}, session.append{door=prompt}, prompt.submit, ui.close, ui.render{component=Pane}, ui.scroll{component=AbovePrompt}, ui.focus{component=AbovePrompt}, tool.call{tool=AskUserQuestion}, ui.render{component=AbovePrompt, surface=terminal}
+  ❯ ./register.tsx gating hook without .catch: classic.SessionEnd
+  ❯ ./register.tsx gating hook without .catch: classic.SessionStart
+  ❯ ./register.tsx gating hook without .catch: session.compact
+  ❯ ./register.tsx gating hook without .catch: session.append{door=prompt}
+  ❯ ./register.tsx gating hook without .catch: prompt.submit
+  ❯ ./register.tsx gating hook without .catch: ui.close
+  ❯ ./register.tsx gating hook without .catch: ui.scroll{component=AbovePrompt}
+  ❯ ./register.tsx gating hook without .catch: ui.focus{component=AbovePrompt}
+  ❯ ./register.tsx gating hook without .catch: tool.call{tool=AskUserQuestion}
+  ❯ ./register.tsx calls: $.clock.after, $.clock.now (via appendBoundary, applyLifecycleEvent, detachAbandonedRuns, ensureRunAttached, flushForeignLifecycles, gapFields, markUnavailable, quarantineArchive, recordIntegrityGap, settleInflight, submitCollected, writeMarker), $.clock.sleep (via awaitStartup), $.command.register, $.env.get (via inspectTarget), $.fs.exists (via canonicalProjectRoot), $.fs.list (via inspectTarget), $.fs.read (via inspectTarget), $.process.run (via run), $.prompt.fill (via restoreDraft), $.session.id, $.session.messages (via alignOnce, recheckRows, settleAlignment), $.store.delete (via archiveRecovered, clearReconcile, forgetClearedHistory, forgetMarkers, removeMarker, settleInflight), $.store.get, $.store.keys, $.store.set (via answerDamage, branchState, detachAbandonedRuns, enableCollection, enterNewGeneration, flushForeignLifecycles, forgetCollectionBoundary, forgetOwedLifecycle, markCompacted, markUnavailable, noteComposerRow, noteDiskSpace, reconcilePending, … [+457 chars]
+  ❯ ./register.tsx env writes: nothing
+  ❯ ./register.tsx env reads: HOME
+
+✔ Validation passed
+
+--- stderr
+npm warn Unknown user config "is-current". This will stop working in the next major version of npm.

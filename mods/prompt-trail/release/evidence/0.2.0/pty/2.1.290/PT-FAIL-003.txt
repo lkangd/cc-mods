@@ -1,0 +1,743 @@
+==== started (120x60)
+
+           Claude Code v2.1.290
+           Haiku 4.5 · Claude API
+           <tmp>/ptr-22t5vybb/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x60)
+
+▐█▟███▟    Claude Code v2.1.290
+▜██████▀   Haiku 4.5 · Claude API
+     ▝▝    <tmp>/ptr-22t5vybb/project
+
+
+❯ <marker:180>································ 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-22t5vybb/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/dbac0801aa78ffa73ef4b856b6bacb4aefe7250009d79b719cd5a92b5ca20252.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-22t5vybb/project
+
+
+❯ <marker:180>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 8s · done 6:12 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-22t5vybb/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-22t5vybb/project
+
+
+❯ <marker:181>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 4s · done 6:12 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-22t5vybb/project
+
+
+❯ <marker:180>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 8s · done 6:12 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-22t5vybb/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/dbac0801aa78ffa73ef4b856b6bacb4aefe7250009d79b719cd5a92b5ca20252.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c7ea4-6ac4c979-197967ba
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-22t5vybb/project
+     database root: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/36f51aea-0bfe-4c25-baca-9abfa613989a.87648-1791281520-989852.json
+     run: d5bff851-ae80-43c0-8bcb-c7a1fc56725b
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-22t5vybb/project
+
+
+❯ <marker:180>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 8s · done 6:12 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-22t5vybb/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/dbac0801aa78ffa73ef4b856b6bacb4aefe7250009d79b719cd5a92b5ca20252.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c7ea4-6ac4c979-197967ba
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-22t5vybb/project
+     database root: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/36f51aea-0bfe-4c25-baca-9abfa613989a.87648-1791281520-989852.json
+     run: d5bff851-ae80-43c0-8bcb-c7a1fc56725b
+
+❯ <marker:182>································ 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 无法预写 Pending Capture，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本项目所有 Run
+│ 类别：archive-busy
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+==== 档案不可用 dialog (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-22t5vybb/project
+
+
+❯ <marker:180>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 8s · done 6:12 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-22t5vybb/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/dbac0801aa78ffa73ef4b856b6bacb4aefe7250009d79b719cd5a92b5ca20252.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c7ea4-6ac4c979-197967ba
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-22t5vybb/project
+     database root: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/36f51aea-0bfe-4c25-baca-9abfa613989a.87648-1791281520-989852.json
+     run: d5bff851-ae80-43c0-8bcb-c7a1fc56725b
+
+❯ <marker:182>································ 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 无法预写 Pending Capture，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本项目所有 Run
+│ 类别：archive-busy
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+==== 档案不可用 dialog (120x60)
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-22t5vybb/project
+
+
+❯ <marker:180>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 8s · done 6:12 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-22t5vybb/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/dbac0801aa78ffa73ef4b856b6bacb4aefe7250009d79b719cd5a92b5ca20252.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c7ea4-6ac4c979-197967ba
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-22t5vybb/project
+     database root: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/36f51aea-0bfe-4c25-baca-9abfa613989a.87648-1791281520-989852.json
+     run: d5bff851-ae80-43c0-8bcb-c7a1fc56725b
+
+❯ <marker:182>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 18s · done 6:12 PM
+
+❯ <marker:183>································ 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ Prompt Trail 无法预写 Pending Capture，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本项目所有 Run
+│ 类别：archive-busy
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+==== submitted (120x60)
+ ▝▝   ▝▝   <tmp>/ptr-22t5vybb/project
+
+
+❯ <marker:180>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 8s · done 6:12 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-22t5vybb/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/dbac0801aa78ffa73ef4b856b6bacb4aefe7250009d79b719cd5a92b5ca20252.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c7ea4-6ac4c979-197967ba
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-22t5vybb/project
+     database root: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/36f51aea-0bfe-4c25-baca-9abfa613989a.87648-1791281520-989852.json
+     run: d5bff851-ae80-43c0-8bcb-c7a1fc56725b
+
+❯ <marker:182>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 18s · done 6:12 PM
+
+❯ <marker:183>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 19s · done 6:13 PM
+
+❯ <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 1s · done 6:13 PM
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history enable (120x60)
+
+
+⏺ ok
+
+✻ Worked for 8s · done 6:12 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-22t5vybb/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/dbac0801aa78ffa73ef4b856b6bacb4aefe7250009d79b719cd5a92b5ca20252.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9c7ea4-6ac4c979-197967ba
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-22t5vybb/project
+     database root: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-22t5vybb/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/36f51aea-0bfe-4c25-baca-9abfa613989a.87648-1791281520-989852.json
+     run: d5bff851-ae80-43c0-8bcb-c7a1fc56725b
+
+❯ <marker:182>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 18s · done 6:12 PM
+
+❯ <marker:183>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 19s · done 6:13 PM
+
+❯ <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 1s · done 6:13 PM
+
+❯ /prompt-history enable
+  ⎿  prompt-trail: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-22t5vybb/project
+
+
+❯ <marker:181>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 4s · done 6:12 PM
+
+❯ <marker:185>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 2s · done 6:13 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

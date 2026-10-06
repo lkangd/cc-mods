@@ -17,7 +17,7 @@ Prompt Trail 是一个 Claude Code 插件。它把你在终端 composer 里成�
 
 Issue 53 已于 2026-10-06 resolved：审查修复后的完整非模型 startup 门禁通过，包括 184 项 helper 测试（含 11 项只作用于测试临时目录的系统操作测试）。本节不表示已部署、已发布，也不表示真实 PTY 验收已经通过。
 
-- SQLite schema 仍为 2，helper protocol 仍为 1，插件版本不变；helper 制品和摘要会变化。部署前必须退出所有使用旧制品的 writer（包括采集、生命周期及迁移/隔离/清除等维护调用），再用新制品重新接入。旧 locator 不原地改写，reload 不能替代新的进程接入。helper 无法自动证明旧 writer 均已退出，混版本并发不在保证内。
+- SQLite schema 仍为 2，helper protocol 仍为 1；helper 制品和摘要会变化。部署前必须退出所有使用旧制品的 writer（包括采集、生命周期及迁移/隔离/清除等维护调用），再用新制品重新接入。旧 locator 不原地改写，reload 不能替代新的进程接入。helper 无法自动证明旧 writer 均已退出，混版本并发不在保证内。
 - helper 的无正文健康记录绑定 Archive generation、健康状态和随机状态 token，是共享损坏的权威；store 只保存显示镜像。已有档案缺少有效记录时为「档案健康状态未知」，须显式完整复检/初始化，不靠普通写入成功推断健康。这是检查尝试，不保证修好；非法记录或发布残留仍被拒绝时继续阻止采集。若决定删除全部项目档案，可另行使用需强确认的 `/prompt-history clear-all`。
 - 解除已记录损坏必须在 helper 守卫内核验 generation/token 并完整复检，恢复保留 healthy 回执而非删除记录。普通成功和 `clear-run` 不解除项目共享损坏；隔离/`clear-all` 完成后才退休旧 generation。`integrity-check` 不改原 SQLite/WAL 字节，但发现真实损坏会持久发布健康 metadata；健康诊断不解除损坏，普通 busy/full/read-only/I/O 不发布 damaged。`archive-health-init` 已有回执也完整复检，不解除已有 damaged/token。
 - 保证从损坏事实成功持久发布开始。发布期间保留 `.health.partial` 门与 `.health.ready` 暂存链接；健康回执的文件和目录同步完成后才清门。残留一律阻止写入，查询也不能将未完成发布称为健康；隔离续接完整复检后才能清理可信残留，已发布的损坏 token 不因此解除。SQLite、健康记录与 store 之间没有跨资源事务；发布前进程被终止或发布失败，不保证其他进程已经知道损坏。回执持久化后的清门同步是 best-effort，重启若残留回来，只会保守阻止。

@@ -1,0 +1,805 @@
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.289
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.289
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: unsupported target
+     reason: claude-code-version
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.289
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-10vqrpv1/project
+     database root: <tmp>/ptr-10vqrpv1/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: not checked · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-10vqrpv1/home/.claude/plugins/data/.function-hook-locators/prompt-trail/88355059-b18a-4f9a-822a-178f04e04be7.56996-1791281038-562547.json
+     run: feba0610-70f5-49ad-bf2a-bb5e7bd00ae4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== Claude Code below the minimum: submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.289
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: unsupported target
+     reason: claude-code-version
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.289
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-10vqrpv1/project
+     database root: <tmp>/ptr-10vqrpv1/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: not checked · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-10vqrpv1/home/.claude/plugins/data/.function-hook-locators/prompt-trail/88355059-b18a-4f9a-822a-178f04e04be7.56996-1791281038-562547.json
+     run: feba0610-70f5-49ad-bf2a-bb5e7bd00ae4
+
+❯ <marker:128>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 4s · done 6:04 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: unsupported target
+     reason: architecture
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: Darwin x86_64
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-10vqrpv1/project
+     database root: unavailable
+     helper: not checked
+     locator: unavailable
+     run: unavailable
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== the Intel build under Rosetta: submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: unsupported target
+     reason: architecture
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: Darwin x86_64
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-10vqrpv1/project
+     database root: unavailable
+     helper: not checked
+     locator: unavailable
+     run: unavailable
+
+❯ <marker:129>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 5s · done 6:04 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/project
+
+  ⎿  SessionStart:startup hook error
+  ⎿  Failed with non-blocking status code: {"category":"locator-create"}
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: unsupported target
+     reason: claude-code-version-unproven
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code version unproven
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-10vqrpv1/project
+     database root: unavailable
+     helper: not checked
+     locator: unavailable
+     run: unavailable
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== no locator: submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/project
+
+  ⎿  SessionStart:startup hook error
+  ⎿  Failed with non-blocking status code: {"category":"locator-create"}
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: unsupported target
+     reason: claude-code-version-unproven
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code version unproven
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-10vqrpv1/project
+     database root: unavailable
+     helper: not checked
+     locator: unavailable
+     run: unavailable
+
+❯ <marker:130>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 7s · done 6:04 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐█▜██▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/supported
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+  █████▌   Claude Code v2.1.290
+ ▝█████▛   Haiku 4.5 · Claude API
+  ▘▘  ▘▘   <tmp>/ptr-10vqrpv1/supported
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: not granted · policy 1
+     Run collection mode: disabled · 未授予 Collection consent
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-10vqrpv1/supported
+     database root: <tmp>/ptr-10vqrpv1/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-10vqrpv1/home/.claude/plugins/data/.function-hook-locators/prompt-trail/e7d4bdb9-09b8-4221-a65c-70677087e3e3.59475-1791281076-57629.json
+     run: 33840ec3-4e97-4d1c-8452-69619df614c6
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/supported
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: not granted · policy 1
+     Run collection mode: disabled · 未授予 Collection consent
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-10vqrpv1/supported
+     database root: <tmp>/ptr-10vqrpv1/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-10vqrpv1/home/.claude/plugins/data/.function-hook-locators/prompt-trail/e7d4bdb9-09b8-4221-a65c-70677087e3e3.59475-1791281076-57629.json
+     run: 33840ec3-4e97-4d1c-8452-69619df614c6
+
+❯ <marker:131>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-10vqrpv1/home/.claude/plugins/data/prompt-trail-inline/archives/09b3b061f3cc887bf3bacf4a79a7fa1a0b531ab18efbfd498e1b3d5f97d8ebad.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-10vqrpv1/supported
+
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: not granted · policy 1
+     Run collection mode: disabled · 未授予 Collection consent
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-10vqrpv1/supported
+     database root: <tmp>/ptr-10vqrpv1/home/.claude/plugins/data/prompt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-10vqrpv1/home/.claude/plugins/data/.function-hook-locators/prompt-trail/e7d4bdb9-09b8-4221-a65c-70677087e3e3.59475-1791281076-57629.json
+     run: 33840ec3-4e97-4d1c-8452-69619df614c6
+
+❯ <marker:131>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 6:04 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                                                                                                                                                        [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

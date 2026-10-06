@@ -1,0 +1,619 @@
+==== started (120x60)
+
+           Claude Code v2.1.290
+           Haiku 4.5 · Claude API
+           <tmp>/ptr-31d3ms8j/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x60)
+
+           Claude Code v2.1.290
+ ▐▛███▛█   Haiku 4.5 · Claude API
+·▜██████·  <tmp>/ptr-31d3ms8j/project
+
+
+❯ <marker:44>··································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ Prompt Trail 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-31d3ms8j/home/.claude/plugins/data/prompt-trail-i
+│ nline/archives/7affc5587cfe85bcf6aed41d35329c2fbad62acd7e698a84ce113233dddc11a5.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ Prompt Trail 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-31d3ms8j/project
+
+
+❯ <marker:44>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 5:42 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-31d3ms8j/project
+
+
+❯ <marker:44>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 5:42 PM
+
+❯ <marker:45>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 1s · done 5:42 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-31d3ms8j/project
+
+
+❯ <marker:44>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 5:42 PM
+
+❯ <marker:45>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 1s · done 5:42 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/7affc5587cfe85bcf6aed41d35329c2fbad62acd7e698a84ce113233dddc11a5.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9bee5c-6ac4c273-2dec3558
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-31d3ms8j/project
+     database root: <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/27e0b9d3-6833-4e21-8d05-331bfc33f3bc.76483-1791279726-439984.json
+     run: 5b680843-fbba-4120-b668-133e46a91ed7
+
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /compact (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-31d3ms8j/project
+
+
+❯ <marker:44>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 5:42 PM
+
+❯ <marker:45>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 1s · done 5:42 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/7affc5587cfe85bcf6aed41d35329c2fbad62acd7e698a84ce113233dddc11a5.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9bee5c-6ac4c273-2dec3558
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-31d3ms8j/project
+     database root: <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/27e0b9d3-6833-4e21-8d05-331bfc33f3bc.76483-1791279726-439984.json
+     run: 5b680843-fbba-4120-b668-133e46a91ed7
+
+❯ /compact
+
+
+
+
+
+· Compacting conversation… (0s)
+  ⎿  Tip: Use /memory to view and manage Claude memory
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-31d3ms8j/project
+
+
+⏺ ok
+
+✻ Cooked for 1s · done 5:42 PM
+
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/7affc5587cfe85bcf6aed41d35329c2fbad62acd7e698a84ce113233dddc11a5.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9bee5c-6ac4c273-2dec3558
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-31d3ms8j/project
+     database root: <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/27e0b9d3-6833-4e21-8d05-331bfc33f3bc.76483-1791279726-439984.json
+     run: 5b680843-fbba-4120-b668-133e46a91ed7
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== parent Pane (120x60)
+                                                                      │                                               ✕
+ ▐▛███▛█   Claude Code v2.1.290                                       │transcript 无法唯一确定下一条 prompt
+▝▜██████▀  Haiku 4.5 · Claude API                                     │的父节点，本次提交已阻止。请选择它接在哪条 Prompt
+ ▝▝   ▝▝   /…/T/ptr-31d3ms8j/project                                  │Entry 之后，或从新的根分支开始。
+                                                                      │#2 <marker:45>····························…
+                                                                      │新根分支
+⏺ ok                                                                  │↑↓ 选择 · Enter 确认 · Esc 取消并放回草稿
+                                                                      │
+✻ Cooked for 1s · done 5:42 PM                                        │
+                                                                      │
+❯ /prompt-history status                                              │
+  ⎿  prompt-trail: Prompt Trail status                                │
+     support: supported                                               │
+     reason: preflight-ok                                             │
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive   │
+     terminal                                                         │
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 ·      │
+     自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及          │
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）  │
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290                 │
+     collection consent: granted · policy 1                           │
+     Run collection mode: enabled                                     │
+     latest collection boundary: none                                 │
+     pending reconciliation: none                                     │
+     clear transition: none                                           │
+     integrity: healthy                                               │
+     integrity gaps: 0                                                │
+     archive: ready · <tmp>                                           │
+     /ptr-31d3ms8j/home/.claude/plugins/data/prompt-trail-inli        │
+     ne/archives/7affc5587cfe85bcf6aed41d35329c2fbad62acd7e698a84ce113│
+     233dddc11a5.sqlite3 · 86016 bytes                                │
+     Archive generation: 1000012-1f9bee5c-6ac4c273-2dec3558           │
+     Quarantined archives: 0                                          │
+     disk space: ok                                                   │
+     project: <tmp>│
+     /ptr-31d3ms8j/project                                            │
+     database root:                                                   │
+     <tmp>/ptr-31d3│
+     ms8j/home/.claude/plugins/data/prompt-trail-inline/archives      │
+     helper: trusted · <repo>/mods/prom│
+     pt-trail/bin/prompt-trail-helper                                 │
+     locator: <tmp>│
+     /ptr-31d3ms8j/home/.claude/plugins/data/.function-hook-locators/p│
+     rompt-trail/27e0b9d3-6833-4e21-8d05-331bfc33f3bc.76483-1791279726│
+     -439984.json                                                     │
+     run: 5b680843-fbba-4120-b668-133e46a91ed7                        │
+                                                                      │
+❯ /compact                                                            │
+  ⎿  Compacted (ctrl+o to see full summary)                           │
+                                                                      │
+⏺ Prompt dropped by a hook: Prompt Trail 无法唯一确定下一条           │
+  prompt 的父节点，请在「确认父节点」面板中选择；草稿已暂存，         │
+  选择后放回输入框，不会自动重发。                                    │
+                                                                      │
+▸ Prompt Trail                                                    [-] │
+                                                                      │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== parent Pane (120x60)
+ ▝▝   ▝▝   /…/T/ptr-31d3ms8j/project                                  │                                               ✕
+                                                                      │transcript 无法唯一确定下一条 prompt
+                                                                      │的父节点，本次提交已阻止。请选择它接在哪条 Prompt
+⏺ ok                                                                  │Entry 之后，或从新的根分支开始。
+                                                                      │#2 <marker:45>····························…
+✻ Cooked for 1s · done 5:42 PM                                        │新根分支
+                                                                      │↑↓ 选择 · Enter 确认 · Esc 取消并放回草稿
+❯ /prompt-history status                                              │
+  ⎿  prompt-trail: Prompt Trail status                                │
+     support: supported                                               │
+     reason: preflight-ok                                             │
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive   │
+     terminal                                                         │
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 ·      │
+     自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及          │
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）  │
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290                 │
+     collection consent: granted · policy 1                           │
+     Run collection mode: enabled                                     │
+     latest collection boundary: none                                 │
+     pending reconciliation: none                                     │
+     clear transition: none                                           │
+     integrity: healthy                                               │
+     integrity gaps: 0                                                │
+     archive: ready · <tmp>                                           │
+     /ptr-31d3ms8j/home/.claude/plugins/data/prompt-trail-inli        │
+     ne/archives/7affc5587cfe85bcf6aed41d35329c2fbad62acd7e698a84ce113│
+     233dddc11a5.sqlite3 · 86016 bytes                                │
+     Archive generation: 1000012-1f9bee5c-6ac4c273-2dec3558           │
+     Quarantined archives: 0                                          │
+     disk space: ok                                                   │
+     project: <tmp>│
+     /ptr-31d3ms8j/project                                            │
+     database root:                                                   │
+     <tmp>/ptr-31d3│
+     ms8j/home/.claude/plugins/data/prompt-trail-inline/archives      │
+     helper: trusted · <repo>/mods/prom│
+     pt-trail/bin/prompt-trail-helper                                 │
+     locator: <tmp>│
+     /ptr-31d3ms8j/home/.claude/plugins/data/.function-hook-locators/p│
+     rompt-trail/27e0b9d3-6833-4e21-8d05-331bfc33f3bc.76483-1791279726│
+     -439984.json                                                     │
+     run: 5b680843-fbba-4120-b668-133e46a91ed7                        │
+                                                                      │
+❯ /compact                                                            │
+  ⎿  Compacted (ctrl+o to see full summary)                           │
+                                                                      │
+⏺ Prompt dropped by a hook: Prompt Trail 无法唯一确定下一条           │
+  prompt 的父节点，请在「确认父节点」面板中选择；草稿已暂存，         │
+  选择后放回输入框，不会自动重发。                                    │
+                                                                      │
+⏺ Prompt dropped by a hook: Prompt Trail 无法唯一确定下一条           │
+  prompt 的父节点，请在「确认父节点」面板中选择；草稿已暂存，         │
+  选择后放回输入框，不会自动重发。                                    │
+▸ Prompt Trail                                                    [-] │
+                                                                      │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== parent chosen (120x60)
+                                                                             ╭─────────────────────────────────────────╮
+ ▐▛███▛█   Claude Code v2.1.290                                              │ prompt-trail                            │
+▝▜██████▀  Haiku 4.5 · Claude API                                            │ Prompt Trail 未确认父节点，草稿已恢复； │
+ ▝▝   ▝▝   <tmp>/ptr-31d3m│ 再次提交时会重新询问。                  │
+                                                                             ╰─────────────────────────────────────────╯
+                                                                                                               ╭────────
+⏺ ok                                                                                                           │ prompt…
+                                                                                                               │ Prompt…
+✻ Cooked for 1s · done 5:42 PM                                                                                 │ 请检查…
+                                                                                                               ╰────────
+❯ /prompt-history status
+  ⎿  prompt-trail: Prompt Trail status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 安装与卸载 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及
+     transcript 与外部副本 · 移除 --plugin-dir 前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/pr
+     ompt-trail-inline/archives/7affc5587cfe85bcf6aed41d35329c2fbad62acd7e698a84ce113233dddc11a5.sqlite3 · 86016 bytes
+     Archive generation: 1000012-1f9bee5c-6ac4c273-2dec3558
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-31d3ms8j/project
+     database root: <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/prom
+     pt-trail-inline/archives
+     helper: trusted · <repo>/mods/prompt-trail/bin/prompt-trail-helper
+     locator: <tmp>/ptr-31d3ms8j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-trail/27e0b9d3-6833-4e21-8d05-331bfc33f3bc.76483-1791279726-439984.json
+     run: 5b680843-fbba-4120-b668-133e46a91ed7
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+⏺ Prompt dropped by a hook: Prompt Trail 无法唯一确定下一条 prompt
+  的父节点，请在「确认父节点」面板中选择；草稿已暂存，选择后放回输入框，不会自动重发。
+
+⏺ Prompt dropped by a hook: Prompt Trail 无法唯一确定下一条 prompt
+  的父节点，请在「确认父节点」面板中选择；草稿已暂存，选择后放回输入框，不会自动重发。
+
+
+
+
+
+
+
+
+▸ Prompt Trail                                                                                                      [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ <marker:46>··································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on
