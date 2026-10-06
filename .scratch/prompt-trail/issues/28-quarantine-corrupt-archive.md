@@ -12,8 +12,8 @@
 - [x] “重试完整性检查”不会修改文件；检查成功前不得恢复写入。
 - [x] “隔离并开始新 generation”把原文件及相关敏感副本以私有权限保留为 Quarantined Archive，并创建空的新 generation。
 - [x] Quarantined Archive 不参与后续 append、range read 或自动迁移，也不被自动修复、覆盖或删除。
-- [ ] 存在无法安全打开的 Quarantined Archive 时，`clear-run` 必须拒绝声称完整按 Run 删除。（转交 Issue 29，见 Q8。）
-- [ ] 强确认清除路径交由项目级清除语义处理，并在成功前保持 Archive unavailable。（转交 Issue 30，见 Q8。）
+- [x] 存在无法安全打开的 Quarantined Archive 时，`clear-run` 必须拒绝声称完整按 Run 删除。（转交 Issue 29，见 Q8；已由 29 完成，helper 报 `clear-run-quarantined`。）
+- [x] 强确认清除路径交由项目级清除语义处理，并在成功前保持 Archive unavailable。（转交 Issue 30，见 Q8；已由 30 完成，损坏对话框提供 `clear-all` 并覆盖隔离目录。）
 - [x] 多 Run 同时发现同一损坏时只完成一次 generation 状态转换，不创建多个隔离副本。
 - [x] helper fault tests 与双 Run 集成场景验证原文件字节不变、项目隔离、幂等隔离和新 generation 可用。
 

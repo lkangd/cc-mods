@@ -6,8 +6,8 @@
 
 **Status:** resolved
 
-- [ ] ~~bridge 在 SessionStart（source 为 `fork`；`resume` 是否也要，实现前核实）时检查本 session 的 transcript 里有没有从来源复制过来的 `compact_boundary`。有的话，在会话索引和 locator 里写一个可选字段，并在该 session 之后每次发布 locator 时都带上。`locatorVersion`/`indexVersion` 不升。~~（按 Q1 作废：bridge 运行时还读不到这些行，见下方 Comments。）
-- [ ] ~~插件的 `parseLocator` 把这个字段当可选字段处理，值不合法时按 locator schema 错误 fail closed。`sessionCompacted` 认这个字段，命中时给本 session 的 compacted 键补写 true。~~（按 Q1 作废：改为由 `sessionCompacted` 识别 transcript 开头的摘要行，命中时同样补写 compacted 键。）
+- [x] ~~bridge 在 SessionStart（source 为 `fork`；`resume` 是否也要，实现前核实）时检查本 session 的 transcript 里有没有从来源复制过来的 `compact_boundary`。有的话，在会话索引和 locator 里写一个可选字段，并在该 session 之后每次发布 locator 时都带上。`locatorVersion`/`indexVersion` 不升。~~（按 Q1 作废：bridge 运行时还读不到这些行，见下方 Comments。作废项，替代做法见下一条。）
+- [x] ~~插件的 `parseLocator` 把这个字段当可选字段处理，值不合法时按 locator schema 错误 fail closed。`sessionCompacted` 认这个字段，命中时给本 session 的 compacted 键补写 true。~~（按 Q1 作废：改为由 `sessionCompacted` 识别 transcript 开头的摘要行，命中时同样补写 compacted 键。替代做法已完成：`hooks/branch.ts` 的 `opensOnCompactionSummary`，测试与 `PT-BRANCH-002` 见 Answer。）
 - [x] fork 一个 compact 过的 session 后，子 session 的第一条 prompt 挂在来源的最后一条 Prompt Entry 上，时间线显示「从 Run … 分出」。
 - [x] fork 一个没 compact 过的 session，行为不变（仍按 `whole` 匹配）。
 - [x] 真实 PTY（2.1.281）：R1…Rn → `/compact` → 再提交一条 → `/fork 只回复 BG`，BG 挂在最后一条 prompt 上，并显示「从 Run … 分出」。
