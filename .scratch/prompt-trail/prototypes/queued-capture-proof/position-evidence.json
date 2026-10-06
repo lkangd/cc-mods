@@ -1,0 +1,156 @@
+{
+  "date": "2026-10-01",
+  "stage": "conditional-position-study-not-a-fix",
+  "witnessProvenance": "synthetic-model-not-observed-host-order-violation",
+  "withoutCaptureOrder": {
+    "analysisStatus": "multiple",
+    "mappingCount": 2,
+    "witnesses": [
+      {
+        "c1": {
+          "queueId": "q1",
+          "userId": "u1",
+          "state": "entered"
+        },
+        "c2": {
+          "queueId": "q2",
+          "userId": null,
+          "state": "withdrawn"
+        }
+      },
+      {
+        "c1": {
+          "queueId": "q2",
+          "userId": null,
+          "state": "withdrawn"
+        },
+        "c2": {
+          "queueId": "q1",
+          "userId": "u1",
+          "state": "entered"
+        }
+      }
+    ],
+    "safe": [
+      {
+        "eventId": "c1",
+        "state": "ambiguous"
+      },
+      {
+        "eventId": "c2",
+        "state": "ambiguous"
+      }
+    ],
+    "contractStatus": "hypothesis-only",
+    "assumptions": [
+      "empty-known-baseline",
+      "no-hidden-ingress",
+      "capture-enqueue-bijection",
+      "fifo-dequeue",
+      "dequeue-user-bijection",
+      "dequeue-user-order",
+      "composer-only-new-users"
+    ],
+    "reasons": []
+  },
+  "withCaptureOrderHypothesis": {
+    "analysisStatus": "unique",
+    "mappingCount": 1,
+    "witnesses": [
+      {
+        "c1": {
+          "queueId": "q1",
+          "userId": "u1",
+          "state": "entered"
+        },
+        "c2": {
+          "queueId": "q2",
+          "userId": null,
+          "state": "withdrawn"
+        }
+      }
+    ],
+    "safe": [
+      {
+        "eventId": "c1",
+        "state": "ambiguous"
+      },
+      {
+        "eventId": "c2",
+        "state": "ambiguous"
+      }
+    ],
+    "contractStatus": "hypothesis-only",
+    "assumptions": [
+      "empty-known-baseline",
+      "no-hidden-ingress",
+      "capture-enqueue-bijection",
+      "fifo-dequeue",
+      "dequeue-user-bijection",
+      "dequeue-user-order",
+      "composer-only-new-users"
+    ],
+    "reasons": []
+  },
+  "legacyReplay": [
+    {
+      "version": "2.1.273",
+      "captures": [],
+      "gaps": [
+        "unpaired-submission"
+      ],
+      "journalGaps": [
+        "unproven-read-boundary"
+      ],
+      "analysisStatus": "indeterminate",
+      "contractStatus": "unbound",
+      "contractGaps": [
+        "submit-enqueue-contract-missing",
+        "baseline-unproven",
+        "active-path-unproven"
+      ],
+      "safe": [],
+      "observedCounts": {
+        "composerAfter": 9,
+        "queuedReturns": 4,
+        "journalSnapshots": 74
+      },
+      "leakCount": 0
+    },
+    {
+      "version": "2.1.283",
+      "captures": [],
+      "gaps": [
+        "unpaired-submission"
+      ],
+      "journalGaps": [
+        "unproven-read-boundary"
+      ],
+      "analysisStatus": "indeterminate",
+      "contractStatus": "unbound",
+      "contractGaps": [
+        "submit-enqueue-contract-missing",
+        "baseline-unproven",
+        "active-path-unproven"
+      ],
+      "safe": [],
+      "observedCounts": {
+        "composerAfter": 9,
+        "queuedReturns": 4,
+        "journalSnapshots": 70
+      },
+      "leakCount": 0
+    }
+  ],
+  "newPtyLaunches": 0,
+  "newHostModelCalls": 0,
+  "stopReason": "conditional-uniqueness-without-host-contract",
+  "prototypeTests": {
+    "total": 43,
+    "failed": 0
+  },
+  "observerValidation": {
+    "2.1.273": "passed-author-warning-only",
+    "2.1.283": "passed-author-warning-only"
+  }
+}

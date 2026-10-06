@@ -1,5 +1,6 @@
-import type { On, PromptAttachment, PromptOrigin, ToolResultSummary } from 'claude-code'
-import { mock } from 'claude-code/testing'
+import type { On, PromptOrigin, PromptSubmitAttachment, ToolResultSummary } from 'claude-code'
+import { mock, test as kitTest } from 'claude-code/testing'
+import type { Engine, TestBody, TestRest } from 'claude-code/testing'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from '../hooks/artifact'
 
 export const SECRET = 'PT-SECRET-CONSENT-CAPTURE\nsecond line'
@@ -21,6 +22,49 @@ export const locatorDirectory =
   `${home}/.claude/plugins/data/.function-hook-locators/prompt-trail`
 /* The bridge names a locator after the session and the host process generation
    that published it. */
+/* The engine of the test now running. The harness's bottom hooks call it the
+   way the host does, so a row it stores reaches the plugin's hooks above. */
+let engine: Engine | undefined
+
+/* The kit's `test`, keeping the engine each body is given. */
+export function test(name: string, ...rest: TestRest): void {
+  const body = rest[rest.length - 1] as TestBody
+  const kept: TestBody = ($, on) => {
+    engine = $
+    return body($, on)
+  }
+  if (rest.length === 2) kitTest(name, rest[0], kept)
+  else kitTest(name, kept)
+}
+
+/* The host storing the person's prompt as a row of the conversation, as it
+   does when a submission enters: at once when the session is idle, or when a
+   queued one is taken from the queue. The kit has nothing beneath the
+   `session.append` chain to keep the row, and a test hook may not answer for
+   it, so the call ends in the kit's own refusal once every hook has seen the
+   row; that refusal is not the plugin's and is let go. */
+export async function storeComposerRow(
+  text: string,
+  row: { origin?: PromptOrigin; agentId?: string } = {},
+): Promise<void> {
+  if (!engine) throw new Error('storeComposerRow outside a test')
+  await engine.session.append({
+    door: 'prompt',
+    origin: row.origin ?? { kind: 'composer' },
+    uuid: crypto.randomUUID(),
+    message: { type: 'user', role: 'user', content: [{ type: 'text', text }] },
+    ...(row.agentId ? { agentId: row.agentId } : {}),
+  }).catch((error: unknown) => {
+    if (!(error instanceof Error) || !error.message.includes('no implementation for session.append')) throw error
+  })
+}
+
+/* A child's result as `process.run` answers it. The fakes never write past
+   the 4 MiB the engine keeps of each stream, so nothing is truncated. */
+export function ran(result: { exitCode: number; stdout: string; stderr: string }) {
+  return { value: { ...result, isStdoutTruncated: false, isStderrTruncated: false } }
+}
+
 export function locatorName(forSessionId: string, hostPid = 4242): string {
   return `${forSessionId}.${hostPid}-100-200.json`
 }
@@ -194,7 +238,15 @@ export type TargetOptions = {
      or a headless session would. */
   fillFails?: boolean
   /* The answer a reconciliation dialog receives; `undefined` cancels it. */
-  reconcileAnswer?: '已进入' | '未进入' | '新根分支' 
+  reconcileAnswer?: '已进入' | '未进入' | '新根分支'
+  /* The text and the choices of every reconciliation dialog. */
+  reconcileAsked?: string[]
+  reconcileOffered?: string[][]
+  /* How many composer rows the host stores while an idle submission is
+     inside `next`; one unless a test says otherwise. A submission typed over
+     a running turn (`turnId`) is queued: `next` resolves with no row stored,
+     and the test stores it later (`storeComposerRow`) or never. */
+  rowsInSubmit?: number
   /* Any store key containing this substring throws on read. */
   storeGetFailsFor?: string
   /* Any store key containing this substring throws on write. */
@@ -405,7 +457,7 @@ export function installSupportedTarget(
   on('fs.exists', () => ({ value: options.hasGitDirectory ?? false }))
   on('fs.list', (_$, e) => ({
     value: e.path === locatorDirectory && (options.locatorPublished?.value ?? true)
-      ? [{ name: locatorName(classic.id, identity.hostPid), kind: 'file' as const, size: 1 }]
+      ? [{ name: locatorName(classic.id, identity.hostPid), kind: 'file' as const, size: 1, mtimeMs: 0, isLink: false }]
       : [],
   }))
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
@@ -420,8 +472,8 @@ export function installSupportedTarget(
       hostPid: identity.hostPid ?? 4242,
       hostStartSeconds: 100,
       hostStartMicroseconds: 200,
-      hostExecutable: '/opt/claude/2.1.278',
-      hostVersion: '2.1.278',
+      hostExecutable: '/opt/claude/2.1.290',
+      hostVersion: '2.1.290',
       pluginRoot,
       pluginData,
       databaseRoot,
@@ -440,7 +492,7 @@ export function installSupportedTarget(
     const question = e.questions[0]?.question ?? ''
     const choices = e.questions[0]?.options ?? []
     const labels = choices.map(choice => (typeof choice === 'string' ? choice : choice.label))
-    const isReconcile = labels.includes('已进入')
+    const isReconcile = labels.includes('未进入')
     if (labels.includes('取消') && !labels.includes('禁用当前 Run 后继续')
         && !labels.includes('初始化并完整复检')) {
       options.clearAsked?.push(question)
@@ -459,6 +511,8 @@ export function installSupportedTarget(
       }
     }
     if (isReconcile) {
+      options.reconcileAsked?.push(question)
+      options.reconcileOffered?.push(labels)
       /* A cancelled dialog answers nothing, which is what keeps the Run
          blocked rather than defaulting to confirm or discard. */
       if (!options.reconcileAnswer) return { result: { questions: e.questions, answers: {} } }
@@ -492,7 +546,7 @@ export function installSupportedTarget(
       pane.opens.push({ ...e })
       pane.log.push('open')
     }
-    return { value: undefined }
+    return { value: { isPlaced: true as const } }
   })
   on('ui.close', (_$, e) => {
     if (pane && e.id === PARENT_PANE_ID) pane.log.push(`close:${e.origin.kind}`)
@@ -520,24 +574,24 @@ export function installSupportedTarget(
     const argv = [...e.argv]
     calls.push({ argv, stdin: e.init?.stdin })
     const response = options.processResponder?.(calls[calls.length - 1]!)
-    if (response) return { value: response }
+    if (response) return ran(response)
     if (argv[0] === '/usr/bin/uname' && argv[1] === '-s') {
-      return { value: { exitCode: 0, stdout: 'Darwin\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: 'Darwin\n', stderr: '' })
     }
     if (argv[0] === '/usr/bin/uname' && argv[1] === '-m') {
-      return { value: { exitCode: 0, stdout: 'arm64\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: 'arm64\n', stderr: '' })
     }
     if (argv[0] === '/usr/bin/sw_vers') {
-      return { value: { exitCode: 0, stdout: '15.8\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: '15.8\n', stderr: '' })
     }
     if (argv[0] === '/usr/bin/id') {
-      return { value: { exitCode: 0, stdout: '501\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: '501\n', stderr: '' })
     }
     if (argv[0] === '/bin/ls') {
-      return { value: { exitCode: 0, stdout: 'private path\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: 'private path\n', stderr: '' })
     }
     if (argv[0] === '/bin/realpath') {
-      return { value: { exitCode: 0, stdout: `${argv[1]}\n`, stderr: '' } }
+      return ran({ exitCode: 0, stdout: `${argv[1]}\n`, stderr: '' })
     }
     if (argv[0] === '/usr/bin/stat') {
       const path = argv[argv.length - 1]
@@ -546,56 +600,48 @@ export function installSupportedTarget(
         || path === pluginRoot
         || path === `${pluginRoot}/bin`
         || path === `${pluginRoot}/artifacts`
-      return {
-        value: {
-          exitCode: 0,
-          stdout: `${directory ? 'Directory' : 'Regular File'}|501|${directory ? '700' : path === currentLocatorPath() ? '600' : '755'}\n`,
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: `${directory ? 'Directory' : 'Regular File'}|501|${directory ? '700' : path === currentLocatorPath() ? '600' : '755'}\n`,
+        stderr: '',
+      })
     }
     if (argv[0] === '/usr/bin/shasum') {
-      return {
-        value: {
-          exitCode: 0,
-          stdout: `${options.helperDigest?.value ?? EXPECTED_HELPER_SHA256}  ${helperPath}\n`,
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: `${options.helperDigest?.value ?? EXPECTED_HELPER_SHA256}  ${helperPath}\n`,
+        stderr: '',
+      })
     }
     if (argv[0] === '/usr/bin/git' || (argv[0] === '/usr/bin/env' && argv.includes('/usr/bin/git'))) {
       const exitCode = options.gitExitCode ?? 0
-      return {
-        value: {
-          exitCode,
-          stdout: exitCode === 0 ? `${projectRoot}\n` : '',
-          stderr: exitCode === 0 ? '' : 'fatal: PT-SECRET-GIT',
-        },
-      }
+      return ran({
+        exitCode,
+        stdout: exitCode === 0 ? `${projectRoot}\n` : '',
+        stderr: exitCode === 0 ? '' : 'fatal: PT-SECRET-GIT',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'preflight') {
       if (options.preflightThrows) {
         throw new Error('execution denied: PT-SECRET-PREFLIGHT')
       }
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            status: 'supported',
-            artifactStatus: 'trusted',
-            sessionId: classic.id,
-            runId: identity.runId,
-            archiveGeneration,
-            databaseRoot,
-            helperPath,
-            helperProtocol: HELPER_PROTOCOL,
-            macosVersion: '15.8',
-            sqliteVersionNumber: 3_049_001,
-            sqliteReturning: true,
-          }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          status: 'supported',
+          artifactStatus: 'trusted',
+          sessionId: classic.id,
+          runId: identity.runId,
+          archiveGeneration,
+          databaseRoot,
+          helperPath,
+          helperProtocol: HELPER_PROTOCOL,
+          macosVersion: '15.8',
+          sqliteVersionNumber: 3_049_001,
+          sqliteReturning: true,
+        }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'archive-health') {
       if (options.healthFails) return refuse(options.healthFails)
@@ -604,9 +650,7 @@ export function installSupportedTarget(
           generation: generation.value, token: crypto.randomUUID(),
         })
       }
-      return {
-        value: { exitCode: 0, stdout: JSON.stringify({ projectId, ...health }), stderr: '' },
-      }
+      return ran({ exitCode: 0, stdout: JSON.stringify({ projectId, ...health }), stderr: '' })
     }
     if (argv[0] === helperPath && ['archive-health-init', 'archive-health-reset'].includes(argv[1] ?? '')) {
       if (argv[4] !== generation.value) return refuse('archive-generation')
@@ -619,7 +663,7 @@ export function installSupportedTarget(
           Object.assign(health, { state, generation: generation.value, token: crypto.randomUUID() })
         }
       }
-      return { value: { exitCode: 0, stdout: JSON.stringify({ projectId, ...health }), stderr: '' } }
+      return ran({ exitCode: 0, stdout: JSON.stringify({ projectId, ...health }), stderr: '' })
     }
     /* So does an unfinished Run clear. */
     if (argv[0] === helperPath && options.clearRunUnderway?.value
@@ -645,52 +689,48 @@ export function installSupportedTarget(
       const own = archive.filter(row => row.runId === forRun)
       const ownIds = new Set(own.map(row => row.eventId))
       const ownStaged = [...staged.values()].filter(row => row.runId === forRun)
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            projectId,
-            present: underway || held || quarantined.length > 0,
-            clearUnderway: underway,
-            clearRunUnderway: runUnderway,
-            ...(forRun === undefined
-              ? {}
-              : {
-                  run: underway || runUnderway
-                    ? null
-                    : {
-                        entries: own.filter(row => row.kind === 'prompt').length,
-                        pending: ownStaged.length,
-                        events: own.filter(row => row.kind !== 'prompt').length,
-                        attaches: own.filter(row => row.kind === 'run-started' || row.kind === 'run-attached').length,
-                        startedAt: own.length > 0 ? Math.min(...own.map(row => row.occurredAt ?? 1_795_000_000_000)) : null,
-                        unlinked: [...archive, ...staged.values()].filter(row =>
-                          row.runId !== forRun && ownIds.has(row.parentEventId ?? '')).length,
-                      },
-                }),
-            generation: held ? generation.value : null,
-            entries: options.clearCountsUnknown ? null : archive.filter(row => row.kind === 'prompt').length,
-            pending: options.pendingUnknown || options.clearCountsUnknown ? null : staged.size,
-            otherLiveRuns: options.otherLiveRuns === undefined ? 0 : options.otherLiveRuns,
-            files,
-            quarantined,
-          }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          projectId,
+          present: underway || held || quarantined.length > 0,
+          clearUnderway: underway,
+          clearRunUnderway: runUnderway,
+          ...(forRun === undefined
+            ? {}
+            : {
+                run: underway || runUnderway
+                  ? null
+                  : {
+                      entries: own.filter(row => row.kind === 'prompt').length,
+                      pending: ownStaged.length,
+                      events: own.filter(row => row.kind !== 'prompt').length,
+                      attaches: own.filter(row => row.kind === 'run-started' || row.kind === 'run-attached').length,
+                      startedAt: own.length > 0 ? Math.min(...own.map(row => row.occurredAt ?? 1_795_000_000_000)) : null,
+                      unlinked: [...archive, ...staged.values()].filter(row =>
+                        row.runId !== forRun && ownIds.has(row.parentEventId ?? '')).length,
+                    },
+              }),
+          generation: held ? generation.value : null,
+          entries: options.clearCountsUnknown ? null : archive.filter(row => row.kind === 'prompt').length,
+          pending: options.pendingUnknown || options.clearCountsUnknown ? null : staged.size,
+          otherLiveRuns: options.otherLiveRuns === undefined ? 0 : options.otherLiveRuns,
+          files,
+          quarantined,
+        }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'clear-run') {
       const underway = options.clearRunUnderway?.value === true
-      const nothing = {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            projectId, cleared: false, continued: false, ownRun: false,
-            entries: 0, pending: 0, events: 0, unlinked: 0,
-          }),
-          stderr: '',
-        },
-      }
+      const nothing = ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          projectId, cleared: false, continued: false, ownRun: false,
+          entries: 0, pending: 0, events: 0, unlinked: 0,
+        }),
+        stderr: '',
+      })
       if (!underway && argv[7] === '--continue') return nothing
       if (!underway && health.state === 'damaged') return refuse('archive-integrity', health.generation ?? generation.value)
       if (!underway && health.state === 'unknown' && health.generation !== null) return refuse('archive-health-unknown')
@@ -720,34 +760,30 @@ export function installSupportedTarget(
       }
       if (options.clearRunUnderway) options.clearRunUnderway.value = false
       if (options.clearRunAnswerLost) throw new Error('killed at the time limit: PT-SECRET-KILLED')
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            projectId, cleared: true, continued: underway, ownRun: cleared === argv[4],
-            entries: own.filter(row => row.kind === 'prompt').length,
-            pending: ownStaged.length,
-            events: own.filter(row => row.kind !== 'prompt').length,
-            unlinked,
-          }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          projectId, cleared: true, continued: underway, ownRun: cleared === argv[4],
+          entries: own.filter(row => row.kind === 'prompt').length,
+          pending: ownStaged.length,
+          events: own.filter(row => row.kind !== 'prompt').length,
+          unlinked,
+        }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'clear-all') {
       /* Only finishing a clear under way: one that has finished starts
          nothing new. */
       if (argv[8] === '--continue' && !options.clearUnderway?.value) {
-        return {
-          value: {
-            exitCode: 0,
-            stdout: JSON.stringify({
-              projectId, cleared: false, entries: 0, pending: 0, quarantined: 0,
-              sessionsRemoved: 0, sessionsFailed: 0,
-            }),
-            stderr: '',
-          },
-        }
+        return ran({
+          exitCode: 0,
+          stdout: JSON.stringify({
+            projectId, cleared: false, entries: 0, pending: 0, quarantined: 0,
+            sessionsRemoved: 0, sessionsFailed: 0,
+          }),
+          stderr: '',
+        })
       }
       if (options.clearRejects) {
         if (options.clearUnderway) options.clearUnderway.value = true
@@ -771,18 +807,16 @@ export function installSupportedTarget(
       }
       if (options.clearUnderway) options.clearUnderway.value = false
       Object.assign(health, { state: 'unknown', generation: null, token: null })
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            projectId, cleared: true,
-            entries: options.clearCountsUnknown ? null : entries,
-            pending: options.pendingUnknown || options.clearCountsUnknown ? null : pending,
-            quarantined: moved, sessionsRemoved: 0, sessionsFailed: options.sessionsFailed ?? 0,
-          }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          projectId, cleared: true,
+          entries: options.clearCountsUnknown ? null : entries,
+          pending: options.pendingUnknown || options.clearCountsUnknown ? null : pending,
+          quarantined: moved, sessionsRemoved: 0, sessionsFailed: options.sessionsFailed ?? 0,
+        }),
+        stderr: '',
+      })
     }
     /* An unfinished quarantine refuses every command that opens the archive. */
     if (argv[0] === helperPath && options.quarantineUnderway?.value
@@ -820,19 +854,17 @@ export function installSupportedTarget(
           attachmentCount: Number(argv[10]),
         })
       }
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            eventId,
-            projectId,
-            generation: generation.value,
-            pending: true,
-            ...(options.lowSpace === undefined ? {} : { lowSpace: options.lowSpace }),
-          }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          eventId,
+          projectId,
+          generation: generation.value,
+          pending: true,
+          ...(options.lowSpace === undefined ? {} : { lowSpace: options.lowSpace }),
+        }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'capture-confirm') {
       const eventId = argv[4]
@@ -840,7 +872,7 @@ export function installSupportedTarget(
         calls.filter(call => call.argv[1] === 'capture-confirm').length === 1
       if (options.settledElsewhere && options.pendingList?.some(row => row.eventId === eventId)) {
         options.pendingList = options.pendingList.filter(row => row.eventId !== eventId)
-        return { value: { exitCode: 25, stdout: '', stderr: '{"category":"capture-not-found"}' } }
+        return ran({ exitCode: 25, stdout: '', stderr: '{"category":"capture-not-found"}' })
       }
       if (options.confirmFails || (options.confirmFailsOnce && isFirstConfirm)) {
         return refuse(options.confirmFails || true, generation.value)
@@ -861,19 +893,17 @@ export function installSupportedTarget(
           sequence: allocateSequence(eventId ?? ''),
         })
       }
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            eventId,
-            projectId,
-            sequence: allocateSequence(eventId ?? ''),
-            ordinal: archive.filter(row =>
-              row.kind === 'prompt' && row.sequence < allocateSequence(eventId ?? '')).length + 1,
-          }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          eventId,
+          projectId,
+          sequence: allocateSequence(eventId ?? ''),
+          ordinal: archive.filter(row =>
+            row.kind === 'prompt' && row.sequence < allocateSequence(eventId ?? '')).length + 1,
+        }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'boundary-append') {
       if (options.boundaryFails) {
@@ -892,13 +922,11 @@ export function installSupportedTarget(
         existing.branchId !== branchId ||
         existing.occurredAt !== Number(occurredAt)
       )) {
-        return {
-          value: {
-            exitCode: 25,
-            stdout: '',
-            stderr: '{"category":"boundary-conflict"}',
-          },
-        }
+        return ran({
+          exitCode: 25,
+          stdout: '',
+          stderr: '{"category":"boundary-conflict"}',
+        })
       }
       startEmptyArchive()
       const sequence = allocateSequence(eventId ?? '')
@@ -913,25 +941,21 @@ export function installSupportedTarget(
           occurredAt: Number(occurredAt),
         })
       }
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({ eventId, projectId, kind, sequence }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({ eventId, projectId, kind, sequence }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'timeline-read') {
       if (options.readFails) {
         return refuse(options.readFails, generation.value)
       }
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({ ...timelineBatch(archive, argv.slice(6)), generation: generation.value }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({ ...timelineBatch(archive, argv.slice(6)), generation: generation.value }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'branch-match') {
       if (options.branchMatchFails) {
@@ -947,13 +971,11 @@ export function installSupportedTarget(
         archive.filter(row => row.kind === 'prompt' && row.sequence < sequence).length + 1
       const candidates = (answer.candidates as Record<string, unknown>[] | undefined ?? [])
         .map(candidate => ({ ordinal: ordinal(candidate.sequence as number), ...candidate }))
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({ projectId, generation: generation.value, ...answer, candidates }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({ projectId, generation: generation.value, ...answer, candidates }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'capture-list') {
       if (options.listFails) {
@@ -964,24 +986,22 @@ export function installSupportedTarget(
       const held = (row: Record<string, unknown>) =>
         row.runId !== caller && (options.liveRuns ?? []).includes(row.runId as string)
       const pending = options.pendingList ?? []
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            projectId,
-            generation: generation.value,
-            pending: pending.filter(row => !held(row)),
-            skipped: pending.filter(held).length,
-            truncated: false,
-          }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          projectId,
+          generation: generation.value,
+          pending: pending.filter(row => !held(row)),
+          skipped: pending.filter(held).length,
+          truncated: false,
+        }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'capture-abort') {
       if (options.settledElsewhere && options.pendingList?.some(row => row.eventId === argv[4])) {
         options.pendingList = options.pendingList.filter(row => row.eventId !== argv[4])
-        return { value: { exitCode: 25, stdout: '', stderr: '{"category":"capture-conflict"}' } }
+        return ran({ exitCode: 25, stdout: '', stderr: '{"category":"capture-conflict"}' })
       }
       if (options.abortFails) {
         return refuse(options.abortFails, generation.value)
@@ -993,30 +1013,26 @@ export function installSupportedTarget(
           row => row.eventId !== argv[4],
         )
       }
-      return { value: { exitCode: 0, stdout: '{"aborted":true}', stderr: '' } }
+      return ran({ exitCode: 0, stdout: '{"aborted":true}', stderr: '' })
     }
     if (argv[0] === helperPath && argv[1] === 'integrity-check') {
       const found = options.integrity ?? { result: 'ok', problems: 0 }
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({ projectId, ...found, generation: generation.value }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({ projectId, ...found, generation: generation.value }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'quarantine') {
       if (options.quarantineFails) return refuse(options.quarantineFails)
       const resumed = options.quarantineUnderway?.value === true
       if (options.quarantineUnderway) options.quarantineUnderway.value = false
       if (!resumed && argv[4] !== generation.value) {
-        return {
-          value: {
-            exitCode: 0,
-            stdout: JSON.stringify({ projectId, generation: generation.value, moved: null }),
-            stderr: '',
-          },
-        }
+        return ran({
+          exitCode: 0,
+          stdout: JSON.stringify({ projectId, generation: generation.value, moved: null }),
+          stderr: '',
+        })
       }
       /* The archive moves aside whole and the next generation begins with
          the quarantine alone. */
@@ -1037,34 +1053,30 @@ export function installSupportedTarget(
       generation.value = `gen-${quarantined.length + 1}`
       Object.assign(health, { state: 'healthy', generation: generation.value, token: crypto.randomUUID() })
       emptied = false
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({ projectId, generation: generation.value, moved }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({ projectId, generation: generation.value, moved }),
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'archive-status') {
       if (options.statusFails) return refuse(options.statusFails)
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            projectId,
-            generation: emptied && archive.length === 0 && staged.size === 0 ? null : generation.value,
-            quarantineUnderway: options.quarantineUnderway?.value
-              ?? options.quarantineFails === 'quarantine-failed',
-            clearUnderway: options.clearUnderway?.value === true,
-            clearRunUnderway: options.clearRunUnderway?.value === true,
-            integrityGaps: archive.filter(row => row.kind === 'integrity-gap').length,
-            liveRuns: options.liveRuns ?? [],
-            quarantined,
-            archiveBytes: options.archiveBytes ?? 0,
-          }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          projectId,
+          generation: emptied && archive.length === 0 && staged.size === 0 ? null : generation.value,
+          quarantineUnderway: options.quarantineUnderway?.value
+            ?? options.quarantineFails === 'quarantine-failed',
+          clearUnderway: options.clearUnderway?.value === true,
+          clearRunUnderway: options.clearRunUnderway?.value === true,
+          integrityGaps: archive.filter(row => row.kind === 'integrity-gap').length,
+          liveRuns: options.liveRuns ?? [],
+          quarantined,
+          archiveBytes: options.archiveBytes ?? 0,
+        }),
+        stderr: '',
+      })
     }
     throw new Error(`unexpected process: ${argv.join(' ')}`)
   })
@@ -1072,7 +1084,10 @@ export function installSupportedTarget(
     if (options.duringSubmit) await options.duringSubmit()
     if (options.dropBeneath !== undefined) return { drop: options.dropBeneath }
     const text = options.rewrite ? FINAL_SECRET : e.text
-    options.transcript?.push({ role: 'user', text })
+    if (e.turnId === undefined) {
+      options.transcript?.push({ role: 'user', text })
+      for (let row = 0; row < (options.rowsInSubmit ?? 1); row += 1) await storeComposerRow(text)
+    }
     return { text, context: e.context, origin: e.origin }
   })
   return calls
@@ -1082,16 +1097,14 @@ export function installSupportedTarget(
    damage it met names the generation it met it in. */
 function failure(category: boolean | string, generation?: string) {
   const named = category === true ? 'archive-sqlite' : category
-  return {
-    value: {
-      exitCode: 25,
-      stdout: '',
-      stderr: JSON.stringify({
-        category: named,
-        ...(named === 'archive-integrity' && generation ? { generation } : {}),
-      }),
-    },
-  }
+  return ran({
+    exitCode: 25,
+    stdout: '',
+    stderr: JSON.stringify({
+      category: named,
+      ...(named === 'archive-integrity' && generation ? { generation } : {}),
+    }),
+  })
 }
 
 export function captureCalls(calls: readonly ProcessCall[], command: string) {
@@ -1112,14 +1125,17 @@ export function composerPrompt(
   $: import('claude-code/testing').Engine,
   input: {
     text?: string
-    attachments?: readonly PromptAttachment[]
+    attachments?: readonly PromptSubmitAttachment[]
     origin?: PromptOrigin
+    /* The turn running as the prompt is typed: the host queues it. */
+    turnId?: string
   } = {},
 ) {
   return $.prompt.submit({
     text: input.text ?? SECRET,
     wait: false,
     origin: input.origin ?? { kind: 'composer' },
+    ...(input.turnId ? { turnId: input.turnId } : {}),
     ...(input.attachments ? { attachments: input.attachments } : {}),
   })
 }

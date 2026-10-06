@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import type { ArchiveRow } from './support'
 import {
   SECRET,
@@ -258,12 +259,7 @@ test('a live Run’s gap is written for it but its recovery is left to that Run'
 })
 
 test('a clear held in memory is owed to the generation it was seen in', async ($, on) => {
-  /* The 2.1.273 test kit cannot raise a classic hook event; the gate's
-     current version covers this. */
-  const classic = ($ as unknown as {
-    classic?: { SessionEnd: (e: { reason: string }) => Promise<unknown> }
-  }).classic
-  if (!classic) return
+  const classic = $.classic
   const archive: ArchiveRow[] = []
   const generation = { value: 'gen-1' }
   const options = {
@@ -475,15 +471,9 @@ test('a disabled Run writes no marker and records no gap', async ($, on) => {
   expect(kinds(archive)).toEqual([])
 })
 
-function classicOf($: unknown) {
-  /* The 2.1.273 test kit cannot raise a classic hook event; the gate's
-     current version covers these. */
-  return ($ as { classic?: { SessionEnd: (e: { reason: string }) => Promise<unknown> } }).classic
-}
 
 test('a clear being recorded leaves a marker only until it is owed on record', async ($, on) => {
-  const classic = classicOf($)
-  if (!classic) return
+  const classic = $.classic
   const archive: ArchiveRow[] = []
   const store = storeWith({})
   const written: string[] = []
@@ -499,8 +489,7 @@ test('a clear being recorded leaves a marker only until it is owed on record', a
 })
 
 test('a clear held in memory keeps its marker until the drain records it, and is no gap', async ($, on) => {
-  const classic = classicOf($)
-  if (!classic) return
+  const classic = $.classic
   const archive: ArchiveRow[] = []
   const store = storeWith({})
   const options = {
@@ -814,10 +803,7 @@ test('a prompt let through by disabling the Run leaves no marker, even if the ho
 })
 
 test('a leaving held at an in-process resume is owed to the generation it happened in', async ($, on) => {
-  const classic = ($ as unknown as {
-    classic?: { SessionEnd: (e: { reason: string }) => Promise<unknown> }
-  }).classic
-  if (!classic) return
+  const classic = $.classic
   const store = storeWith({})
   installSupportedTarget(on, { store, generation: { value: 'gen-7' } })
   on('classic.SessionEnd', () => ({}))

@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import type { Engine, MockClock } from 'claude-code/testing'
 import type { BranchState } from '../hooks/branch'
 import { alignmentInput, jumpOutcome, jumpTargets, recordRow, vanishedRows } from '../hooks/jump'
@@ -182,7 +183,7 @@ function drawRow($: Engine, requestId: string, text: string, origin: { kind: str
     surface: 'terminal',
     requestId,
     viewport: { columns: 80, rows: 24 },
-    props: { text, origin: origin as { kind: 'composer' } },
+    props: { text, origin: origin as { kind: 'composer' }, isExpanded: false },
   })
 }
 
@@ -614,15 +615,7 @@ test('a branch the transcript rebuilds is aligned again even when the submission
    on its way out, and go to the helper with the rows after them: it ties an
    entry only where some row holds each of its ancestors. */
 test('rows replayed by an in-process resume back into a drawn session are tied again', async ($, on) => {
-  /* The 2.1.273 test kit cannot raise a classic hook event; the gate's
-     current version covers this. */
-  const classic = ($ as unknown as {
-    classic?: {
-      SessionEnd: (e: { reason: string; session_id: string }) => Promise<unknown>
-      SessionStart: (e: { source: string; session_id: string }) => Promise<unknown>
-    }
-  }).classic
-  if (!classic) return
+  const classic = $.classic
   const elsewhere = '66666666-7777-4888-8999-aaaaaaaaaaaa'
   const classicSession = { id: sessionId }
   const transcript = holding('PT-SECRET-ONE')
@@ -667,13 +660,7 @@ test('rows replayed by an in-process resume back into a drawn session are tied a
 })
 
 test('rows drawn on the way out of a clear are never tied, even once the next session starts', async ($, on) => {
-  const classic = ($ as unknown as {
-    classic?: {
-      SessionEnd: (e: { reason: string; session_id: string }) => Promise<unknown>
-      SessionStart: (e: { source: string; session_id: string }) => Promise<unknown>
-    }
-  }).classic
-  if (!classic) return
+  const classic = $.classic
   const cleared = '66666666-7777-4888-8999-aaaaaaaaaaaa'
   const classicSession = { id: sessionId }
   const transcript = holding('PT-SECRET-ONE')

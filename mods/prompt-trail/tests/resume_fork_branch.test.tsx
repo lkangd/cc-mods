@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import type { BranchState, BranchMatch } from '../hooks/branch'
 import { chooseBranch, foldTimeline, forkSources, settleBranch, transcriptRows } from '../hooks/branch'
 import type { ArchiveRow, ProcessCall } from './support'
@@ -630,7 +631,7 @@ test('a resume replaying shared history archives nothing for it', async ($, on) 
       surface: 'terminal',
       requestId,
       viewport: { columns: 80, rows: 24 },
-      props: { text: 'PT-SECRET-EARLIER', origin: { kind: 'composer' } },
+      props: { text: 'PT-SECRET-EARLIER', origin: { kind: 'composer' }, isExpanded: false },
     })
   }
   await composerPrompt($)

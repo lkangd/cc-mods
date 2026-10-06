@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import type { LifecycleState, LifecycleWrite } from '../hooks/lifecycle'
 import type { ArchiveRow, TranscriptRow } from './support'
 import {
@@ -446,15 +447,7 @@ test('the timeline keeps both sides of a clear in their original order', async (
    bridge's classic SessionStart publishes the locator, so a process whose
    first act is `/clear` reaches SessionEnd without having read its Run. */
 test('a clear before this process has read its locator still writes the boundary', async ($, on) => {
-  /* The 2.1.273 test kit cannot raise a classic hook event; the gate's
-     current version covers this. */
-  const classic = ($ as unknown as {
-    classic?: {
-      SessionEnd: (e: { reason: string; session_id: string }) => Promise<unknown>
-      SessionStart: (e: { source: string; session_id: string }) => Promise<unknown>
-    }
-  }).classic
-  if (!classic) return
+  const classic = $.classic
   const archive: ArchiveRow[] = []
   const classicSession = { id: endedSessionId }
   const locatorPublished = { value: false }

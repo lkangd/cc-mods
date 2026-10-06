@@ -1,6 +1,7 @@
 import type { On } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import type { BranchState, BranchMatch } from '../hooks/branch'
 import { branchStarts, markTranscript, settleBranch, transcriptKept } from '../hooks/branch'
 import type { ProcessCall, TranscriptRow } from './support'

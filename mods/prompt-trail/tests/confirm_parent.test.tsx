@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import type { BranchState, BranchMatch } from '../hooks/branch'
 import type { ArchiveRow, ParentPane, ProcessCall } from './support'
 import {

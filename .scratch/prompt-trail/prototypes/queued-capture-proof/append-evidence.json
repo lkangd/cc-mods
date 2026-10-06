@@ -1,0 +1,701 @@
+{
+ "probe": "2026-10-06 stage 3: session.append vs prompt.submit on 2.1.290 (isolated PTY, structure only)",
+ "version": "2.1.290",
+ "outcome": "observed",
+ "reached": [
+  "idle",
+  "dequeue",
+  "withdraw"
+ ],
+ "reservedComposerInputs": 5,
+ "privacy": {
+  "scannedFiles": 591,
+  "argvSamples": 0,
+  "leaks": 0
+ },
+ "observations": [
+  {
+   "sequence": 1,
+   "openCalls": 1,
+   "phase": "submit.before",
+   "call": "call-1",
+   "origin": "composer",
+   "turnId": false,
+   "wait": false,
+   "labels": [
+    "BOOT-003"
+   ]
+  },
+  {
+   "sequence": 2,
+   "openCalls": 1,
+   "phase": "append.before",
+   "row": "row-1",
+   "door": "prompt",
+   "origin": "composer",
+   "type": "user",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": [
+    "BOOT-003"
+   ]
+  },
+  {
+   "sequence": 3,
+   "openCalls": 1,
+   "phase": "append.after",
+   "row": "row-1",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 4,
+   "openCalls": 1,
+   "phase": "append.before",
+   "row": "row-2",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "environment",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": []
+  },
+  {
+   "sequence": 5,
+   "openCalls": 1,
+   "phase": "append.after",
+   "row": "row-2",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 6,
+   "openCalls": 1,
+   "phase": "append.before",
+   "row": "row-3",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "model",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": []
+  },
+  {
+   "sequence": 7,
+   "openCalls": 1,
+   "phase": "append.after",
+   "row": "row-3",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 8,
+   "openCalls": 1,
+   "phase": "append.before",
+   "row": "row-4",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "deferred_tools_delta",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": []
+  },
+  {
+   "sequence": 9,
+   "openCalls": 1,
+   "phase": "append.after",
+   "row": "row-4",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 10,
+   "openCalls": 1,
+   "phase": "append.before",
+   "row": "row-5",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "agent_listing_delta",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": []
+  },
+  {
+   "sequence": 11,
+   "openCalls": 1,
+   "phase": "append.after",
+   "row": "row-5",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 12,
+   "openCalls": 1,
+   "phase": "append.before",
+   "row": "row-6",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "skill_listing",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": []
+  },
+  {
+   "sequence": 13,
+   "openCalls": 1,
+   "phase": "append.after",
+   "row": "row-6",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 14,
+   "openCalls": 1,
+   "phase": "append.before",
+   "row": "row-7",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "total_tokens_reminder",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": []
+  },
+  {
+   "sequence": 15,
+   "openCalls": 1,
+   "phase": "append.after",
+   "row": "row-7",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 16,
+   "openCalls": 1,
+   "phase": "turn.start"
+  },
+  {
+   "sequence": 17,
+   "openCalls": 0,
+   "phase": "submit.after",
+   "call": "call-1",
+   "entered": true,
+   "dropped": false,
+   "labels": [
+    "BOOT-003"
+   ]
+  },
+  {
+   "sequence": 18,
+   "openCalls": 0,
+   "phase": "append.before",
+   "row": "row-8",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "session_context",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [],
+   "labels": []
+  },
+  {
+   "sequence": 19,
+   "openCalls": 0,
+   "phase": "append.after",
+   "row": "row-8",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 20,
+   "openCalls": 0,
+   "phase": "append.before",
+   "row": "row-9",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "date",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": []
+  },
+  {
+   "sequence": 21,
+   "openCalls": 0,
+   "phase": "append.after",
+   "row": "row-9",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 22,
+   "openCalls": 0,
+   "phase": "append.before",
+   "row": "row-10",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "remote_session_change",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": []
+  },
+  {
+   "sequence": 23,
+   "openCalls": 0,
+   "phase": "append.after",
+   "row": "row-10",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 24,
+   "openCalls": 0,
+   "phase": "append.before",
+   "row": "row-11",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "prompt_snapshot",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [],
+   "labels": []
+  },
+  {
+   "sequence": 25,
+   "openCalls": 0,
+   "phase": "append.after",
+   "row": "row-11",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 26,
+   "openCalls": 0,
+   "phase": "append.before",
+   "row": "row-12",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "prompt_snapshot",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [],
+   "labels": []
+  },
+  {
+   "sequence": 27,
+   "openCalls": 0,
+   "phase": "append.after",
+   "row": "row-12",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 28,
+   "openCalls": 0,
+   "phase": "turn.complete"
+  },
+  {
+   "sequence": 29,
+   "openCalls": 1,
+   "phase": "submit.before",
+   "call": "call-2",
+   "origin": "composer",
+   "turnId": false,
+   "wait": false,
+   "labels": [
+    "HOLD-004"
+   ]
+  },
+  {
+   "sequence": 30,
+   "openCalls": 1,
+   "phase": "append.before",
+   "row": "row-13",
+   "door": "prompt",
+   "origin": "composer",
+   "type": "user",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": [
+    "HOLD-004"
+   ]
+  },
+  {
+   "sequence": 31,
+   "openCalls": 1,
+   "phase": "append.after",
+   "row": "row-13",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 32,
+   "openCalls": 1,
+   "phase": "append.before",
+   "row": "row-14",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "total_tokens_reminder",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": []
+  },
+  {
+   "sequence": 33,
+   "openCalls": 1,
+   "phase": "append.after",
+   "row": "row-14",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 34,
+   "openCalls": 1,
+   "phase": "turn.start"
+  },
+  {
+   "sequence": 35,
+   "openCalls": 0,
+   "phase": "submit.after",
+   "call": "call-2",
+   "entered": true,
+   "dropped": false,
+   "labels": [
+    "HOLD-004"
+   ]
+  },
+  {
+   "sequence": 36,
+   "openCalls": 1,
+   "phase": "submit.before",
+   "call": "call-3",
+   "origin": "composer",
+   "turnId": true,
+   "wait": false,
+   "labels": [
+    "QA-001"
+   ]
+  },
+  {
+   "sequence": 37,
+   "openCalls": 0,
+   "phase": "submit.after",
+   "call": "call-3",
+   "entered": true,
+   "dropped": false,
+   "labels": [
+    "QA-001"
+   ]
+  },
+  {
+   "sequence": 38,
+   "openCalls": 0,
+   "phase": "turn.complete"
+  },
+  {
+   "sequence": 39,
+   "openCalls": 0,
+   "phase": "append.before",
+   "row": "row-15",
+   "door": "prompt",
+   "origin": "composer",
+   "type": "user",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": [
+    "QA-001"
+   ]
+  },
+  {
+   "sequence": 40,
+   "openCalls": 0,
+   "phase": "append.after",
+   "row": "row-15",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 41,
+   "openCalls": 0,
+   "phase": "append.before",
+   "row": "row-16",
+   "door": "attachment",
+   "origin": "engine",
+   "originDetail": [
+    "kind"
+   ],
+   "type": "attachment",
+   "name": "total_tokens_reminder",
+   "role": "user",
+   "isMeta": false,
+   "agent": false,
+   "blocks": [
+    "text"
+   ],
+   "labels": []
+  },
+  {
+   "sequence": 42,
+   "openCalls": 0,
+   "phase": "append.after",
+   "row": "row-16",
+   "sameUuid": true,
+   "denied": false
+  },
+  {
+   "sequence": 43,
+   "openCalls": 0,
+   "phase": "turn.start"
+  },
+  {
+   "sequence": 44,
+   "openCalls": 1,
+   "phase": "submit.before",
+   "call": "call-4",
+   "origin": "composer",
+   "turnId": true,
+   "wait": false,
+   "labels": [
+    "QB-001"
+   ]
+  },
+  {
+   "sequence": 45,
+   "openCalls": 0,
+   "phase": "submit.after",
+   "call": "call-4",
+   "entered": true,
+   "dropped": false,
+   "labels": [
+    "QB-001"
+   ]
+  },
+  {
+   "sequence": 46,
+   "openCalls": 0,
+   "phase": "turn.complete"
+  }
+ ],
+ "finalTranscript": [
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "environment",
+   "labels": []
+  },
+  {
+   "type": "user",
+   "isSidechain": false,
+   "labels": [
+    "BOOT-003"
+   ]
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "model",
+   "labels": []
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "deferred_tools_delta",
+   "labels": []
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "agent_listing_delta",
+   "labels": []
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "skill_listing",
+   "labels": []
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "total_tokens_reminder",
+   "labels": []
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "session_context",
+   "labels": []
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "date",
+   "labels": []
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "remote_session_change",
+   "labels": []
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "prompt_snapshot",
+   "labels": []
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "prompt_snapshot",
+   "labels": []
+  },
+  {
+   "type": "user",
+   "isSidechain": false,
+   "labels": [
+    "HOLD-004"
+   ]
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "total_tokens_reminder",
+   "labels": []
+  },
+  {
+   "type": "queue-operation",
+   "operation": "enqueue",
+   "labels": [
+    "QA-001"
+   ]
+  },
+  {
+   "type": "queue-operation",
+   "operation": "dequeue",
+   "labels": []
+  },
+  {
+   "type": "user",
+   "isSidechain": false,
+   "labels": [
+    "QA-001"
+   ]
+  },
+  {
+   "type": "attachment",
+   "isSidechain": false,
+   "attachmentType": "total_tokens_reminder",
+   "labels": []
+  },
+  {
+   "type": "queue-operation",
+   "operation": "enqueue",
+   "labels": [
+    "QB-001"
+   ]
+  },
+  {
+   "type": "queue-operation",
+   "operation": "popAll",
+   "labels": [
+    "QB-001"
+   ]
+  }
+ ]
+}

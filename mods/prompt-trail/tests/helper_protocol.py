@@ -1190,7 +1190,7 @@ __attribute__((used)) static struct {
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         locator = json.loads(self.locator.read_text())
-        locator["hostVersion"] = "2.1.278"
+        locator["hostVersion"] = "2.1.290"
         self.locator.write_text(json.dumps(locator) + "\n")
         self.locator.chmod(0o600)
 
@@ -1244,7 +1244,7 @@ __attribute__((used)) static struct {
         self.publish_locator()
         manifest = json.loads(MANIFEST.read_text())
         locator = json.loads(self.locator.read_text())
-        locator["hostVersion"] = "2.1.272"
+        locator["hostVersion"] = "2.1.289"
         self.locator.write_text(json.dumps(locator) + "\n")
         self.locator.chmod(0o600)
 
@@ -1305,7 +1305,7 @@ __attribute__((used)) static struct {
         self.assertEqual(published.returncode, 0, published.stderr)
         locator = json.loads(self.locator.read_text())
         self.assertEqual(locator["artifactStatus"], "trusted")
-        locator["hostVersion"] = "2.1.278"
+        locator["hostVersion"] = "2.1.290"
         self.locator.write_text(json.dumps(locator) + "\n")
         self.locator.chmod(0o600)
         manifest = json.loads(manifest_path.read_text())

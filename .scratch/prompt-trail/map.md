@@ -224,15 +224,38 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   bridge 执行 SessionStart:fork 时，复制过来的行还没写到磁盘上（`--fork-session` 的文件到第一次提交时都还不存在），所以没有采用票面的 bridge 标记。
   改为插件对齐时识别：transcript 的第一行是宿主的 compact 摘要，就补写 compacted 键，按 `truncated` 匹配。
   后台 `/fork` 与 `--fork-session` 的第一条都挂在来源的最后一条上；`PT-BRANCH-002` 扩展覆盖。
+- [排队后撤回的提交](issues/35-queued-submission-withdrawn.md)（2026-10-01，对齐与原型，尚未修复）：
+  Q1–Q3 确定只有唯一对应的新增人类行/撤回证据才能确认/丢弃；后台自动结算，healthy waiting 可继续排队，歧义或写失败显式对账。
+  两个宿主均复现 ↑→popAll 后错误 Entry 保留、下一提交误开分支。补充探针发现 classic prompt_id 在排队时复用运行中 prompt 的 ID，
+  出队人类行另取新 ID；render requestId 也会变，尚未建立可靠唯一关联。未绑定判据原型 10/10，最新两版本扫描各 590 文件、0 泄漏；
+  [原型与身份摘要](prototypes/queued-capture-proof/README.md) 不是修复证据，正式协议/制品未改。按批准停点等待对齐关联契约；自动 popAll 的旧触发原因仍未知。
+- [Issue 35 第二阶段位置契约原型](issues/35-queued-submission-withdrawn.md)（2026-10-01，离线停点，仍 claimed）：
+  有限 FIFO 模型缺少 composer→enqueue 保序约束时，同文一进入一撤回存在两个归属见证；加入 captureOrder 仅条件化唯一，不是宿主顺序保证。
+  修正观察配对、真实 journal reader 与回放预检，原型 43/43、两版本 observer 静态 validate 通过；旧快照缺共同调用 ID 与读取证明，不能支持真实绑定。
+  旧回放初始 waiting 是构造输入的结果，非健康等待证据。新 PTY/宿主模型调用均 0，按批准停点跳过；新版 runner 未经真实验收。
+  [契约清单与摘要](prototypes/queued-capture-proof/README.md) 区分合成见证与真实观察，正式代码/协议/制品仍未改；新 session.append 只列为另需对齐的接口线索。
+- [Issue 35 新 session.append 静态核对](issues/35-queued-submission-withdrawn.md)（2026-10-01，仍未修复）：
+  2.1.286 公开声明保证实际存储行 UUID、来源及 append 顺序，但未提供 composer 资格到进入/撤回的共享身份或对应契约。
+  直接改成 append 采集会改变资格、正文与预写失败边界；仅更新[静态结论](prototypes/queued-capture-proof/README.md)，无新宿主实验，未改正式协议/制品。
+- [Issue 35 宿主关联契约需求草案](prototypes/queued-capture-proof/host-contract.md)（2026-10-01）：
+  既有 Q1–Q3 转成提交身份、进入/撤回 receipt、终局与最终文本边界，以及 10 个手算验收场景；自动恢复需要额外可验证状态，否则沿用显式对账。
+  仅本地草案，不是已有 API 或已跑测试，未向外发送，未改成员资格和正式实现。
+  补查 turn/receive/command/next.trace/signal/abort/messages/store 也未取得跨阶段身份桥；插件 asUser 重投不保留 composer 来源，throw/超时不等于 drop，草稿恢复需独立核对。
+  使用者选择保留 Q1–Q3，正式修复暂停在宿主契约缺口；不改为存储行采集或排队人工对账优先，需求草案保持本地。取得新身份/对应契约后另提实现计划，票据仍 claimed、未修复。
+
 - [跨 Run 损坏记录与写入原子化](issues/53-serialize-damage-state-across-runs.md)（2026-10-01 首次 resolved；2026-10-02 审查后重新 claimed；2026-10-06 修复后门禁通过，再次 resolved）：
   helper generation/state/token sidecar 是共享损坏权威，store 仅显示镜像；变更与隐含维护统一 project→health→SQLite 守卫，恢复完整复检并绑定 token，普通成功/clear-run 不解除损坏。发布 partial/ready 门跨 rename 保留，隔离续接不退休新代损坏，稳定 health.lock 不删除。
   唯一 startup 门禁通过：helper 177/177、两固定宿主版本 plugin 各 475/475、其他 Python 74/74、validate/TS5.9.3、制品一致性与 protocol probes。初始失败、RED→GREEN、权限/链接及发布 EIO/管道交错的记录保留票据；系统操作只触测试临时目录，helper 全轮与 startup 预算各已用 1/1。
   schema 2/protocol 1/插件 0.1.0 不变；部署前所有旧 writer 须退出后新制品重新接入。不代表已部署、真实 PTY/模型验收或发布；初次门禁时未 commit/push，后续收尾提交授权见票据末尾。
   2026-10-02 单轮 code-review 的 13 个发现全部修复（`9a86c73`）。2026-10-06 获授权的唯一一轮修复后 startup 门禁 exit 0：helper 184/184（含 11 个只作用于测试临时目录的 hdiutil/chflags 测试）、两固定宿主各 480/480、其他 Python 74/74、validate/TS5.9.3、制品一致性与协议探针。旧 [backlog](../../docs/code-review-backlog/20260930-damage-record-check-then-act-across-runs.md) 同步 resolved。
+- [Issue 35 路线变更：存储行成员资格与排队显式对账](issues/35-queued-submission-withdrawn.md)（2026-10-06，实现完成；修复后 PTY 验收第 4 轮通过，resolved）：
+  2.1.290 仍无提交→出队/撤回身份；使用者改选按 `session.append` 的 composer 存储行确认、排队提交保持 unproven 由人对账（无行时只给“未进入 / 新根分支”），正文仍取 submit 最终文本，最低宿主版本提到 2.1.290。
+  隔离 2.1.290 探针证实空闲提交的行在 `next(e)` 前存储、排队行出队后才存、撤回无行（0 泄漏）。删除同文自动判定；2.1.290 plugin 488/488、helper 184 与其余门禁通过。真实 PTY 验收、发布与版本号变更未做。
 
 ## Current work
 
 - Issue 53 于 2026-10-06 修复后完整 startup 门禁通过，票据与旧 backlog 均 resolved。真实 PTY/模型验收、部署、发布、版本升级与 push 未执行，也未开始下一票据。
+- Issue 35 已改路线并实现（未提交）：成员资格以宿主 `session.append` 存储行为准，排队提交一律显式对账，最低宿主版本 2.1.290；统一 startup 门禁通过；修复后真实 PTY 验收（2.1.290 隔离）第 4 轮通过，前 3 轮为 runner 缺陷；代码审查修复后 startup 门禁与 PTY 第 5 轮均通过，票据 resolved。不修改历史误归档记录；发布门禁与版本号未动。
 
 ## Not yet specified
 

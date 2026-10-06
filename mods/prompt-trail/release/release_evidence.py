@@ -16,8 +16,8 @@ import evidence
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 REPO = ROOT.parents[1]
-MINIMUM_CLAUDE_VERSION = "2.1.273"
-CURRENT_CLAUDE_VERSION = "2.1.283"
+MINIMUM_CLAUDE_VERSION = "2.1.290"
+CURRENT_CLAUDE_VERSION = "2.1.290"
 TYPESCRIPT_VERSION = "5.9.3"
 UNIT_MODULES = [
     "artifact_static", "bridge_protocol", "helper_protocol", "project_root", "release_verdict",
@@ -238,7 +238,7 @@ def main() -> None:
 
     selected = set(arguments.only.split(",")) if arguments.only else None
     partial = selected is not None or arguments.skip_gates
-    versions = [MINIMUM_CLAUDE_VERSION, CURRENT_CLAUDE_VERSION]
+    versions = list(dict.fromkeys([MINIMUM_CLAUDE_VERSION, CURRENT_CLAUDE_VERSION]))
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out = arguments.out or ROOT / "build/evidence" / stamp
     token = keychain_token()

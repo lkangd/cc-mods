@@ -2429,7 +2429,7 @@ def sec_003(ctx: Context) -> str:
     )
 
 # The latest Claude Code below the supported minimum.
-BELOW_MINIMUM = "2.1.272"
+BELOW_MINIMUM = "2.1.289"
 _HOSTS: dict = {}
 
 

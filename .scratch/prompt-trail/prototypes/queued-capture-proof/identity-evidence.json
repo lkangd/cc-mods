@@ -1,0 +1,261 @@
+{
+  "scope": "identity probe, not a production fix",
+  "versions": [
+    {
+      "version": "2.1.273",
+      "error": null,
+      "privacy": {
+        "scannedFiles": 590,
+        "allowedFiles": 5,
+        "argvSamples": 0,
+        "leaks": []
+      },
+      "cases": [
+        {
+          "label": [
+            "QUEUE-001"
+          ],
+          "submitInputKeys": [
+            "text",
+            "wait",
+            "origin",
+            "turnId"
+          ],
+          "submitResultKeys": [
+            "text",
+            "origin"
+          ],
+          "submitHasOwnIdentity": false,
+          "classicPromptIdIsRunningPromptId": true,
+          "dequeuedPromptIdDiffersFromClassic": true,
+          "renderIdentityCount": 3,
+          "hasRealQueuedHumanRow": true
+        },
+        {
+          "label": [
+            "DUP-001"
+          ],
+          "submitInputKeys": [
+            "text",
+            "wait",
+            "origin",
+            "turnId"
+          ],
+          "submitResultKeys": [
+            "text",
+            "origin"
+          ],
+          "submitHasOwnIdentity": false,
+          "classicPromptIdIsRunningPromptId": true,
+          "dequeuedPromptIdDiffersFromClassic": true,
+          "renderIdentityCount": 6,
+          "hasRealQueuedHumanRow": true
+        },
+        {
+          "label": [
+            "NEXT-001"
+          ],
+          "submitInputKeys": [
+            "text",
+            "wait",
+            "origin",
+            "turnId"
+          ],
+          "submitResultKeys": [
+            "text",
+            "origin"
+          ],
+          "submitHasOwnIdentity": false,
+          "classicPromptIdIsRunningPromptId": true,
+          "dequeuedPromptIdDiffersFromClassic": true,
+          "renderIdentityCount": 4,
+          "hasRealQueuedHumanRow": true
+        },
+        {
+          "label": [
+            "WITHDRAW-001"
+          ],
+          "submitInputKeys": [
+            "text",
+            "wait",
+            "origin",
+            "turnId"
+          ],
+          "submitResultKeys": [
+            "text",
+            "origin"
+          ],
+          "submitHasOwnIdentity": false,
+          "classicPromptIdIsRunningPromptId": true,
+          "dequeuedPromptIdDiffersFromClassic": null,
+          "renderIdentityCount": 2,
+          "hasRealQueuedHumanRow": false
+        }
+      ],
+      "withdrawalThenNewBranch": true,
+      "afterParentIsPreviousRealEntry": true,
+      "unboundReplay": [
+        {
+          "eventId": "observation:20",
+          "labels": [
+            "QUEUE-001"
+          ],
+          "afterQueue": "waiting",
+          "afterObservedOutcome": "ambiguous"
+        },
+        {
+          "eventId": "observation:38",
+          "labels": [
+            "DUP-001"
+          ],
+          "afterQueue": "waiting",
+          "afterObservedOutcome": "ambiguous"
+        },
+        {
+          "eventId": "observation:44",
+          "labels": [
+            "NEXT-001"
+          ],
+          "afterQueue": "waiting",
+          "afterObservedOutcome": "ambiguous"
+        },
+        {
+          "eventId": "observation:68",
+          "labels": [
+            "WITHDRAW-001"
+          ],
+          "afterQueue": "waiting",
+          "afterObservedOutcome": "ambiguous"
+        }
+      ]
+    },
+    {
+      "version": "2.1.283",
+      "error": null,
+      "privacy": {
+        "scannedFiles": 590,
+        "allowedFiles": 5,
+        "argvSamples": 0,
+        "leaks": []
+      },
+      "cases": [
+        {
+          "label": [
+            "QUEUE-001"
+          ],
+          "submitInputKeys": [
+            "text",
+            "wait",
+            "origin",
+            "turnId"
+          ],
+          "submitResultKeys": [
+            "text",
+            "origin"
+          ],
+          "submitHasOwnIdentity": false,
+          "classicPromptIdIsRunningPromptId": true,
+          "dequeuedPromptIdDiffersFromClassic": true,
+          "renderIdentityCount": 3,
+          "hasRealQueuedHumanRow": true
+        },
+        {
+          "label": [
+            "DUP-001"
+          ],
+          "submitInputKeys": [
+            "text",
+            "wait",
+            "origin",
+            "turnId"
+          ],
+          "submitResultKeys": [
+            "text",
+            "origin"
+          ],
+          "submitHasOwnIdentity": false,
+          "classicPromptIdIsRunningPromptId": true,
+          "dequeuedPromptIdDiffersFromClassic": true,
+          "renderIdentityCount": 6,
+          "hasRealQueuedHumanRow": true
+        },
+        {
+          "label": [
+            "NEXT-001"
+          ],
+          "submitInputKeys": [
+            "text",
+            "wait",
+            "origin",
+            "turnId"
+          ],
+          "submitResultKeys": [
+            "text",
+            "origin"
+          ],
+          "submitHasOwnIdentity": false,
+          "classicPromptIdIsRunningPromptId": true,
+          "dequeuedPromptIdDiffersFromClassic": true,
+          "renderIdentityCount": 3,
+          "hasRealQueuedHumanRow": true
+        },
+        {
+          "label": [
+            "WITHDRAW-001"
+          ],
+          "submitInputKeys": [
+            "text",
+            "wait",
+            "origin",
+            "turnId"
+          ],
+          "submitResultKeys": [
+            "text",
+            "origin"
+          ],
+          "submitHasOwnIdentity": false,
+          "classicPromptIdIsRunningPromptId": true,
+          "dequeuedPromptIdDiffersFromClassic": null,
+          "renderIdentityCount": 2,
+          "hasRealQueuedHumanRow": false
+        }
+      ],
+      "withdrawalThenNewBranch": true,
+      "afterParentIsPreviousRealEntry": true,
+      "unboundReplay": [
+        {
+          "eventId": "observation:20",
+          "labels": [
+            "QUEUE-001"
+          ],
+          "afterQueue": "waiting",
+          "afterObservedOutcome": "ambiguous"
+        },
+        {
+          "eventId": "observation:38",
+          "labels": [
+            "DUP-001"
+          ],
+          "afterQueue": "waiting",
+          "afterObservedOutcome": "ambiguous"
+        },
+        {
+          "eventId": "observation:44",
+          "labels": [
+            "NEXT-001"
+          ],
+          "afterQueue": "waiting",
+          "afterObservedOutcome": "ambiguous"
+        },
+        {
+          "eventId": "observation:64",
+          "labels": [
+            "WITHDRAW-001"
+          ],
+          "afterQueue": "waiting",
+          "afterObservedOutcome": "ambiguous"
+        }
+      ]
+    }
+  ]
+}

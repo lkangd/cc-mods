@@ -1,5 +1,7 @@
-import { expect, mock, test } from 'claude-code/testing'
+import { expect, mock } from 'claude-code/testing'
+import { test } from './support'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from '../hooks/artifact'
+import { ran } from './support'
 
 const session = {
   cwd: '/tmp/prompt-trail-project',
@@ -49,7 +51,7 @@ test('reports unsupported target without touching an archive', async ($, on) => 
     const value = e.argv[1] === '-s'
       ? { exitCode: 0, stdout: 'Linux\n', stderr: '' }
       : { exitCode: 0, stdout: '', stderr: '' }
-    return { value }
+    return ran(value)
   })
 
   await $.session.start(session)
@@ -96,8 +98,8 @@ test('reports supported only after the trusted read-only preflight succeeds', as
     hostPid: 4242,
     hostStartSeconds: 100,
     hostStartMicroseconds: 200,
-    hostExecutable: '/opt/claude/2.1.278',
-    hostVersion: '2.1.278',
+    hostExecutable: '/opt/claude/2.1.290',
+    hostVersion: '2.1.290',
     pluginRoot,
     pluginData,
     databaseRoot,
@@ -116,7 +118,7 @@ test('reports supported only after the trusted read-only preflight succeeds', as
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('fs.list', (_$, e) => ({
     value: e.path === locatorDirectory
-      ? [{ name: `${activeSessionId}.4242-100-200.json`, kind: 'file' as const, size: 1 }]
+      ? [{ name: `${activeSessionId}.4242-100-200.json`, kind: 'file' as const, size: 1, mtimeMs: 0, isLink: false }]
       : [],
   }))
   on('fs.read', (_$, e) => {
@@ -129,22 +131,22 @@ test('reports supported only after the trusted read-only preflight succeeds', as
     const argv = [...e.argv]
     processCalls.push(argv)
     if (argv[0] === '/usr/bin/uname' && argv[1] === '-s') {
-      return { value: { exitCode: 0, stdout: 'Darwin\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: 'Darwin\n', stderr: '' })
     }
     if (argv[0] === '/usr/bin/uname' && argv[1] === '-m') {
-      return { value: { exitCode: 0, stdout: 'arm64\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: 'arm64\n', stderr: '' })
     }
     if (argv[0] === '/usr/bin/sw_vers') {
-      return { value: { exitCode: 0, stdout: '15.8\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: '15.8\n', stderr: '' })
     }
     if (argv[0] === '/usr/bin/id') {
-      return { value: { exitCode: 0, stdout: '501\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: '501\n', stderr: '' })
     }
     if (argv[0] === '/bin/ls') {
-      return { value: { exitCode: 0, stdout: 'private path\n', stderr: '' } }
+      return ran({ exitCode: 0, stdout: 'private path\n', stderr: '' })
     }
     if (argv[0] === '/bin/realpath') {
-      return { value: { exitCode: 0, stdout: `${argv[1]}\n`, stderr: '' } }
+      return ran({ exitCode: 0, stdout: `${argv[1]}\n`, stderr: '' })
     }
     if (argv[0] === '/usr/bin/stat') {
       const path = argv[argv.length - 1]
@@ -158,43 +160,37 @@ test('reports supported only after the trusted read-only preflight succeeds', as
         && activeSessionId !== sessionId
         && transientClearLocatorMode
       if (transientMode) transientClearLocatorMode = false
-      return {
-        value: {
-          exitCode: 0,
-          stdout: `${directory ? 'Directory' : 'Regular File'}|501|${directory ? '700' : path === activeLocatorPath ? transientMode ? '644' : '600' : '755'}\n`,
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: `${directory ? 'Directory' : 'Regular File'}|501|${directory ? '700' : path === activeLocatorPath ? transientMode ? '644' : '600' : '755'}\n`,
+        stderr: '',
+      })
     }
     if (argv[0] === '/usr/bin/shasum') {
-      return {
-        value: {
-          exitCode: 0,
-          stdout: `${EXPECTED_HELPER_SHA256}  ${helperPath}\n`,
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: `${EXPECTED_HELPER_SHA256}  ${helperPath}\n`,
+        stderr: '',
+      })
     }
     if (argv[0] === helperPath && argv[1] === 'preflight') {
-      return {
-        value: {
-          exitCode: 0,
-          stdout: JSON.stringify({
-            status: 'supported',
-            artifactStatus: 'trusted',
-            sessionId: activeSessionId,
-            runId,
-            archiveGeneration,
-            databaseRoot,
-            helperPath,
-            helperProtocol: HELPER_PROTOCOL,
-            macosVersion: '15.8',
-            sqliteVersionNumber: 3049001,
-            sqliteReturning: true,
-          }),
-          stderr: '',
-        },
-      }
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          status: 'supported',
+          artifactStatus: 'trusted',
+          sessionId: activeSessionId,
+          runId,
+          archiveGeneration,
+          databaseRoot,
+          helperPath,
+          helperProtocol: HELPER_PROTOCOL,
+          macosVersion: '15.8',
+          sqliteVersionNumber: 3049001,
+          sqliteReturning: true,
+        }),
+        stderr: '',
+      })
     }
     throw new Error(`unexpected process: ${argv.join(' ')}`)
   })

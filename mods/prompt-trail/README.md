@@ -7,7 +7,7 @@ Prompt Trail 是一个 Claude Code 插件。它把你在终端 composer 里成�
 只支持下面这一种组合，其他组合一律不承诺：
 
 - macOS 15.x，原生 arm64；
-- Claude Code `>=2.1.273`，并在进程环境里设置 `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`（function hooks 仍是 early access）；
+- Claude Code `>=2.1.290`，并在进程环境里设置 `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`（function hooks 仍是 early access）；
 - 交互式终端；
 - 从可信的本地目录加载：`claude --plugin-dir <本仓库>/mods/prompt-trail`。
 
@@ -25,6 +25,7 @@ Issue 53 的首次实现于 2026-10-01 通过统一非模型 startup 门禁；20
 ## 使用
 
 - 第一次提交 prompt 时，插件会先询问是否为当前项目启用采集。选「继续但不启用」则什么都不保存。
+- 只有 Claude Code 真正把这条 prompt 存进对话，它才成为时间线上的一条记录。模型运行中输入的 prompt 会先排进宿主队列，之后可能被撤回，宿主也不说明哪条进入了；所以排队的提交先保持待对账，不算记录。它没结算时，会话还在运行就再提交会被拦下、草稿恢复；会话空闲后的下一次提交先弹出对账，写明它排队之后宿主存储了几条 composer 行。一条都没有时它不可能已进入，对账只提供「未进入 / 新根分支」；有存储行或无法证明时（例如重启后），才另外提供「已进入」。
 - `/prompt-history` 展开或折叠时间线；`/prompt-history status` 查看状态。status 不会显示任何 prompt 原文。
 - `/prompt-history disable` 停用当前 Run 的采集；`/prompt-history enable` 重新启用。已有档案健康未知时，`enable` 提供显式“初始化并完整复检”确认，即使当前 Run 已停用也可使用；失败或取消不改变采集模式，不创建 Prompt Entry。
 - `/prompt-history clear-run` 删除当前 Run 的全部记录；`/prompt-history clear-all` 删除当前项目的全部记录。两者都会先列出将要删除的内容，确认后才执行。
@@ -32,7 +33,7 @@ Issue 53 的首次实现于 2026-10-01 通过统一非模型 startup 门禁；20
 ## 不支持的平台与 surface
 
 - Linux、Windows、WSL、Intel Mac、Rosetta，以及 macOS 14 及更早的版本；
-- Claude Code 低于 `2.1.273`，或者版本无法证明；
+- Claude Code 低于 `2.1.290`，或者版本无法证明；
 - Desktop、VS Code、JetBrains、Mobile 等非终端 surface。
 
 ## Marketplace 边界

@@ -1,0 +1,103 @@
+{
+  "acceptance": "Issue 35 PTY acceptance after the code-review fixes, round 5 (2026-10-06)",
+  "version": "2.1.290",
+  "submissions": 6,
+  "dialogChoices": 3,
+  "checks": [
+    {
+      "check": "the queued prompt is a Pending Capture",
+      "ok": true
+    },
+    {
+      "check": "the withdrawn prompt has no transcript row",
+      "ok": true
+    },
+    {
+      "check": "only A is archived after the withdrawal",
+      "ok": true
+    },
+    {
+      "check": "the withdrawn prompt is offered only 未进入 / 新根分支",
+      "ok": true
+    },
+    {
+      "check": "the dialog states that no composer row was stored",
+      "ok": true
+    },
+    {
+      "check": "no pending is left after 未进入",
+      "ok": true
+    },
+    {
+      "check": "the new prompt came back as a draft",
+      "ok": true
+    },
+    {
+      "check": "A then N1 are archived",
+      "ok": true
+    },
+    {
+      "check": "N1 goes on from A on the same branch: no rewind, no new branch",
+      "ok": true
+    },
+    {
+      "check": "the dequeued repeat is not archived before it is settled",
+      "ok": true
+    },
+    {
+      "check": "the dequeued repeat stays a Pending Capture",
+      "ok": true
+    },
+    {
+      "check": "the dequeued prompt is offered all three choices",
+      "ok": true
+    },
+    {
+      "check": "the dialog states one composer row was stored",
+      "ok": true
+    },
+    {
+      "check": "the repeat is archived once, after N1",
+      "ok": true
+    },
+    {
+      "check": "the repeat goes on from N1 on the same branch",
+      "ok": true
+    },
+    {
+      "check": "no pending is left after 已进入",
+      "ok": true
+    },
+    {
+      "check": "N2 came back as a draft",
+      "ok": true
+    }
+  ],
+  "reached": [
+    "A running",
+    "withdrawn",
+    "settled not entered",
+    "N1 running",
+    "dequeued",
+    "settled entered"
+  ],
+  "outcome": "passed",
+  "entries": [
+    {
+      "label": "ACC-A"
+    },
+    {
+      "label": "ACC-N1"
+    },
+    {
+      "label": "ACC-N1"
+    }
+  ],
+  "pending": [],
+  "privacy": {
+    "scannedFiles": 554,
+    "allowedFiles": 5,
+    "argvSamples": 0,
+    "leaks": []
+  }
+}

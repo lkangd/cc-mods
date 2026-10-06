@@ -8,17 +8,17 @@ Claude Code 终端使用者在长对话中无法获得一条只包含人类输�
 
 使用者同时要求完整 prompt 文本永久保存在本机，因此该功能会处理可能包含凭据和机密的高敏感数据。它不能把安装视为同意，不能静默漏记、猜测分支、伪造完整性，也不能在删除时暗示 Claude Code transcript、系统快照或备份已经一并清除。
 
-Claude Code `2.1.273` 的 early-access function-hooks 环境没有 Node、DOM 或可承担永久档案的内建存储；`$.store` 和 `$.fs` 均受 4 MiB 与整文件语义限制。function hook 也拿不到插件路径变量，部分焦点、滚动和 UI 槽位行为由宿主保留。因此 MVP 必须在这些边界内提供明确、可验收的行为和失败路径，而不是依赖未声明的宿主实现。
+Claude Code `2.1.290` 的 early-access function-hooks 环境没有 Node、DOM 或可承担永久档案的内建存储；`$.store` 和 `$.fs` 均受 4 MiB 与整文件语义限制。function hook 也拿不到插件路径变量，部分焦点、滚动和 UI 槽位行为由宿主保留。因此 MVP 必须在这些边界内提供明确、可验收的行为和失败路径，而不是依赖未声明的宿主实现。
 
 ## Solution
 
-Prompt Trail 将作为多-mod 仓库中位于 `mods/prompt-trail/` 的独立本地插件交付，仅面向 Claude Code `>=2.1.273` 交互式终端。它在每个 Project Timeline 获得 Collection consent 后，通过 function hook 捕获成功进入会话的 composer submission，把完整最终文本写入该项目独立的 SQLite 档案，并把 Run、Conversation Segment、Conversation Branch、Clear Boundary、Collection Boundary 与 Integrity gap 建模为不可变 Timeline Events。
+Prompt Trail 将作为多-mod 仓库中位于 `mods/prompt-trail/` 的独立本地插件交付，仅面向 Claude Code `>=2.1.290` 交互式终端。它在每个 Project Timeline 获得 Collection consent 后，通过 function hook 捕获成功进入会话的 composer submission，把完整最终文本写入该项目独立的 SQLite 档案，并把 Run、Conversation Segment、Conversation Branch、Clear Boundary、Collection Boundary 与 Integrity gap 建模为不可变 Timeline Events。
 
 插件默认只在 composer 上方显示一行折叠标题。展开后，它按旧到新连续显示 Project Timeline，以有界窗口按需读取长历史，保留重复项和失效条目；当前 transcript 中仍有效的 Prompt Entry 获得内存态 Jump Target，可通过键盘或鼠标返回原位置。无法唯一重建分支时，本次提交被阻止，使用者选择父节点后草稿被恢复但不会自动重提。
 
 持久化由随插件分发的受信任 macOS arm64 helper 完成。经典 command hook 负责把插件路径和数据路径发布为受校验的 session locator，function hook 再通过 `$.process.run` 以 stdin 调用 helper。档案采用事务、WAL、幂等事件、项目级单调 sequence、明确迁移与物理删除流程；任何无法证明正确采集的普通故障都失败关闭，宿主级 fail-open 则留下显著且不可抹除的 Integrity gap。
 
-MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early-access function hooks，以及从独立插件根 `--plugin-dir mods/prompt-trail` 加载。不支持的环境在 consent 或建档前失败，并保持 `status` 与必要诊断可用。
+MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.290`、进程级启用 early-access function hooks，以及从独立插件根 `--plugin-dir mods/prompt-trail` 加载。不支持的环境在 consent 或建档前失败，并保持 `status` 与必要诊断可用。
 
 ## User Stories
 
@@ -107,10 +107,10 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 
 1. **兼容面与交付单元**
    - `cc-mods` 是多-mod 容器；生产插件的 function-hook 模块、经典 lifecycle command-hook 桥、预构建原生 helper、制品 manifest、构建检查器、版本固定声明和验收工具全部位于独立插件根 `mods/prompt-trail/`。仓库根不得包含代表 Prompt Trail 的 `.claude-plugin` manifest。
-   - 唯一支持目标是 macOS 15.x 原生 arm64、Claude Code `>=2.1.273` 交互式终端、进程级 `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` 和可信本地 `--plugin-dir`；版本按三段数字比较，低于最低版本或无法证明版本时失败关闭。
+   - 唯一支持目标是 macOS 15.x 原生 arm64、Claude Code `>=2.1.290` 交互式终端、进程级 `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1` 和可信本地 `--plugin-dir`；版本按三段数字比较，低于最低版本或无法证明版本时失败关闭。
    - function-hook 模块使用 TypeScript/TSX 与宿主 JSX；它不得使用 Node、DOM、React、Ink、终端转义序列或第三方运行时依赖。
    - helper 是 thin arm64 Mach-O，deployment target 固定为 macOS 15.0，动态链接系统 `/usr/lib/libsqlite3.dylib`；安装与首次运行不要求编译器。
-   - Linux、Windows、WSL、Intel、Rosetta、其他 macOS 主版本、Claude Code `<2.1.273`、无法证明宿主版本和非终端 surface 直接进入 unsupported，不做 best-effort fallback。
+   - Linux、Windows、WSL、Intel、Rosetta、其他 macOS 主版本、Claude Code `<2.1.290`、无法证明宿主版本和非终端 surface 直接进入 unsupported，不做 best-effort fallback。
 
 2. **领域模型**
    - Project Timeline 是一个规范项目根对应的永久时间线；不同 worktree、移动后的项目路径和不同规范根彼此隔离。
@@ -122,6 +122,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
    - Prompt Entry 保存完整最终文本、项目/Run/Segment/Branch 身份、sequence、event ID、逻辑父 Prompt Entry、提交时间、捕获来源，以及附件数量和宽泛类型。相同文本不得合并。
    - Jump Target 是 Prompt Entry 到当前已渲染 transcript 位置的临时内存绑定；`requestId` 不进入长期档案。
    - Pending Capture 是已持久预写但尚未确认进入会话的 composer submission；它不是 Prompt Entry。
+   - 成员资格以宿主存储行为准：只有宿主经 `session.append` 存下该提交自己的 composer 行（`door: prompt`、`origin: composer`、`type: user`、非 isMeta、主循环），提交才成为 Prompt Entry；Entry 的正文和附件摘要仍取 `prompt.submit` 返回的最终文本，存储行只证明进入。最低宿主版本因此为 `2.1.290`（`2.1.273`/`2.1.283` 没有该接口）。
    - Clear Boundary、Collection Boundary、Run boundary、branch boundary、Integrity gap 与 Integrity recovery boundary 都是非 prompt Timeline Events。
    - 物理 SQLite schema、表名和列布局保持内部；helper 的语义协议而非数据库布局构成测试与兼容边界。
 
@@ -158,7 +159,9 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
    - 在启用且健康的 Run 中，先完成 lifecycle 恢复队列、Pending Capture 与 Active Branch 对账，再为本次提交持久预写 Pending Capture。
    - 调用 `next(e)` 后，若结果为 `drop`，幂等丢弃 pending；若成功进入会话，以结果中的最终文本原子确认 Prompt Entry。
    - Pending Capture 预写失败时 drop 本次提交并原样保留 composer 草稿；后置确认失败时保留 pending、阻止该 Run 后续 composer submission 并进入显式对账。
-   - 自动对账只在 transcript 能唯一证明结果时确认或丢弃；否则由使用者选择“已进入 / 未进入 / 新根分支”。
+   - 空闲提交在 `next(e)` 内恰好存下一条 composer 行、且没有并发提交共享该窗口时才确认；之后的确认失败保留 pending（已有存储行证明），下一次提交直接补确认，不再询问。
+   - 排队提交（提交时有 `turnId`）及窗口内 0 行或多行的空闲提交一律保持 `unproven` Pending Capture：不建 Entry、不推进 Active Branch。会话忙时再次提交（包括另一条排队提交尚在排入、未记为 pending 时）被 drop 并恢复草稿，不弹对话框；会话空闲时的下一次提交先显式对账。对话框说明排队之后宿主在本 Run 中、其他提交之外存下的 composer 行数（空闲提交计 0）；为 0 时只提供“未进入 / 新根分支”，≥1 或计数无法证明（写入失败、模块重载或重启）时提供三项。宿主不提供提交到出队/撤回的身份，计数只是证据，不把某一行绑定到某条提交。
+   - transcript 的同文匹配不再自动确认或丢弃任何 pending；没有存储行证明的 pending（含重启后从档案发现的）由使用者选择“已进入 / 未进入 / 新根分支”。
    - disabled Run 直接让 composer submission 继续，不创建 pending 或 Prompt Entry。
    - slash 文本不做特殊前缀过滤；是否采集只取决于是否出现成功的 composer-origin submission。
 
@@ -258,7 +261,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
    - 生产 hook、生产 helper 和生产 manifest 必须直接进入测试，不能用另一套测试实现复制业务规则。
 
 2. **主 seam：真实 Claude Code PTY**
-   - 在隔离项目、plugin data、locator 和 HOME 下，以最低兼容版本 `2.1.273` 和当前发布验收版本、function-hooks 环境变量及 `--plugin-dir mods/prompt-trail` 启动真实交互式终端；不得把仓库根或 `mods/` 容器当作插件根。
+   - 在隔离项目、plugin data、locator 和 HOME 下，以最低兼容版本 `2.1.290` 和当前发布验收版本、function-hooks 环境变量及 `--plugin-dir mods/prompt-trail` 启动真实交互式终端；不得把仓库根或 `mods/` 容器当作插件根。
    - PTY 驱动普通/重复/多行/附件 prompt、slash 命令、`/clear`、`/compact`、reload、exit/restart、resume、两种 fork、rewind、Esc Esc、终端 resize、键盘、鼠标和 AskUserQuestion。
    - 通过终端可见状态、命令结果、Jump Target 行为及 semantic verifier 断言结果；不得依赖 debug log 中的 prompt。
    - 真实宿主还必须端到端注入 locator/helper 不可用、提交失败关闭、重试、禁用后继续、busy、损坏和物理删除残留。
@@ -306,7 +309,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
    - [`prompt-alignment-rewind` 原型](prototypes/prompt-alignment-rewind/README.md) 提供 composer/internal 流量、render 重放、Run 身份、resume/fork/rewind 的真实 trace。
    - [`scrollable-timeline` 原型](prototypes/scrollable-timeline/README.md) 提供 AbovePrompt、Jump Target、窄终端、AskUserQuestion 让出和歧义 Pane 的真人证据。
    - [`sqlite-helper` 原型](prototypes/sqlite-helper/README.md) 及其 Python scenario driver 提供事务、并发、crash、migration 和删除测试种子。
-   - 这些资产是证据和 harness 种子，不是生产实现。生产测试必须使用 `2.1.273` 生成声明；不得沿用 scrollable prototype 中标为 `2.1.271` 的本地声明。
+   - 这些资产是证据和 harness 种子，不是生产实现。生产测试必须使用 `2.1.290` 生成声明；不得沿用 scrollable prototype 中标为 `2.1.271` 的本地声明。
 
 10. **测试成功标准**
     - 插件校验、TypeScript 检查、helper 构建/静态检查、plugin tests、helper protocol tests、PTY acceptance、100k benchmark 和隐私扫描全部通过。
@@ -319,7 +322,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 
 - 搜索、复制、导出或用 `$.prompt.fill()` 回填任意旧 Prompt Entry；`$.prompt.fill()` 只用于恢复被歧义确认流程阻止的当前草稿。
 - Desktop、VS Code、JetBrains、Mobile 或其他非终端 surface。
-- Linux、Windows、WSL、Intel Mac、Rosetta、macOS 14 及更早版本，或 Claude Code `<2.1.273`/版本无法证明。
+- Linux、Windows、WSL、Intel Mac、Rosetta、macOS 14 及更早版本，或 Claude Code `<2.1.290`/版本无法证明。
 - Marketplace 发布、更新、卸载、scope 合并和 `--keep-data` 行为。
 - 网络访问、远程同步、云备份、prompt 日志或遥测。
 - 修改、解析或依赖 Claude Code transcript 文件的内部格式；通过公开 `$.session.messages()` 读取当前会话除外。
@@ -338,7 +341,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.273`、进程级启用 early
 ## Further Notes
 
 - 生产 Prompt Trail 正在 `mods/prompt-trail/` 中实现；`.scratch/prompt-trail/prototypes/` 下的 TypeScript/TSX、C、Python、shell、HTML 与 trace 仍只是一次性研究原型，不得作为生产插件根。
-- 实现必须从最低兼容版本 `2.1.273` 重新生成 function-hook declarations，并以它们作为事件、EngineInterface、UI element 和 plugin testing API 的兼容基线。
+- 实现必须从最低兼容版本 `2.1.290` 重新生成 function-hook declarations，并以它们作为事件、EngineInterface、UI element 和 plugin testing API 的兼容基线。
 - 不得直接提升以下原型做法：单一多项目数据库、持久化绝对项目路径、consent 前建档、env-only Run ID、text-first Jump Target 匹配、全量内存时间线、静态 locator 文件、自动聚焦或 Esc 自动折叠。
 - function hook API 是 early access；每次发布必须在最低兼容版本和当前发布验收版本重新完成插件校验、构建检查与真实宿主代表性验收。更高版本不因版本号本身被拒绝，但任何协议、API 或运行期能力不兼容仍失败关闭。
 - 完整决策索引位于 [`map.md`](map.md)，规范性验收场景详见 [`定稿兼容与验收契约`](issues/05-finalize-acceptance-contract.md)。

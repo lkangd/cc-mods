@@ -47,7 +47,7 @@
       "id": "PT-COMPAT-002",
       "title": "不受支持目标",
       "steps": [
-        "分别注入操作系统、架构、macOS 主版本、低于 2.1.273 或无法证明的 Claude Code 版本（PTY 注入 2.1.272 宿主、在 Rosetta 下运行的 x64 宿主与无法写入的 locator 目录；插件以绝对路径调用 `uname` 与 `sw_vers`，操作系统与 macOS 主版本无法从外部伪造，由 plugin test 证明）",
+        "分别注入操作系统、架构、macOS 主版本、低于 2.1.290 或无法证明的 Claude Code 版本（PTY 注入 2.1.289 宿主、在 Rosetta 下运行的 x64 宿主与无法写入的 locator 目录；插件以绝对路径调用 `uname` 与 `sw_vers`，操作系统与 macOS 主版本无法从外部伪造，由 plugin test 证明）",
         "启动并查看 `status`"
       ],
       "expected": "不请求 consent、不创建档案、不联网或编译；`status` 显示 `unsupported target`。",

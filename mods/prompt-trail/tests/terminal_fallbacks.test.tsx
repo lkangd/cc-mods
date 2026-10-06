@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect } from 'claude-code/testing'
+import { test } from './support'
 import type { Engine } from 'claude-code/testing'
 import { clipCells, textCells } from '../hooks/cells'
 import type { ArchiveRow } from './support'
