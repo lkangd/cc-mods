@@ -447,6 +447,9 @@ const FOCUS_HINT = 'ctrl+x tab 键盘选择'
 /* Said on the title row while this Run collects and cannot, so a failure
    another Run found shows before the next submission meets it. */
 const UNAVAILABLE_MARK = '档案不可用'
+/* The cells at the right end of the band's column that the engine keeps for
+   its `[-]`, which `bodyColumns` leaves out. */
+const BAND_MARK_CELLS = 5
 const UP_MIN_CELLS = 5
 /* AskUserQuestion dialogs now open, and whether the host's last drawing of
    the band had a survey holding it: the band gives way to either, and leaves
@@ -1776,7 +1779,12 @@ async function canonicalProjectRoot(
   return canonical
 }
 
-async function prepareProject($: EngineInterface): Promise<ProjectState> {
+/* `health: false` leaves the archive's health unread, for a caller that has
+   not yet proven the helper it would run to read it. */
+async function prepareProject(
+  $: EngineInterface,
+  { health = true }: { health?: boolean } = {},
+): Promise<ProjectState> {
   if (!runtimeTarget) throw new Error('project-root-unproven')
   const root = await canonicalProjectRoot($, runtimeTarget.cwd)
   const id = await sha256(root)
@@ -1792,7 +1800,7 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
     project.consent = storedConsent(await $.store.get(consentKey(id))) ?? project.consent
     /* So is the archive, and another Run may have found it failing, or
        working again, since this one last looked. */
-    await readArchiveState($, project)
+    await readArchiveState($, project, health)
     return project
   }
   const consent = storedConsent(await $.store.get(consentKey(id)))
@@ -1835,7 +1843,7 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
     archiveReady: false,
   }
   startup.projectPath = root
-  await readArchiveState($, project)
+  await readArchiveState($, project, health)
   /* Not knowing whether something is owed is itself a reason to stop, so an
      unreadable record fails closed exactly as an unreadable archive does. */
   if (owedUnknown && consent === 'enabled') {
@@ -1849,10 +1857,14 @@ async function prepareProject($: EngineInterface): Promise<ProjectState> {
    another Run found the archive failing, and resumes once any Run proved it
    works. A record that cannot be read stops this Run as a failing archive
    would, without being written anywhere. */
-async function readArchiveState($: EngineInterface, currentProject: ProjectState): Promise<void> {
+async function readArchiveState(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  health = true,
+): Promise<void> {
   const before = JSON.stringify(archiveFailure)
   await readArchiveRecord($, currentProject)
-  if (startup.support === 'supported' && startup.helperPath && startup.databaseRoot) {
+  if (health && startup.support === 'supported' && startup.helperPath && startup.databaseRoot) {
     try {
       const health = await readArchiveHealth($, currentProject)
       /* A proven absent archive has no active generation for an old damage
@@ -5395,7 +5407,9 @@ async function submitCollected(
   if (!runtimeTarget) return { done: await next(e) }
   let currentProject: ProjectState
   try {
-    currentProject = await prepareProject($)
+    /* Reading the archive's health runs the helper, which this submission
+       has not proven yet: it is read once the target is. */
+    currentProject = await prepareProject($, { health: false })
   } catch {
     /* A Run that is already known to be disabled collects nothing, so there
        is nothing to miss and nothing to block. */
@@ -5456,6 +5470,7 @@ async function submitCollected(
   }
   currentProject.databasePath = `${startup.databaseRoot}/${currentProject.id}.sqlite3`
   startup.projectPath = currentProject.root
+  await readArchiveState($, currentProject)
 
   let decision: ConsentDecision | undefined
   try {
@@ -6184,7 +6199,8 @@ async function enableCollection($: EngineInterface): Promise<string> {
 
   let currentProject: ProjectState
   try {
-    currentProject = await prepareProject($)
+    /* Its health is read once the helper that reads it is proven. */
+    currentProject = await prepareProject($, { health: false })
   } catch {
     return 'Prompt Trail 无法证明当前项目身份，未启用采集。'
   }
@@ -6193,6 +6209,7 @@ async function enableCollection($: EngineInterface): Promise<string> {
   if (startup.support !== 'supported') {
     return `Prompt Trail 在当前环境不可采集（${startup.support}：${startup.reason}），未启用采集。`
   }
+  await readArchiveState($, currentProject)
   if (!startup.databaseRoot) {
     return 'Prompt Trail 无法证明数据库位置，未启用采集。'
   }
@@ -6362,7 +6379,8 @@ async function disableCollection($: EngineInterface): Promise<string> {
 
   let currentProject: ProjectState
   try {
-    currentProject = await prepareProject($)
+    /* Its health is read once the helper that reads it is proven. */
+    currentProject = await prepareProject($, { health: false })
   } catch {
     return 'Prompt Trail 无法证明当前项目身份，未改变 Run collection mode。'
   }
@@ -6382,6 +6400,7 @@ async function disableCollection($: EngineInterface): Promise<string> {
      Conversation Segment that is current now. After a `/clear` the cached
      startup still names the segment that ended. */
   await refreshStartup($)
+  await readArchiveState($, currentProject)
 
   /* The boundary is attempted even when the archive is already flagged
      unavailable: the flag can be stale, and a stop that lands is what keeps
@@ -7429,17 +7448,26 @@ export const register: Register = on => {
         <Button
           key="prompt-trail:toggle"
           plain
-          label={unavailableShown ? `▸ Prompt Trail · ${UNAVAILABLE_MARK}` : '▸ Prompt Trail'}
+          label={clipCells(unavailableShown ? `▸ Prompt Trail · ${UNAVAILABLE_MARK}` : '▸ Prompt Trail', Math.max(1, e.props.bodyColumns))}
           onPress={toggle}
         />
       )
     }
     /* Too small for its rows, the band keeps only its title, which still
-       folds it; the window, the view and the count wait for room. */
-    if (e.props.bodyColumns < 28 || e.props.maxRows < 6) {
+       folds it; the window, the view and the count wait for room. Columns
+       are the band's column, the engine's `[-]` cells included; the label is
+       cut to what is left, as a host draws a wider label on a second row. */
+    if (e.props.bodyColumns + BAND_MARK_CELLS < 28 || e.props.maxRows < 6) {
       if (!cramped) crampedRing = ringKey
       cramped = true
-      return <Button key="prompt-trail:toggle" plain label="▾ Prompt Trail · 空间不足" onPress={toggle} />
+      return (
+        <Button
+          key="prompt-trail:toggle"
+          plain
+          label={clipCells('▾ Prompt Trail · 空间不足', Math.max(1, e.props.bodyColumns))}
+          onPress={toggle}
+        />
+      )
     }
     if (cramped) {
       cramped = false

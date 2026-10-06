@@ -472,6 +472,35 @@ test('a recheck that passes over an owed pending settles it first', async ($, on
   expect(store[reconcileKey]).toBeUndefined()
 })
 
+test('a recheck that fails, then passes once repaired, settles an owed pending first', async ($, on) => {
+  const store = consentedStore()
+  onBranch(store, 'gen-1')
+  const unavailableAsked: string[] = []
+  const { options } = damagedWhileOwed(store, {
+    unavailableAnswers: ['重新检查完整性', '重新检查完整性'],
+    unavailableAsked,
+    integrity: { result: 'damaged', problems: 1 },
+  })
+  let asked = 0
+  options.duringAsk = () => {
+    options.confirmFails = undefined
+    /* Repaired between the two rechecks. */
+    if (asked++ === 1) options.integrity = undefined
+  }
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+  await composerPrompt($)
+
+  const next = await composerPrompt($, { text: 'PT-SECRET-NEXT' })
+
+  expect(unavailableAsked).toHaveLength(2)
+  expect(unavailableAsked[1]).toContain('完整性检查未通过')
+  expect(options.archive?.filter(row => row.kind === 'prompt').map(row => row.text)).toContain(SECRET)
+  expect(next.drop).toContain('已完成对账')
+  expect(store[reconcileKey]).toBeUndefined()
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
+})
+
 test('a clear over an owed pending takes the pending with it', async ($, on) => {
   const store = consentedStore()
   onBranch(store, 'gen-1')
