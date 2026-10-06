@@ -2839,7 +2839,11 @@ def store_006(ctx: Context) -> str:
         ctx.env.snap(terminal, "recheck passed")
         entries = ctx.wait_entries(3)
         check([e["promptText"] for e in entries].count(prompt(held)) == 1, "the prompt held by the damage was not archived once")
-        check(ctx.transcript_rows(held) - before == once, "the held prompt was not let through once")
+        # The host may still be writing the turn's rows when the entry lands.
+        deadline = time.monotonic() + 15
+        while (lines := ctx.transcript_rows(held) - before) != once and time.monotonic() < deadline:
+            time.sleep(0.5)
+        check(lines == once, f"the held prompt was not let through once: {lines} transcript lines, one submission writes {once}")
     settled = (
         "settled the pending the first try left and gave the held prompt back as a draft" if owed
         else "let the prompt the damage held at its pre-write through once and archived it once"
