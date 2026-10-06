@@ -15,7 +15,7 @@ Prompt Trail 是一个 Claude Code 插件。它把你在终端 composer 里成�
 
 ## 档案健康与制品升级
 
-Issue 53 的首次实现于 2026-10-01 通过统一非模型 startup 门禁；2026-10-02 单轮代码审查的 13 项修复已完成，普通文件 helper 子集 173 tests、两固定宿主版本各 480 plugin tests 与其余非模型门禁通过。11 项系统操作测试未运行，审查修复后的完整 helper/startup 门禁尚未重跑，票据保持 claimed。本节不表示已部署、已发布或真实 PTY 验收已经通过。
+Issue 53 已于 2026-10-06 resolved：审查修复后的完整非模型 startup 门禁通过，包括 184 项 helper 测试（含 11 项只作用于测试临时目录的系统操作测试）。本节不表示已部署、已发布，也不表示真实 PTY 验收已经通过。
 
 - SQLite schema 仍为 2，helper protocol 仍为 1，插件版本不变；helper 制品和摘要会变化。部署前必须退出所有使用旧制品的 writer（包括采集、生命周期及迁移/隔离/清除等维护调用），再用新制品重新接入。旧 locator 不原地改写，reload 不能替代新的进程接入。helper 无法自动证明旧 writer 均已退出，混版本并发不在保证内。
 - helper 的无正文健康记录绑定 Archive generation、健康状态和随机状态 token，是共享损坏的权威；store 只保存显示镜像。已有档案缺少有效记录时为「档案健康状态未知」，须显式完整复检/初始化，不靠普通写入成功推断健康。这是检查尝试，不保证修好；非法记录或发布残留仍被拒绝时继续阻止采集。若决定删除全部项目档案，可另行使用需强确认的 `/prompt-history clear-all`。

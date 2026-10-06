@@ -428,9 +428,10 @@ def capture_008(ctx: Context) -> str:
         lock.close()
     status = ctx.status(terminal)
     check("Pending Capture 待对账" in status, "status does not report the reconciliation")
-    # The next submission settles the pending first: the transcript proves the
-    # held prompt entered, so it is confirmed, and the new prompt comes back as
-    # a draft to send again.
+    # The next submission settles the pending first: the host stored the held
+    # prompt's own composer row inside its submission, which proves it
+    # entered, so it is confirmed without asking, and the new prompt comes
+    # back as a draft to send again.
     ctx.send(terminal, prompt(after))
     terminal.wait_for("已完成对账", "the reconciliation notice", 60)
     ctx.env.snap(terminal, "reconciled")
