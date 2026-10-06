@@ -6,10 +6,12 @@ import argparse
 import datetime
 import importlib.metadata
 import json
+import os
 import pathlib
 import platform
 import subprocess
 import sys
+import tempfile
 import traceback
 
 import evidence
@@ -79,9 +81,16 @@ def run_gates(run: Run, versions: list[str]) -> dict:
         f"missing before the rebuild: {', '.join(missing)}" if missing
         else None if after == before else "rebuilt artifacts differ",
     )
+    # An empty config directory, as verify-startup.sh uses: from 2.1.290 the
+    # host refuses `plugin test` under a config whose saved rollout switch is
+    # off, and the gate is not the person's config to depend on.
+    host_config = tempfile.mkdtemp(prefix="prompt-trail-host-config.")
+    host_env = dict(os.environ, CLAUDE_CONFIG_DIR=host_config)
     for version in versions:
         claude = ["npx", "-y", f"@anthropic-ai/claude-code@{version}"]
-        validated = run.command(f"plugin-validate@{version}", claude + ["plugin", "validate", str(ROOT)])
+        validated = run.command(
+            f"plugin-validate@{version}", claude + ["plugin", "validate", str(ROOT)], env=host_env,
+        )
         run.results.record(
             "validate", "plugin-validate", version,
             "pass" if validated.returncode == 0 else "fail", link=validated.log,
@@ -90,7 +99,9 @@ def run_gates(run: Run, versions: list[str]) -> dict:
             "name": f"plugin-validate@{version}", "link": validated.log, "detail": None,
             "outcome": "pass" if validated.returncode == 0 else "fail",
         })
-        tested = run.command(f"plugin-tests@{version}", claude + ["plugin", "test", "."], cwd=ROOT)
+        tested = run.command(
+            f"plugin-tests@{version}", claude + ["plugin", "test", "."], cwd=ROOT, env=host_env,
+        )
         parsed = evidence.parse_plugin_test_output(tested.stdout + "\n" + tested.stderr)
         for ref, outcome in parsed.items():
             run.results.record("plugin", ref, version, outcome, link=tested.log)
