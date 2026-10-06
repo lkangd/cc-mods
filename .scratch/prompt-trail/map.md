@@ -224,14 +224,15 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   bridge 执行 SessionStart:fork 时，复制过来的行还没写到磁盘上（`--fork-session` 的文件到第一次提交时都还不存在），所以没有采用票面的 bridge 标记。
   改为插件对齐时识别：transcript 的第一行是宿主的 compact 摘要，就补写 compacted 键，按 `truncated` 匹配。
   后台 `/fork` 与 `--fork-session` 的第一条都挂在来源的最后一条上；`PT-BRANCH-002` 扩展覆盖。
-- [跨 Run 损坏记录与写入原子化](issues/53-serialize-damage-state-across-runs.md)（2026-10-01 首次 resolved；2026-10-02 审查后重新 claimed）：
+- [跨 Run 损坏记录与写入原子化](issues/53-serialize-damage-state-across-runs.md)（2026-10-01 首次 resolved；2026-10-02 审查后重新 claimed；2026-10-06 修复后门禁通过，再次 resolved）：
   helper generation/state/token sidecar 是共享损坏权威，store 仅显示镜像；变更与隐含维护统一 project→health→SQLite 守卫，恢复完整复检并绑定 token，普通成功/clear-run 不解除损坏。发布 partial/ready 门跨 rename 保留，隔离续接不退休新代损坏，稳定 health.lock 不删除。
   唯一 startup 门禁通过：helper 177/177、两固定宿主版本 plugin 各 475/475、其他 Python 74/74、validate/TS5.9.3、制品一致性与 protocol probes。初始失败、RED→GREEN、权限/链接及发布 EIO/管道交错的记录保留票据；系统操作只触测试临时目录，helper 全轮与 startup 预算各已用 1/1。
   schema 2/protocol 1/插件 0.1.0 不变；部署前所有旧 writer 须退出后新制品重新接入。不代表已部署、真实 PTY/模型验收或发布；初次门禁时未 commit/push，后续收尾提交授权见票据末尾。
+  2026-10-02 单轮 code-review 的 13 个发现全部修复（`9a86c73`）。2026-10-06 获授权的唯一一轮修复后 startup 门禁 exit 0：helper 184/184（含 11 个只作用于测试临时目录的 hdiutil/chflags 测试）、两固定宿主各 480/480、其他 Python 74/74、validate/TS5.9.3、制品一致性与协议探针。旧 [backlog](../../docs/code-review-backlog/20260930-damage-record-check-then-act-across-runs.md) 同步 resolved。
 
 ## Current work
 
-- Issue 53 于 2026-10-02 单轮 code-review 重新 claimed，13 个发现（10 CONFIRMED、3 cleanup PLAUSIBLE）已逐项复核并修复。修复后普通文件 helper 173/173（全套 184 中预先排除 11 项系统操作）、两固定宿主各 480/480、其他 Python 74/74、validate/TS5.9.3、制品重建 SHA/type/mode 与协议探针通过；PTY 脚本只通过 AST 语法检查。完整 helper/startup 系统轮未获新增授权，票据及旧 backlog 保持 claimed/open，旧门禁不作新版本通过证据。完整处置与日志见票据末尾；未开始下一票据或真实验收。
+- Issue 53 于 2026-10-06 修复后完整 startup 门禁通过，票据与旧 backlog 均 resolved。真实 PTY/模型验收、部署、发布、版本升级与 push 未执行，也未开始下一票据。
 
 ## Not yet specified
 

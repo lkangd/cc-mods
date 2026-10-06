@@ -1,6 +1,6 @@
 ---
 id: damage-record-check-then-act-across-runs
-status: open
+status: resolved
 severity: major
 found: 2026-09-30
 source: /code-review, round 1
@@ -93,3 +93,20 @@ It is not evidence that an actual helper damage receipt can be cleared by ordina
 `grep -n "archiveRecovered\|readArchiveState\|DAMAGE_FAILURES.has(archiveFailure" mods/prompt-trail/hooks/register.tsx`;
 `tests/quarantine_archive.test.tsx` for the plugin side; `python3 -m unittest tests.helper_protocol`
 for the helper.
+
+## Resolved 2026-10-06 (Issue 53, `9a86c73`)
+
+The damage fact now lives in a helper-owned health receipt bound to generation, state and token,
+and every mutation and implied maintenance step checks it inside the project→health→SQLite guard.
+An ordinary success, clear-run or `$.store` mirror delete cannot lift it; recovery rechecks fully
+and must present the current generation and token. `$.store` only mirrors it for display.
+
+The person authorized one post-fix `verify-startup.sh` run on 2026-10-06. It exited 0 on `9a86c73`:
+artifacts unchanged by rebuild; both fixed hosts (2.1.273, 2.1.283) passed validation and 480/480
+plugin tests; TypeScript 5.9.3 passed; artifact_static 9, bridge_protocol 32, helper_protocol 184
+(including the 11 hdiutil/chflags tests, on test TemporaryDirectory objects only), project_root 5
+and release_verdict 28 all passed with no skips; both protocol probes passed.
+
+Limits: all writers must upgrade first (schema 2 / protocol 1 unchanged), so a mixed-version
+window is not covered, and the guarantee starts once damage is durably published. No real
+PTY/model acceptance, deployment, release gate, version upgrade or push was performed.

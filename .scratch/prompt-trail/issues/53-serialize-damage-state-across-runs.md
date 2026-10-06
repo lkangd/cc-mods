@@ -4,14 +4,14 @@
 
 **Blocked by:** 51「另一个 Run 的写入撤掉损坏报告并继续写坏档案」
 
-**Status:** claimed
+**Status:** resolved
 
 - [x] 确定共享损坏事实的权威存储、Archive generation 绑定与原子化边界；不得将再次读取 $.store 包装成彻底修复。
 - [x] 普通写入成功不能撤销其他 Run 已记录的损坏事实。
 - [x] 已记录损坏的 generation 拒绝后续变更；重新检查通过、隔离、清除与旧 generation 退役的恢复规则须明确，不静默丢失损坏事实。
 - [x] 写入、损坏记录、恢复、并发及崩溃故障的测试 seams 在实现前确认，逐项 RED→GREEN；旧行为回归保持通过。
 - [x] 明确 helper/protocol/schema/制品的实际影响，保持正文隐私、helper 信任与 Run 隔离，不借此修复 Issue 35。
-- [ ] 审查修复后重新通过完整 helper/startup 系统门禁；需要追加授权，不能复用修复前 PASS。
+- [x] 审查修复后重新通过完整 helper/startup 系统门禁；需要追加授权，不能复用修复前 PASS。
 
 ## Comments
 
@@ -129,3 +129,20 @@ Issue 53 保持 claimed，旧 major backlog 保持 open，停在修复后完整 
 使用者要求“收尾提交，然后编写交接文档”。本次提交范围限定为 Issue 53 正式实现、13 项审查处置、生成制品、批准计划及对应文档；混合 map 只暂存 Issue 53 内容，Issue 35 票据/原型/地图改动留在工作区。交接文档写入系统临时目录，不入仓库。
 
 本次提交授权不扩大测试、真实模型/PTY、部署、发布、版本升级或 push 权限；票据保持 claimed，旧 backlog 保持 open，等待修复后完整系统门禁的新授权。提交前的“不提交”记录是当时边界，不作为本次收尾提交的禁止条件。
+
+### 2026-10-06 · 修复后系统门禁授权
+
+使用者选择「一轮 startup（推荐）」：授权运行一次 `verify-startup.sh`（含完整 helper 测试），hdiutil/chflags 仅作用于测试自己的 TemporaryDirectory。失败时不复跑涉及系统操作的测试，先停下汇报；通过则更新票据/backlog/map。真实模型/PTY、钥匙串、真实 HOME/archive、部署、发布、版本升级、commit/push 仍不在授权内。授权作出时本轮预算 0/1。
+
+### 2026-10-06 · 修复后完整系统门禁通过，resolved
+
+按上方授权运行的唯一一轮 `verify-startup.sh` 跑在已提交的 `9a86c73` 上（工作区只有 Issue 35 和本票据的文档改动），exit 0，打印 `Prompt Trail startup verification passed.`：
+
+- 制品重建前后 helper/bridge/manifest/artifact.ts/generated header 的 SHA 与 helper/bridge 的 type/mode 一致，没有脚本报 stale；`git status` 显示 `mods/` 下无改动。
+- 两固定宿主 2.1.273 / 2.1.283：plugin validate 均通过，plugin test 各 480 pass / 0 fail；TypeScript 5.9.3 strict tsc 通过。
+- artifact_static 9、bridge_protocol 32、helper_protocol 184、project_root 5、release_verdict 28，全部 OK、无跳过。完整 helper 184 包括此前普通子集排除的 11 个 hdiutil/chflags 测试，系统操作只作用于测试自己的 TemporaryDirectory。
+- supported probe（protocol 1，darwin-arm64-macos15）与 protocol mismatch probe 通过。之后 `git diff --check` 通过。
+
+预算已用 1/1，没有失败，所以没有复跑。日志：`/private/tmp/claude-501/-Users-liangkangda-Fe-project-cc-mods/1900222a-ac03-4c17-b3c2-6b33b35fc2db/scratchpad/startup-issue53-post-review.log`（会话临时目录，可能被清理；计数以本节为准）。
+
+这是审查修复后版本的完整非模型门禁 PASS，取代 2026-10-02 的「待授权」停点；Issue 53 按此范围 resolved，旧 backlog 同步 resolved。范围仍然有限：schema 2 / protocol 1 / 插件 0.1.0 不变，部署前所有旧 writer 须退出并用新制品重新接入，不覆盖混版本窗口。没有运行真实模型/PTY 验收、钥匙串、真实 HOME/archive、部署、发布门禁、版本升级，也没有 commit/push。Issue 35 的 Q1–Q3 与宿主契约停点不变。
