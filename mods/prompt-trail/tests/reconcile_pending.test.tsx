@@ -3,24 +3,17 @@ import { test } from './support'
 import {
   FINAL_SECRET,
   SECRET,
+  branchStateOf,
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   projectId,
   promptHistory,
+  reconcileKeyFor,
   runId,
   session,
 } from './support'
-
-const consentGranted = { policyVersion: 1, decision: 'enabled' as const }
-
-function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: consentGranted }
-}
-
-function reconcileKey(forRunId: string = runId): string {
-  return `prompt-trail:reconcile:${projectId}:${forRunId}`
-}
 
 /* Where earlier builds kept the one record of a project. */
 function legacyReconcileKey(): string {
@@ -29,11 +22,6 @@ function legacyReconcileKey(): string {
 
 function runModeKey(forRunId: string = runId): string {
   return `prompt-trail:run-mode:${projectId}:${forRunId}`
-}
-
-function branchIds(store: Record<string, unknown>): { branchId?: string } {
-  const key = Object.keys(store).find(name => name.startsWith('prompt-trail:branch:'))
-  return (key === undefined ? {} : store[key]) as { branchId?: string }
 }
 
 test('a failed pre-write drops the submission and restores the draft', async ($, on) => {
@@ -51,7 +39,7 @@ test('a failed pre-write drops the submission and restores the draft', async ($,
   expect(fills).toStrictEqual([SECRET])
   expect(captureCalls(calls, 'capture-confirm')).toHaveLength(0)
   /* A pre-write that failed staged nothing, so there is nothing to reconcile. */
-  expect(store[reconcileKey()]).toBeUndefined()
+  expect(store[reconcileKeyFor()]).toBeUndefined()
 })
 
 /* A transcript that cannot settle the pending either way: the prompt appears
@@ -75,7 +63,7 @@ test('a failed confirmation keeps the pending and blocks the next submission', a
   expect(blocked.drop).toContain('对账')
   expect(fills).toStrictEqual(['PT-SECRET-SECOND'])
   const pendingEventId = captureCalls(calls, 'capture-begin')[0]?.argv[8]
-  expect(store[reconcileKey()]).toMatchObject({
+  expect(store[reconcileKeyFor()]).toMatchObject({
     version: 1,
     eventId: pendingEventId,
     runId,
@@ -95,7 +83,7 @@ test('a confirmation that failed after the prompt\'s row was stored is confirmed
   })
   await $.session.start(session)
   await composerPrompt($)
-  expect(store[reconcileKey()]).toMatchObject({ version: 1, membership: 'row' })
+  expect(store[reconcileKeyFor()]).toMatchObject({ version: 1, membership: 'row' })
 
   const blocked = await composerPrompt($, { text: 'PT-SECRET-SECOND' })
 
@@ -103,7 +91,7 @@ test('a confirmation that failed after the prompt\'s row was stored is confirmed
   expect(confirms).toHaveLength(2)
   expect(confirms[1]?.argv[4]).toBe(captureCalls(calls, 'capture-begin')[0]?.argv[8])
   expect(blocked.drop).toContain('已完成对账')
-  expect(store[reconcileKey()]).toBeUndefined()
+  expect(store[reconcileKeyFor()]).toBeUndefined()
   /* Nothing was asked: the stored row settled it. */
   expect(calls.some(call => call.argv[1] === 'capture-abort')).toBe(false)
 })
@@ -127,7 +115,7 @@ test('a transcript without the prompt does not settle a pending its rows do not 
   expect(reconcileOffered).toStrictEqual([['未进入', '新根分支']])
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
   expect(blocked.drop).toContain('对账')
-  expect(store[reconcileKey()]).toBeDefined()
+  expect(store[reconcileKeyFor()]).toBeDefined()
 })
 
 test('a pending discovered after a restart offers all three choices, and 已进入 archives it', async ($, on) => {
@@ -155,7 +143,7 @@ test('a pending discovered after a restart offers all three choices, and 已进�
   expect(reconcileOffered).toStrictEqual([['已进入', '未进入', '新根分支']])
   expect(captureCalls(calls, 'capture-confirm')).toHaveLength(1)
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
-  expect(store[reconcileKey()]).toBeUndefined()
+  expect(store[reconcileKeyFor()]).toBeUndefined()
 })
 
 test('未进入 discards the pending and leaves the branch alone', async ($, on) => {
@@ -167,13 +155,13 @@ test('未进入 discards the pending and leaves the branch alone', async ($, on)
   })
   await $.session.start(session)
   await composerPrompt($)
-  const before = branchIds(store).branchId
+  const before = branchStateOf(store).branchId
 
   await composerPrompt($, { text: 'PT-SECRET-SECOND' })
 
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(1)
-  expect(branchIds(store).branchId).toBe(before)
-  expect(store[reconcileKey()]).toBeUndefined()
+  expect(branchStateOf(store).branchId).toBe(before)
+  expect(store[reconcileKeyFor()]).toBeUndefined()
 })
 
 test('新根分支 discards the pending and starts a new root branch', async ($, on) => {
@@ -185,17 +173,17 @@ test('新根分支 discards the pending and starts a new root branch', async ($,
   })
   await $.session.start(session)
   await composerPrompt($)
-  const before = branchIds(store).branchId
+  const before = branchStateOf(store).branchId
 
   await composerPrompt($, { text: 'PT-SECRET-SECOND' })
 
   /* Nothing uncertain is archived, and nothing after it is chained onto a
      parent the reconciliation could not vouch for. */
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(1)
-  expect(branchIds(store).branchId).not.toBe(before)
+  expect(branchStateOf(store).branchId).not.toBe(before)
   /* A root the person chose: a later resume's transcript does not overrule it. */
-  expect(branchIds(store)).toMatchObject({ parentEventId: null, explicitRoot: true })
-  expect(store[reconcileKey()]).toBeUndefined()
+  expect(branchStateOf(store)).toMatchObject({ parentEventId: null, explicitRoot: true })
+  expect(store[reconcileKeyFor()]).toBeUndefined()
 })
 
 test('a cancelled reconciliation stays blocked and never retries the submission', async ($, on) => {
@@ -217,7 +205,7 @@ test('a cancelled reconciliation stays blocked and never retries the submission'
   /* Neither default happened, and the original submission was not resubmitted. */
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
   expect(captureCalls(calls, 'capture-confirm')).toHaveLength(0)
-  expect(store[reconcileKey()]).toBeDefined()
+  expect(store[reconcileKeyFor()]).toBeDefined()
   expect(fills).toStrictEqual(['PT-SECRET-SECOND', 'PT-SECRET-THIRD'])
 })
 
@@ -248,7 +236,7 @@ test('disable keeps the pending and enable refuses until it is reconciled', asyn
   expect(disabled.text).toContain('已停用采集')
   /* Disabling never resolves a pending on the user's behalf. */
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
-  expect(store[reconcileKey()]).toBeDefined()
+  expect(store[reconcileKeyFor()]).toBeDefined()
   expect(enabled.text).toContain('对账')
   expect(store[runModeKey()]).toMatchObject({ mode: 'disabled' })
 })
@@ -317,7 +305,7 @@ test('repeating a recovery never produces two Prompt Entries', async ($, on) => 
   expect(
     confirms.filter(call => call.argv[4] === pendingEventId),
   ).toHaveLength(2)
-  expect(store[reconcileKey()]).toBeUndefined()
+  expect(store[reconcileKeyFor()]).toBeUndefined()
 })
 
 test('a rewritten final text is what a same-Run reconciliation archives', async ($, on) => {
@@ -525,7 +513,7 @@ test('新根分支 keeps the block when the new root cannot be stored', async ($
   /* The pending is still there, so the choice is not silently lost. */
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
   expect(blocked.drop).toContain('仍有未决的 Pending Capture')
-  expect(store[reconcileKey()]).toBeDefined()
+  expect(store[reconcileKeyFor()]).toBeDefined()
 })
 
 /* A pending of another Run that a live process is attached to. */
@@ -581,7 +569,7 @@ test("a Run's own pending leaves another Run's record as it was", async ($, on) 
   await composerPrompt($)
 
   expect(store[legacyReconcileKey()]).toStrictEqual(RECORD_ELSEWHERE)
-  expect(store[reconcileKey()]).toMatchObject({ runId })
+  expect(store[reconcileKeyFor()]).toMatchObject({ runId })
 })
 
 test('a pending another live Run holds is left to that Run', async ($, on) => {
@@ -603,7 +591,7 @@ test('a pending another live Run holds is left to that Run', async ($, on) => {
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
   expect(captureCalls(calls, 'capture-confirm').map(call => call.argv[4]))
     .not.toContain(HELD_ELSEWHERE.eventId)
-  expect(store[reconcileKey()]).toBeUndefined()
+  expect(store[reconcileKeyFor()]).toBeUndefined()
 })
 
 test('status counts the pendings live Runs hold, as the archive answers now', async ($, on) => {
@@ -668,7 +656,7 @@ for (const answer of ['已进入', '未进入'] as const) {
 
     /* The first Run's answer stands; this one's is not an archive failure. */
     expect(first.drop).toContain('已完成对账')
-    expect(store[reconcileKey()]).toBeUndefined()
+    expect(store[reconcileKeyFor()]).toBeUndefined()
     expect(store[`prompt-trail:archive-state:${projectId}`]).toBeUndefined()
     expect(second.text).toBe('PT-SECRET-SECOND')
     expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)

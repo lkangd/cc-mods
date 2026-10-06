@@ -1,6 +1,6 @@
 ---
 id: test-store-fixtures-duplicated
-status: open
+status: resolved
 severity: nit
 found: 2026-10-06
 source: /code-review, round 1
@@ -24,3 +24,10 @@ Export `consentedStore()`, `reconcileKeyFor(runId?)` and `branchStateOf(store)` 
 ## Recommended tools
 
 `grep -n "function consentedStore\|function reconcileKey\|function branchOf\|function branchIds" mods/prompt-trail/tests/*.tsx`
+
+## Resolved 2026-10-06 (Issue 35 follow-up)
+
+`tests/support.tsx` now exports `consentGranted`, `consentedStore()`, `reconcileKeyFor(runId?)` and
+`branchStateOf(store)`. `queued_capture`, `reconcile_pending` and `collection_mode` use them in
+place of their copies. Other test files still define their own `consentedStore`; some take extra
+entries, and they were left alone.
