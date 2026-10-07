@@ -1,6 +1,7 @@
 """PTY scenarios: each drives a real Claude Code in its own isolated world and
 returns what it saw, in words that carry no prompt text. A failed check raises
 ScenarioFailure; the trace keeps a masked screen at each step."""
+import contextlib
 import hashlib
 import json
 import pathlib
@@ -11,6 +12,7 @@ import sqlite3
 import subprocess
 import tempfile
 import time
+from collections.abc import Callable, Iterator
 
 import evidence
 from pty_driver import Environment, Host, ScenarioFailure, Terminal, _processes
@@ -31,6 +33,49 @@ def scenario(id_: str):
 def check(condition: bool, what: str) -> None:
     if not condition:
         raise ScenarioFailure(what)
+
+
+@contextlib.contextmanager
+def write_lock(database: pathlib.Path) -> Iterator[None]:
+    """Holds the archive's write lock for the block, so a write that waits on
+    it fails after its bounded wait."""
+    lock = sqlite3.connect(database, timeout=0, isolation_level=None)
+    try:
+        lock.execute("BEGIN IMMEDIATE")
+    except BaseException:
+        lock.close()
+        raise
+    try:
+        yield
+    finally:
+        lock.execute("ROLLBACK")
+        lock.close()
+
+
+def select_option(
+    terminal: Terminal, option: str, on_selected: Callable[[], None], *, until_gone: bool = False,
+    absent: str | None = None, unreached: str | None = None,
+) -> None:
+    """Moves the dialog's selection onto the numbered `option` and runs
+    `on_selected` there, once; with `until_gone` it runs each time the
+    selection stands on it, until the dialog no longer offers it. A dialog
+    just drawn may not take keys yet. Without `until_gone`, a dialog that does
+    not offer `option` fails with `absent`, and a selection that never gets
+    there with `unreached`."""
+    pattern = re.compile(rf"^\s*(❯)?\s*\d+\. {re.escape(option)}$")
+    time.sleep(1)
+    for _ in range(10):
+        found = [m for m in map(pattern.match, terminal.rows()) if m]
+        if not found and until_gone:
+            return
+        check(bool(found), absent or f"the dialog does not offer {option}")
+        if found[-1].group(1):
+            on_selected()
+            if not until_gone:
+                return
+        else:
+            terminal.key("down", pause=0.5)
+    raise ScenarioFailure(unreached or f"could not choose {option}")
 
 
 class Context:
@@ -69,17 +114,7 @@ class Context:
     def choose(self, terminal: Terminal, option: str) -> None:
         """Moves the dialog's selection onto the numbered `option` and confirms
         it, until the dialog has gone: a dialog just drawn may not take keys yet."""
-        pattern = re.compile(rf"^\s*(❯)?\s*\d+\. {re.escape(option)}$")
-        time.sleep(1)
-        for _ in range(10):
-            found = [m for m in map(pattern.match, terminal.rows()) if m]
-            if not found:
-                return
-            if found[-1].group(1):
-                terminal.key("enter", pause=1)
-            else:
-                terminal.key("down", pause=0.5)
-        raise ScenarioFailure(f"could not choose {option}")
+        select_option(terminal, option, lambda: terminal.key("enter", pause=1), until_gone=True)
 
     def command(self, terminal: Terminal, text: str, expect: str, timeout: float = 30) -> str:
         """Runs a slash command and returns what the screen shows after its
@@ -87,17 +122,27 @@ class Context:
         terminal.type(text)
         time.sleep(0.3)
         terminal.key("enter")
+        return self.reply(terminal, text, expect, timeout)
 
+    def reply(
+        self, terminal: Terminal, command: str, expect: str, timeout: float = 30,
+        *, flatten: bool = False, label: str | None = None,
+    ) -> str:
+        """What the screen shows after the last echo of `command`, once that
+        holds `expect`, snapped as `label`; with `flatten` as one line, for
+        answers the host wraps. The command is not sent here."""
         def answered(t: Terminal) -> str | None:
             rows = t.rows()
-            echoes = [i for i, row in enumerate(rows) if row.strip() == f"❯ {text}"]
+            echoes = [i for i, row in enumerate(rows) if row.strip() == f"❯ {command}"]
             if not echoes:
                 return None
             after = "\n".join(rows[echoes[-1] + 1:])
+            if flatten:
+                after = flat(after)
             return after if expect in after else None
 
-        after = terminal.wait_for(answered, f"{text} to answer", timeout)
-        self.env.snap(terminal, text)
+        after = terminal.wait_for(answered, f"{command} to answer", timeout)
+        self.env.snap(terminal, label or command)
         return after
 
     def expand(self, terminal: Terminal, marker: str) -> list[str]:
@@ -432,17 +477,12 @@ def capture_008(ctx: Context) -> str:
     )
     # While the fixture holds the prompt, take the archive's write lock so the
     # confirmation that follows the prompt's entry fails after its bounded wait.
-    lock = sqlite3.connect(database, timeout=0, isolation_level=None)
-    lock.execute("BEGIN IMMEDIATE")
-    try:
+    with write_lock(database):
         terminal.wait_idle(timeout=180)
         time.sleep(12)
         ctx.env.snap(terminal, "confirmation refused")
         check("hook skipped" not in terminal.text(), "the fixture's hook failed, so nothing was held")
         check(any(held in (p["promptText"] or "") for p in ctx.pending()), "the pending did not survive the failed confirmation")
-    finally:
-        lock.execute("ROLLBACK")
-        lock.close()
     status = ctx.status(terminal)
     check("Pending Capture 待对账" in status, "status does not report the reconciliation")
     # The next submission settles the pending first: the host stored the held
@@ -689,13 +729,6 @@ def boundaries(ctx: Context, kind: str) -> list[dict]:
     return [b for b in ctx.env.archive()["boundaries"] if b["kind"] == kind]
 
 
-def check_bound(band: list[str], markers, what: str) -> None:
-    """Each entry the markers name is shown once, with a Jump Target."""
-    for marker in markers:
-        rows = shown(band, marker)
-        check(len(rows) == 1 and jumpable(rows[0], marker), f"{what} did not bind the shared history once")
-
-
 def wait_bound(ctx: Context, terminal: Terminal, markers, what: str) -> list[str]:
     """The open band once each entry the markers name is shown once with a
     Jump Target: the alignment that binds them may finish after the band opens."""
@@ -740,7 +773,8 @@ def branch_001(ctx: Context) -> str:
     # --continue takes the latest session up again: its shared history binds
     # anew and nothing of it is archived twice.
     continued = ctx.relaunch("--continue", lines=60)
-    check_bound(ctx.expand(continued, b), (a, b), "--continue")
+    ctx.expand(continued, b)
+    wait_bound(ctx, continued, (a, b), "--continue")
     check(len(ctx.entries()) == 2, "--continue archived the shared history")
     ctx.submit(continued, prompt(c))
     entries = ctx.wait_entries(3)
@@ -771,10 +805,10 @@ def branch_001(ctx: Context) -> str:
     entries = ctx.wait_entries(6)
     check(entry(entries, f)["parentEventId"] == entry(entries, d)["eventId"], "/resume did not go on from the session's last entry")
     check(entry(entries, f)["runId"] == run and ctx.identity(resumed)[0] == run, "/resume did not keep the Run")
-    band = ctx.expand(resumed, f)
+    ctx.expand(resumed, f)
     # The session's rows, drawn by this process before it left them, are
     # replayed and bound again, and the prompt after them too (Issue 43).
-    check_bound(band, (a, b, c, d, f), "the in-process /resume")
+    band = wait_bound(ctx, resumed, (a, b, c, d, f), "the in-process /resume")
     fold = check_fold(band, 1, d, f, hidden=(e,))
     ctx.click_row(resumed, band[fold], "另一分支")
     resumed.wait_for(lambda t: shown(ctx.band(t), e), "the fold to open", 15)
@@ -785,7 +819,8 @@ def branch_001(ctx: Context) -> str:
     concurrent = ctx.relaunch("--resume", session, lines=60)
     other, _ = ctx.identity(concurrent)
     check(other != run, "a concurrent resume took up the held Run")
-    check_bound(ctx.expand(concurrent, f), (a, b, c, d, f), "the concurrent resume")
+    ctx.expand(concurrent, f)
+    wait_bound(ctx, concurrent, (a, b, c, d, f), "the concurrent resume")
     check(len(ctx.entries()) == 6, "the concurrent resume archived the shared history")
     ctx.submit(concurrent, prompt(g))
     entries = ctx.wait_entries(7)
@@ -1054,7 +1089,8 @@ def jump_002(ctx: Context) -> str:
 
 FIXTURE_ROW = re.compile(r"PT-FIXTURE (\d+) 继续")
 FOCUS_HINT = "ctrl+x tab 键盘选择"
-UP = "↑ 点此向上浏览"
+# The host's row under a band taller than it: the rows above and below its window.
+MORE = re.compile(r"(?:↑ (\d+) more)?(?: · )?(?:↓ (\d+) more)?")
 
 
 def seeded(ctx: Context, scenario_id: str, count: int, *, seed: int = 21, **size) -> Terminal:
@@ -1070,6 +1106,31 @@ def seeded(ctx: Context, scenario_id: str, count: int, *, seed: int = 21, **size
     database = sorted((ctx.env.config / "plugins" / "data").glob("*/archives/*.sqlite3"))[0]
     timeline_fixture.build(database, database.stem, count, seed=seed)
     return ctx.relaunch(**size)
+
+
+def more(band: list[str]) -> tuple[int, int] | None:
+    """What the host's count row under the band says, as the rows above and
+    below the view; None while the band's tree fits and it draws none."""
+    drawn = [row.strip() for row in band[1:] if row.strip()]
+    found = MORE.fullmatch(drawn[-1]) if drawn else None
+    if found is None or not drawn[-1]:
+        return None
+    return int(found.group(1) or 0), int(found.group(2) or 0)
+
+
+def under_title(terminal: Terminal) -> int | None:
+    """The row under the open band's title, while the title is drawn."""
+    titles = [i for i, text in enumerate(terminal.rows()) if text.startswith("▾ Prompt Trail")]
+    return titles[-1] + 1 if titles else None
+
+
+def wheel_band(ctx: Context, terminal: Terminal, up: bool, ticks: int = 1) -> None:
+    """The trackpad over the band's first row under its title, a tick at a
+    time, each once the title is drawn: right after a tick the band's tree
+    can draw before the window is back on its title."""
+    for tick in range(ticks):
+        row = terminal.wait_for(under_title, f"the band's title before trackpad tick {tick + 1} of {ticks}", 5)
+        terminal.wheel(4, row, up)
 
 
 def title(ctx: Context, terminal: Terminal) -> str:
@@ -1237,7 +1298,8 @@ def walk(ctx: Context, terminal: Terminal, key: str, done, each=None, limit: int
 
 def at_top(rows) -> bool:
     """The ring on the title, the first event shown under it, nothing above."""
-    return bool(rows) and ringed(rows) == [(rows[0][0], rows[0][1])] and UP not in rows[0][1] \
+    count = more([text for _, text, _ in rows])
+    return bool(rows) and ringed(rows) == [(rows[0][0], rows[0][1])] and (count is None or count[0] == 0) \
         and len(rows) > 1 and rows[1][1] == "—— Run 开始 ——"
 
 
@@ -1295,11 +1357,11 @@ def ui_002(ctx: Context) -> str:
 
 
 def away_from_bottom(ctx: Context, terminal: Terminal) -> str:
-    """Takes the view up a page with the title's click, gives the keyboard
-    back to the prompt box, and answers the first row the view shows."""
-    click_title(ctx, terminal, UP)
-    terminal.wait_for(lambda t: UP in title(ctx, t) and "底部" not in title(ctx, t), "the view to leave the bottom", 10)
-    terminal.key("esc", pause=0.5)
+    """Takes the view up ten rows with the trackpad, and answers the first
+    row the view shows."""
+    wheel_band(ctx, terminal, True, 10)
+    terminal.wait_for(lambda t: (count := more(ctx.band(t))) is not None and count[1] > 0, "the view to leave the bottom", 10)
+    time.sleep(1)
     ctx.env.snap(terminal, "away from the bottom")
     return ctx.band(terminal)[1]
 
@@ -1405,34 +1467,51 @@ def ui_004(ctx: Context) -> str:
 def ui_005(ctx: Context) -> str:
     terminal = seeded(ctx, "PT-UI-005", 400, columns=100, lines=30)
     latest = ctx.expand(terminal, "PT-FIXTURE")
-    # Resting at its bottom the band's tree fits, so the host sends it no
-    # scrolling at all; the title says so and offers a click instead.
-    check(title(ctx, terminal).endswith(f"{UP} · 底部不响应触控板  {FOCUS_HINT}"), "the title does not offer the way up from the bottom")
-    clicks = 0
-    while UP in title(ctx, terminal):
-        check(clicks < 200, "200 clicks did not reach the first event")
-        first = ctx.band(terminal)[1]
-        click_title(ctx, terminal, UP)
-        terminal.wait_for(lambda t: ctx.band(t)[1] != first, "a click to take the view up", 5)
-        clicks += 1
-    band = ctx.band(terminal)
-    check(band[1] == "—— Run 开始 ——", "the clicks did not reach the first event")
-    ctx.env.snap(terminal, "first event by clicks")
+    # Resting at its bottom the band's tree is still taller than the band, a
+    # blank row standing above the title for each row above the view, so the
+    # host hands it the trackpad; its count row counts those rows alone, and
+    # the title offers nothing of its own.
+    count = terminal.wait_for(lambda t: more(ctx.band(t)), "the count row under the band", 10)
+    check(count[0] > 0 and count[1] == 0, "the count row at the bottom does not count the rows above alone")
+    check(title(ctx, terminal).endswith(f"▾ Prompt Trail  {FOCUS_HINT}"), "the title row holds more than the title and its hint")
+
+    def top(t: Terminal) -> bool:
+        band, count = ctx.band(t), more(ctx.band(t))
+        return len(band) > 1 and band[1] == "—— Run 开始 ——" and count is not None and count[0] == 0
+
+    def moved(before: tuple[int, int] | None):
+        """The view moved off `before`, with the window back on the title."""
+        def done(t: Terminal) -> bool:
+            band = ctx.band(t)
+            count = more(band)
+            return bool(band) and band[0].startswith("▾ Prompt Trail") and count is not None and count != before
+        return done
+
+    ticks = 0
+    while not top(terminal):
+        check(ticks < 3000, "3000 trackpad ticks did not reach the first event")
+        before = more(ctx.band(terminal))
+        wheel_band(ctx, terminal, True)
+        ticks += 1
+        terminal.wait_for(moved(before), f"trackpad tick {ticks} to move the view from {before} with the title on top", 5)
+    count = more(ctx.band(terminal))
+    check(count is not None and count[1] > 0, "at the first event the count row does not count the rows below")
+    ctx.env.snap(terminal, "first event by the trackpad")
     # Folding and opening again comes back to the latest events.
     click_title(ctx, terminal, "Prompt Trail")
     terminal.wait_for(lambda t: collapsed(ctx, t), "the title to fold the band", 10)
     click_title(ctx, terminal, "Prompt Trail")
     terminal.wait_for(lambda t: ctx.band(t)[1:] == latest[1:], "the band to open on the latest events", 10)
     ctx.env.snap(terminal, "latest by clicks")
-    # The arrows leave the bottom too, though no scrolling reaches the band there.
+    # The arrows leave the bottom too.
     terminal.key("esc", pause=0.5)
     terminal.key("ctrl-x", "tab", pause=0.5)
     park(terminal)
-    walk(ctx, terminal, "up", lambda rows: "底部" not in rows[0][1])
+    walk(ctx, terminal, "up", lambda rows: (count := more([text for _, text, _ in rows])) is not None and count[1] > 0)
     ctx.env.snap(terminal, "left the bottom by arrows")
     return (
-        f"with no scrolling sent, {clicks} clicks on the title's way up reached the first event; folding and opening "
-        "came back to the latest; the arrows left the bottom"
+        f"from the bottom, where the count row counted the rows above alone, {ticks} trackpad ticks reached the "
+        "first event; folding and opening came back to the latest; the arrows left the bottom"
     )
 
 
@@ -1696,33 +1775,21 @@ def dialog(ctx: Context, terminal: Terminal, header: str, timeout: float = 30) -
 def answer_freely(ctx: Context, terminal: Terminal, text: str) -> None:
     """Moves the dialog's selection onto its free-input item, types `text`
     there and confirms it."""
-    pattern = re.compile(r"^\s*(❯)?\s*\d+\. Type something\.$")
-    time.sleep(1)
-    for _ in range(10):
-        found = [m for m in map(pattern.match, terminal.rows()) if m]
-        check(bool(found), "the dialog has no free-input item")
-        if found[-1].group(1):
-            terminal.type(text)
-            time.sleep(0.5)
-            ctx.env.snap(terminal, "phrase typed")
-            terminal.key("enter", pause=1)
-            return
-        terminal.key("down", pause=0.5)
-    raise ScenarioFailure("could not reach the free-input item")
+    def confirm() -> None:
+        terminal.type(text)
+        time.sleep(0.5)
+        ctx.env.snap(terminal, "phrase typed")
+        terminal.key("enter", pause=1)
+
+    select_option(
+        terminal, "Type something.", confirm,
+        absent="the dialog has no free-input item", unreached="could not reach the free-input item",
+    )
 
 
 def replied(ctx: Context, terminal: Terminal, command: str, expect: str) -> str:
     """The answer a command gave after its dialog closed, as one line."""
-    def answered(t: Terminal) -> str | None:
-        rows = t.rows()
-        echoes = [i for i, row in enumerate(rows) if row.strip() == f"❯ {command}"]
-        if not echoes:
-            return None
-        after = flat("\n".join(rows[echoes[-1] + 1:]))
-        return after if expect in after else None
-    text = terminal.wait_for(answered, f"{command} to answer", 60)
-    ctx.env.snap(terminal, f"{command} answered")
-    return text
+    return ctx.reply(terminal, command, expect, 60, flatten=True, label=f"{command} answered")
 
 
 def dismiss(ctx: Context, terminal: Terminal) -> None:
@@ -1873,16 +1940,11 @@ def refused_confirmation(ctx: Context, terminal: Terminal, marker: str) -> str:
         lambda _: any(p["promptText"] == text for p in ctx.pending()), "the held prompt to be staged", 15,
     )
     staged = ctx.env.archive()
-    lock = sqlite3.connect(archive_file(ctx), timeout=0, isolation_level=None)
-    lock.execute("BEGIN IMMEDIATE")
-    try:
+    with write_lock(archive_file(ctx)):
         terminal.wait_idle(timeout=180)
         time.sleep(12)
         ctx.env.snap(terminal, "confirmation refused")
         check("hook skipped" not in terminal.text(), "the fixture's hook failed, so nothing was held")
-    finally:
-        lock.execute("ROLLBACK")
-        lock.close()
     # Nothing is removed or written behind the failure once the lock is gone:
     # the pending waits for the next submission to settle it.
     time.sleep(2)
@@ -2186,32 +2248,22 @@ def fault_tour(ctx: Context, scenario_id: str, observe) -> None:
     ctx.submit(terminal, prompt(first), consent=True)
     ctx.wait_entries(1)
     # A busy archive holds the submission until a retry finds it free.
-    lock = sqlite3.connect(archive_file(ctx), timeout=0, isolation_level=None)
-    lock.execute("BEGIN IMMEDIATE")
-    try:
+    with write_lock(archive_file(ctx)):
         ctx.send(terminal, prompt(busy))
         observe("busy", dialog(ctx, terminal, DAMAGE_DIALOG))
         choose_once(terminal, "重试")
         terminal.wait_for(lambda t: not shown_dialog(t, DAMAGE_DIALOG), "the retry to start", 10)
         observe("busy again", dialog(ctx, terminal, DAMAGE_DIALOG))
-    finally:
-        lock.execute("ROLLBACK")
-        lock.close()
     choose_once(terminal, "重试")
     terminal.wait_idle()
     observe("retried", str(len([e for e in ctx.wait_entries(2) if e["promptText"] == prompt(busy)])))
     # Disabled to go on: the prompt passes unarchived, and enable resumes.
-    lock = sqlite3.connect(archive_file(ctx), timeout=0, isolation_level=None)
-    lock.execute("BEGIN IMMEDIATE")
-    try:
+    with write_lock(archive_file(ctx)):
         ctx.send(terminal, prompt(stopped))
         dialog(ctx, terminal, DAMAGE_DIALOG)
         choose_once(terminal, "禁用当前 Run 后继续")
         terminal.wait_for(lambda t: in_transcript(t, stopped), "the prompt to go through", 60)
         terminal.wait_idle()
-    finally:
-        lock.execute("ROLLBACK")
-        lock.close()
     ctx.command(terminal, "/prompt-history enable", "已恢复采集")
     observe("disabled", "archived" if prompt(stopped) in [e["promptText"] for e in ctx.entries()] else "passed unarchived")
     # A confirmation the archive refused leaves a pending, reported by its
@@ -2682,16 +2734,7 @@ def choose_once(terminal: Terminal, option: str) -> None:
     """Moves the dialog's selection onto `option` and confirms it once: a
     choice whose dialog comes back with the same options must not be taken
     again. A dialog just drawn may not take keys yet."""
-    pattern = re.compile(rf"^\s*(❯)?\s*\d+\. {re.escape(option)}$")
-    time.sleep(1)
-    for _ in range(10):
-        found = [m for m in map(pattern.match, terminal.rows()) if m]
-        check(bool(found), f"the dialog does not offer {option}")
-        if found[-1].group(1):
-            terminal.key("enter", pause=1)
-            return
-        terminal.key("down", pause=0.5)
-    raise ScenarioFailure(f"could not choose {option}")
+    select_option(terminal, option, lambda: terminal.key("enter", pause=1))
 
 
 def helpers_of(terminal: Terminal) -> int:
@@ -2768,9 +2811,7 @@ def store_003(ctx: Context) -> str:
     ctx.submit(terminal, prompt(first), consent=True)
     ctx.submit(terminal, prompt(second))
     ctx.wait_entries(2)
-    lock = sqlite3.connect(archive_file(ctx), timeout=0, isolation_level=None)
-    lock.execute("BEGIN IMMEDIATE")
-    try:
+    with write_lock(archive_file(ctx)):
         ctx.send(terminal, prompt(held))
         sent = time.monotonic()
         waiting = 0
@@ -2788,9 +2829,6 @@ def store_003(ctx: Context) -> str:
         while time.monotonic() < deadline:
             check(not helpers_of(terminal), "a helper ran while the dialog waited on the person")
             time.sleep(0.05)
-    finally:
-        lock.execute("ROLLBACK")
-        lock.close()
     ctx.choose(terminal, "重试")
     terminal.wait_idle()
     ctx.env.snap(terminal, "retried")
@@ -2919,17 +2957,14 @@ def store_006(ctx: Context) -> str:
 
 def type_freely(terminal: Terminal, text: str) -> None:
     """Types `text` into the dialog's free-input item, not yet confirmed."""
-    pattern = re.compile(r"^\s*(❯)?\s*\d+\. Type something\.$")
-    time.sleep(1)
-    for _ in range(10):
-        found = [m for m in map(pattern.match, terminal.rows()) if m]
-        check(bool(found), "the dialog has no free-input item")
-        if found[-1].group(1):
-            terminal.type(text)
-            time.sleep(0.5)
-            return
-        terminal.key("down", pause=0.5)
-    raise ScenarioFailure("could not reach the free-input item")
+    def type_it() -> None:
+        terminal.type(text)
+        time.sleep(0.5)
+
+    select_option(
+        terminal, "Type something.", type_it,
+        absent="the dialog has no free-input item", unreached="could not reach the free-input item",
+    )
 
 
 @scenario("PT-STORE-008")
@@ -3161,14 +3196,8 @@ def fail_003(ctx: Context) -> str:
     run_a, _ = ctx.identity(a)
     database = archive_file(ctx)
 
-    def locked():
-        lock = sqlite3.connect(database, timeout=0, isolation_level=None)
-        lock.execute("BEGIN IMMEDIATE")
-        return lock
-
     # Retry: asked again while the archive stays busy, submitted once when it is not.
-    lock = locked()
-    try:
+    with write_lock(database):
         ctx.send(a, prompt(retried))
         dialog(ctx, a, DAMAGE_DIALOG)
         offered = options_of(a, DAMAGE_DIALOG)
@@ -3177,23 +3206,16 @@ def fail_003(ctx: Context) -> str:
         a.wait_for(lambda t: not shown_dialog(t, DAMAGE_DIALOG), "the retry to start", 10)
         dialog(ctx, a, DAMAGE_DIALOG)
         check(ctx.transcript_rows(retried) == 0, "a retry that failed sent the prompt")
-    finally:
-        lock.execute("ROLLBACK")
-        lock.close()
     choose_once(a, "重试")
     a.wait_idle()
     check(len([e for e in ctx.wait_entries(3) if e["promptText"] == prompt(retried)]) == 1, "the retry did not archive the prompt once")
     # Disable: the prompt goes through unarchived, behind one stop boundary.
-    lock = locked()
-    try:
+    with write_lock(database):
         ctx.send(a, prompt(disabled))
         dialog(ctx, a, DAMAGE_DIALOG)
         choose_once(a, "禁用当前 Run 后继续")
         a.wait_for(lambda t: in_transcript(t, disabled), "the prompt to go through", 60)
         a.wait_idle()
-    finally:
-        lock.execute("ROLLBACK")
-        lock.close()
     ctx.submit(a, prompt(later))
     ctx.command(a, "/prompt-history enable", "已恢复采集")
     time.sleep(2)
@@ -3225,17 +3247,12 @@ def leave_gap(ctx: Context, scenario_id: str, **size) -> tuple[Terminal, str, li
     ctx.wait_entries(1)
     run, _ = ctx.identity(terminal)
     session = ctx.session(first)
-    lock = sqlite3.connect(archive_file(ctx), timeout=0, isolation_level=None)
-    lock.execute("BEGIN IMMEDIATE")
-    try:
+    with write_lock(archive_file(ctx)):
         ctx.send(terminal, prompt(lost))
         terminal.wait_for(lambda t: helpers_of(t) > 0, "the submission to wait on the archive", 15)
         time.sleep(1)
         ctx.env.snap(terminal, "waiting when killed")
         terminal.kill()
-    finally:
-        lock.execute("ROLLBACK")
-        lock.close()
     check(not ctx.pending(), "the killed submission staged a pending")
     terminal = ctx.relaunch("--resume", session, **size)
     ctx.submit(terminal, prompt(after))
@@ -3257,15 +3274,10 @@ def fail_004(ctx: Context) -> str:
     check(prompt(lost) not in [e["promptText"] for e in archive["entries"]], "the prompt the host lost was archived")
     # A lifecycle write the host does not wait for: a /clear while the archive is busy.
     ctx.env.snap(terminal, "before /clear")
-    lock = sqlite3.connect(archive_file(ctx), timeout=0, isolation_level=None)
-    lock.execute("BEGIN IMMEDIATE")
-    try:
+    with write_lock(archive_file(ctx)):
         ctx.send(terminal, "/clear")
         time.sleep(15)
         ctx.env.snap(terminal, "cleared while busy")
-    finally:
-        lock.execute("ROLLBACK")
-        lock.close()
     check(not [b for b in boundaries(ctx, "clear") if b["runId"] == run], "the clear boundary was written while the archive was busy")
     cleared = ctx.marker("PT-FAIL-004")
     ctx.submit(terminal, prompt(cleared))

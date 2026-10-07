@@ -4,11 +4,12 @@ import {
   SECRET,
   FINAL_SECRET,
   composerPrompt,
+  consentedStore,
   databasePath,
   installSupportedTarget,
   projectId,
   promptHistory,
-  runId,
+  reconcileKeyFor,
   session,
   type TargetOptions,
 } from './support'
@@ -171,9 +172,7 @@ test('an unprovable project root blocks submission once collection is enabled', 
 })
 
 test('a confirmation failure keeps collection blocked across a reload', async ($, on) => {
-  const store: Record<string, unknown> = {
-    [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' },
-  }
+  const store: Record<string, unknown> = consentedStore()
   /* The prompt appears twice, so the transcript cannot settle the pending. */
   const calls = installSupportedTarget(on, {
     store,
@@ -191,7 +190,7 @@ test('a confirmation failure keeps collection blocked across a reload', async ($
   /* The prompt did enter the session, so the unresolved Pending Capture
      persists. The archive's refusal is on record for the other Runs too, until
      any write it takes lifts it (Issue 25). */
-  expect(store[`prompt-trail:reconcile:${projectId}:${runId}`]).toMatchObject({
+  expect(store[reconcileKeyFor()]).toMatchObject({
     version: 1,
     eventId: expect.any(String),
   })

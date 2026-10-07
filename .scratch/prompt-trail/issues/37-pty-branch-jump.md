@@ -78,6 +78,7 @@
 - **已修** #1：lsof 给不出 daemon 的目录时，原来会直接跳过，不扫描也不删除。现在对 argv 含 `daemon run` 却认不出目录的进程记一条「not inventoried」泄漏。
 - **已修** #2：SIGKILL 可能落到被复用的 PID 上。现在按「PID + 启动时间」认定进程，每轮发信号和判断存活都只针对仍是原进程的那些。
 - **已修** #3–#5：抽出 `check_bound()`（共享历史恰好出现一次且能跳转）、`check_fold()`（折叠行的位置与被折叠的条目）、`check_branched_off()`（新 Run 的「从 Run X 分出」）。
+  > 2026-10-07 backlog 清理后 `check_bound()` 已并入 `wait_bound()`：等共享历史稳定后再断言。
 - **顺带修复**：复验时 BRANCH-001 在 2.1.273 上失败过一次：`identity()` 在 status 刚出现标题、还没画完时就去读，结果读不到 `run:`。现在要等到最后一行 `run:` 画出来才读。`identity()` 也被 36 的场景使用，LIFE-003、LIFE-004、STORE-001 已在 2.1.283 上重跑通过。
 
 复验：BRANCH-001、BRANCH-002、BRANCH-003 在 `2.1.283` 与 `2.1.273` 上都通过（BRANCH-001 在 2.1.273 上又连跑两次），0 泄漏，没有残留的 daemon。

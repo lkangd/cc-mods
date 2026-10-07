@@ -62,7 +62,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.290`、进程级启用 early
 38. 作为鼠标使用者，我希望 hover 和点击条目，以便我能直接选择和跳转。
 39. 作为当前 transcript 仍保留目标的使用者，我希望激活 Prompt Entry 后跳转、折叠并把焦点还给 composer，以便迅速回到对话位置。
 40. 作为查看旧档案的使用者，我希望无效 Jump Target 保留并显示 `×`，以便不可跳转不等于历史被删除。
-41. 作为宿主未发送 `ui.scroll` 的使用者，我希望方向键和点击仍能到达首尾，以便触控板或滚轮不是唯一导航路径。
+41. 作为宿主未发送 `ui.scroll` 的使用者，我希望方向键仍能到达首尾，以便触控板或滚轮不是唯一导航路径。
 42. 作为展开时间线的使用者，我希望界面提示 `ctrl+x tab` 或鼠标取得焦点，以便插件不虚假承诺自动聚焦。
 43. 作为触发 AskUserQuestion 的使用者，我希望 Prompt Trail 在工具交互期间让出 AbovePrompt 并在结束后恢复，以便两个界面不会争抢同一槽位。
 44. 作为执行 `/clear` 的使用者，我希望 Run 保持不变而新 Conversation Segment 切断父链，以便清空语义和进程语义不混淆。
@@ -138,12 +138,13 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.290`、进程级启用 early
    - consent 告知必须覆盖完整文本、明文、永久无应用配额、凭据风险、路径、同账户/root 信任边界，以及 Prompt Trail 删除不覆盖的副本。
    - Collection consent 按 Project Timeline 与 policy version 保存；普通升级不重复询问，实质政策变化暂停采集并重新授权。
    - `enable`/`disable` 只改变当前 Run，并随 Run 谱系延续：resume 回来保持原 mode。disable 不删除、不影响其他 Run、不补录；重新 enable 前先解决 Pending Capture，再写 Collection Boundary 并从新根 Conversation Branch 开始。
+   - Run collection mode 以 `$.store` 记录为快路径；`$.store` 没有该 Run 的记录时（例如 disable 写入 `$.store` 失败），以档案中该 Run 最近的 Collection Boundary 为准：最后一条是 `collection-stopped` 即仍为停用，reload 不会因此恢复采集。档案读不出时提交被拦下，disable 不受影响。（2026-10-06 修订。）
    - `clear-all` 不撤销 Collection consent，也不改变当前 Run collection mode。
 
 5. **经典 command-hook locator 桥**
    - 只有经典 SessionStart command hook 使用官方插件 root/data 占位符；function hook 不依赖 `import.meta.url` 或未声明环境变量定位制品。
    - bridge 在私有、session 隔离的位置原子发布 locator，文件名同时带 session 与宿主进程世代（`<session>.<pid>-<启动秒>-<启动微秒>.json`），并发 resume 同一会话的两个进程各有自己的 locator；helper 只接受按自身宿主进程世代命名的那一个。bridge 另在 plugin data 下维护只含 session、Run 与 Archive generation 的私有会话索引，resume 据此找回 Run。（2026-09-23 Issue 32 修订。）locator 至少绑定 helper 规范路径、数据库根、helper SHA-256、plugin/helper protocol、session、宿主进程世代、Run 和 Archive generation，且不含 prompt。
-   - 每次 helper 调用前校验 locator schema、session/世代、owner、权限、对象类型、规范路径、目录归属和摘要；任一不符均拒绝执行。
+   - 每次证明目标时校验 locator schema、session/世代、owner、权限、对象类型、规范路径、目录归属和摘要；任一不符均拒绝执行。摘要前后各取一次 helper 文件身份（设备、inode、大小、纳秒级 mtime/ctime），两次不同即按 `digest-mismatch` 拒绝。此后每次 helper 调用前都先比对该文件身份：一致才运行；不一致时完整重新证明目标，未通过即以 `digest-mismatch` 拒绝该调用。即摘要已证明，调用前再查文件身份；生命周期写入、时间线读取、对齐等不经提交或命令的路径同样适用。（2026-10-06 修订。）
    - helper 只通过无 shell argv 启动，prompt 原文只放 stdin。路径与错误类别可进入诊断，原文及文本哈希不可进入诊断。
    - 正常结束删除当前 session locator；只在能证明格式、owner、世代和对应进程已终止时清理陈旧 locator。
 
@@ -197,6 +198,7 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.290`、进程级启用 early
     - `AbovePrompt` 默认只绘制一行 `Prompt Trail` 标题；标题点击和裸 `/prompt-history` 切换展开。
     - 展开列表按 sequence 旧到新绘制 Prompt Entry 与边界。Prompt Entry 把换行显示为 `↵`，再按 cell 宽度截断并直接加省略号；每项始终一行。
     - 使用有界读取与有界渲染窗口；窗口前保留一条 overscan。最早可见 Prompt Entry 取得焦点时加载上一批并保留同一个 keyed Button，使方向键连续跨批次。
+    - 本 Run 离开活动路径的条目在分叉点折叠为「另一分支 · N 条」；本 Run 起点之后写入过 prompt 的其他 Run 各折叠为一处「另一 Run · N 条」；起点之前（没有活动路径时为全部历史）区间重叠、同时写入的 Run 中，条目较少者（相同则较晚开始者）整体折叠为一处，使交错的 Run 边界行不混在一起。N 由 helper 按整个时间线计数，不限于已载入的窗口；折叠以其全程最早成员命名，画在窗口内最早的成员处，窗口移动后展开状态保持。活动路径上的条目从不折叠。（2026-10-06 backlog 修订：取代 Issue 21 的「折叠只统计窗口内成员」与 Issue 24 的「起点之前照原样显示」。）
     - 位于底部时跟随新增 Prompt Entry；离开底部时固定位置并累计新条目提示。
     - 有效 Prompt Entry 显示 `↵`，激活后调用 Jump Target、折叠并回到 composer；无效项显示 `×`，激活无副作用且不折叠。
     - 方向键、Enter、鼠标 hover/点击是 MUST。触控板/滚轮不是支持路径；PageUp/PageDown/Home/End 只有真实终端验收通过后才可写入承诺。
@@ -208,7 +210,8 @@ MVP 只承诺 macOS 15.x arm64、Claude Code `>=2.1.290`、进程级启用 early
     - 命令面为 `/prompt-history`、`enable`、`disable`、`status`、`clear-run` 和 `clear-all`。
     - 裸命令只切换展开；控制命令本身不创建 Prompt Entry。已有档案健康 unknown 时，`enable` 必须提供可在 disabled Run 使用的显式初始化/完整复检确认，不能仅指向被 disabled 提交绕过的对话框；失败或取消保持当前采集模式，通过绑定健康证据后才继续启用。
     - `status` 在 unsupported、Helper unavailable、Archive unavailable、损坏和物理清除未完成时仍可运行，且从不显示 prompt。
-    - 有数据的 `clear-run` 显示当前 Run、记录数和副本边界并要求一次确认；无数据时 no-op。
+    - `status` 只显示、不写共享故障记录。它自己的 Pending Capture 列举遇到档案本身的故障（`SHARED_FAILURES`）而记录里没有时，`archive:` 行显示 `unavailable · 范围 archive · 类别 <类别> · 本次 status 遇到，未记录`；`archive-status` 读取失败时注明其类别，从不只写 ready。（2026-10-06 修订。）
+    - 有数据的 `clear-run` 显示当前 Run、记录数和副本边界并要求一次确认；无数据时 no-op。helper 在项目独占锁下、写入切点前复核确认时展示的条数与会断开的其他 Run 父链接数，不符时以 `clear-run-changed` 拒绝、不删除任何内容，插件按最新范围再确认一次；续做已在进行的按 Run 清除不复核。（2026-10-06 修订。）
     - 有数据的 `clear-all` 显示项目、文件和记录数并要求输入固定确认短语；无数据时 no-op。
 
 13. **Archive unavailable、Integrity gap 与 Quarantined Archive**

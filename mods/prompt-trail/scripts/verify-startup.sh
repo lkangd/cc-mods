@@ -14,16 +14,17 @@ for path in .claude-plugin hooks bin artifacts scripts src tests tsconfig.json C
   fi
 done
 
+# The files scripts/build-artifacts.sh writes, one per line in artifact-paths.txt:
+# the release gate (release/release_evidence.py) reads the same list.
 artifact_state() {
-  /usr/bin/shasum -a 256 \
-    "$ROOT/bin/prompt-trail-helper" \
-    "$ROOT/bin/prompt-trail-bridge" \
-    "$ROOT/artifacts/helper-manifest.json" \
-    "$ROOT/hooks/artifact.ts" \
-    "$ROOT/src/prompt_trail_generated_artifact.h"
-  /usr/bin/stat -f '%N|type=%HT|mode=%Lp' \
-    "$ROOT/bin/prompt-trail-helper" \
-    "$ROOT/bin/prompt-trail-bridge"
+  while read -r path; do
+    /usr/bin/shasum -a 256 "$ROOT/$path"
+  done < "$ROOT/scripts/artifact-paths.txt"
+  while read -r path; do
+    case $path in
+      bin/*) /usr/bin/stat -f '%N|type=%HT|mode=%Lp' "$ROOT/$path" ;;
+    esac
+  done < "$ROOT/scripts/artifact-paths.txt"
 }
 
 before_build=$(artifact_state)
@@ -48,11 +49,9 @@ for claude_version in $(printf '%s\n' "$MINIMUM_CLAUDE_VERSION" "$CURRENT_CLAUDE
   CLAUDE_CONFIG_DIR=$host_config npx -y "@anthropic-ai/claude-code@$claude_version" plugin test "$ROOT"
 done
 npx -y -p "typescript@$TYPESCRIPT_VERSION" tsc -p "$ROOT/tsconfig.json"
-python3 -m unittest -v "$ROOT/tests/artifact_static.py"
-python3 -m unittest -v "$ROOT/tests/bridge_protocol.py"
-python3 -m unittest -v "$ROOT/tests/helper_protocol.py"
-python3 -m unittest -v "$ROOT/tests/project_root.py"
-python3 -m unittest -v "$ROOT/tests/release_verdict.py"
+# The runner owns the module list the release gate runs too, and exits non-zero
+# on any test that does not pass; its verbose log goes to stderr.
+python3 "$ROOT/release/unit_runner.py" >/dev/null
 "$ROOT/bin/prompt-trail-helper" probe --protocol 1
 
 if "$ROOT/bin/prompt-trail-helper" probe --protocol 99 >/dev/null 2>"$failure"; then

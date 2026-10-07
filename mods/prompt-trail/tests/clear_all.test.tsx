@@ -5,12 +5,14 @@ import {
   boundaryCalls,
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   projectId,
   projectRoot,
   promptHistory,
   renderBand,
   runId,
+  runModeKeyFor,
   session,
   sessionId,
 } from './support'
@@ -18,7 +20,6 @@ import type { ArchiveRow, TargetOptions } from './support'
 
 const PHRASE = 'delete all prompts'
 const branchKey = `prompt-trail:branch:${projectId}:${runId}:${sessionId}`
-const runModeKey = `prompt-trail:run-mode:${projectId}:${runId}`
 const reconcileKey = `prompt-trail:reconcile:${projectId}`
 
 /* Issue 30: clearing a Project Timeline. Everything archived before the cut
@@ -26,10 +27,6 @@ const reconcileKey = `prompt-trail:reconcile:${projectId}`
    the next one. */
 
 const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
-
-function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' } }
-}
 
 function lifecycleKey(forRunId: string = runId): string {
   return `prompt-trail:lifecycle:${projectId}:${forRunId}`
@@ -116,7 +113,7 @@ function collectingStore(): Record<string, unknown> {
     [`prompt-trail:branch:${projectId}:${otherRun}:${otherRun}`]: {
       version: 1, branchId: 'bbbbbbbb-0000-4000-8000-000000000002', parentEventId: null,
     },
-    [runModeKey]: { version: 1, mode: 'enabled' },
+    [runModeKeyFor()]: { version: 1, mode: 'enabled' },
   }
 }
 
@@ -180,7 +177,7 @@ test('clear-all shows what it removes and clears only on the exact phrase', asyn
   expect(cleared.text).toContain('Collection consent 与当前 Run 的采集模式未改变')
   expect(cleared.text).not.toContain('PT-SECRET')
   expect(store[`prompt-trail:consent:${projectId}`]).toBeDefined()
-  expect(store[runModeKey]).toEqual({ version: 1, mode: 'enabled' })
+  expect(store[runModeKeyFor()]).toEqual({ version: 1, mode: 'enabled' })
 })
 
 test('after a clear the Run goes on collecting in an empty timeline', async ($, on) => {
@@ -407,7 +404,7 @@ test('opening the timeline after another Run cleared it shows nothing cleared', 
 
 test('after a clear status names no boundary of the cleared history', async ($, on) => {
   const store = collectingStore()
-  store[runModeKey] = {
+  store[runModeKeyFor()] = {
     version: 1,
     mode: 'enabled',
     boundary: { kind: 'collection-started', eventId: 'eeeeeeee-0000-4000-8000-000000000009', sequence: 2 },
@@ -419,7 +416,7 @@ test('after a clear status names no boundary of the cleared history', async ($, 
   await promptHistory($, 'clear-all')
 
   expect((await promptHistory($, 'status')).text).toContain('latest collection boundary: none')
-  expect(store[runModeKey]).toEqual({ version: 1, mode: 'enabled' })
+  expect(store[runModeKeyFor()]).toEqual({ version: 1, mode: 'enabled' })
 })
 
 /* Found in review (Issue 30, round 1). */
@@ -541,7 +538,7 @@ test('counts the archive cannot give are said to be unknown, not zero', async ($
 
 test('what a clear could not forget is reported, not passed over', async ($, on) => {
   const store = collectingStore()
-  store[runModeKey] = {
+  store[runModeKeyFor()] = {
     version: 1,
     mode: 'enabled',
     boundary: { kind: 'collection-started', eventId: 'eeeeeeee-0000-4000-8000-000000000009', sequence: 2 },
@@ -578,4 +575,41 @@ test('a clear this Run saw but could not record does not reach the next generati
 
   expect(result.drop).toBeUndefined()
   expect(archive.map(row => row.kind)).not.toContain('clear')
+})
+
+/* A disable the store never took was kept by its stop boundary alone, which
+   the clear takes: the store is asked to keep it now. */
+test('a disable kept only by the archive is written to the store when clear-all takes it', async ($, on) => {
+  const store = consentedStore()
+  const options: TargetOptions = {
+    store, archive: archivedBefore(), clearAnswers: [PHRASE], storeSetFailsFor: 'prompt-trail:run-mode:',
+  }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+  expect((await promptHistory($, 'disable')).text).toContain('保持停用')
+  options.storeSetFailsFor = undefined
+
+  const cleared = await promptHistory($, 'clear-all')
+
+  expect(cleared.text).toContain('已清除本项目的 Prompt Trail 档案')
+  expect(cleared.text).not.toContain('reload 后会回到默认值')
+  expect(store[runModeKeyFor()]).toEqual({ version: 1, mode: 'disabled' })
+})
+
+test('a clear-all that cannot keep an archive-only disable says a reload will not', async ($, on) => {
+  const store = consentedStore()
+  const archive = archivedBefore()
+  const calls = installSupportedTarget(on, {
+    store, archive, clearAnswers: [PHRASE], storeSetFailsFor: 'prompt-trail:run-mode:',
+  })
+  await $.session.start(session)
+  await promptHistory($, 'disable')
+
+  const cleared = await promptHistory($, 'clear-all')
+
+  expect(cleared.text).toContain('当前 Run 仍停用采集，但无法保存 Run collection mode')
+  expect(store[runModeKeyFor()]).toBeUndefined()
+  /* This module instance still holds the switch. */
+  await composerPrompt($)
+  expect(captureCalls(calls, 'capture-begin')).toEqual([])
 })

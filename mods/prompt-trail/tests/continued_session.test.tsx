@@ -6,6 +6,7 @@ import {
   SECRET,
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   parentChoices,
   parentPane,
@@ -26,12 +27,6 @@ const sourceSession = sessionId
 const continuedSession = '77777777-2222-4333-8444-555555555555'
 const branchId = 'b1b1b1b1-0000-4000-8000-000000000001'
 const earlier = 'e1e1e1e1-0000-4000-8000-00000000000a'
-
-const consent = { policyVersion: 1, decision: 'enabled' }
-
-function consentedStore(extra: Record<string, unknown> = {}): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: consent, ...extra }
-}
 
 function branchKey(forSessionId: string): string {
   return `prompt-trail:branch:${projectId}:${runId}:${forSessionId}`
@@ -156,6 +151,64 @@ test('a continued session whose source recorded no branch starts one of its own'
   expect(begin.parent).toBe('-')
   expect(begin.branchId).not.toBe(branchId)
   expect(store[branchKey(sourceSession)]).toBeUndefined()
+})
+
+/* A conversation moved twice: from the source to a session that never
+   submits, and from that one on. The locator names only the session just
+   before. */
+const laterSession = '88888888-2222-4333-8444-555555555555'
+
+test('a session continued from one that never submitted still goes on along the first one’s branch', async ($, on) => {
+  const store = consentedStore({ [branchKey(sourceSession)]: stored(earlier) })
+  const classicSession = { id: continuedSession }
+  const options = {
+    store,
+    classicSession,
+    continuedFrom: sourceSession,
+    archive: [archivedEntry(earlier, 7, 'PT-SECRET-EARLIER')],
+    messages: [
+      { role: 'user' as const, text: 'PT-SECRET-EARLIER' },
+      { role: 'assistant' as const, text: 'reply' },
+    ],
+    branchMatch: unique(earlier),
+  }
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+
+  /* Moved on before the middle session wrote anything. */
+  classicSession.id = laterSession
+  options.continuedFrom = continuedSession
+  const result = await composerPrompt($)
+
+  expect(result).toMatchObject({ text: SECRET })
+  expect(parentOf(captureCalls(calls, 'capture-begin')[0])).toEqual({ branchId, parent: earlier })
+  expect(store[branchKey(continuedSession)]).toEqual(stored(earlier))
+})
+
+test('a continued session whose locator comes late takes up its source’s branch and compaction without submitting', async ($, on) => {
+  const store = consentedStore({
+    [branchKey(sourceSession)]: stored(earlier),
+    [compactedKey(sourceSession)]: true,
+  })
+  const locatorPublished = { value: false }
+  let clock: import('claude-code/testing').MockClock | undefined
+  const calls = installSupportedTarget(on, {
+    store,
+    classicSession: { id: continuedSession },
+    continuedFrom: sourceSession,
+    locatorPublished,
+    onClock: mocked => { clock = mocked },
+  })
+  await $.session.start(session)
+  expect(store[branchKey(continuedSession)]).toBeUndefined()
+
+  locatorPublished.value = true
+  await clock!.advance(2_000)
+
+  expect(store[branchKey(continuedSession)]).toEqual(stored(earlier))
+  expect(store[compactedKey(continuedSession)]).toBe(true)
+  /* Nothing reaches the archive until the session writes. */
+  expect(calls.filter(call => call.argv[1] === 'boundary-append')).toHaveLength(0)
 })
 
 for (const [name, continuedFrom] of [

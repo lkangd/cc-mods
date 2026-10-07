@@ -92,7 +92,8 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
   **取代 Issue 17 的 `truncated`**。100,000 条时三项 helper 调用的 p95 为 73/260/155 ms。**修正 Issue 12**：显示序号改为项目级 Prompt Entry 序数。**修正 Issue 03**：Ghostty 的触控板会送
   `ui.scroll`，但只在 band 的树高于 `maxRows` 时送，且此时宿主必画 `n more`；插件用空白行占位让计数等于视图下方的
   真实行数，到底时树不超高、收不到触控板，由标题行提示点击上翻。`branch-match` 改为内存里自顶向下匹配。Gap 边界等
-  Issue 26，跨窗口折叠计数和宿主 `n more` 限制进了 backlog。
+  Issue 26，跨窗口折叠计数和宿主 `n more` 限制进了 backlog。2026-10-06 backlog 清理时两者都已修复：折叠按整条 Run 计数；
+  隔离 PTY 探针证实 2.1.290 的计数行写作 `↑ a more · ↓ b more`，band 在标题上下都用空白行占位并把窗口对回标题，计数为真实行数，底部也收得到触控板，标题行的上翻按钮已删除。
 - [绑定和失效 Jump Target](issues/22-bind-jump-targets.md)：
   当前 transcript 仍画着的 Prompt Entry 点击或 Enter 即跳回原行并收起 band，焦点回到输入框；没有目标的条目变暗并加
   `×`，**偏离规格**：有效条目不加 `↵`。绑定只存在内存：插件记下 composer 渲染行，由 `branch-match --rows` 在两种嵌入一致时
@@ -255,11 +256,15 @@ Prompt Trail MVP 的功能、数据、安全、兼容与验收决策全部落定
 - [Issue 35 路线变更：存储行成员资格与排队显式对账](issues/35-queued-submission-withdrawn.md)（2026-10-06，实现完成；修复后 PTY 验收第 4 轮通过，resolved）：
   2.1.290 仍无提交→出队/撤回身份；使用者改选按 `session.append` 的 composer 存储行确认、排队提交保持 unproven 由人对账（无行时只给“未进入 / 新根分支”），正文仍取 submit 最终文本，最低宿主版本提到 2.1.290。
   隔离 2.1.290 探针证实空闲提交的行在 `next(e)` 前存储、排队行出队后才存、撤回无行（0 泄漏）。删除同文自动判定；2.1.290 plugin 488/488、helper 184 与其余门禁通过。真实 PTY 验收、发布与版本号变更未做。
+- composer 行先计数后存储（2026-10-06 backlog 清理时作为已接受风险关闭）：
+  `session.append` 钩子在 `next(e)` 之前调用 `noteComposerRow`。若宿主写 transcript 失败，这一行已被计入提交窗口或 `rowsSince`。2.1.290 测试套件没有 `session.append` 的底层实现，测试钩子也不能代答，所以改成存储成功后再计数会让整套测试的每一行都变成“未存储”。宿主声明 composer 行不能被钩子拒绝，残余风险只剩宿主自身存储失败。
+  每次升级宿主时复查：套件若已实现 `session.append`，就改为 `await next(e)` 之后再计数；失败时把打开的窗口标为 `shared`、`rowsSince` 置为 `'unknown'`，并补一个拒绝 append 的测试。在此之前保留钩子上解释先计数原因的注释。
 
 ## Current work
 
 - 0.2.0 发布门禁于 2026-10-06 通过（Issue 54），证据已提交。Issue 35 的跟进（空闲多行、措辞、改写文本）与 Issue 53 都已 resolved。尚未 push，也没有部署或发布到 marketplace。
-- 未处理的 backlog 中与本轮相关的：`helper-trust-reused-outside-submissions`（major）、`composer-row-counted-before-storage`（被测试套件卡住）。
+- 2026-10-06 backlog 清理（分支 `prompt-trail/backlog-sweep`，已提交，未合并、未 push）：`docs/code-review-backlog/` 的 34 条全部处理完——属实的已修复，已解决或不再属实的删除，`composer-row-counted-before-storage` 作为已接受风险关闭（见上方决定）。各票据和本文件里指向这些 backlog 文件的链接已失效，原文用 `git show b54339e:<路径>` 查看。
+- 2026-10-07 使用者发起的 code-review（17 条）：12 条已修（Run collection mode 的 store/档案回退、clear-all/clear-run 保住只在档案里的停用、同意后重读 Run mode 等），2 条驳回，3 条记入新 backlog：`docs/code-review-backlog/20261007-branch-fold-lookup-linear.md`、`20261007-pre-start-fold-sees-only-the-batch.md`、`20261007-clear-forgets-other-runs-archive-only-disable.md`。修复后 plugin test 551/551、tsc、`verify-startup.sh` exit 0；隔离 PTY（2.1.290）51 个场景 52 次全部通过、0 泄漏。仍需使用者用真实触控板验收 band。
 
 ## Not yet specified
 

@@ -656,6 +656,14 @@ class BridgeProtocolTests(unittest.TestCase):
         transcript.write_text("".join(json.dumps(row) + "\n" for row in rows))
         return transcript
 
+    def publish_source(self) -> tuple[str, dict[str, object]]:
+        """Starts the current session as the one a later session continues, and
+        answers its id with the locator it published."""
+        source_session = self.session_id
+        published = self.run_bridge("publish", self.session_input("SessionStart"))
+        self.assertEqual(published.returncode, 0, published.stderr)
+        return source_session, json.loads(self.locator.read_text())
+
     def continuation_input(self) -> dict[str, object]:
         start = self.session_input("SessionStart")
         start["source"] = "fork"
@@ -663,10 +671,7 @@ class BridgeProtocolTests(unittest.TestCase):
         return start
 
     def test_a_session_the_conversation_continued_in_keeps_its_run(self) -> None:
-        source_session = self.session_id
-        published = self.run_bridge("publish", self.session_input("SessionStart"))
-        self.assertEqual(published.returncode, 0, published.stderr)
-        source = json.loads(self.locator.read_text())
+        source_session, source = self.publish_source()
 
         self.session_id = str(uuid.uuid4())
         self.hand_off(source_session)
@@ -691,10 +696,7 @@ class BridgeProtocolTests(unittest.TestCase):
         )
 
     def test_a_continuation_whose_run_another_session_holds_begins_its_own(self) -> None:
-        source_session = self.session_id
-        published = self.run_bridge("publish", self.session_input("SessionStart"))
-        self.assertEqual(published.returncode, 0, published.stderr)
-        source = json.loads(self.locator.read_text())
+        source_session, source = self.publish_source()
         # The live process moved on to another session of the same Run, so it
         # still holds the Run, but not as the session that was handed off.
         clear_end = self.session_input("SessionEnd")
@@ -717,10 +719,7 @@ class BridgeProtocolTests(unittest.TestCase):
         self.assertNotIn("continuedFrom", json.loads(index.read_text()))
 
     def test_a_handoff_recorded_long_before_the_start_is_not_a_continuation(self) -> None:
-        source_session = self.session_id
-        published = self.run_bridge("publish", self.session_input("SessionStart"))
-        self.assertEqual(published.returncode, 0, published.stderr)
-        source = json.loads(self.locator.read_text())
+        source_session, source = self.publish_source()
 
         self.session_id = str(uuid.uuid4())
         transcript = self.hand_off(source_session)
@@ -736,10 +735,7 @@ class BridgeProtocolTests(unittest.TestCase):
         self.assertNotIn("continuedFrom", current)
 
     def test_a_handoff_stamped_after_the_start_is_not_a_continuation(self) -> None:
-        source_session = self.session_id
-        published = self.run_bridge("publish", self.session_input("SessionStart"))
-        self.assertEqual(published.returncode, 0, published.stderr)
-        source = json.loads(self.locator.read_text())
+        source_session, source = self.publish_source()
 
         self.session_id = str(uuid.uuid4())
         transcript = self.hand_off(source_session)
@@ -754,9 +750,7 @@ class BridgeProtocolTests(unittest.TestCase):
         self.assertNotIn("continuedFrom", current)
 
     def test_resume_refuses_an_index_whose_continuation_is_not_a_string(self) -> None:
-        source_session = self.session_id
-        published = self.run_bridge("publish", self.session_input("SessionStart"))
-        self.assertEqual(published.returncode, 0, published.stderr)
+        source_session, _ = self.publish_source()
         self.session_id = str(uuid.uuid4())
         self.hand_off(source_session)
         continued = self.run_bridge("publish", self.continuation_input(), via_child=True)
@@ -776,10 +770,7 @@ class BridgeProtocolTests(unittest.TestCase):
             self.assertEqual(json.loads(refused.stderr), {"category": "session-index-invalid"})
 
     def test_a_handoff_the_source_went_on_past_is_not_a_continuation(self) -> None:
-        source_session = self.session_id
-        published = self.run_bridge("publish", self.session_input("SessionStart"))
-        self.assertEqual(published.returncode, 0, published.stderr)
-        source = json.loads(self.locator.read_text())
+        source_session, source = self.publish_source()
 
         self.session_id = str(uuid.uuid4())
         # A turn after the record: the source conversation carried on itself,
@@ -796,10 +787,8 @@ class BridgeProtocolTests(unittest.TestCase):
         self.assertNotIn("continuedFrom", current)
 
     def test_only_a_fork_the_source_names_is_a_continuation(self) -> None:
-        source_session = self.session_id
-        published = self.run_bridge("publish", self.session_input("SessionStart"))
-        self.assertEqual(published.returncode, 0, published.stderr)
-        source_run = json.loads(self.locator.read_text())["runId"]
+        source_session, source = self.publish_source()
+        source_run = source["runId"]
 
         self.session_id = str(uuid.uuid4())
         self.hand_off(source_session, continued_in=str(uuid.uuid4()))
@@ -831,10 +820,8 @@ class BridgeProtocolTests(unittest.TestCase):
         )
 
     def test_a_resumed_continuation_still_names_its_source(self) -> None:
-        source_session = self.session_id
-        published = self.run_bridge("publish", self.session_input("SessionStart"))
-        self.assertEqual(published.returncode, 0, published.stderr)
-        source_run = json.loads(self.locator.read_text())["runId"]
+        source_session, source = self.publish_source()
+        source_run = source["runId"]
         self.session_id = str(uuid.uuid4())
         self.hand_off(source_session)
         continued = self.run_bridge("publish", self.continuation_input(), via_child=True)

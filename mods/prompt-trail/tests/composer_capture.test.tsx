@@ -5,6 +5,7 @@ import {
   SECRET,
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   projectId,
   promptHistory,
@@ -208,9 +209,7 @@ test('a render replay never archives an entry again', async ($, on) => {
 })
 
 test('a blocked Run keeps the archive consistent with the conversation', async ($, on) => {
-  const store: Record<string, unknown> = {
-    [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' },
-  }
+  const store: Record<string, unknown> = consentedStore()
   const calls = installSupportedTarget(on, {
     store,
     dropBeneath: '下游拒绝了这次提交。',

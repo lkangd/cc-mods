@@ -12,16 +12,13 @@ import {
   promptHistory,
   reconcileKeyFor,
   runId,
+  runModeKeyFor,
   session,
 } from './support'
 
 /* Where earlier builds kept the one record of a project. */
 function legacyReconcileKey(): string {
   return `prompt-trail:reconcile:${projectId}`
-}
-
-function runModeKey(forRunId: string = runId): string {
-  return `prompt-trail:run-mode:${projectId}:${forRunId}`
 }
 
 test('a failed pre-write drops the submission and restores the draft', async ($, on) => {
@@ -238,7 +235,7 @@ test('disable keeps the pending and enable refuses until it is reconciled', asyn
   expect(captureCalls(calls, 'capture-abort')).toHaveLength(0)
   expect(store[reconcileKeyFor()]).toBeDefined()
   expect(enabled.text).toContain('对账')
-  expect(store[runModeKey()]).toMatchObject({ mode: 'disabled' })
+  expect(store[runModeKeyFor()]).toMatchObject({ mode: 'disabled' })
 })
 
 test('a restart discovers the pending from the archive and confirms it from staged text', async ($, on) => {

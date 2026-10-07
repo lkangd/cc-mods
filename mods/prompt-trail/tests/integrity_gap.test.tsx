@@ -5,17 +5,18 @@ import {
   SECRET,
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   parentPane,
   projectId,
   promptHistory,
   renderBand,
   runId,
+  runModeKeyFor,
   session,
   sessionId,
 } from './support'
 
-const consentGranted = { policyVersion: 1, decision: 'enabled' as const }
 /* This process's stretch of the Run, as a Run that has already archived
    something in this process records it: a reload finds it open. */
 const ownAttachment = {
@@ -29,10 +30,9 @@ function lifecycleKey(forRunId: string = runId): string {
 }
 
 function storeWith(lifecycle: Record<string, unknown>): Record<string, unknown> {
-  return {
-    [`prompt-trail:consent:${projectId}`]: consentGranted,
+  return consentedStore({
     [lifecycleKey()]: { version: 1, started: true, attachment: ownAttachment, queue: [], ...lifecycle },
-  }
+  })
 }
 
 function kinds(archive: readonly ArchiveRow[]): string[] {
@@ -203,9 +203,7 @@ test('a fact stamped while the archive could not say its generation is recorded 
   const archive: ArchiveRow[] = []
   /* A new Run's start is stamped as it is formed, and this archive cannot
      answer then. */
-  const store = {
-    [`prompt-trail:consent:${projectId}`]: consentGranted,
-  }
+  const store = consentedStore()
   installSupportedTarget(on, { store, archive, statusFails: 'archive-busy' })
 
   await $.session.start(session)
@@ -459,7 +457,7 @@ test('a clear the process went with before recording it is a gap', async ($, on)
 test('a disabled Run writes no marker and records no gap', async ($, on) => {
   const archive: ArchiveRow[] = []
   const store = storeWith({})
-  store[`prompt-trail:run-mode:${projectId}:${runId}`] = { version: 1, mode: 'disabled' }
+  store[runModeKeyFor()] = { version: 1, mode: 'disabled' }
   store[markerKey('crashed-call')] = marker('before-pending')
   const written: string[] = []
   installSupportedTarget(on, { store, archive, afterStoreSet: key => written.push(key) })
@@ -532,7 +530,7 @@ test('a gap owed at disable lands ahead of the stop, and its recovery waits for 
 test('a gap found while the Run is disabled lands at enable, ahead of the resume', async ($, on) => {
   const archive: ArchiveRow[] = []
   const store = storeWith({})
-  store[`prompt-trail:run-mode:${projectId}:${runId}`] = { version: 1, mode: 'disabled' }
+  store[runModeKeyFor()] = { version: 1, mode: 'disabled' }
   store[markerKey('crashed-before-disable')] = marker('before-pending')
   installSupportedTarget(on, { store, archive })
 
@@ -775,7 +773,7 @@ test('a gone Run whose collection is disabled gets its gap but no recovery', asy
   const archive: ArchiveRow[] = []
   const store = storeWith({})
   store[lifecycleKey(otherRun)] = { version: 1, started: true, queue: [], overflowed: true }
-  store[`prompt-trail:run-mode:${projectId}:${otherRun}`] = { version: 1, mode: 'disabled' }
+  store[runModeKeyFor(otherRun)] = { version: 1, mode: 'disabled' }
   installSupportedTarget(on, { store, archive })
 
   await $.session.start(session)

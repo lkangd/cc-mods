@@ -7,6 +7,7 @@ import {
   SECRET,
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   parentChoices,
   parentPane,
@@ -163,12 +164,6 @@ test('a row too long to have been archived is left out rather than sent', () => 
 
 /* The same decisions, carried out by the hooks: a composer submission settles
    its session's Active Branch before anything is staged. */
-
-const consent = { policyVersion: 1, decision: 'enabled' }
-
-function consentedStore(extra: Record<string, unknown> = {}): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: consent, ...extra }
-}
 
 function branchKey(forSessionId: string = sessionId): string {
   return `prompt-trail:branch:${projectId}:${runId}:${forSessionId}`

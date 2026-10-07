@@ -11,7 +11,7 @@ Prompt Trail 是一个 Claude Code 插件。它把你在终端 composer 里成�
 - 交互式终端；
 - 从可信的本地目录加载：`claude --plugin-dir <本仓库>/mods/prompt-trail`。
 
-启动时，插件会先检查平台、宿主版本、locator、helper 摘要、helper protocol 和系统 SQLite 的能力。任何一项无法证明，插件都会失败关闭，`/prompt-history status` 显示 `unsupported target` 或 `helper unavailable`。这时插件不会联网，不会现场编译，也不会退回到内存中的时间线。
+启动时，插件会先检查平台、宿主版本、locator、helper 摘要、helper protocol 和系统 SQLite 的能力。任何一项无法证明，插件都会失败关闭，`/prompt-history status` 显示 `unsupported target` 或 `helper unavailable`。这时插件不会联网，不会现场编译，也不会退回到内存中的时间线。helper 摘要证明之后，插件在每次运行 helper 前还会比对 helper 文件的身份（设备、inode、大小和修改时间）；文件被替换或改写过，就先完整重新证明，证明不了即以 `digest-mismatch` 拒绝运行。
 
 ## 档案健康与制品升级
 
@@ -28,7 +28,7 @@ Issue 53 已于 2026-10-06 resolved：审查修复后的完整非模型 startup 
 - 只有 Claude Code 真正把这条 prompt 存进对话，它才成为时间线上的一条记录。模型运行中输入的 prompt 会先排进宿主队列，之后可能被撤回，宿主也不说明哪条进入了；所以排队的提交先保持待对账，不算记录。它没结算时，会话还在运行就再提交会被拦下、草稿恢复；会话空闲后的下一次提交先弹出对账，写明它排队之后宿主存储了几条 composer 行。空闲时提交、但提交期间存下的 composer 行不是恰好一条只属于它的，也同样待对账，对话框写明提交期间存了几条。一条都没有时它不可能已进入，对账只提供「未进入 / 新根分支」；有存储行或无法证明时（例如重启后排队计数断了），才另外提供「已进入」。提交时被改写过的 prompt，若重新载入或重启后改写后的文本已经丢失，对账不提供「已进入」，只提供「不归档 / 新根分支」，不会把改写前的文本当作它归档。
 - `/prompt-history` 展开或折叠时间线；`/prompt-history status` 查看状态。status 不会显示任何 prompt 原文。
 - `/prompt-history disable` 停用当前 Run 的采集；`/prompt-history enable` 重新启用。已有档案健康未知时，`enable` 提供显式“初始化并完整复检”确认，即使当前 Run 已停用也可使用；失败或取消不改变采集模式，不创建 Prompt Entry。
-- `/prompt-history clear-run` 删除当前 Run 的全部记录；`/prompt-history clear-all` 删除当前项目的全部记录。两者都会先列出将要删除的内容，确认后才执行。
+- `/prompt-history clear-run` 删除当前 Run 的全部记录；`/prompt-history clear-all` 删除当前项目的全部记录。两者都会先列出将要删除的内容，确认后才执行。`clear-run` 确认期间若档案里的记录有变化（例如另一个 Run 从当前 Run 分叉），不会删除任何内容，而是按最新范围再问一次。
 
 ## 不支持的平台与 surface
 
@@ -45,7 +45,7 @@ Prompt Trail 只通过 `--plugin-dir` 加载。它不经 Marketplace 发布，�
 - 展开时间线后，键盘焦点不会自动移进去。要用 `ctrl+x tab` 或鼠标进入。
 - Esc 只保证把焦点还给 composer，不保证折叠时间线。
 - 焦点离开时间线后不保留选中位置：再次进入（包括 `/reload-plugins` 之后）总是从最新条目开始。
-- 不保证触控板和滚轮滚动时间线；方向键和鼠标点击可以到达时间线的首尾。
+- 不保证触控板和滚轮滚动时间线；方向键可以到达时间线的首尾。
 - 未经真人验收的 PageUp/PageDown/Home/End 不作承诺。
 - 其他插件同样占用输入框上方的位置时，Prompt Trail 不会与它们自动协调。AskUserQuestion 对话期间，时间线会让出位置。
 - 当前 transcript 里已经没有的条目会显示 `×`，不能跳转。

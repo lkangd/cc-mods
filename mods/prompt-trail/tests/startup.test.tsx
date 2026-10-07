@@ -1,7 +1,7 @@
 import { expect, mock } from 'claude-code/testing'
 import { test } from './support'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from '../hooks/artifact'
-import { ran } from './support'
+import { HELPER_STAMP_FORMAT, helperStamp, ran } from './support'
 
 const session = {
   cwd: '/tmp/prompt-trail-project',
@@ -147,6 +147,9 @@ test('reports supported only after the trusted read-only preflight succeeds', as
     }
     if (argv[0] === '/bin/realpath') {
       return ran({ exitCode: 0, stdout: `${argv[1]}\n`, stderr: '' })
+    }
+    if (argv[0] === '/usr/bin/stat' && argv[2] === HELPER_STAMP_FORMAT) {
+      return ran({ exitCode: 0, stdout: `${helperStamp()}\n`, stderr: '' })
     }
     if (argv[0] === '/usr/bin/stat') {
       const path = argv[argv.length - 1]

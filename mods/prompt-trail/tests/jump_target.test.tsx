@@ -5,9 +5,12 @@ import type { BranchState } from '../hooks/branch'
 import { alignmentInput, jumpOutcome, jumpTargets, recordRow, vanishedRows } from '../hooks/jump'
 import type { DrawnRow } from '../hooks/jump'
 import type { ArchiveRow, ProcessCall, TargetOptions, TranscriptRow } from './support'
+import { EXPECTED_HELPER_SHA256 } from '../hooks/artifact'
 import {
   BAND_ID,
   captureCalls,
+  consentedStore,
+  helperPath,
   installSupportedTarget,
   projectId,
   promptHistory,
@@ -142,10 +145,7 @@ function lineage(): ArchiveRow[] {
 
 function storeOn(tip: string | null): Record<string, unknown> {
   const branch: BranchState = { version: 1, branchId, parentEventId: tip }
-  return {
-    [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' },
-    [`prompt-trail:branch:${projectId}:${runId}:${sessionId}`]: branch,
-  }
+  return consentedStore({ [`prompt-trail:branch:${projectId}:${runId}:${sessionId}`]: branch })
 }
 
 /* The transcript holding the person's rows. */
@@ -235,9 +235,7 @@ test('replayed rows the helper places become jump targets; the rest are marked Ã
 })
 
 test('a fork of a compacted session ties its shared history before it submits anything', async ($, on) => {
-  const store: Record<string, unknown> = {
-    [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' },
-  }
+  const store: Record<string, unknown> = consentedStore()
   const { calls, settle } = install(on, {
     store,
     archive: lineage(),
@@ -657,6 +655,28 @@ test('rows replayed by an in-process resume back into a drawn session are tied a
     '1. PT-SECRET-ONE',
     '2. PT-SECRET-TWO',
   ])
+})
+
+test('a row drawn after the helper changed runs no alignment on it', async ($, on) => {
+  const helperDigest = { value: EXPECTED_HELPER_SHA256 }
+  const { calls, settle } = install(on, {
+    store: storeOn(second),
+    archive: lineage().slice(0, 2),
+    messages: holding('PT-SECRET-ONE', 'PT-SECRET-TWO'),
+    branchMatch: aligned(second, [{ row: 0, eventId: first }, { row: 1, eventId: second }]),
+    helperDigest,
+  })
+  await $.session.start(session)
+  await drawRow($, 'row-1', 'PT-SECRET-ONE')
+  await settle()
+  expect(alignCalls(calls)).toHaveLength(1)
+
+  helperDigest.value = 'f'.repeat(64)
+  const ranBefore = calls.length
+  await drawRow($, 'row-2', 'PT-SECRET-TWO')
+  await settle()
+
+  expect(calls.slice(ranBefore).filter(call => call.argv[0] === helperPath)).toStrictEqual([])
 })
 
 test('rows drawn on the way out of a clear are never tied, even once the next session starts', async ($, on) => {

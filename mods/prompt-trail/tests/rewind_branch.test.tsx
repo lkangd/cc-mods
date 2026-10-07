@@ -8,6 +8,7 @@ import type { ProcessCall, TranscriptRow } from './support'
 import {
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   parentChoices,
   parentPane,
@@ -95,12 +96,6 @@ test('a transcript at the engine\'s row limit is never taken as kept', () => {
 
 /* The same, carried out by the hooks: every composer submission after the
    first checks whether the transcript was rewound since the last capture. */
-
-const consent = { policyVersion: 1, decision: 'enabled' }
-
-function consentedStore(extra: Record<string, unknown> = {}): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: consent, ...extra }
-}
 
 function branchKey(): string {
   return `prompt-trail:branch:${projectId}:${runId}:${sessionId}`

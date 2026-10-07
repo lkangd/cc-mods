@@ -15,16 +15,17 @@ import {
   boundaryCalls,
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   projectId,
   promptHistory,
+  reconcileKeyFor,
   renderBand,
   runId,
   session,
   sessionId,
 } from './support'
 
-const consentGranted = { policyVersion: 1, decision: 'enabled' as const }
 const endedSessionId = sessionId
 const resumedSessionId = '66666666-7777-4888-8999-aaaaaaaaaaaa'
 const clearEventId = 'c'.repeat(64)
@@ -35,10 +36,6 @@ const ownAttachment = {
   id: 'b0b0b0b0-c1c1-4d2d-8e3e-f4f4f4f4f4f4',
   host: '4242-100-200',
   segmentId: sessionId,
-}
-
-function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: consentGranted }
 }
 
 function lifecycleKey(forRunId: string = runId): string {
@@ -702,7 +699,7 @@ test('a clear waits for an unsettled pre-clear Pending Capture', async ($, on) =
   /* The confirmation fails, so this prompt is owed a reconciliation and has
      taken no sequence yet. */
   await composerPrompt($)
-  expect(store[`prompt-trail:reconcile:${projectId}:${runId}`]).toBeDefined()
+  expect(store[reconcileKeyFor()]).toBeDefined()
 
   const before = boundaryCalls(calls).length
   /* A `/clear` landing here must not take the sequence between them: the

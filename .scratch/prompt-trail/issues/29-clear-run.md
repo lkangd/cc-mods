@@ -23,6 +23,7 @@
 
 - **helper**：
   - 新命令 `clear-run <root> <project> <本 Run> <sha> <protocol> [--continue]`：
+    > 2026-10-07 backlog 清理后，新清除改为 `clear-run <root> <project> <本 Run> <sha> <protocol> --confirmed <entries> <pending> <events> <unlinked>`：计数与确认对话框不符时报 `clear-run-changed`；续做仍是 `--continue`。
     - 持项目独占锁；遇到 `clear-all` 或隔离未完成照旧拒绝；有隔离档案时报 `clear-run-quarantined`；先做 `quick_check`，损坏报 `archive-integrity`；三张表都没有该 Run 的行时 no-op。
     - 原子写 `<projectId>.clearing-run`（内容为 Run id）即切点；随后一个事务里把其他 Run 的 `prompt_entries`、`pending_captures` 中指向被删条目的父链接置空，删除该 Run 在三张表的全部行；再 `VACUUM`、`wal_checkpoint(TRUNCATE)`；关库后核对 `-wal` 不存在或 0 字节，删除 `.pre-migration-*`；全部成功才删意向。
     - 越过切点后的任何失败都报 `clear-run-unfinished`（共享故障），意向留下，此后一切打开报这个类别。意向在时，任何 Run 调用都只续做意向里记着的 Run；`--continue` 在意向已不在时什么都不删。回答含 `cleared`、`continued`、`ownRun` 与四项计数。

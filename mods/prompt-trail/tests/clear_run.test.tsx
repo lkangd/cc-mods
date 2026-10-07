@@ -9,6 +9,7 @@ import {
   promptHistory,
   renderBand,
   runId,
+  runModeKeyFor,
   session,
   sessionId,
 } from './support'
@@ -22,8 +23,6 @@ const branchKey = `prompt-trail:branch:${projectId}:${runId}:${sessionId}`
 const earlierSession = '22222222-3333-4444-8555-666666666666'
 const earlierBranchKey = `prompt-trail:branch:${projectId}:${runId}:${earlierSession}`
 const otherBranchKey = `prompt-trail:branch:${projectId}:${otherRun}:${otherRun}`
-const runModeKey = `prompt-trail:run-mode:${projectId}:${runId}`
-const otherRunModeKey = `prompt-trail:run-mode:${projectId}:${otherRun}`
 const lifecycleKey = `prompt-trail:lifecycle:${projectId}:${runId}`
 const reconcileKey = `prompt-trail:reconcile:${projectId}`
 const consentKey = `prompt-trail:consent:${projectId}`
@@ -86,12 +85,12 @@ function collectingStore(): Record<string, unknown> {
       version: 1, branchId: 'bbbbbbbb-0000-4000-8000-000000000002',
       parentEventId: 'eeeeeeee-0000-4000-8000-000000000003',
     },
-    [runModeKey]: {
+    [runModeKeyFor()]: {
       version: 1,
       mode: 'enabled',
       boundary: { kind: 'collection-started', eventId: 'eeeeeeee-0000-4000-8000-000000000009', sequence: 1 },
     },
-    [otherRunModeKey]: {
+    [runModeKeyFor(otherRun)]: {
       version: 1,
       mode: 'enabled',
       boundary: { kind: 'collection-started', eventId: 'eeeeeeee-0000-4000-8000-000000000008', sequence: 2 },
@@ -186,12 +185,12 @@ test('a confirmed clear-run removes this Run and leaves every other Run as it wa
     expect(store[key]).toMatchObject({ parentEventId: null, explicitRoot: true })
   }
   expect(store[consentKey]).toEqual({ policyVersion: 1, decision: 'enabled' })
-  expect(store[runModeKey]).toEqual({ version: 1, mode: 'enabled' })
+  expect(store[runModeKeyFor()]).toEqual({ version: 1, mode: 'enabled' })
   expect((store[lifecycleKey] as { queue: unknown[] }).queue).toEqual([])
   expect(store[reconcileKey]).toBeUndefined()
   /* Another Run's state is its own. */
   expect(store[otherBranchKey]).toEqual(collectingStore()[otherBranchKey])
-  expect(store[otherRunModeKey]).toEqual(collectingStore()[otherRunModeKey])
+  expect(store[runModeKeyFor(otherRun)]).toEqual(collectingStore()[runModeKeyFor(otherRun)])
 
   const next = await composerPrompt($, { text: 'PT-SECRET-AFTER' })
 
@@ -430,7 +429,7 @@ test('a Run clear left unfinished here forgets what this Run kept of the cleared
   /* Whoever finishes the clear, nothing this Run owed of it may come back. */
   expect((store[lifecycleKey] as { queue: unknown[] }).queue).toEqual([])
   expect(store[branchKey]).toMatchObject({ parentEventId: null, explicitRoot: true })
-  expect(store[runModeKey]).toEqual({ version: 1, mode: 'enabled' })
+  expect(store[runModeKeyFor()]).toEqual({ version: 1, mode: 'enabled' })
 })
 
 test('a Run clear whose answer was lost after it finished says what the archive shows', async ($, on) => {
@@ -463,5 +462,74 @@ test('clear-run lifts the unavailable record when the Run clear finished elsewhe
 
   await promptHistory($, 'clear-run')
 
+  expect(store[archiveStateKey]).toBeUndefined()
+})
+
+/* Found in review (Issue 29, round 1): the confirmation must show every link
+   the clear cuts, however the archive changed while the dialog was up. */
+
+function forkWhileAsked(archive: ArchiveRow[]): () => void {
+  let forked = false
+  return () => {
+    if (forked) return
+    forked = true
+    archive.push({
+      kind: 'prompt',
+      eventId: 'eeeeeeee-0000-4000-8000-000000000005',
+      sequence: 5,
+      runId: otherRun,
+      segmentId: otherRun,
+      branchId: 'bbbbbbbb-0000-4000-8000-000000000003',
+      parentEventId: ownFirst,
+      text: 'PT-SECRET-OTHER-LATE-FORK',
+    })
+  }
+}
+
+test('clear-run asks again when another Run forks from this one while the dialog is up', async ($, on) => {
+  const archive = archivedBefore()
+  const clearAsked: string[] = []
+  const calls = installSupportedTarget(on, {
+    store: collectingStore(), archive, clearAsked,
+    clearAnswers: ['清除当前 Run', '清除当前 Run'],
+    duringAsk: forkWhileAsked(archive),
+  })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-run')
+
+  /* The first confirmation showed one link; the helper found two and cut none. */
+  expect(captureCalls(calls, 'clear-run').map(call => call.argv.slice(7))).toEqual([
+    ['--confirmed', '2', '0', '1', '1'],
+    ['--confirmed', '2', '0', '1', '2'],
+  ])
+  expect(clearAsked).toHaveLength(2)
+  expect(clearAsked[0]).toContain('其他 Run 有 1 条记录以本 Run 的条目为父节点')
+  expect(clearAsked[0]).not.toContain('有了变化')
+  expect(clearAsked[1]).toContain('确认期间档案中的记录有了变化，未删除任何内容')
+  expect(clearAsked[1]).toContain('其他 Run 有 2 条记录以本 Run 的条目为父节点')
+  expect(answer.text).toContain('其他 Run 的 2 条记录断开了与本 Run 的父链接')
+  expect(archive.map(row => [row.text, row.parentEventId])).toEqual([
+    ['PT-SECRET-OTHER-FORK', null],
+    ['PT-SECRET-OTHER-LATE-FORK', null],
+  ])
+})
+
+test('clear-run declined after the archive changed removes nothing', async ($, on) => {
+  const store = collectingStore()
+  const archive = archivedBefore()
+  const calls = installSupportedTarget(on, {
+    store, archive, clearAnswers: ['清除当前 Run', '取消'], duringAsk: forkWhileAsked(archive),
+  })
+  await $.session.start(session)
+
+  const answer = await promptHistory($, 'clear-run')
+
+  expect(answer.text).toBe('已取消，未删除任何内容。')
+  expect(captureCalls(calls, 'clear-run')).toHaveLength(1)
+  expect(archive).toHaveLength(5)
+  expect(archive.filter(row => row.parentEventId === ownFirst)).toHaveLength(3)
+  /* Nothing this Run kept was forgotten, and the archive stays usable. */
+  expect(store[branchKey]).toEqual(collectingStore()[branchKey])
   expect(store[archiveStateKey]).toBeUndefined()
 })
