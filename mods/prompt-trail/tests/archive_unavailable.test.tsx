@@ -5,12 +5,16 @@ import {
   boundaryCalls,
   captureCalls,
   composerPrompt,
+  consentedStore,
+  databasePath,
   installSupportedTarget,
   parentPane,
   projectId,
   promptHistory,
+  reconcileKeyFor,
   renderBand,
   runId,
+  runModeKeyFor,
   sessionId,
   session,
 } from './support'
@@ -22,10 +26,6 @@ import type { TargetOptions } from './support'
 
 const archiveStateKey = `prompt-trail:archive-state:${projectId}`
 const otherRun = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb'
-
-function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' } }
-}
 
 test('a failed pre-write asks what to do, and cancelling keeps the draft', async ($, on) => {
   const store = consentedStore()
@@ -121,7 +121,7 @@ test('disabling the Run lets the prompt through unarchived behind a stop boundar
   expect(fills).toStrictEqual([])
   expect(captureCalls(calls, 'capture-confirm')).toHaveLength(0)
   expect(boundaryCalls(calls).map(call => call.argv[7])).toStrictEqual(['collection-stopped'])
-  expect(store[`prompt-trail:run-mode:${projectId}:${runId}`]).toMatchObject({ mode: 'disabled' })
+  expect(store[runModeKeyFor()]).toMatchObject({ mode: 'disabled' })
   expect(pane.toasts.join('\n')).toContain('当前 Run 已停用采集')
   expect(pane.toasts.join('\n')).not.toMatch(/完整/)
 })
@@ -143,7 +143,7 @@ test('disabling while the archive refuses the stop boundary still lets the promp
   expect(captureCalls(calls, 'capture-confirm')).toHaveLength(0)
   /* The disabled interval is not claimed complete: enable owes the stop
      boundary before it resumes. */
-  expect(store[`prompt-trail:run-mode:${projectId}:${runId}`])
+  expect(store[runModeKeyFor()])
     .toMatchObject({ mode: 'disabled', stopBoundaryMissing: true })
 })
 
@@ -269,7 +269,7 @@ test('the host failing a submission puts nothing on record', async ($, on) => {
 test('enable writes its boundary despite a report on record, and lifts it', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [`prompt-trail:run-mode:${projectId}:${runId}`]: {
+    [runModeKeyFor()]: {
       version: 1,
       mode: 'disabled',
       boundary: { kind: 'collection-stopped', eventId: '44444444-5555-4666-8777-888888888888', sequence: 1 },
@@ -289,7 +289,7 @@ test('enable writes its boundary despite a report on record, and lifts it', asyn
 test('enable held up by a boundary it owes names the failure and records it', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [`prompt-trail:run-mode:${projectId}:${runId}`]: {
+    [runModeKeyFor()]: {
       version: 1,
       mode: 'disabled',
       boundary: { kind: 'collection-stopped', eventId: '44444444-5555-4666-8777-888888888888', sequence: 1 },
@@ -386,7 +386,7 @@ test('the band says the archive is unavailable until it works again', async ($, 
 test('a disabled Run shows no unavailable archive on its band', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [`prompt-trail:run-mode:${projectId}:${runId}`]: { version: 1, mode: 'disabled' },
+    [runModeKeyFor()]: { version: 1, mode: 'disabled' },
     [archiveStateKey]: { version: 2, state: 'unavailable', category: 'archive-busy', since: 1, runId: otherRun },
   }
   installSupportedTarget(on, { store })
@@ -484,7 +484,7 @@ test('a confirmation the archive refused is put on record for the other Runs', a
 
   /* The prompt entered; the pending stays owed. */
   expect(result.text).toBe(SECRET)
-  expect(store[`prompt-trail:reconcile:${projectId}:${runId}`]).toBeDefined()
+  expect(store[reconcileKeyFor()]).toBeDefined()
   expect(store[archiveStateKey]).toMatchObject({ state: 'unavailable', category: 'archive-full' })
 })
 
@@ -552,6 +552,49 @@ test('status names what the pending listing met', async ($, on) => {
 
   expect(status.text).toContain('pending reconciliation: unknown · 未决 Pending Capture 不可读（archive-busy）')
   expect(status.text).toContain('Run collection mode: unknown · 未决 Pending Capture 不可读（archive-busy）')
+})
+
+test('status that meets a shared failure in the pending listing says the archive is unavailable, without recording it', async ($, on) => {
+  const store = consentedStore()
+  installSupportedTarget(on, { store, listFails: 'migration-backup-cleanup' })
+  await $.session.start(session)
+
+  const status = await promptHistory($, 'status')
+
+  expect(status.text).toContain('archive: unavailable · 范围 archive · 类别 migration-backup-cleanup · 本次 status 遇到，未记录')
+  expect(status.text).not.toContain('archive: ready')
+  expect(store[archiveStateKey]).toBeUndefined()
+})
+
+test('status after a successful write still says what its pending listing met', async ($, on) => {
+  const store = consentedStore()
+  const options: TargetOptions = { store }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+  await composerPrompt($)
+
+  options.listFails = 'migration-backup-cleanup'
+  const status = await promptHistory($, 'status')
+
+  expect(status.text).toContain('archive: unavailable · 范围 archive · 类别 migration-backup-cleanup · 本次 status 遇到，未记录')
+  expect(store[archiveStateKey]).toBeUndefined()
+})
+
+test('status whose archive-status call fails says so, with or without a write of this Run', async ($, on) => {
+  const store = consentedStore()
+  const options: TargetOptions = { store, statusFails: 'archive-sqlite' }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+
+  const unwritten = (await promptHistory($, 'status')).text
+  options.statusFails = undefined
+  await composerPrompt($)
+  options.statusFails = 'archive-sqlite'
+  const written = (await promptHistory($, 'status')).text
+
+  expect(unwritten).toContain('archive: unknown · 档案状态不可读（archive-sqlite）')
+  expect(written).toContain(`archive: ready · ${databasePath} · size unknown · 档案状态不可读（archive-sqlite）`)
+  expect(store[archiveStateKey]).toBeUndefined()
 })
 
 /* Issue 27: what a schema migration meets is the archive's own failure, named

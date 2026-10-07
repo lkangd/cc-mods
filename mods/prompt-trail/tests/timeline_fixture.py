@@ -164,6 +164,58 @@ def chain(
     return event_ids
 
 
+def lineage(
+    database: pathlib.Path,
+    project_id: str,
+    count: int,
+    *,
+    starts_every: int,
+) -> list[dict]:
+    """Append one Run's single lineage of `count` Prompt Entries, with a Run
+    start every `starts_every` events by a new Run resuming the lineage's
+    session, whose first holder lies far back. Answers each event's identity,
+    oldest first."""
+    connection = sqlite3.connect(database)
+    events: list[dict] = []
+    run_id, segment_id, branch_id = (str(uuid.uuid4()) for _ in range(3))
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        (sequence,) = connection.execute(
+            "SELECT next_sequence FROM metadata WHERE project_id=?", (project_id,)
+        ).fetchone()
+        parent = None
+        while len(events) < count:
+            sequence += 1
+            event_id = str(uuid.uuid4())
+            if len(events) % starts_every == starts_every - 1:
+                connection.execute(
+                    "INSERT INTO timeline_events(event_id, sequence, kind, run_id,"
+                    " segment_id, branch_id, occurred_at_ms) VALUES(?,?,?,?,?,?,?)",
+                    (event_id, sequence, "run-started", str(uuid.uuid4()), segment_id,
+                     str(uuid.uuid4()), 1795000000000 + sequence),
+                )
+                events.append({"eventId": event_id, "sequence": sequence, "kind": "run-started"})
+                continue
+            connection.execute(
+                "INSERT INTO prompt_entries(event_id, sequence, run_id, segment_id,"
+                " branch_id, parent_event_id, occurred_at_ms, source,"
+                " attachment_count, attachment_kinds, prompt_text)"
+                " VALUES(?,?,?,?,?,?,?,'composer',0,'',?)",
+                (event_id, sequence, run_id, segment_id, branch_id, parent,
+                 1795000000000 + sequence, f"PT-FIXTURE {sequence}"),
+            )
+            events.append({"eventId": event_id, "sequence": sequence, "kind": "prompt",
+                           "runId": run_id, "parentEventId": parent})
+            parent = event_id
+        connection.execute(
+            "UPDATE metadata SET next_sequence=? WHERE project_id=?", (sequence, project_id)
+        )
+        connection.execute("COMMIT")
+    finally:
+        connection.close()
+    return events
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("database", type=pathlib.Path)

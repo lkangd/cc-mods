@@ -1,15 +1,19 @@
 import { expect } from 'claude-code/testing'
 import { test } from './support'
+import { HelperFailure, parseHelperFailure } from '../hooks/failure'
 import {
   SECRET,
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   parentPane,
   projectId,
   promptHistory,
+  reconcileKeyFor,
   renderBand,
   runId,
+  runModeKeyFor,
   session,
   sessionId,
 } from './support'
@@ -20,14 +24,9 @@ import type { ArchiveRow, TargetOptions } from './support'
    empty generation, or disable itself. */
 
 const archiveStateKey = `prompt-trail:archive-state:${projectId}`
-const reconcileKey = `prompt-trail:reconcile:${projectId}:${runId}`
 const branchKey = `prompt-trail:branch:${projectId}:${runId}:${sessionId}`
 const otherRun = 'ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb'
 const DAMAGE_CHOICES = ['重新检查完整性', '隔离并开始新档案', '清除全部档案', '禁用当前 Run 后继续']
-
-function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' } }
-}
 
 /* One earlier Prompt Entry of this Run, the tip its branch continues from. */
 function earlierEntry(): ArchiveRow {
@@ -51,6 +50,45 @@ function onBranch(store: Record<string, unknown>, generation?: string): void {
     ...(generation ? { generation } : {}),
   }
 }
+
+const KNOWN = new Set(['archive-integrity', 'archive-busy'])
+const isId = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value)
+
+test('damage carries the generation it was met in, and a later failure does not change it', () => {
+  const damage = parseHelperFailure(JSON.stringify({ category: 'archive-integrity', generation: 'gen-1' }), 'capture-begin', KNOWN, isId)
+  const unnamed = parseHelperFailure(JSON.stringify({ category: 'archive-integrity' }), 'timeline-read', KNOWN, isId)
+  const busy = parseHelperFailure(JSON.stringify({ category: 'archive-busy', generation: 'gen-5' }), 'capture-list', KNOWN, isId)
+
+  expect(damage).toBeInstanceOf(HelperFailure)
+  expect([damage.message, damage.category, damage.generation]).toStrictEqual(['archive-integrity', 'archive-integrity', 'gen-1'])
+  expect(unnamed.generation).toBeUndefined()
+  /* Only damage names a generation. */
+  expect([busy.category, busy.generation]).toStrictEqual(['archive-busy', undefined])
+  expect(damage.generation).toBe('gen-1')
+})
+
+test('damage a submission meets is on record with the generation the helper named, after other reads failed', async ($, on) => {
+  const store = consentedStore()
+  const generation = { value: 'gen-3' }
+  const options: TargetOptions = { store, generation, archive: [earlierEntry()], readFails: 'archive-busy', fills: [] }
+  installSupportedTarget(on, options)
+  await $.session.start(session)
+  await promptHistory($)
+  options.beginFails = 'archive-integrity'
+
+  const result = await composerPrompt($)
+
+  expect(result).toMatchObject({ drop: expect.any(String) })
+  expect(store[archiveStateKey]).toMatchObject({ category: 'archive-integrity', generation: 'gen-3' })
+})
+
+test('a helper failure the plugin cannot read is named by the operation', () => {
+  expect(parseHelperFailure('PT-SECRET-STDERR', 'capture-begin', KNOWN, isId).category).toBe('capture-begin')
+  expect(parseHelperFailure(JSON.stringify({ category: 'PT-SECRET' }), 'boundary-append', KNOWN, isId).message).toBe('boundary-append')
+  expect(parseHelperFailure(
+    JSON.stringify({ category: 'archive-integrity', generation: '../PT-SECRET' }), 'capture-begin', KNOWN, isId,
+  ).generation).toBeUndefined()
+})
 
 test('helper damage blocks a submission even when the display store has no report', async ($, on) => {
   const store = consentedStore()
@@ -282,7 +320,7 @@ test('a plain retry cannot bypass unknown health and status directs explicit ini
 
 test('enable refuses unknown helper health before writing any collection boundary', async ($, on) => {
   const store = consentedStore()
-  store[`prompt-trail:run-mode:${projectId}:${runId}`] = { version: 1, mode: 'disabled' }
+  store[runModeKeyFor()] = { version: 1, mode: 'disabled' }
   const calls = installSupportedTarget(on, {
     store, health: { state: 'unknown', generation: 'gen-1', token: null },
   })
@@ -294,12 +332,12 @@ test('enable refuses unknown helper health before writing any collection boundar
   expect(enabled.text).toContain('档案健康状态未知')
   expect(enabled.text).toContain('初始化并完整复检')
   expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
-  expect(store[`prompt-trail:run-mode:${projectId}:${runId}`]).toMatchObject({ mode: 'disabled' })
+  expect(store[runModeKeyFor()]).toMatchObject({ mode: 'disabled' })
 })
 
 test('a disabled Run can explicitly initialize unknown health while enabling', async ($, on) => {
   const store = consentedStore()
-  store[`prompt-trail:run-mode:${projectId}:${runId}`] = { version: 1, mode: 'disabled' }
+  store[runModeKeyFor()] = { version: 1, mode: 'disabled' }
   const health: NonNullable<TargetOptions['health']> = { state: 'unknown', generation: 'gen-1', token: null }
   const archive = [earlierEntry()]
   const unavailableAsked: string[] = []
@@ -315,13 +353,13 @@ test('a disabled Run can explicitly initialize unknown health while enabling', a
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   expect(archive[0]?.text).toBe('PT-SECRET-EARLIER')
   expect(health.state).toBe('healthy')
-  expect(store[`prompt-trail:run-mode:${projectId}:${runId}`]).toMatchObject({ mode: 'enabled' })
+  expect(store[runModeKeyFor()]).toMatchObject({ mode: 'enabled' })
   expect(unavailableAsked[0]).not.toContain('本次提交尚未进入会话')
 })
 
 test('enable keeps a disabled Run off when explicit initialization finds damage', async ($, on) => {
   const store = consentedStore()
-  store[`prompt-trail:run-mode:${projectId}:${runId}`] = { version: 1, mode: 'disabled' }
+  store[runModeKeyFor()] = { version: 1, mode: 'disabled' }
   const health: NonNullable<TargetOptions['health']> = { state: 'unknown', generation: 'gen-1', token: null }
   const calls = installSupportedTarget(on, {
     store, health, unavailableAnswers: ['初始化并完整复检'], integrity: { result: 'damaged', problems: 1 },
@@ -332,7 +370,7 @@ test('enable keeps a disabled Run off when explicit initialization finds damage'
 
   expect(enabled.text).toContain('未启用采集')
   expect(health.state).toBe('damaged')
-  expect(store[`prompt-trail:run-mode:${projectId}:${runId}`]).toMatchObject({ mode: 'disabled' })
+  expect(store[runModeKeyFor()]).toMatchObject({ mode: 'disabled' })
   expect(captureCalls(calls, 'archive-health-init')).toHaveLength(1)
   expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
@@ -452,7 +490,7 @@ test('damage met while settling a pending offers the same choices, not an endles
      prompt starts the next one. */
   expect(captureCalls(calls, 'quarantine').map(call => call.argv[4])).toStrictEqual(['gen-1'])
   expect(next.text).toBe('PT-SECRET-NEXT')
-  expect(store[reconcileKey]).toBeUndefined()
+  expect(store[reconcileKeyFor()]).toBeUndefined()
 })
 
 test('a recheck that passes over an owed pending settles it first', async ($, on) => {
@@ -469,7 +507,7 @@ test('a recheck that passes over an owed pending settles it first', async ($, on
   /* Settled from the transcript; the new prompt comes back to send again. */
   expect(options.archive?.filter(row => row.kind === 'prompt').map(row => row.text)).toContain(SECRET)
   expect(next.drop).toContain('已完成对账')
-  expect(store[reconcileKey]).toBeUndefined()
+  expect(store[reconcileKeyFor()]).toBeUndefined()
 })
 
 test('a recheck that fails, then passes once repaired, settles an owed pending first', async ($, on) => {
@@ -497,7 +535,7 @@ test('a recheck that fails, then passes once repaired, settles an owed pending f
   expect(unavailableAsked[1]).toContain('完整性检查未通过')
   expect(options.archive?.filter(row => row.kind === 'prompt').map(row => row.text)).toContain(SECRET)
   expect(next.drop).toContain('已完成对账')
-  expect(store[reconcileKey]).toBeUndefined()
+  expect(store[reconcileKeyFor()]).toBeUndefined()
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
 })
 
@@ -516,7 +554,7 @@ test('a clear over an owed pending takes the pending with it', async ($, on) => 
 
   expect(captureCalls(calls, 'clear-all')).toHaveLength(1)
   expect(next.text).toBe('PT-SECRET-NEXT')
-  expect(store[reconcileKey]).toBeUndefined()
+  expect(store[reconcileKeyFor()]).toBeUndefined()
 })
 
 test('disabling the Run over an owed pending lets the prompt through and keeps the pending', async ($, on) => {
@@ -532,7 +570,7 @@ test('disabling the Run over an owed pending lets the prompt through and keeps t
   expect(next.text).toBe('PT-SECRET-NEXT')
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
   /* Still owed: enable settles it before collection resumes. */
-  expect(store[reconcileKey]).toBeDefined()
+  expect(store[reconcileKeyFor()]).toBeDefined()
 })
 
 test('other shared failures keep the plain retry', async ($, on) => {
@@ -647,9 +685,10 @@ test('a capture meant for a generation another Run replaced starts over in the n
 
   expect(result.text).toBe(SECRET)
   const begins = captureCalls(calls, 'capture-begin').slice(1)
+  /* The new root names the generation its attach landed in. */
   expect(begins.map(call => [call.argv[7], call.argv[12]])).toStrictEqual([
     [earlier, 'gen-1'],
-    ['-', '-'],
+    ['-', 'gen-2'],
   ])
   expect(archive.map(row => [row.kind, row.runId])).toStrictEqual([
     ['archive-quarantined', otherRun],
@@ -658,6 +697,65 @@ test('a capture meant for a generation another Run replaced starts over in the n
   ])
   expect(archive[2]?.parentEventId).toBeNull()
   expect(store[branchKey]).toMatchObject({ generation: 'gen-2' })
+})
+
+test('a generation replaced again before the new root first captures is met and attached once more', async ($, on) => {
+  const store = consentedStore()
+  const archive: ArchiveRow[] = []
+  const generation = { value: 'gen-1' }
+  const quarantinedBy = (by: string, next: string) => {
+    archive.splice(0, archive.length, {
+      kind: 'archive-quarantined',
+      eventId: `qqqqqqqq-0000-4000-8000-00000000000${next.slice(-1)}`,
+      sequence: 1,
+      runId: by,
+      segmentId: 'ssssssss-0000-4000-8000-000000000001',
+      branchId: 'bbbbbbbb-0000-4000-8000-000000000002',
+    })
+    generation.value = next
+  }
+  let replacedAgain = false
+  const options: TargetOptions = {
+    store,
+    archive,
+    generation,
+    transcript: [],
+    fills: [],
+    unavailableAnswers: ['重试'],
+    /* Another Run quarantines the second generation after this Run's attach
+       landed there and before the new root's first capture. */
+    processResponder: call => {
+      if (!replacedAgain && call.argv[1] === 'capture-begin' && call.argv[12] === 'gen-2') {
+        replacedAgain = true
+        quarantinedBy(otherRun, 'gen-3')
+      }
+      return undefined
+    },
+  }
+  const calls = installSupportedTarget(on, options)
+  await $.session.start(session)
+  expect((await composerPrompt($)).text).toBe(SECRET)
+  quarantinedBy(otherRun, 'gen-2')
+
+  const result = await composerPrompt($)
+
+  expect(result.text).toBe(SECRET)
+  /* The first capture of the new root names the generation its attach
+     landed in, is refused there, and the Run takes up the third one. */
+  expect(captureCalls(calls, 'capture-begin').slice(1).map(call => [call.argv[7] === '-', call.argv[12]]))
+    .toStrictEqual([
+      [false, 'gen-1'],
+      [true, 'gen-2'],
+      [true, 'gen-2'],
+      [true, 'gen-3'],
+    ])
+  expect(archive.map(row => [row.kind, row.runId])).toStrictEqual([
+    ['archive-quarantined', otherRun],
+    ['run-attached', runId],
+    ['prompt', runId],
+  ])
+  expect(archive[2]?.parentEventId).toBeNull()
+  expect(store[branchKey]).toMatchObject({ generation: 'gen-3' })
 })
 
 test('after a restart, a branch from a replaced generation starts over before it is matched', async ($, on) => {
@@ -686,7 +784,7 @@ test('after a restart, a branch from a replaced generation starts over before it
   expect(result.text).toBe(SECRET)
   expect(pane.opens).toHaveLength(0)
   expect(captureCalls(calls, 'capture-begin').map(call => [call.argv[7], call.argv[12]])).toStrictEqual([
-    ['-', '-'],
+    ['-', 'gen-2'],
   ])
   /* The process's own start lands first; then the Run taking up the new
      generation, and the prompt on a new root. */
@@ -1083,5 +1181,5 @@ test('a reconciliation owed in a replaced generation is dropped, not asked about
   expect(captureCalls(calls, 'capture-confirm').map(call => call.argv[4])).not.toContain(
     'pppppppp-0000-4000-8000-000000000001',
   )
-  expect(store[reconcileKey]).toBeUndefined()
+  expect(store[reconcileKeyFor()]).toBeUndefined()
 })

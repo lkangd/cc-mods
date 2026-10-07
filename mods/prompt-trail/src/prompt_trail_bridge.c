@@ -490,6 +490,83 @@ static void remove_predecessors(
   closedir(stream);
 }
 
+/* A private file is published the one way: written under a temporary name of
+   its own, flushed, checked, and only then renamed into place, so a reader
+   sees the whole file or none of it. The temporary name is
+   `<directory>/<prefix><uuid>.tmp`. Each caller names the failure of every
+   step, because the files it publishes are told apart by their category. */
+typedef struct {
+  char temporary_path[PATH_MAX];
+  int descriptor;
+} PrivateFile;
+
+typedef struct {
+  const char *flush;
+  const char *permissions;
+  const char *publish;
+} PrivateFileFailures;
+
+static void name_private_file(
+  PrivateFile *file,
+  const char *directory,
+  const char *prefix,
+  const char *path_failure
+) {
+  char temporary_id[37];
+  pt_random_uuid(temporary_id);
+  int length = snprintf(
+    file->temporary_path,
+    sizeof(file->temporary_path),
+    "%s/%s%s.tmp",
+    directory,
+    prefix,
+    temporary_id
+  );
+  if (length < 0 || (size_t)length >= sizeof(file->temporary_path)) {
+    fail(path_failure);
+  }
+  file->descriptor = -1;
+}
+
+static void create_private_file(PrivateFile *file, const char *create_failure) {
+  file->descriptor = open(
+    file->temporary_path,
+    O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW,
+    0600
+  );
+  if (file->descriptor < 0) fail(create_failure);
+}
+
+/* Moves the written file to `final_path`. The caller checks the published file
+   and flushes its directory, since the locator does more between the two. */
+static void publish_private_file(
+  PrivateFile *file,
+  const char *final_path,
+  PrivateFileFailures failures
+) {
+  if (fsync(file->descriptor) != 0 || close(file->descriptor) != 0) {
+    unlink(file->temporary_path);
+    fail(failures.flush);
+  }
+  if (!pt_path_is_private_file(file->temporary_path)) {
+    unlink(file->temporary_path);
+    fail(failures.permissions);
+  }
+  if (rename(file->temporary_path, final_path) != 0) {
+    unlink(file->temporary_path);
+    fail(failures.publish);
+  }
+}
+
+static void flush_directory(const char *directory, const char *failure) {
+  int descriptor = open(directory, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  if (descriptor < 0 || fsync(descriptor) != 0) {
+    if (descriptor >= 0) close(descriptor);
+    fail(failure);
+  }
+  close(descriptor);
+}
+
 /* Which Run each classic session belongs to, so a resume — in this process or
    a later one — finds the Run it continues. One private file per session under
    plugin data, holding identity only: never a prompt, never a path. It is
@@ -512,17 +589,22 @@ static void session_index_path(
   if (length < 0 || length >= PATH_MAX) fail("session-index-path");
 }
 
+typedef struct {
+  char run_id[129];
+  char archive_generation[129];
+  /* Empty unless the session was continued in from another. */
+  char continued_from[129];
+} SessionIndex;
+
 /* Answers whether the session is indexed. A record that exists but cannot be
    trusted fails closed rather than quietly starting a new Run, which would
    split the session's lineage without saying so. */
 static bool read_session_index(
   const char *plugin_data,
   const char *session_id,
-  char run_id[129],
-  char archive_generation[129],
-  char continued_from[129]
+  SessionIndex *index
 ) {
-  continued_from[0] = '\0';
+  memset(index, 0, sizeof(*index));
   char path[PATH_MAX];
   session_index_path(plugin_data, session_id, false, path);
   struct stat status;
@@ -539,19 +621,29 @@ static bool read_session_index(
     && pt_json_validate(record)
     && pt_json_get_i64(record, "indexVersion", &version)
     && pt_json_get_string(record, "sessionId", stored_session, sizeof(stored_session))
-    && pt_json_get_string(record, "runId", run_id, 129)
-    && pt_json_get_string(record, "archiveGeneration", archive_generation, 129)
+    && pt_json_get_string(record, "runId", index->run_id, sizeof(index->run_id))
+    && pt_json_get_string(
+      record,
+      "archiveGeneration",
+      index->archive_generation,
+      sizeof(index->archive_generation)
+    )
     && version == SESSION_INDEX_VERSION
     && strcmp(stored_session, session_id) == 0
-    && pt_is_safe_identifier(run_id)
-    && pt_is_safe_identifier(archive_generation);
+    && pt_is_safe_identifier(index->run_id)
+    && pt_is_safe_identifier(index->archive_generation);
   /* The field is optional, but one that is present must hold a session:
      the record's other values are identifiers, so its quoted name appears
      only as a key. */
   if (valid && strstr(record, "\"continuedFrom\"") != NULL) {
-    valid = pt_json_get_string(record, "continuedFrom", continued_from, 129)
-      && pt_is_safe_identifier(continued_from)
-      && strcmp(continued_from, session_id) != 0;
+    valid = pt_json_get_string(
+        record,
+        "continuedFrom",
+        index->continued_from,
+        sizeof(index->continued_from)
+      )
+      && pt_is_safe_identifier(index->continued_from)
+      && strcmp(index->continued_from, session_id) != 0;
   }
   free(record);
   if (!valid) fail("session-index-invalid");
@@ -567,51 +659,38 @@ static void write_session_index(
 ) {
   char path[PATH_MAX];
   session_index_path(plugin_data, session_id, true, path);
-  char temporary_id[37];
-  pt_random_uuid(temporary_id);
-  char temporary_path[PATH_MAX];
-  int length = snprintf(
-    temporary_path,
-    sizeof(temporary_path),
-    "%s.%s.tmp",
-    path,
-    temporary_id
-  );
-  if (length < 0 || (size_t)length >= sizeof(temporary_path)) fail("session-index-path");
-
-  int descriptor = open(
-    temporary_path,
-    O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW,
-    0600
-  );
-  if (descriptor < 0) fail("session-index-create");
-  dprintf(descriptor, "{\"indexVersion\":%d,", SESSION_INDEX_VERSION);
-  write_key_string(descriptor, "\"sessionId\":", session_id);
-  write_key_string(descriptor, ",\"runId\":", run_id);
-  write_key_string(descriptor, ",\"archiveGeneration\":", archive_generation);
-  if (continued_from[0] != '\0') {
-    write_key_string(descriptor, ",\"continuedFrom\":", continued_from);
-  }
-  write_literal(descriptor, "}\n");
-  if (fsync(descriptor) != 0 || close(descriptor) != 0) {
-    unlink(temporary_path);
-    fail("session-index-flush");
-  }
-  if (!pt_path_is_private_file(temporary_path) || rename(temporary_path, path) != 0) {
-    unlink(temporary_path);
-    fail("session-index-publish");
-  }
-  /* The entry itself has to survive a crash, or a later resume reads a session
-     it has never seen and splits the lineage. */
-  char *slash = strrchr(path, '/');
+  char directory[PATH_MAX];
+  snprintf(directory, sizeof(directory), "%s", path);
+  char *slash = strrchr(directory, '/');
   if (!slash) fail("session-index-path");
   *slash = '\0';
-  int directory_descriptor = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
-  if (directory_descriptor < 0 || fsync(directory_descriptor) != 0) {
-    if (directory_descriptor >= 0) close(directory_descriptor);
-    fail("session-index-flush");
+  char prefix[PATH_MAX];
+  int length = snprintf(prefix, sizeof(prefix), "%s.", slash + 1);
+  if (length < 0 || (size_t)length >= sizeof(prefix)) fail("session-index-path");
+
+  PrivateFile file;
+  name_private_file(&file, directory, prefix, "session-index-path");
+  create_private_file(&file, "session-index-create");
+  dprintf(file.descriptor, "{\"indexVersion\":%d,", SESSION_INDEX_VERSION);
+  write_key_string(file.descriptor, "\"sessionId\":", session_id);
+  write_key_string(file.descriptor, ",\"runId\":", run_id);
+  write_key_string(file.descriptor, ",\"archiveGeneration\":", archive_generation);
+  if (continued_from[0] != '\0') {
+    write_key_string(file.descriptor, ",\"continuedFrom\":", continued_from);
   }
-  close(directory_descriptor);
+  write_literal(file.descriptor, "}\n");
+  publish_private_file(
+    &file,
+    path,
+    (PrivateFileFailures){
+      .flush = "session-index-flush",
+      .permissions = "session-index-publish",
+      .publish = "session-index-publish"
+    }
+  );
+  /* The entry itself has to survive a crash, or a later resume reads a session
+     it has never seen and splits the lineage. */
+  flush_directory(directory, "session-index-flush");
 }
 
 /* The sessions a conversation has been handed off from on its way to this
@@ -629,9 +708,10 @@ static size_t handed_off_chain(
   snprintf(next, sizeof(next), "%s", continued_from);
   while (next[0] != '\0' && count < HANDOFF_CHAIN_LIMIT) {
     snprintf(chain[count], 129, "%s", next);
-    char run_id[129];
-    char archive_generation[129];
-    if (!read_session_index(plugin_data, chain[count], run_id, archive_generation, next)) {
+    SessionIndex index;
+    if (read_session_index(plugin_data, chain[count], &index)) {
+      snprintf(next, sizeof(next), "%s", index.continued_from);
+    } else {
       next[0] = '\0';
     }
     count += 1;
@@ -809,17 +889,8 @@ static void publish_locator(
   lock_publication(directory);
   remove_proven_stale_locators(directory);
 
-  char temporary_path[PATH_MAX];
-  char temporary_id[37];
-  pt_random_uuid(temporary_id);
-  int length = snprintf(
-    temporary_path,
-    sizeof(temporary_path),
-    "%s/.%s.tmp",
-    directory,
-    temporary_id
-  );
-  if (length < 0 || (size_t)length >= sizeof(temporary_path)) fail("locator-path");
+  PrivateFile file;
+  name_private_file(&file, directory, ".", "locator-path");
 
   pid_t host_pid = getppid();
   char host_executable[PROC_PIDPATHINFO_MAXSIZE];
@@ -849,7 +920,7 @@ static void publish_locator(
       )) {
     fail("locator-path");
   }
-  length = snprintf(locator_path, sizeof(locator_path), "%s/%s", directory, locator_name);
+  int length = snprintf(locator_path, sizeof(locator_path), "%s/%s", directory, locator_name);
   if (length < 0 || (size_t)length >= sizeof(locator_path)) fail("locator-path");
 
   /* A Run is the lineage of one conversation, not one process. A `/clear`
@@ -862,16 +933,8 @@ static void publish_locator(
      inherited from a parent's environment stands in for a lineage. The one
      exception is a fork the conversation itself moved into, which its source
      transcript records; that session goes on in the source's Run. */
-  char run_id[129];
-  char archive_generation[129];
-  char continued_from[129];
-  bool indexed = read_session_index(
-    plugin_data,
-    session_id,
-    run_id,
-    archive_generation,
-    continued_from
-  );
+  SessionIndex index;
+  bool indexed = read_session_index(plugin_data, session_id, &index);
   bool continues = false;
   if (strcmp(source, "clear") == 0) {
     if (!load_predecessor_identity(
@@ -880,18 +943,18 @@ static void publish_locator(
           host_pid,
           host_start_seconds,
           host_start_microseconds,
-          run_id,
-          archive_generation
+          index.run_id,
+          index.archive_generation
         )) {
       fail("locator-predecessor-missing");
     }
     continues = true;
   } else if (strcmp(source, "resume") == 0 && indexed) {
     char chain[HANDOFF_CHAIN_LIMIT][129];
-    size_t chain_length = handed_off_chain(plugin_data, continued_from, chain);
+    size_t chain_length = handed_off_chain(plugin_data, index.continued_from, chain);
     continues = !run_held_elsewhere(
       directory,
-      run_id,
+      index.run_id,
       (const char (*)[129])chain,
       chain_length,
       host_pid,
@@ -900,45 +963,48 @@ static void publish_locator(
     );
   } else if (strcmp(source, "fork") == 0 && !indexed) {
     char handed_from[129];
-    char earlier[129];
+    SessionIndex handed_from_index;
     if (find_continued_source(transcript_path, session_id, handed_from)
-        && read_session_index(
-          plugin_data,
-          handed_from,
-          run_id,
-          archive_generation,
-          earlier
-        )) {
+        && read_session_index(plugin_data, handed_from, &handed_from_index)) {
       char chain[HANDOFF_CHAIN_LIMIT][129];
       size_t chain_length = handed_off_chain(plugin_data, handed_from, chain);
       continues = !run_held_elsewhere(
         directory,
-        run_id,
+        handed_from_index.run_id,
         (const char (*)[129])chain,
         chain_length,
         host_pid,
         host_start_seconds,
         host_start_microseconds
       );
+      if (continues) {
+        snprintf(index.run_id, sizeof(index.run_id), "%s", handed_from_index.run_id);
+        snprintf(
+          index.archive_generation,
+          sizeof(index.archive_generation),
+          "%s",
+          handed_from_index.archive_generation
+        );
+        snprintf(index.continued_from, sizeof(index.continued_from), "%s", handed_from);
+      }
     }
-    if (continues) snprintf(continued_from, sizeof(continued_from), "%s", handed_from);
   }
   /* `archiveGeneration` in the locator and the session index is a token
      minted with each new Run and never checked. It is not the Archive
      generation: that is the archive file itself, which the helper names and
      checks, and which this bridge cannot see without knowing the project. */
   if (!continues) {
-    pt_random_uuid(run_id);
-    pt_random_uuid(archive_generation);
-    continued_from[0] = '\0';
+    pt_random_uuid(index.run_id);
+    pt_random_uuid(index.archive_generation);
+    index.continued_from[0] = '\0';
   }
   if (!indexed) {
     write_session_index(
       plugin_data,
       session_id,
-      run_id,
-      archive_generation,
-      continued_from
+      index.run_id,
+      index.archive_generation,
+      index.continued_from
     );
   }
 
@@ -948,12 +1014,8 @@ static void publish_locator(
 
   const char *status = artifact_status(helper_path, manifest_path);
   mode_t previous_umask = umask(0077);
-  int descriptor = open(
-    temporary_path,
-    O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW,
-    0600
-  );
-  if (descriptor < 0) fail("locator-create");
+  create_private_file(&file, "locator-create");
+  int descriptor = file.descriptor;
 
   dprintf(
     descriptor,
@@ -983,29 +1045,26 @@ static void publish_locator(
     PT_EXPECTED_HELPER_SHA256
   );
   write_key_string(descriptor, ",\"artifactStatus\":", status);
-  write_key_string(descriptor, ",\"runId\":", run_id);
+  write_key_string(descriptor, ",\"runId\":", index.run_id);
   write_key_string(
     descriptor,
     ",\"archiveGeneration\":",
-    archive_generation
+    index.archive_generation
   );
-  if (continued_from[0] != '\0') {
-    write_key_string(descriptor, ",\"continuedFrom\":", continued_from);
+  if (index.continued_from[0] != '\0') {
+    write_key_string(descriptor, ",\"continuedFrom\":", index.continued_from);
   }
   write_literal(descriptor, "}\n");
 
-  if (fsync(descriptor) != 0 || close(descriptor) != 0) {
-    unlink(temporary_path);
-    fail("locator-flush");
-  }
-  if (!pt_path_is_private_file(temporary_path)) {
-    unlink(temporary_path);
-    fail("locator-permissions");
-  }
-  if (rename(temporary_path, locator_path) != 0) {
-    unlink(temporary_path);
-    fail("locator-publish");
-  }
+  publish_private_file(
+    &file,
+    locator_path,
+    (PrivateFileFailures){
+      .flush = "locator-flush",
+      .permissions = "locator-permissions",
+      .publish = "locator-publish"
+    }
+  );
   if (!pt_path_is_private_file(locator_path)) {
     unlink(locator_path);
     fail("locator-permissions");
@@ -1025,12 +1084,7 @@ static void publish_locator(
       host_start_microseconds
     );
   }
-  int directory_descriptor = open(directory, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
-  if (directory_descriptor < 0 || fsync(directory_descriptor) != 0) {
-    if (directory_descriptor >= 0) close(directory_descriptor);
-    fail("locator-directory-flush");
-  }
-  close(directory_descriptor);
+  flush_directory(directory, "locator-directory-flush");
   umask(previous_umask);
 }
 

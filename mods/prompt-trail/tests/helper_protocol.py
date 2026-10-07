@@ -1574,12 +1574,7 @@ __attribute__((used)) static struct {
 
     def test_capture_begin_is_idempotent_and_never_reopens_a_confirmed_event(self) -> None:
         project_id = "b" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id = str(uuid.uuid4())
         argv = self.begin_argv(event_id, **identity)
 
@@ -1637,12 +1632,7 @@ __attribute__((used)) static struct {
 
     def test_capture_refuses_an_unknown_or_self_referencing_parent(self) -> None:
         project_id = "c" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id = str(uuid.uuid4())
 
         self_parent = self.run_helper(
@@ -1770,12 +1760,7 @@ __attribute__((used)) static struct {
 
     def test_three_identical_prompts_form_three_distinct_prompt_entries(self) -> None:
         project_id = "c" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         repeated = "PT-SECRET-REPEATED"
 
         parent = "-"
@@ -1812,12 +1797,7 @@ __attribute__((used)) static struct {
 
     def test_capture_preserves_blank_lines_cjk_emoji_and_combining_marks(self) -> None:
         project_id = "d" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         text = "PT-SECRET-宽字符\n\n中文 段落　tab\there\nemoji 👩‍💻🇨🇳\ncombining é ā\n\n尾行"
 
         event_id = self.capture(text, identity=identity)
@@ -1844,12 +1824,7 @@ __attribute__((used)) static struct {
 
     def test_an_attachment_only_submission_forms_a_text_less_prompt_entry(self) -> None:
         project_id = "e" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
 
         event_id = self.capture(
             "",
@@ -1880,12 +1855,7 @@ __attribute__((used)) static struct {
 
     def test_an_aborted_capture_leaves_no_entry_and_repeats_idempotently(self) -> None:
         project_id = "f" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id = str(uuid.uuid4())
         database_root = self.plugin_data / "archives"
         manifest = json.loads(MANIFEST.read_text())
@@ -1938,12 +1908,7 @@ __attribute__((used)) static struct {
 
     def test_collection_boundaries_share_the_sequence_with_prompt_entries(self) -> None:
         project_id = "1" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         resumed_branch = str(uuid.uuid4())
         before = "PT-SECRET-BEFORE-DISABLE"
         after = "PT-SECRET-AFTER-RESUME"
@@ -2019,12 +1984,7 @@ __attribute__((used)) static struct {
 
     def test_a_repeated_boundary_append_stays_idempotent(self) -> None:
         project_id = "2" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id = str(uuid.uuid4())
         argv = self.boundary_argv(event_id, kind="collection-stopped", **identity)
 
@@ -2082,18 +2042,8 @@ __attribute__((used)) static struct {
         """A Clear Boundary takes the sequence between the segments it parts."""
         project_id = "4" * 64
         run_id = str(uuid.uuid4())
-        before = {
-            "project_id": project_id,
-            "run_id": run_id,
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
-        after = {
-            "project_id": project_id,
-            "run_id": run_id,
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        before = self.identity(project_id, run_id=run_id)
+        after = self.identity(project_id, run_id=run_id)
 
         first = self.capture("PT-SECRET-BEFORE-CLEAR", identity=before)
         cleared, cleared_sequence = self.boundary(identity=before, kind="clear")
@@ -2151,12 +2101,7 @@ __attribute__((used)) static struct {
     def test_a_repeated_clear_boundary_stays_one_boundary(self) -> None:
         """The derived idempotency key makes a replayed `/clear` a no-op."""
         project_id = "5" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id = "a" * 64
         argv = self.boundary_argv(event_id, kind="clear", **identity)
 
@@ -2193,12 +2138,7 @@ __attribute__((used)) static struct {
     def test_a_clear_boundary_retry_with_a_changed_instant_fails_closed(self) -> None:
         """A replay that drifted is a different fact, so it is refused."""
         project_id = "6" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id = "b" * 64
 
         first = self.run_helper(
@@ -2318,12 +2258,7 @@ __attribute__((used)) static struct {
 
     def test_a_boundary_refuses_an_id_already_staged_as_a_capture(self) -> None:
         project_id = "5" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id = str(uuid.uuid4())
         staged = self.run_helper(
             *self.begin_argv(event_id, **identity),
@@ -2344,12 +2279,7 @@ __attribute__((used)) static struct {
 
     def test_a_capture_refuses_an_id_already_used_by_a_boundary(self) -> None:
         project_id = "6" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id, _ = self.boundary(identity=identity, kind="collection-stopped")
 
         collision = self.run_helper(
@@ -2366,12 +2296,7 @@ __attribute__((used)) static struct {
 
     def test_a_boundary_retry_with_changed_facts_fails_closed(self) -> None:
         project_id = "7" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id = str(uuid.uuid4())
         first = self.run_helper(
             *self.boundary_argv(event_id, kind="collection-stopped", **identity)
@@ -2426,12 +2351,7 @@ __attribute__((used)) static struct {
         legacy.commit()
         legacy.close()
         database_path.chmod(0o600)
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
 
         self.initialize_health(project_id)
         _, first = self.boundary(identity=identity, kind="collection-stopped")
@@ -2467,12 +2387,7 @@ __attribute__((used)) static struct {
 
     def test_capture_list_reports_unresolved_pendings_without_prompt_text(self) -> None:
         project_id = "a" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         first = str(uuid.uuid4())
         second = str(uuid.uuid4())
         self.assertEqual(
@@ -2531,12 +2446,7 @@ __attribute__((used)) static struct {
 
     def test_capture_list_enforces_a_fixed_maximum_batch(self) -> None:
         project_id = "c" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         staged = []
         for _ in range(65):
             event_id = str(uuid.uuid4())
@@ -2959,12 +2869,7 @@ __attribute__((used)) static struct {
 
     def test_confirm_from_pending_archives_the_staged_text(self) -> None:
         project_id = "d" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id = str(uuid.uuid4())
         staged_text = "PT-SECRET-STAGED\nsecond line"
         self.assertEqual(
@@ -3005,12 +2910,7 @@ __attribute__((used)) static struct {
 
     def test_confirm_from_pending_repeats_without_doubling_the_entry(self) -> None:
         project_id = "e" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         event_id = str(uuid.uuid4())
         self.assertEqual(
             self.run_helper(
@@ -3051,12 +2951,7 @@ __attribute__((used)) static struct {
 
     def test_confirm_from_pending_refuses_an_unknown_event(self) -> None:
         project_id = "9" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         self.assertEqual(
             self.run_helper(
                 *self.begin_argv(str(uuid.uuid4()), **identity),
@@ -3074,12 +2969,7 @@ __attribute__((used)) static struct {
 
     def test_capture_list_refuses_an_archive_root_it_cannot_vouch_for(self) -> None:
         project_id = "8" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         self.assertEqual(
             self.run_helper(
                 *self.begin_argv(str(uuid.uuid4()), **identity),
@@ -3109,6 +2999,7 @@ __attribute__((used)) static struct {
         cursor: tuple[str, int] | None = None,
         run_id: str = "-",
         tip: str = "-",
+        hints: tuple[str, str] | None = None,
     ) -> tuple[str, ...]:
         return (
             "timeline-read",
@@ -3119,7 +3010,47 @@ __attribute__((used)) static struct {
             *((cursor[0], str(cursor[1])) if cursor else ()),
             run_id,
             tip,
+            *(hints or ()),
         )
+
+    def write_events(self, project_id: str, rows: list[dict]) -> list[dict]:
+        """Appends hand-made events to an archive the helper created, in one
+        transaction: each row names its `kind`, `run` and, for a prompt, its
+        `parent` (an earlier row's index, or None). Answers each one's
+        identity, with `eventId` and `sequence` filled in."""
+        database = sqlite3.connect(self.plugin_data / "archives" / f"{project_id}.sqlite3")
+        written: list[dict] = []
+        try:
+            database.execute("BEGIN IMMEDIATE")
+            (sequence,) = database.execute(
+                "SELECT next_sequence FROM metadata WHERE project_id=?", (project_id,)
+            ).fetchone()
+            for row in rows:
+                sequence += 1
+                event = {**row, "eventId": str(uuid.uuid4()), "sequence": sequence}
+                segment = row.get("segment", row["run"])
+                if row["kind"] == "prompt":
+                    parent = row.get("parent")
+                    database.execute(
+                        "INSERT INTO prompt_entries VALUES(?,?,?,?,?,?,?,'composer',0,'',?)",
+                        (event["eventId"], sequence, row["run"], segment, row["run"],
+                         None if parent is None else written[parent]["eventId"],
+                         1795000000000 + sequence, f"PT-SECRET-{sequence}"),
+                    )
+                else:
+                    database.execute(
+                        "INSERT INTO timeline_events VALUES(?,?,?,?,?,?,?)",
+                        (event["eventId"], sequence, row["kind"], row["run"], segment,
+                         row["run"], 1795000000000 + sequence),
+                    )
+                written.append(event)
+            database.execute(
+                "UPDATE metadata SET next_sequence=? WHERE project_id=?", (sequence, project_id)
+            )
+            database.execute("COMMIT")
+        finally:
+            database.close()
+        return written
 
     def read(self, **argv: object) -> dict[str, object]:
         result = self.run_helper(*self.read_argv(**argv))  # type: ignore[arg-type]
@@ -3138,12 +3069,7 @@ __attribute__((used)) static struct {
 
     def test_run_boundaries_share_the_sequence_and_stay_idempotent(self) -> None:
         project_id = "5" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         started, started_sequence = self.boundary(identity=identity, kind="run-started")
         self.capture("PT-SECRET-RUN", identity=identity)
         detached, detached_sequence = self.boundary(identity=identity, kind="run-detached")
@@ -3160,12 +3086,7 @@ __attribute__((used)) static struct {
             self.assertEqual(json.loads(repeated.stdout)["sequence"], sequence)
 
     def test_a_run_no_longer_ends_it_only_detaches(self) -> None:
-        identity = {
-            "project_id": "5" * 64,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity("5" * 64)
         refused = self.run_helper(
             *self.boundary_argv(str(uuid.uuid4()), kind="run-ended", **identity)
         )
@@ -3175,12 +3096,7 @@ __attribute__((used)) static struct {
 
     def test_timeline_read_returns_entries_and_boundaries_in_sequence_order(self) -> None:
         project_id = "6" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         text = "PT-SECRET-READ\n\n中文 🙂 é \"quoted\" \\ tab\tend"
         started, _ = self.boundary(identity=identity, kind="run-started")
         first = self.capture(text, identity=identity, attachment_count="1", attachment_kinds="image")
@@ -3261,6 +3177,9 @@ __attribute__((used)) static struct {
             "later": False,
             "parents": [],
             "origins": [],
+            "leading": [],
+            "runs": [],
+            "branches": [],
         })
         self.assertFalse((database_root / f"{project_id}.sqlite3").exists())
 
@@ -3433,6 +3352,216 @@ __attribute__((used)) static struct {
         )
         self.assertNotEqual(malformed.returncode, 0)
 
+    def test_timeline_read_says_what_each_run_wrote_just_before_the_batch(self) -> None:
+        project_id = "3a" * 32
+        self.boundary(identity=self.identity(project_id), kind="clear")
+        mine, other, quiet = str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4())
+        rows = [
+            {"kind": "prompt", "run": mine, "parent": None},
+            {"kind": "clear", "run": other},
+            *({"kind": "clear", "run": quiet} for _ in range(150)),
+            {"kind": "prompt", "run": mine, "parent": 0},
+            {"kind": "prompt", "run": other, "parent": None},
+        ]
+        self.write_events(project_id, rows)
+
+        payload = self.read(project_id=project_id)
+
+        self.assertEqual(
+            {row["runId"]: row["kind"] for row in payload["leading"]},
+            {mine: "prompt", other: "clear", quiet: "clear"},
+        )
+
+    def lineage(self, project_id: str, length: int) -> tuple[str, list[dict]]:
+        """One Run's single lineage of `length` entries after a helper-written
+        boundary; answers the Run and its entries, oldest first."""
+        self.boundary(identity=self.identity(project_id), kind="clear")
+        run_id = str(uuid.uuid4())
+        rows = [{"kind": "prompt", "run": run_id, "parent": None if index == 0 else index - 1}
+                for index in range(length)]
+        return run_id, self.write_events(project_id, rows)
+
+    def test_timeline_read_walks_a_known_path_only_as_far_as_the_batch(self) -> None:
+        project_id = "3b" * 32
+        run_id, entries = self.lineage(project_id, 600)
+        tip = entries[-1]["eventId"]
+        full = self.read(project_id=project_id, cursor=("before", 300), run_id=run_id, tip=tip)
+        start = entries[0]["sequence"]
+
+        # From the entry the caller holds as the path's highest below its
+        # window, the walk stops under the batch and answers the same.
+        hinted = self.read(
+            project_id=project_id,
+            cursor=("before", 300),
+            run_id=run_id,
+            tip=tip,
+            hints=(str(start), entries[300 - start]["eventId"]),
+        )
+
+        self.assertEqual(hinted["path"]["eventIds"], full["path"]["eventIds"])
+        self.assertEqual(hinted["path"]["start"], start)
+        self.assertEqual(hinted["path"]["below"], full["path"]["below"])
+        self.assertEqual(
+            full["path"]["below"],
+            next(e["eventId"] for e in reversed(entries) if e["sequence"] < hinted["events"][0]["sequence"]),
+        )
+        self.assertEqual(full["path"]["held"], [])
+        self.assertNotIn("held", hinted["path"])
+        nothing = self.read(
+            project_id=project_id, cursor=("before", 300), run_id=run_id, tip=tip,
+            hints=("none", "none"),
+        )
+        self.assertEqual(nothing["path"], {"eventIds": [], "start": None, "below": None})
+
+    def test_timeline_read_counts_each_other_runs_entries_on_the_path(self) -> None:
+        project_id = "3c" * 32
+        self.boundary(identity=self.identity(project_id), kind="clear")
+        mine, source = str(uuid.uuid4()), str(uuid.uuid4())
+        events = self.write_events(project_id, [
+            {"kind": "prompt", "run": source, "parent": None},
+            {"kind": "prompt", "run": source, "parent": 0},
+            {"kind": "prompt", "run": mine, "parent": 1},
+            {"kind": "prompt", "run": mine, "parent": 2},
+        ])
+
+        payload = self.read(project_id=project_id, run_id=mine, tip=events[3]["eventId"])
+
+        self.assertEqual(payload["path"]["start"], events[2]["sequence"])
+        self.assertEqual(payload["path"]["held"], [{"runId": source, "before": 2, "after": 0}])
+
+    def test_timeline_read_refuses_hints_without_a_path_or_out_of_shape(self) -> None:
+        project_id = "3d" * 32
+        self.fixture(project_id, 10)
+        tip = str(uuid.uuid4())
+        for run_id, tip_id, hints in (
+            ("-", "-", ("3", "-")),
+            (str(uuid.uuid4()), tip, ("0", "-")),
+            (str(uuid.uuid4()), tip, ("3x", "-")),
+            (str(uuid.uuid4()), tip, ("3", "x y")),
+        ):
+            with self.subTest(hints=hints):
+                refused = self.run_helper(*self.read_argv(
+                    project_id=project_id, run_id=run_id, tip=tip_id, hints=hints))
+                self.assertNotEqual(refused.returncode, 0)
+                self.assertEqual(refused.stdout, "")
+
+    def test_timeline_read_counts_other_runs_across_the_whole_timeline(self) -> None:
+        project_id = "3e" * 32
+        self.boundary(identity=self.identity(project_id), kind="clear")
+        mine, early, late, alongside = (str(uuid.uuid4()) for _ in range(4))
+        rows = [
+            {"kind": "run-started", "run": early},
+            *({"kind": "prompt", "run": early, "parent": None} for _ in range(3)),
+            {"kind": "run-started", "run": late},
+            {"kind": "prompt", "run": late, "parent": None},
+            {"kind": "run-detached", "run": late},
+            *({"kind": "prompt", "run": early, "parent": None} for _ in range(200)),
+            {"kind": "prompt", "run": mine, "parent": None},
+            {"kind": "prompt", "run": alongside, "parent": None},
+            *({"kind": "prompt", "run": alongside, "parent": None} for _ in range(150)),
+            {"kind": "prompt", "run": mine, "parent": 207},
+        ]
+        events = self.write_events(project_id, rows)
+        start = events[207]["sequence"]
+
+        latest = self.read(project_id=project_id, run_id=mine, tip=events[-1]["eventId"])
+        runs = {row["runId"]: row for row in latest["runs"]}
+        # After this Run began: the other Run's first event then and all its
+        # entries since, though the batch holds only some of them.
+        self.assertEqual(runs[alongside], {
+            "runId": alongside,
+            "after": {"eventId": events[208]["eventId"], "count": 151},
+        })
+        self.assertNotIn(mine, runs)
+
+        earlier = self.read(
+            project_id=project_id, cursor=("before", events[100]["sequence"]),
+            run_id=mine, tip=events[-1]["eventId"], hints=(str(start), "none"),
+        )
+        runs = {row["runId"]: row for row in earlier["runs"]}
+        self.assertEqual(runs[early]["before"], {
+            "eventId": events[0]["eventId"],
+            "sequence": events[0]["sequence"],
+            "last": events[206]["sequence"],
+            "count": 203,
+        })
+        self.assertEqual(runs[late]["before"], {
+            "eventId": events[4]["eventId"],
+            "sequence": events[4]["sequence"],
+            "last": events[6]["sequence"],
+            "count": 1,
+        })
+        self.assertEqual(earlier["branches"], [])
+
+    def test_timeline_read_folds_this_runs_branches_across_the_whole_run(self) -> None:
+        project_id = "3f" * 32
+        self.boundary(identity=self.identity(project_id), kind="clear")
+        mine, source = str(uuid.uuid4()), str(uuid.uuid4())
+        rows: list[dict] = [
+            {"kind": "prompt", "run": source, "parent": None},
+            {"kind": "prompt", "run": mine, "parent": 0},
+            {"kind": "prompt", "run": mine, "parent": 1},
+        ]
+        # A stretch left behind by a rewind to entry 1, long enough to cross
+        # the batch's edge, then one rewound onto the other Run's entry, then
+        # the path again.
+        for index in range(200):
+            rows.append({"kind": "prompt", "run": mine, "parent": len(rows) - 1 if index else 1})
+        rows.append({"kind": "prompt", "run": mine, "parent": 0})
+        rows.append({"kind": "prompt", "run": mine, "parent": len(rows) - 1})
+        for index in range(60):
+            rows.append({"kind": "prompt", "run": mine, "parent": len(rows) - 1 if index else 2})
+        events = self.write_events(project_id, rows)
+        tip = events[-1]["eventId"]
+
+        payload = self.read(project_id=project_id, run_id=mine, tip=tip)
+
+        branches = {row["eventId"]: (row["fold"], row["count"]) for row in payload["branches"]}
+        batch = {row["eventId"] for row in payload["events"]}
+        stretch = [e["eventId"] for e in events[3:203]]
+        crossed = [e["eventId"] for e in events[203:205]]
+        self.assertEqual(
+            branches,
+            {**{event_id: (stretch[0], 200) for event_id in stretch if event_id in batch},
+             **{event_id: (crossed[0], 2) for event_id in crossed if event_id in batch}},
+        )
+        self.assertLess(len([e for e in stretch if e in batch]), 200)
+        self.assertEqual(payload["path"]["start"], events[1]["sequence"])
+
+    def test_a_new_boundary_adds_the_segment_indexes_a_read_never_writes(self) -> None:
+        project_id = "4a" * 32
+        holder = self.identity(project_id)
+        self.capture("PT-SECRET-HELD", identity=holder)
+        database_path = self.plugin_data / "archives" / f"{project_id}.sqlite3"
+        indexes = (
+            "SELECT name FROM sqlite_master WHERE type='index'"
+            " AND name LIKE '%_segment_sequence' ORDER BY name"
+        )
+        database = sqlite3.connect(database_path)
+        self.assertEqual(database.execute(indexes).fetchall(), [])
+        database.close()
+        split = self.identity(project_id, segment_id=holder["segment_id"])
+        started, _ = self.boundary(identity=split, kind="run-started")
+
+        database = sqlite3.connect(database_path)
+        self.assertEqual(database.execute(indexes).fetchall(), [
+            ("prompt_entries_segment_sequence",), ("timeline_events_segment_sequence",),
+        ])
+        # An archive written before them reads by scanning, and stays as it was.
+        database.executescript(
+            "DROP INDEX prompt_entries_segment_sequence;"
+            "DROP INDEX timeline_events_segment_sequence;"
+        )
+        database.close()
+        before = self.archive_files(project_id)
+        payload = self.read(project_id=project_id)
+        self.assertEqual(payload["origins"], [{"eventId": started, "runId": holder["run_id"]}])
+        self.assertEqual(self.archive_files(project_id), before)
+        self.boundary(identity=split, kind="run-detached")
+        database = sqlite3.connect(database_path)
+        self.assertEqual(len(database.execute(indexes).fetchall()), 2)
+        database.close()
+
     def match_argv(
         self,
         *,
@@ -3466,12 +3595,7 @@ __attribute__((used)) static struct {
 
     def test_branch_match_finds_the_entry_a_resumed_transcript_ends_on(self) -> None:
         project_id = "a1" * 32
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         first = self.capture("PT-SECRET-A", identity=identity)
         second = self.capture("PT-SECRET-B", identity=identity, parent=first)
 
@@ -3843,12 +3967,7 @@ __attribute__((used)) static struct {
 
     def test_timeline_read_refuses_an_archive_root_it_cannot_vouch_for(self) -> None:
         project_id = "4" * 64
-        identity = {
-            "project_id": project_id,
-            "run_id": str(uuid.uuid4()),
-            "segment_id": str(uuid.uuid4()),
-            "branch_id": str(uuid.uuid4()),
-        }
+        identity = self.identity(project_id)
         self.capture("PT-SECRET-WIDENED", identity=identity)
         database_root = self.plugin_data / "archives"
         database_root.chmod(0o755)
@@ -4835,6 +4954,9 @@ __attribute__((used)) static struct {
                 str(uuid.uuid4()), kind="collection-stopped", **legacy["identity"]
             ),
             "capture-begin": self.begin_argv(str(uuid.uuid4()), **legacy["identity"]),
+            "run-collection-state": self.collection_state_argv(
+                project_id=project_id, run_id=legacy["identity"]["run_id"]
+            ),
         }
         for command, argv in refused.items():
             with self.subTest(command=command):
@@ -4996,6 +5118,117 @@ __attribute__((used)) static struct {
         listed = self.run_helper(*self.list_argv(project_id=project_id, run_id=legacy["identity"]["run_id"]))
         self.assertEqual(json.loads(listed.stdout)["pending"], [])
         self.assertEqual(self.timeline(project_id), timeline)
+
+    def test_a_boundary_names_the_generation_it_landed_in(self) -> None:
+        project_id = "e9" * 32
+        identity = self.identity(project_id)
+
+        # The first write creates the archive, and names the generation it made.
+        created = self.run_helper(*self.boundary_argv(str(uuid.uuid4()), kind="run-started", **identity))
+        self.assertEqual(created.returncode, 0, created.stderr)
+        generation = self.archive_status(project_id)["generation"]
+        self.assertEqual(json.loads(created.stdout)["generation"], generation)
+        named = self.run_helper(
+            *self.boundary_argv(str(uuid.uuid4()), kind="clear", generation=generation, **identity)
+        )
+        self.assertEqual(named.returncode, 0, named.stderr)
+        self.assertEqual(json.loads(named.stdout)["generation"], generation)
+        # A repeat answers the generation the event stands in, with its sequence.
+        repeated = self.run_helper(*self.boundary_argv(json.loads(named.stdout)["eventId"], kind="clear", **identity))
+        self.assertEqual(json.loads(repeated.stdout), json.loads(named.stdout))
+
+        # After a quarantine, the attach that takes up the next generation names
+        # that one: a capture naming it is refused once it too is replaced.
+        other = "ea" * 32
+        legacy = self.damaged_archive_with_companions(other)
+        damaged = self.check(other)["generation"]
+        moved = self.quarantine(other, damaged)
+        attached = self.run_helper(
+            *self.boundary_argv(str(uuid.uuid4()), kind="run-attached", **legacy["identity"])
+        )
+        self.assertEqual(attached.returncode, 0, attached.stderr)
+        self.assertEqual(json.loads(attached.stdout)["generation"], moved["generation"])
+        self.assertNotEqual(moved["generation"], damaged)
+        self.assertNotIn("PT-SECRET", attached.stdout + attached.stderr)
+
+    def collection_state_argv(self, *, project_id: str, run_id: str) -> tuple[str, ...]:
+        return (
+            "run-collection-state",
+            str(self.plugin_data / "archives"),
+            project_id,
+            run_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+        )
+
+    def collection_state(self, *, project_id: str, run_id: str) -> dict[str, object]:
+        result = self.run_helper(*self.collection_state_argv(project_id=project_id, run_id=run_id))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertNotIn("PT-SECRET", result.stdout)
+        return json.loads(result.stdout)
+
+    def test_run_collection_state_without_an_archive_answers_none_and_creates_nothing(self) -> None:
+        project_id = "eb" * 32
+        run_id = str(uuid.uuid4())
+        none = {"projectId": project_id, "runId": run_id, "generation": None, "kind": None}
+
+        self.assertEqual(self.collection_state(project_id=project_id, run_id=run_id), none)
+        self.assertFalse((self.plugin_data / "archives").exists())
+        (self.plugin_data / "archives").mkdir(mode=0o700)
+        self.assertEqual(self.collection_state(project_id=project_id, run_id=run_id), none)
+        self.assertFalse(self.archive_path(project_id).exists())
+
+        refused = self.run_helper(*self.collection_state_argv(project_id=project_id, run_id="not a run"))
+        self.assertEqual(json.loads(refused.stderr)["category"], "read-input")
+
+    def test_run_collection_state_answers_the_runs_latest_collection_boundary(self) -> None:
+        project_id = "ec" * 32
+        identity = self.identity(project_id)
+        other = self.identity(project_id)
+        self.capture("PT-SECRET-BEFORE-STOP", identity=identity)
+        generation = self.archive_status(project_id)["generation"]
+        run_id = identity["run_id"]
+
+        # A Run with records but no Collection Boundary has none to answer.
+        self.assertEqual(
+            self.collection_state(project_id=project_id, run_id=run_id),
+            {"projectId": project_id, "runId": run_id, "generation": generation, "kind": None},
+        )
+
+        stopped, stopped_sequence = self.boundary(identity=identity, kind="collection-stopped")
+        # Another Run's later boundaries and this Run's other kinds do not count.
+        self.boundary(identity=other, kind="collection-resumed")
+        self.boundary(identity=identity, kind="clear")
+        self.assertEqual(
+            self.collection_state(project_id=project_id, run_id=run_id),
+            {"projectId": project_id, "runId": run_id, "generation": generation,
+             "kind": "collection-stopped", "eventId": stopped, "sequence": stopped_sequence},
+        )
+        self.assertEqual(
+            self.collection_state(project_id=project_id, run_id=other["run_id"])["kind"],
+            "collection-resumed",
+        )
+
+        resumed, resumed_sequence = self.boundary(identity=identity, kind="collection-resumed")
+        state = self.collection_state(project_id=project_id, run_id=run_id)
+        self.assertEqual((state["kind"], state["eventId"], state["sequence"]),
+                         ("collection-resumed", resumed, resumed_sequence))
+
+    def test_run_collection_state_answers_while_another_run_holds_the_write_lock(self) -> None:
+        project_id = "ed" * 32
+        identity = self.identity(project_id)
+        stopped, _ = self.boundary(identity=identity, kind="collection-stopped")
+        holder = self.hold_write_lock(project_id)
+
+        started = time.monotonic()
+        state = self.collection_state(project_id=project_id, run_id=identity["run_id"])
+        elapsed = time.monotonic() - started
+        holder.execute("ROLLBACK")
+
+        self.assertEqual((state["kind"], state["eventId"]), ("collection-stopped", stopped))
+        # A read never takes the write lock, so it never waits for a writer.
+        self.assertLess(elapsed, 3.0)
 
 
     def status_argv(self, *, project_id: str) -> tuple[str, ...]:
@@ -5219,6 +5452,9 @@ __attribute__((used)) static struct {
             ),
             "capture-begin": self.begin_argv(str(uuid.uuid4()), **legacy["identity"]),
             "quarantine": self.quarantine_argv(project_id=project_id, generation="stale"),
+            "run-collection-state": self.collection_state_argv(
+                project_id=project_id, run_id=legacy["identity"]["run_id"]
+            ),
         }
         for command, argv in refused.items():
             with self.subTest(command=command):
@@ -5416,6 +5652,22 @@ __attribute__((used)) static struct {
         damaged = self.inventory(project_id)
         self.assertEqual((damaged["entries"], damaged["pending"]), (None, None))
 
+    def test_a_clear_inventory_counts_an_empty_quarantine_directory_as_present(self) -> None:
+        project_id = "a7" * 31 + "a8"
+        # The archive root stands because another project archived there.
+        self.capture("PT-SECRET-ELSEWHERE", identity=self.identity("a7" * 31 + "a9"))
+        self.assertFalse(self.inventory(project_id)["present"])
+        kept = self.plugin_data / "archives" / "quarantine" / project_id
+        kept.mkdir(mode=0o700, parents=True)
+
+        listed = self.inventory(project_id)
+
+        self.assertEqual((listed["present"], listed["files"], listed["quarantined"]), (True, [], []))
+        # A clear-all has it to remove, and does.
+        self.assertTrue(self.clear(project_id)["cleared"])
+        self.assertFalse(kept.exists())
+        self.assertFalse(self.inventory(project_id)["present"])
+
 
     def test_a_clear_waits_for_a_command_already_using_the_archive(self) -> None:
         project_id = "a8" * 32
@@ -5596,7 +5848,15 @@ __attribute__((used)) static struct {
 
     def clear_run_argv(
         self, *, project_id: str, run_id: str, only_continue: bool = False,
+        confirmed: tuple[int, int, int, int] | None = None,
     ) -> tuple[str, ...]:
+        # A new clear carries the counts the person confirmed: unless given,
+        # what the inventory shows now.
+        if only_continue:
+            tail: tuple[str, ...] = ("--continue",)
+        else:
+            counts = confirmed if confirmed is not None else self.confirmed_counts(project_id, run_id)
+            tail = ("--confirmed", *map(str, counts))
         return (
             "clear-run",
             str(self.plugin_data / "archives"),
@@ -5604,8 +5864,23 @@ __attribute__((used)) static struct {
             run_id,
             json.loads(MANIFEST.read_text())["sha256"],
             "1",
-            *(("--continue",) if only_continue else ()),
+            *tail,
         )
+
+    def confirmed_counts(self, project_id: str, run_id: str) -> tuple[int, int, int, int]:
+        """A Run clear's confirmation as the inventory counts it; zeros where it cannot."""
+        result = self.run_helper(
+            "clear-inventory",
+            str(self.plugin_data / "archives"),
+            project_id,
+            json.loads(MANIFEST.read_text())["sha256"],
+            "1",
+            run_id,
+        )
+        run = json.loads(result.stdout).get("run") if result.returncode == 0 else None
+        if not run:
+            return (0, 0, 0, 0)
+        return (run["entries"], run["pending"], run["events"], run["unlinked"])
 
     def clear_run(self, project_id: str, run_id: str, *, only_continue: bool = False) -> dict[str, object]:
         result = self.run_helper(
@@ -5699,6 +5974,85 @@ __attribute__((used)) static struct {
         self.assert_refusal_health(project_id, health_before)
         self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
 
+    def test_a_run_clear_cuts_nothing_unless_the_archive_holds_what_was_confirmed(self) -> None:
+        project_id = "b2" * 31 + "c9"
+        cleared = self.identity(project_id)
+        kept = self.identity(project_id)
+        first = self.capture("PT-SECRET-GONE", identity=cleared)
+        self.boundary(identity=cleared, kind="clear")
+        shown = self.confirmed_counts(project_id, cleared["run_id"])
+        self.assertEqual(shown, (1, 0, 1, 0))
+        # Another Run forks from the cleared Run's entry after the person was shown none.
+        self.capture("PT-SECRET-KEPT-FORK", identity=kept, parent=first)
+        before = self.archive_files(project_id)
+        now = self.confirmed_counts(project_id, cleared["run_id"])
+        self.assertEqual(now, (1, 0, 1, 1))
+
+        stale = [shown] + [
+            tuple(count + (1 if index == changed else 0) for index, count in enumerate(now))
+            for changed in range(4)
+        ]
+        for confirmed in stale:
+            with self.subTest(confirmed=confirmed):
+                refused = self.run_helper(*self.clear_run_argv(
+                    project_id=project_id, run_id=cleared["run_id"], confirmed=confirmed,
+                ))
+                self.assertEqual(refused.returncode, 25, refused.stderr)
+                self.assertEqual(json.loads(refused.stderr), {"category": "clear-run-changed"})
+                self.assertEqual(refused.stdout, "")
+                self.assertEqual(self.archive_files(project_id), before)
+                self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
+        self.assertNotEqual(self.markers_left(b"PT-SECRET-GONE"), [])
+        self.assertEqual(self.read(project_id=project_id)["events"][-1]["parentEventId"], first)
+        # Nothing was cut, so the archive answers every command as before.
+        self.assertFalse(self.archive_status(project_id)["clearRunUnderway"])
+
+        answer = self.clear_run(project_id, cleared["run_id"])
+
+        self.assertEqual(
+            (answer["cleared"], answer["entries"], answer["events"], answer["unlinked"]), (True, 1, 1, 1)
+        )
+        self.assertEqual(self.markers_left(b"PT-SECRET-GONE"), [])
+
+    def test_a_run_clear_under_way_is_finished_whatever_counts_the_caller_confirmed(self) -> None:
+        project_id = "b2" * 31 + "ca"
+        cleared = self.identity(project_id)
+        self.capture("PT-SECRET-GONE", identity=cleared)
+        intent = self.plugin_data / "archives" / f"{project_id}.clearing-run"
+        intent.write_text(f"{cleared['run_id']}\n")
+        intent.chmod(0o600)
+
+        result = self.run_helper(*self.clear_run_argv(
+            project_id=project_id, run_id=cleared["run_id"], confirmed=(9, 9, 9, 9),
+        ))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        answer = json.loads(result.stdout)
+        self.assertEqual((answer["cleared"], answer["continued"], answer["entries"]), (True, True, 1))
+        self.assertFalse(intent.exists())
+        self.assertEqual(self.markers_left(b"PT-SECRET-GONE"), [])
+
+    def test_a_run_clear_begins_only_with_well_formed_confirmed_counts(self) -> None:
+        project_id = "b2" * 31 + "cb"
+        cleared = self.identity(project_id)
+        self.capture("PT-SECRET-KEPT", identity=cleared)
+        before = self.archive_files(project_id)
+        base = self.clear_run_argv(project_id=project_id, run_id=cleared["run_id"], only_continue=True)[:-1]
+        malformed = {
+            "unconfirmed": (base, 2, "invalid-command"),
+            "too few counts": ((*base, "--confirmed", "1", "0", "0"), 2, "invalid-command"),
+            "another flag": ((*base, "--counts", "1", "0", "0", "0"), 2, "invalid-command"),
+            "negative": ((*base, "--confirmed", "1", "0", "-1", "0"), 25, "clear-input"),
+            "not a number": ((*base, "--confirmed", "1", "0", "0", "x"), 25, "clear-input"),
+        }
+        for name, (argv, status, category) in malformed.items():
+            with self.subTest(name):
+                refused = self.run_helper(*argv)
+                self.assertEqual(refused.returncode, status, refused.stderr)
+                self.assertEqual(json.loads(refused.stderr), {"category": category})
+        self.assertEqual(self.archive_files(project_id), before)
+        self.assertNotEqual(self.markers_left(b"PT-SECRET-KEPT"), [])
+
     def test_a_run_clear_cut_short_is_finished_by_any_run(self) -> None:
         # The states a kill leaves once the intent stands: nothing deleted
         # yet, or the rows deleted and their text still in the WAL's frames.
@@ -5739,6 +6093,9 @@ __attribute__((used)) static struct {
                     "boundary-append": self.boundary_argv(str(uuid.uuid4()), kind="clear", **kept),
                     "capture-begin": self.begin_argv(str(uuid.uuid4()), **kept),
                     "quarantine": self.quarantine_argv(project_id=project_id, generation="stale"),
+                    "run-collection-state": self.collection_state_argv(
+                        project_id=project_id, run_id=kept["run_id"]
+                    ),
                 }
                 for command, argv in refused.items():
                     with self.subTest(command=command):
@@ -5764,8 +6121,10 @@ __attribute__((used)) static struct {
         project_id = "b5" * 32
         legacy = self.schema_1_archive(project_id, 3, text_bytes=2000)
         run_id = legacy["identity"]["run_id"]
-
-        answer = self.clear_run(project_id, run_id)
+        # A schema 1 archive has no Timeline Events for the inventory to count.
+        result = self.run_helper(*self.clear_run_argv(project_id=project_id, run_id=run_id, confirmed=(3, 1, 0, 0)))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        answer = json.loads(result.stdout)
 
         self.assertEqual((answer["entries"], answer["pending"]), (3, 1))
         self.assertFalse(self.backup_path(project_id).exists())
@@ -5976,6 +6335,8 @@ __attribute__((used)) static struct {
     def test_a_run_clear_waits_for_a_command_already_using_the_archive(self) -> None:
         project_id = "c2" * 32
         legacy = self.current_archive(project_id, count=3)
+        # What the person was shown before the write under way began.
+        confirmed = self.confirmed_counts(project_id, legacy["identity"]["run_id"])
         holder = subprocess.Popen(
             ["python3", "-c",
              "import sqlite3, sys, time\n"
@@ -5998,12 +6359,22 @@ __attribute__((used)) static struct {
         writer.stdin.close()
         self.await_project_lock_held(project_id)
 
-        answer = self.clear_run(project_id, legacy["identity"]["run_id"])
+        refused = self.run_helper(*self.clear_run_argv(
+            project_id=project_id, run_id=legacy["identity"]["run_id"], confirmed=confirmed,
+        ))
         writer.wait(timeout=30)
         holder.wait(timeout=30)
 
-        # The write under way landed before the cut and went with the Run.
+        # The write under way landed first; the person never saw it, so the
+        # clear cuts nothing until they confirm what the archive now holds.
         self.assertEqual(writer.returncode, 0, writer.stderr.read())
+        self.assertEqual(refused.returncode, 25, refused.stderr)
+        self.assertEqual(json.loads(refused.stderr), {"category": "clear-run-changed"})
+        self.assertNotIn(f"{project_id}.clearing-run", self.project_files(project_id))
+        self.assertNotEqual(self.markers_left(b"PT-SECRET-UNDER-WAY"), [])
+
+        answer = self.clear_run(project_id, legacy["identity"]["run_id"])
+
         self.assertEqual((answer["entries"], answer["pending"]), (3, 2))
         self.assertEqual(self.markers_left(b"PT-SECRET-UNDER-WAY"), [])
 

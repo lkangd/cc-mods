@@ -14,31 +14,30 @@ import {
 } from '../hooks/lifecycle'
 import type { ArchiveRow, ProcessCall } from './support'
 import {
+  HELPER_STAMP_FORMAT,
   SECRET,
   TIMELINE_READ_LIMIT,
   captureCalls,
   composerPrompt,
+  consentedStore,
   helperPath,
+  helperStamp,
   installSupportedTarget,
   projectId,
   promptHistory,
   renderBand,
   runId,
+  runModeKeyFor,
   session,
   sessionId,
 } from './support'
 
-const consentGranted = { policyVersion: 1, decision: 'enabled' as const }
 const earlierRunId = '12121212-3434-4565-8787-909090909090'
 const earlierSessionId = '31313131-4242-4353-8464-757575757575'
 const branchId = 'dddddddd-eeee-4fff-8000-111111111111'
 /* The locator's host process start, 100 s and 200 µs, as the start boundary
    records it: the instant the Run's process began, the same on every replay. */
 const hostStartedAt = 100_000
-
-function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: consentGranted }
-}
 
 function lifecycleKey(forRunId: string = runId): string {
   return `prompt-trail:lifecycle:${projectId}:${forRunId}`
@@ -562,6 +561,104 @@ for (const command of ['disable', 'enable'] as const) {
   })
 }
 
+/* The helper calls among `calls`, by subcommand. */
+function helperCalls(calls: readonly ProcessCall[]): (string | undefined)[] {
+  return calls.filter(call => call.argv[0] === helperPath).map(call => call.argv[1])
+}
+
+test('a classic /clear runs no helper that changed under the Run', async ($, on) => {
+  const classic = $.classic
+  const helperDigest = { value: EXPECTED_HELPER_SHA256 }
+  const archive: ArchiveRow[] = []
+  const calls = installSupportedTarget(on, { store: consentedStore(), archive, helperDigest })
+  on('classic.SessionEnd', () => ({}))
+  await $.session.start(session)
+  await composerPrompt($)
+
+  helperDigest.value = 'f'.repeat(64)
+  const ranBefore = calls.length
+  await classic.SessionEnd({ reason: 'clear', session_id: sessionId })
+
+  expect(helperCalls(calls.slice(ranBefore))).toStrictEqual([])
+  expect(archive.map(event => event.kind)).toEqual(['run-started', 'prompt'])
+})
+
+test('a classic exit runs no helper that changed under the Run', async ($, on) => {
+  const classic = $.classic
+  const helperDigest = { value: EXPECTED_HELPER_SHA256 }
+  const archive: ArchiveRow[] = []
+  const calls = installSupportedTarget(on, { store: consentedStore(), archive, helperDigest })
+  on('classic.SessionEnd', () => ({}))
+  await $.session.start(session)
+  await composerPrompt($)
+
+  helperDigest.value = 'f'.repeat(64)
+  const ranBefore = calls.length
+  await classic.SessionEnd({ reason: 'prompt_input_exit', session_id: sessionId })
+
+  expect(helperCalls(calls.slice(ranBefore))).toStrictEqual([])
+  expect(archive.map(event => event.kind)).toEqual(['run-started', 'prompt'])
+})
+
+test('opening the band runs no helper that changed under the Run', async ($, on) => {
+  const helperDigest = { value: EXPECTED_HELPER_SHA256 }
+  const calls = installSupportedTarget(on, { store: consentedStore(), archive: earlierRun(true), helperDigest })
+  await $.session.start(session)
+  await promptHistory($)
+  await promptHistory($)
+
+  helperDigest.value = 'f'.repeat(64)
+  const ranBefore = calls.length
+  await promptHistory($)
+
+  expect(helperCalls(calls.slice(ranBefore))).toStrictEqual([])
+})
+
+test('a helper replaced while its digest is taken is not trusted', async ($, on) => {
+  let stamps = 0
+  const calls = installSupportedTarget(on, {
+    store: consentedStore(),
+    /* Each look at the file finds another one. */
+    processResponder: call => call.argv[0] === '/usr/bin/stat' && call.argv[2] === HELPER_STAMP_FORMAT
+      ? { exitCode: 0, stdout: `${helperStamp(String(stamps++).padEnd(64, '0'))}\n`, stderr: '' }
+      : undefined,
+  })
+  await $.session.start(session)
+
+  const status = await promptHistory($, 'status')
+
+  expect(status.text).toContain('reason: digest-mismatch')
+  expect(helperCalls(calls)).toStrictEqual([])
+})
+
+test('a helper whose file moved but whose digest did not is proven again once and then runs', async ($, on) => {
+  const classic = $.classic
+  let touched = false
+  const archive: ArchiveRow[] = []
+  const calls = installSupportedTarget(on, {
+    store: consentedStore(),
+    archive,
+    /* Its identity moves, as a copy of the same bytes over it would move it;
+       its digest does not. */
+    processResponder: call => call.argv[0] === '/usr/bin/stat' && call.argv[2] === HELPER_STAMP_FORMAT
+      ? { exitCode: 0, stdout: `${helperStamp(touched ? '0'.repeat(64) : EXPECTED_HELPER_SHA256)}\n`, stderr: '' }
+      : undefined,
+  })
+  on('classic.SessionEnd', () => ({}))
+  await $.session.start(session)
+  await composerPrompt($)
+
+  touched = true
+  const ranBefore = calls.length
+  await classic.SessionEnd({ reason: 'clear', session_id: sessionId })
+
+  const ran = calls.slice(ranBefore)
+  expect(helperCalls(ran)).toContain('boundary-append')
+  expect(archive.map(event => event.kind)).toEqual(['run-started', 'prompt', 'clear'])
+  /* Proven once more, not before every call. */
+  expect(ran.filter(call => call.argv[0] === '/usr/bin/shasum')).toHaveLength(1)
+})
+
 test('status names the current Run', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore() })
   await $.session.start(session)
@@ -605,6 +702,25 @@ test('a detach an exiting process could not write is landed by the next Run, ahe
     occurredAt: 1_794_000_000_000,
   })
   expect((store[lifecycleKey(earlierRunId)] as { queue: unknown[] }).queue).toEqual([])
+})
+
+test('a submission reads each other Run\'s lifecycle record once', async ($, on) => {
+  const settledRuns = Array.from({ length: 5 }, (_, index) => `${index}0000000-1111-4222-8333-444444444444`)
+  const store: Record<string, unknown> = consentedStore()
+  for (const settled of settledRuns) store[lifecycleKey(settled)] = heldBy(laterHost, true)
+  const storeReads: string[] = []
+  installSupportedTarget(on, { store, storeReads })
+  await $.session.start(session)
+  await composerPrompt($)
+
+  storeReads.length = 0
+  await composerPrompt($)
+
+  for (const settled of settledRuns) {
+    expect(storeReads.filter(key => key === lifecycleKey(settled))).toHaveLength(1)
+  }
+  /* The other enumeration is of the in-flight markers. */
+  expect(storeReads.filter(key => key === 'keys')).toHaveLength(2)
 })
 
 test('a stop that is a new Run\'s first write lands after the detach another Run still owes', async ($, on) => {
@@ -783,7 +899,7 @@ test('a Run switched off stays off when a later process resumes it', async ($, o
   const store: Record<string, unknown> = {
     ...consentedStore(),
     [lifecycleKey(earlierRunId)]: heldBy(laterHost, true),
-    [`prompt-trail:run-mode:${projectId}:${earlierRunId}`]: { version: 1, mode: 'disabled' },
+    [runModeKeyFor(earlierRunId)]: { version: 1, mode: 'disabled' },
   }
   const archive = earlierRun(true)
   const calls = installSupportedTarget(on, { store, archive, run: { runId: earlierRunId } })
@@ -815,7 +931,7 @@ test('an archive written before Runs were lineages reads its ends as leavings', 
 test('an in-process resume out of a disabled Run collects in the Run it moved to', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
-    [`prompt-trail:run-mode:${projectId}:${runId}`]: { version: 1, mode: 'disabled' },
+    [runModeKeyFor()]: { version: 1, mode: 'disabled' },
   }
   const archive: ArchiveRow[] = []
   const classicSession = { id: sessionId }
@@ -834,6 +950,88 @@ test('an in-process resume out of a disabled Run collects in the Run it moved to
     ['run-started', earlierRunId],
     ['prompt', earlierRunId],
   ])
+})
+
+test('disable after an in-process resume stops only the Run moved to', async ($, on) => {
+  const store = consentedStore()
+  const archive: ArchiveRow[] = []
+  const classicSession = { id: sessionId }
+  const identity = { runId }
+  const calls = installSupportedTarget(on, { store, archive, classicSession, run: identity })
+  await $.session.start(session)
+  await composerPrompt($)
+
+  classicSession.id = earlierSessionId
+  identity.runId = earlierRunId
+  await promptHistory($, 'disable')
+
+  expect(store[runModeKeyFor(earlierRunId)]).toMatchObject({ mode: 'disabled' })
+  expect(store[runModeKeyFor()]).toBeUndefined()
+  expect(archive.filter(event => event.kind === 'collection-stopped').map(event => event.runId))
+    .toEqual([earlierRunId])
+
+  /* Back in the first Run, collection goes on. */
+  classicSession.id = sessionId
+  identity.runId = runId
+  const begun = captureCalls(calls, 'capture-begin').length
+  const back = await composerPrompt($)
+
+  expect(back).toMatchObject({ text: SECRET })
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(begun + 1)
+})
+
+test('disable after an in-process resume out of a disabled Run stops the Run moved to', async ($, on) => {
+  const store: Record<string, unknown> = {
+    ...consentedStore(),
+    [runModeKeyFor()]: { version: 1, mode: 'disabled' },
+  }
+  const archive: ArchiveRow[] = []
+  const classicSession = { id: sessionId }
+  const identity = { runId }
+  const calls = installSupportedTarget(on, { store, archive, classicSession, run: identity })
+  await $.session.start(session)
+  await composerPrompt($)
+
+  classicSession.id = earlierSessionId
+  identity.runId = earlierRunId
+  const reply = await promptHistory($, 'disable')
+  const moved = await composerPrompt($)
+
+  expect(reply.text).not.toContain('已停用采集，未写入新的')
+  expect(store[runModeKeyFor(earlierRunId)]).toMatchObject({ mode: 'disabled' })
+  expect(moved).toMatchObject({ text: SECRET })
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
+  expect(archive.map(event => [event.kind, event.runId])).toEqual([
+    ['run-started', earlierRunId],
+    ['collection-stopped', earlierRunId],
+  ])
+})
+
+test('without a proven Run, a session this process moved to does not read the switch it left', async ($, on) => {
+  const store: Record<string, unknown> = {
+    ...consentedStore(),
+    [runModeKeyFor()]: { version: 1, mode: 'disabled' },
+  }
+  const classicSession = { id: sessionId }
+  const locatorPublished = { value: true }
+  let clock: import('claude-code/testing').MockClock | undefined
+  const calls = installSupportedTarget(on, {
+    store, classicSession, locatorPublished, onClock: mocked => { clock = mocked },
+  })
+  await $.session.start(session)
+  await composerPrompt($)
+
+  /* An in-process `/resume` whose locator never arrives: the session may be
+     in another Run, collecting, so the first Run's switch does not let its
+     prompt through unrecorded. */
+  classicSession.id = earlierSessionId
+  locatorPublished.value = false
+  const submitted = composerPrompt($)
+  await clock!.advance(2_000)
+  const moved = await submitted
+
+  expect(moved).toMatchObject({ drop: expect.any(String) })
+  expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
 })
 
 test('a detach an older build still owed under its old name is recorded as that Run’s gap', async ($, on) => {

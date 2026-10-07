@@ -64,6 +64,16 @@
   "CREATE INDEX timeline_events_run_sequence " \
   "ON timeline_events(run_id, sequence);"
 
+/* Indexes that came after schema 2 without changing it: `timeline-read` finds
+   a segment's first holder through them. A helper that predates them neither
+   needs nor checks them, so they need no migration; a new boundary adds them
+   inside its own write, and a read never writes. */
+#define SEGMENT_INDEXES_DDL \
+  "CREATE INDEX IF NOT EXISTS prompt_entries_segment_sequence " \
+  "ON prompt_entries(segment_id, sequence);" \
+  "CREATE INDEX IF NOT EXISTS timeline_events_segment_sequence " \
+  "ON timeline_events(segment_id, sequence);"
+
 static void json_error(int status, const char *category) {
   fprintf(stderr, "{\"category\":\"%s\"}\n", category);
   exit(status);
@@ -726,14 +736,18 @@ static bool lowercase_sha256(const char *value) {
   return true;
 }
 
-static long long nonnegative_integer(const char *value) {
+static long long nonnegative_argument(const char *value, const char *category) {
   char *end = NULL;
   errno = 0;
   long long parsed = strtoll(value, &end, 10);
   if (errno != 0 || end == value || *end != '\0' || parsed < 0) {
-    archive_error("capture-input");
+    archive_error(category);
   }
   return parsed;
+}
+
+static long long nonnegative_integer(const char *value) {
+  return nonnegative_argument(value, "capture-input");
 }
 
 static bool valid_prompt_text(const char *text, size_t length) {
@@ -1367,6 +1381,28 @@ static bool intent_present(const char *path) {
   return false;
 }
 
+/* Puts `content` at `intent` whole or not at all, durable before it is in
+   place, by way of `<intent>.partial`; the directory entry is the caller's
+   to make durable. NULL once it is in place, otherwise the category it
+   stopped at, for the caller to answer as its own failure. */
+static const char *publish_intent(const char *intent, const char *content) {
+  char staged[PATH_MAX];
+  int length = snprintf(staged, PATH_MAX, "%s.partial", intent);
+  if (length < 0 || length >= PATH_MAX) return "database-path";
+  unlink(staged);
+  int descriptor = open(staged, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
+  if (descriptor < 0) return errno == ENOSPC ? "archive-full" : "database-unavailable";
+  size_t size = strlen(content);
+  bool written = write(descriptor, content, size) == (ssize_t)size
+    && (fcntl(descriptor, F_FULLFSYNC) == 0 || fsync(descriptor) == 0);
+  close(descriptor);
+  if (!written || rename(staged, intent) != 0) {
+    unlink(staged);
+    return "database-unavailable";
+  }
+  return NULL;
+}
+
 static void refuse_unfinished_generation(const char *database_root, const char *project_id) {
   char intent[PATH_MAX];
   if (!clear_intent_path(database_root, project_id, intent)) archive_error("database-path");
@@ -1407,6 +1443,17 @@ static bool archive_generation(const char *database_path, char output[129]) {
   return true;
 }
 
+/* Where a project's archive lives under `database_root`; false when the
+   path does not fit, which each caller answers with its own category. */
+static bool archive_path(
+  const char *database_root,
+  const char *project_id,
+  char path[PATH_MAX]
+) {
+  int length = snprintf(path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
+  return length >= 0 && length < PATH_MAX;
+}
+
 /* The generation standing at a project's archive path, false when none. */
 static bool project_generation(
   const char *database_root,
@@ -1414,8 +1461,7 @@ static bool project_generation(
   char output[129]
 ) {
   char database_path[PATH_MAX];
-  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
-  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  if (!archive_path(database_root, project_id, database_path)) archive_error("database-path");
   return archive_generation(database_path, output);
 }
 
@@ -1445,14 +1491,7 @@ static sqlite3 *open_archive(
 ) {
   if (!lowercase_sha256(project_id)) archive_error("project-identity");
   char database_path[PATH_MAX];
-  int length = snprintf(
-    database_path,
-    sizeof(database_path),
-    "%s/%s.sqlite3",
-    database_root,
-    project_id
-  );
-  if (length < 0 || (size_t)length >= sizeof(database_path)) {
+  if (!archive_path(database_root, project_id, database_path)) {
     archive_error("database-path");
   }
   lock_project(database_root, project_id, false);
@@ -1752,6 +1791,25 @@ static void write_pending(
    the generation now in place. */
 static void require_known_parent(sqlite3 *database, const char *parent_event_id);
 
+/* The identity an event is written under, refused as `category` unless every
+   part is a safe identifier; `generation`, when given, is the one expected. */
+static void require_event_identity(
+  const char *generation,
+  const char *run_id,
+  const char *segment_id,
+  const char *branch_id,
+  const char *event_id,
+  const char *category
+) {
+  if ((generation && !pt_is_safe_identifier(generation))
+      || !pt_is_safe_identifier(run_id)
+      || !pt_is_safe_identifier(segment_id)
+      || !pt_is_safe_identifier(branch_id)
+      || !pt_is_safe_identifier(event_id)) {
+    archive_error(category);
+  }
+}
+
 static void capture_begin(int argc, char **argv) {
   if (argc != 16 || strcmp(argv[15], "--stdin") != 0) usage();
   const char *database_root = argv[2];
@@ -1765,12 +1823,8 @@ static void capture_begin(int argc, char **argv) {
   long long attachment_count = nonnegative_integer(argv[10]);
   const char *attachment_kinds = argv[11];
   const char *expected_generation = strcmp(argv[12], "-") == 0 ? NULL : argv[12];
-  if ((expected_generation && !pt_is_safe_identifier(expected_generation))
-      || !pt_is_safe_identifier(run_id)
-      || !pt_is_safe_identifier(segment_id)
-      || !pt_is_safe_identifier(branch_id)
-      || !pt_is_safe_identifier(event_id)
-      || (parent_event_id && !pt_is_safe_identifier(parent_event_id))
+  require_event_identity(expected_generation, run_id, segment_id, branch_id, event_id, "capture-input");
+  if ((parent_event_id && !pt_is_safe_identifier(parent_event_id))
       || (parent_event_id && strcmp(parent_event_id, event_id) == 0)
       || attachment_count > 100000
       || !attachment_kinds_valid(attachment_kinds)) {
@@ -1791,8 +1845,8 @@ static void capture_begin(int argc, char **argv) {
   }
   sqlite3 *database = open_archive(database_root, project_id, true);
   char database_path[PATH_MAX];
-  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
-  if (length < 0 || length >= PATH_MAX || !archive_generation(database_path, generation)) {
+  if (!archive_path(database_root, project_id, database_path)
+      || !archive_generation(database_path, generation)) {
     archive_error("database-unavailable");
   }
   if (expected_generation && strcmp(expected_generation, generation) != 0) {
@@ -2147,14 +2201,7 @@ static void capture_list(int argc, char **argv) {
   bool archived = false;
   if (root_present) {
     char database_path[PATH_MAX];
-    int length = snprintf(
-      database_path,
-      sizeof(database_path),
-      "%s/%s.sqlite3",
-      database_root,
-      project_id
-    );
-    if (length < 0 || (size_t)length >= sizeof(database_path)) {
+    if (!archive_path(database_root, project_id, database_path)) {
       archive_error("database-path");
     }
     /* Held before the archive is looked for, so a quarantine moving it
@@ -2303,6 +2350,25 @@ static long long existing_boundary_sequence(
   return sequence;
 }
 
+/* Once per archive, after a boundary has committed, in a transaction of its
+   own. Best effort: an archive that cannot take them now is read by
+   scanning, and the boundary stands either way. */
+static void add_segment_indexes(sqlite3 *database) {
+  sqlite3_stmt *present = archive_prepare(
+    database,
+    "SELECT count(*) FROM sqlite_master WHERE type='index' AND name IN"
+    " ('prompt_entries_segment_sequence', 'timeline_events_segment_sequence')"
+  );
+  if (sqlite3_step(present) != SQLITE_ROW) archive_error("archive-sqlite");
+  bool missing = sqlite3_column_int(present, 0) != 2;
+  sqlite3_finalize(present);
+  if (!missing) return;
+  if (sqlite3_exec(database, "BEGIN IMMEDIATE;" SEGMENT_INDEXES_DDL "COMMIT;", NULL, NULL, NULL)
+      != SQLITE_OK && !sqlite3_get_autocommit(database)) {
+    sqlite3_exec(database, "ROLLBACK", NULL, NULL, NULL);
+  }
+}
+
 static void boundary_append(int argc, char **argv) {
   if (argc != 13) usage();
   const char *database_root = argv[2];
@@ -2314,14 +2380,8 @@ static void boundary_append(int argc, char **argv) {
   const char *event_id = argv[8];
   long long occurred_at = nonnegative_integer(argv[9]);
   const char *expected_generation = strcmp(argv[10], "-") == 0 ? NULL : argv[10];
-  if ((expected_generation && !pt_is_safe_identifier(expected_generation))
-      || !pt_is_safe_identifier(run_id)
-      || !pt_is_safe_identifier(segment_id)
-      || !pt_is_safe_identifier(branch_id)
-      || !pt_is_safe_identifier(event_id)
-      || !boundary_kind_valid(kind)) {
-    archive_error("boundary-input");
-  }
+  require_event_identity(expected_generation, run_id, segment_id, branch_id, event_id, "boundary-input");
+  if (!boundary_kind_valid(kind)) archive_error("boundary-input");
   capture_runtime(database_root, argv[11], argv[12], PT_ROOT_CREATE);
 
   /* A boundary owed to a generation since cleared or quarantined belongs to
@@ -2336,6 +2396,18 @@ static void boundary_append(int argc, char **argv) {
     }
   }
   sqlite3 *database = open_archive(database_root, project_id, true);
+  /* The generation the boundary lands in, read under the project's lock that
+     every quarantine and clear must wait out, as `capture-begin` reads it: a
+     Run that starts a new root here names it to its next capture, which is
+     refused if the generation is replaced in between. */
+  char database_path[PATH_MAX];
+  if (!archive_path(database_root, project_id, database_path)
+      || !archive_generation(database_path, generation)) {
+    archive_error("database-unavailable");
+  }
+  if (expected_generation && strcmp(expected_generation, generation) != 0) {
+    archive_error("archive-generation");
+  }
   archive_sql(database, "BEGIN IMMEDIATE");
   if (existing_sequence(database, event_id) > 0
       || event_id_present(
@@ -2374,11 +2446,79 @@ static void boundary_append(int argc, char **argv) {
     sqlite3_finalize(insert);
   }
   archive_sql(database, "COMMIT");
+  add_segment_indexes(database);
   close_archive(database);
 
   write_status_string("{\"eventId\":", event_id);
   write_status_string(",\"projectId\":", project_id);
   write_status_string(",\"kind\":", kind);
+  write_status_string(",\"generation\":", generation);
+  printf(",\"sequence\":%lld}\n", sequence);
+}
+
+/* One Run's latest Collection Boundary in the generation in place, or none.
+   It is what a plugin that lost its own record of the Run's switch reads
+   instead: a trailing `collection-stopped` means the Run was disabled. It
+   only reads — no write lock, no archive created where there is none — and
+   answers identity only, through the Run's own sequence index. */
+static void run_collection_state(int argc, char **argv) {
+  if (argc != 7) usage();
+  const char *database_root = argv[2];
+  const char *project_id = argv[3];
+  const char *run_id = argv[4];
+  if (!lowercase_sha256(project_id)) archive_error("project-identity");
+  if (!pt_is_safe_identifier(run_id)) archive_error("read-input");
+  bool root_present =
+    capture_runtime(database_root, argv[5], argv[6], PT_ROOT_OPTIONAL);
+
+  char generation[129];
+  bool archived = false;
+  if (root_present) {
+    /* Held before the archive is looked for, so a quarantine moving it
+       cannot pass for an archive that was never there. */
+    lock_project(database_root, project_id, false);
+    refuse_unfinished_replacement(database_root, project_id);
+    archived = project_generation(database_root, project_id, generation);
+  }
+  if (!archived) {
+    write_status_string("{\"projectId\":", project_id);
+    write_status_string(",\"runId\":", run_id);
+    fputs(",\"generation\":null,\"kind\":null}\n", stdout);
+    return;
+  }
+
+  sqlite3 *database = open_archive(database_root, project_id, false);
+  sqlite3_stmt *latest = archive_prepare(
+    database,
+    "SELECT kind, event_id, sequence FROM timeline_events"
+    " WHERE run_id=?1 AND kind IN"
+    " ('collection-started', 'collection-stopped', 'collection-resumed')"
+    " ORDER BY sequence DESC LIMIT 1"
+  );
+  archive_bind_text(database, latest, 1, run_id);
+  char kind[32] = "";
+  char event_id[129] = "";
+  long long sequence = 0;
+  int step = sqlite3_step(latest);
+  if (step == SQLITE_ROW) {
+    snprintf(kind, sizeof(kind), "%s", (const char *)sqlite3_column_text(latest, 0));
+    snprintf(event_id, sizeof(event_id), "%s", (const char *)sqlite3_column_text(latest, 1));
+    sequence = sqlite3_column_int64(latest, 2);
+  } else if (step != SQLITE_DONE) {
+    archive_error("archive-sqlite");
+  }
+  sqlite3_finalize(latest);
+  close_archive(database);
+
+  write_status_string("{\"projectId\":", project_id);
+  write_status_string(",\"runId\":", run_id);
+  write_status_string(",\"generation\":", generation);
+  if (kind[0] == '\0') {
+    fputs(",\"kind\":null}\n", stdout);
+    return;
+  }
+  write_status_string(",\"kind\":", kind);
+  write_status_string(",\"eventId\":", event_id);
   printf(",\"sequence\":%lld}\n", sequence);
 }
 
@@ -2393,11 +2533,21 @@ static void boundary_append(int argc, char **argv) {
 
    Each Prompt Entry carries its ordinal among the project's Prompt Entries, so
    a number stays the same whichever batch shows it. What the view derives from
-   events outside the batch comes along too, identity only and bounded by it:
-   the active path ending at `tip` where it crosses the batch and where it
-   began in `run` (`path`); the Run of each entry's parent outside the batch
-   (`parents`); and, for each Run start, the Run that held its segment first
-   when that is another one (`origins`).
+   events outside the batch comes along too, identity and counts only: the
+   active path ending at `tip` where it crosses the batch, where it began in
+   `run`, its highest entry below the batch, and how many entries each other
+   Run holds on it (`path`); the Run of each entry's parent outside the batch
+   (`parents`); for each Run start, the Run that held its segment first when
+   that is another one (`origins`); for each Run in the batch, whether its row
+   just before the batch is a Prompt Entry or a boundary (`leading`); for each
+   other Run, its span and Prompt Entries before `run`'s path began and since
+   (`runs`); and, for each entry of `run` in the batch that left the path, the
+   fold it belongs to across the whole Run (`branches`).
+
+   A caller that already holds where the path began passes it, with an entry
+   of the path to walk down from instead of the tip, as `<start|none>
+   <from|-|none>`. The path is then walked only as far down as the batch. Both
+   are display hints: a wrong one misplaces folds and nothing else.
 
    This is the one subcommand whose response carries prompt text. It goes to
    the hook that asked, for display, and nowhere else: never argv, never
@@ -2414,6 +2564,7 @@ typedef struct {
   long long sequence;
   bool prompt;
   bool run_started;
+  bool on_path;
 } timeline_row;
 
 static bool parse_sequence_cursor(const char *text, long long minimum, long long *value) {
@@ -2472,42 +2623,217 @@ static bool window_holds(const timeline_row *rows, int count, const char *event_
   return false;
 }
 
-static void write_path(
+static int window_index(const timeline_row *rows, int count, const char *event_id) {
+  for (int index = 0; index < count; index += 1) {
+    if (strcmp(rows[index].event_id, event_id) == 0) return index;
+  }
+  return -1;
+}
+
+/* Whether an earlier row of the batch belongs to the same Run, so each Run is
+   asked about once. */
+static bool run_seen_before(const timeline_row *rows, int index) {
+  for (int earlier = 0; earlier < index; earlier += 1) {
+    if (strcmp(rows[earlier].run_id, rows[index].run_id) == 0) return true;
+  }
+  return false;
+}
+
+/* A Run's nearest row on one side of `sequence`, from either table through
+   its (run_id, sequence) index: its sequence, or 0 when it has none there.
+   `event_id` and `kind` take the row's identity when given. */
+static long long run_neighbour(
+  sqlite3 *database,
+  const char *run_id,
+  long long sequence,
+  bool earlier,
+  char event_id[129],
+  char kind[129]
+) {
+  sqlite3_stmt *nearest = archive_prepare(
+    database,
+    earlier
+      ? "SELECT event_id, kind, sequence FROM ("
+        " SELECT * FROM (SELECT event_id, 'prompt' AS kind, sequence FROM prompt_entries"
+        "  WHERE run_id=?1 AND sequence<?2 ORDER BY sequence DESC LIMIT 1)"
+        " UNION ALL"
+        " SELECT * FROM (SELECT event_id, kind, sequence FROM timeline_events"
+        "  WHERE run_id=?1 AND sequence<?2 ORDER BY sequence DESC LIMIT 1)"
+        ") ORDER BY sequence DESC LIMIT 1"
+      : "SELECT event_id, kind, sequence FROM ("
+        " SELECT * FROM (SELECT event_id, 'prompt' AS kind, sequence FROM prompt_entries"
+        "  WHERE run_id=?1 AND sequence>?2 ORDER BY sequence ASC LIMIT 1)"
+        " UNION ALL"
+        " SELECT * FROM (SELECT event_id, kind, sequence FROM timeline_events"
+        "  WHERE run_id=?1 AND sequence>?2 ORDER BY sequence ASC LIMIT 1)"
+        ") ORDER BY sequence ASC LIMIT 1"
+  );
+  archive_bind_text(database, nearest, 1, run_id);
+  sqlite3_bind_int64(nearest, 2, sequence);
+  long long found = 0;
+  int step = sqlite3_step(nearest);
+  if (step == SQLITE_ROW) {
+    if (event_id) copy_column(event_id, nearest, 0);
+    if (kind) copy_column(kind, nearest, 1);
+    found = sqlite3_column_int64(nearest, 2);
+  } else if (step != SQLITE_DONE) {
+    archive_error("archive-sqlite");
+  }
+  sqlite3_finalize(nearest);
+  return found;
+}
+
+/* How many Prompt Entries a Run holds on one side of `sequence`. */
+static long long run_prompts(sqlite3 *database, const char *run_id, long long sequence, bool earlier) {
+  sqlite3_stmt *count = archive_prepare(
+    database,
+    earlier
+      ? "SELECT count(*) FROM prompt_entries WHERE run_id=?1 AND sequence<?2"
+      : "SELECT count(*) FROM prompt_entries WHERE run_id=?1 AND sequence>?2"
+  );
+  archive_bind_text(database, count, 1, run_id);
+  sqlite3_bind_int64(count, 2, sequence);
+  if (sqlite3_step(count) != SQLITE_ROW) archive_error("archive-sqlite");
+  long long prompts = sqlite3_column_int64(count, 0);
+  sqlite3_finalize(count);
+  return prompts;
+}
+
+/* One Prompt Entry's parent and sequence, by event id; false when the archive
+   no longer holds it. */
+static bool entry_link(
+  sqlite3_stmt *lookup,
+  sqlite3 *database,
+  const char *event_id,
+  char parent[129],
+  long long *sequence
+) {
+  sqlite3_reset(lookup);
+  archive_bind_text(database, lookup, 1, event_id);
+  int step = sqlite3_step(lookup);
+  if (step == SQLITE_DONE) return false;
+  if (step != SQLITE_ROW) archive_error("archive-sqlite");
+  copy_column(parent, lookup, 0);
+  *sequence = sqlite3_column_int64(lookup, 1);
+  return true;
+}
+
+typedef struct {
+  char run_id[129];
+  long long before;
+  long long after;
+} path_holder;
+
+/* The path where it crosses [`low`, `high`], marking those rows; answers
+   where it began in `run_id` (0: it holds no entry of that Run). Walked from
+   the tip, or from `from`, an entry the caller holds to be on it; with a
+   start already known, only as far down as the batch. `from` "none" says the
+   path reaches nothing at or below the batch. A full walk also counts the
+   entries each other Run holds on the path, before and after its start. */
+static long long write_path(
   sqlite3 *database,
   const char *run_id,
   const char *tip,
-  const timeline_row *rows,
-  int count
+  bool hinted,
+  long long hinted_start,
+  const char *from,
+  timeline_row *rows,
+  int count,
+  long long low,
+  long long high
 ) {
-  /* A parent is always archived before its child, so the chain only ever
-     descends in sequence and ends. */
-  sqlite3_stmt *chain = archive_prepare(
-    database,
-    "WITH RECURSIVE chain(event_id, sequence, run_id, parent) AS ("
-    " SELECT event_id, sequence, run_id, parent_event_id FROM prompt_entries"
-    "  WHERE event_id = ?1"
-    " UNION ALL"
-    " SELECT entry.event_id, entry.sequence, entry.run_id, entry.parent_event_id"
-    "  FROM prompt_entries entry JOIN chain ON entry.event_id = chain.parent"
-    ") SELECT event_id, sequence, run_id FROM chain"
-  );
-  archive_bind_text(database, chain, 1, tip);
-  long long low = count > 0 ? rows[0].sequence : 1;
-  long long high = count > 0 ? rows[count - 1].sequence : 0;
   long long start = 0;
+  char below[129] = "";
   int listed = 0;
+  int holder_count = 0;
+  int holder_capacity = 0;
+  path_holder *holders = NULL;
+  /* Other Runs' entries on a full walk, by Run and sequence, settled against
+     the start once the walk has found it. */
+  int other_count = 0;
+  int other_capacity = 0;
+  struct { int holder; long long sequence; } *others = NULL;
   fputs(",\"path\":{\"eventIds\":[", stdout);
-  int step;
-  while ((step = sqlite3_step(chain)) == SQLITE_ROW) {
-    long long sequence = sqlite3_column_int64(chain, 1);
-    if (strcmp((const char *)sqlite3_column_text(chain, 2), run_id) == 0) start = sequence;
-    if (sequence < low || sequence > high) continue;
-    write_status_string(listed++ > 0 ? "," : "", (const char *)sqlite3_column_text(chain, 0));
+  if (!(hinted && from && strcmp(from, "none") == 0)) {
+    /* A parent is always archived before its child, so the chain only ever
+       descends in sequence and ends. With the start known, an entry below the
+       batch is the last one read: the first of the path beneath it. */
+    sqlite3_stmt *chain = archive_prepare(
+      database,
+      "WITH RECURSIVE chain(event_id, sequence, run_id, parent) AS ("
+      " SELECT event_id, sequence, run_id, parent_event_id FROM prompt_entries"
+      "  WHERE event_id = ?1"
+      " UNION ALL"
+      " SELECT entry.event_id, entry.sequence, entry.run_id, entry.parent_event_id"
+      "  FROM prompt_entries entry JOIN chain ON entry.event_id = chain.parent"
+      "  WHERE chain.sequence >= ?2"
+      ") SELECT event_id, sequence, run_id FROM chain"
+    );
+    archive_bind_text(database, chain, 1, hinted && from ? from : tip);
+    sqlite3_bind_int64(chain, 2, hinted ? low : 0);
+    int step;
+    while ((step = sqlite3_step(chain)) == SQLITE_ROW) {
+      const char *event_id = (const char *)sqlite3_column_text(chain, 0);
+      long long sequence = sqlite3_column_int64(chain, 1);
+      const char *run = (const char *)sqlite3_column_text(chain, 2);
+      bool own = strcmp(run, run_id) == 0;
+      if (!hinted && own) start = sequence;
+      if (sequence < low && below[0] == '\0') snprintf(below, sizeof(below), "%s", event_id);
+      if (!hinted && !own) {
+        int holder = 0;
+        while (holder < holder_count && strcmp(holders[holder].run_id, run) != 0) holder += 1;
+        if (holder == holder_count) {
+          if (holder_count == holder_capacity) {
+            holder_capacity = holder_capacity == 0 ? 8 : holder_capacity * 2;
+            path_holder *larger = realloc(holders, (size_t)holder_capacity * sizeof(*holders));
+            if (!larger) archive_error("archive-memory");
+            holders = larger;
+          }
+          memset(&holders[holder_count], 0, sizeof(*holders));
+          snprintf(holders[holder_count].run_id, sizeof(holders[holder_count].run_id), "%s", run);
+          holder_count += 1;
+        }
+        if (other_count == other_capacity) {
+          other_capacity = other_capacity == 0 ? 64 : other_capacity * 2;
+          void *larger = realloc(others, (size_t)other_capacity * sizeof(*others));
+          if (!larger) archive_error("archive-memory");
+          others = larger;
+        }
+        others[other_count].holder = holder;
+        others[other_count].sequence = sequence;
+        other_count += 1;
+      }
+      if (sequence < low || sequence > high) continue;
+      int index = window_index(rows, count, event_id);
+      if (index >= 0) rows[index].on_path = true;
+      write_status_string(listed++ > 0 ? "," : "", event_id);
+    }
+    if (step != SQLITE_DONE) archive_error("archive-sqlite");
+    sqlite3_finalize(chain);
   }
-  if (step != SQLITE_DONE) archive_error("archive-sqlite");
-  sqlite3_finalize(chain);
-  if (start > 0) printf("],\"start\":%lld}", start);
-  else fputs("],\"start\":null}", stdout);
+  if (hinted) start = hinted_start;
+  if (start > 0) printf("],\"start\":%lld", start);
+  else fputs("],\"start\":null", stdout);
+  if (below[0] != '\0') write_status_string(",\"below\":", below);
+  else fputs(",\"below\":null", stdout);
+  if (!hinted) {
+    for (int index = 0; index < other_count; index += 1) {
+      path_holder *holder = &holders[others[index].holder];
+      if (start == 0 || others[index].sequence < start) holder->before += 1;
+      else holder->after += 1;
+    }
+    fputs(",\"held\":[", stdout);
+    for (int holder = 0; holder < holder_count; holder += 1) {
+      if (holder > 0) fputs(",", stdout);
+      write_status_string("{\"runId\":", holders[holder].run_id);
+      printf(",\"before\":%lld,\"after\":%lld}", holders[holder].before, holders[holder].after);
+    }
+    fputs("]", stdout);
+  }
+  fputs("}", stdout);
+  free(holders);
+  free(others);
+  return start;
 }
 
 static void write_parents(sqlite3 *database, const timeline_row *rows, int count) {
@@ -2537,82 +2863,443 @@ static void write_parents(sqlite3 *database, const timeline_row *rows, int count
   fputs("]", stdout);
 }
 
+/* Each segment's first holder, through the (segment_id, sequence) indexes a
+   write adds; an archive no helper has written to since reads by scanning,
+   once for each segment a Run start in the batch names. */
 static void write_origins(sqlite3 *database, const timeline_row *rows, int count) {
   fputs(",\"origins\":[", stdout);
-  bool any = false;
-  for (int index = 0; index < count && !any; index += 1) any = rows[index].run_started;
-  if (!any) {
-    fputs("]", stdout);
-    return;
-  }
-  /* One pass over both tables for every segment a Run start in the batch
-     names; there is no index on segments, and a scan per start would not stay
-     bounded. */
-  archive_sql(database, "CREATE TEMP TABLE started_segments(segment_id TEXT PRIMARY KEY)");
-  sqlite3_stmt *insert = archive_prepare(
+  sqlite3_stmt *holder = archive_prepare(
     database,
-    "INSERT OR IGNORE INTO temp.started_segments(segment_id) VALUES(?1)"
-  );
-  for (int index = 0; index < count; index += 1) {
-    if (!rows[index].run_started) continue;
-    sqlite3_reset(insert);
-    archive_bind_text(database, insert, 1, rows[index].segment_id);
-    if (sqlite3_step(insert) != SQLITE_DONE) archive_error("archive-sqlite");
-  }
-  sqlite3_finalize(insert);
-  sqlite3_stmt *holders = archive_prepare(
-    database,
-    "SELECT segment_id, run_id, min(sequence) FROM ("
-    " SELECT segment_id, run_id, sequence FROM prompt_entries"
-    " UNION ALL SELECT segment_id, run_id, sequence FROM timeline_events"
-    ") WHERE segment_id IN (SELECT segment_id FROM temp.started_segments)"
-    " GROUP BY segment_id"
+    "SELECT run_id FROM ("
+    " SELECT * FROM (SELECT run_id, sequence FROM prompt_entries"
+    "  WHERE segment_id=?1 ORDER BY sequence LIMIT 1)"
+    " UNION ALL"
+    " SELECT * FROM (SELECT run_id, sequence FROM timeline_events"
+    "  WHERE segment_id=?1 ORDER BY sequence LIMIT 1)"
+    ") ORDER BY sequence LIMIT 1"
   );
   int listed = 0;
-  int step;
-  while ((step = sqlite3_step(holders)) == SQLITE_ROW) {
-    const char *segment = (const char *)sqlite3_column_text(holders, 0);
-    const char *holder = (const char *)sqlite3_column_text(holders, 1);
-    for (int index = 0; index < count; index += 1) {
-      if (!rows[index].run_started
-          || strcmp(rows[index].segment_id, segment) != 0
-          || strcmp(rows[index].run_id, holder) == 0) continue;
-      if (listed++ > 0) fputs(",", stdout);
-      write_status_string("{\"eventId\":", rows[index].event_id);
-      write_status_string(",\"runId\":", holder);
-      fputs("}", stdout);
-    }
+  for (int index = 0; index < count; index += 1) {
+    if (!rows[index].run_started) continue;
+    sqlite3_reset(holder);
+    archive_bind_text(database, holder, 1, rows[index].segment_id);
+    if (sqlite3_step(holder) != SQLITE_ROW) archive_error("archive-sqlite");
+    const char *first = (const char *)sqlite3_column_text(holder, 0);
+    if (strcmp(first, rows[index].run_id) == 0) continue;
+    if (listed++ > 0) fputs(",", stdout);
+    write_status_string("{\"eventId\":", rows[index].event_id);
+    write_status_string(",\"runId\":", first);
+    fputs("}", stdout);
   }
-  if (step != SQLITE_DONE) archive_error("archive-sqlite");
-  sqlite3_finalize(holders);
+  sqlite3_finalize(holder);
   fputs("]", stdout);
 }
 
+/* For each Run in the batch, the kind of its row just before the batch: an
+   entry with no earlier row of its own Run in view is a Run's first only when
+   there is none. */
+static void write_leading(sqlite3 *database, const timeline_row *rows, int count, long long low) {
+  fputs(",\"leading\":[", stdout);
+  int listed = 0;
+  for (int index = 0; index < count; index += 1) {
+    if (run_seen_before(rows, index)) continue;
+    char kind[129];
+    if (run_neighbour(database, rows[index].run_id, low, true, NULL, kind) == 0) continue;
+    if (listed++ > 0) fputs(",", stdout);
+    write_status_string("{\"runId\":", rows[index].run_id);
+    write_status_string(",\"kind\":", kind);
+    fputs("}", stdout);
+  }
+  fputs("]", stdout);
+}
+
+/* What the view folds other Runs by, across the whole timeline rather than
+   the batch. Before `start` (all of it without one): each Run's first event,
+   last event and Prompt Entries, given when two or more Runs other than
+   `run_id` write there in the batch, since only Runs whose spans overlap are
+   weighed against each other. After it: each Run's first event and Prompt
+   Entries since. Bounded by those Runs' sizes, never the archive's. */
+static void write_runs(
+  sqlite3 *database,
+  const char *run_id,
+  long long start,
+  const timeline_row *rows,
+  int count
+) {
+  long long bound = start > 0 ? start : INT64_MAX;
+  int writing_before = 0;
+  for (int index = 0; index < count; index += 1) {
+    if (strcmp(rows[index].run_id, run_id) == 0 || rows[index].sequence >= bound) continue;
+    bool seen = false;
+    for (int earlier = 0; earlier < index && !seen; earlier += 1) {
+      seen = rows[earlier].sequence < bound && strcmp(rows[earlier].run_id, rows[index].run_id) == 0;
+    }
+    if (!seen) writing_before += 1;
+  }
+  fputs(",\"runs\":[", stdout);
+  int listed = 0;
+  for (int index = 0; index < count; index += 1) {
+    const char *run = rows[index].run_id;
+    if (strcmp(run, run_id) == 0 || run_seen_before(rows, index)) continue;
+    bool has_before = false;
+    bool has_after = false;
+    for (int other = index; other < count; other += 1) {
+      if (strcmp(rows[other].run_id, run) != 0) continue;
+      if (rows[other].sequence < bound) has_before = true;
+      if (start > 0 && rows[other].sequence > start) has_after = true;
+    }
+    has_before = has_before && writing_before >= 2;
+    if (!has_before && !has_after) continue;
+    if (listed++ > 0) fputs(",", stdout);
+    write_status_string("{\"runId\":", run);
+    if (has_before) {
+      char first[129];
+      long long first_sequence = run_neighbour(database, run, 0, false, first, NULL);
+      long long last = run_neighbour(database, run, bound, true, NULL, NULL);
+      write_status_string(",\"before\":{\"eventId\":", first);
+      printf(
+        ",\"sequence\":%lld,\"last\":%lld,\"count\":%lld}",
+        first_sequence,
+        last,
+        run_prompts(database, run, bound, true)
+      );
+    }
+    if (has_after) {
+      char first[129];
+      run_neighbour(database, run, start, false, first, NULL);
+      write_status_string(",\"after\":{\"eventId\":", first);
+      printf(",\"count\":%lld}", run_prompts(database, run, start, false));
+    }
+    fputs("}", stdout);
+  }
+  fputs("]", stdout);
+}
+
+/* One entry of the Run after its path began, as `write_branches` groups
+   them. */
+typedef struct {
+  char event_id[129];
+  char parent_id[129];
+  long long sequence;
+  bool on_path;
+  int fold;
+} branch_entry;
+
+typedef struct {
+  /* "at:<entry on the path>" or "root:<topmost entry of a lineage that never
+     touches it>". */
+  char key[136];
+  int first;
+  long long count;
+} branch_fold;
+
+static const branch_entry *sorting_branches;
+
+static int compare_branch_id(const void *left, const void *right) {
+  return strcmp(
+    sorting_branches[*(const int *)left].event_id,
+    sorting_branches[*(const int *)right].event_id
+  );
+}
+
+static int find_branch(const branch_entry *entries, const int *by_id, int count, const char *event_id) {
+  int low = 0;
+  int high = count;
+  while (low < high) {
+    int middle = low + (high - low) / 2;
+    int order = strcmp(entries[by_id[middle]].event_id, event_id);
+    if (order == 0) return by_id[middle];
+    if (order < 0) low = middle + 1;
+    else high = middle;
+  }
+  return -1;
+}
+
+typedef struct {
+  char event_id[129];
+  long long sequence;
+} path_node;
+
+/* The path beneath the start, read only as far down as an ascent needs it. */
+typedef struct {
+  path_node *nodes;
+  int count;
+  int capacity;
+  char next[129];
+} path_below;
+
+static bool below_holds(
+  path_below *path,
+  sqlite3_stmt *lookup,
+  sqlite3 *database,
+  const char *event_id,
+  long long sequence
+) {
+  while (path->next[0] != '\0'
+         && (path->count == 0 || path->nodes[path->count - 1].sequence > sequence)) {
+    char parent[129];
+    long long found = 0;
+    if (!entry_link(lookup, database, path->next, parent, &found)) {
+      path->next[0] = '\0';
+      break;
+    }
+    if (path->count == path->capacity) {
+      path->capacity = path->capacity == 0 ? 64 : path->capacity * 2;
+      path_node *larger = realloc(path->nodes, (size_t)path->capacity * sizeof(path_node));
+      if (!larger) archive_error("archive-memory");
+      path->nodes = larger;
+    }
+    snprintf(path->nodes[path->count].event_id, 129, "%s", path->next);
+    path->nodes[path->count].sequence = found;
+    path->count += 1;
+    snprintf(path->next, sizeof(path->next), "%s", parent);
+  }
+  /* Descending by sequence, which is unique. */
+  int low = 0;
+  int high = path->count;
+  while (low < high) {
+    int middle = low + (high - low) / 2;
+    if (path->nodes[middle].sequence > sequence) low = middle + 1;
+    else high = middle;
+  }
+  return low < path->count
+    && path->nodes[low].sequence == sequence
+    && strcmp(path->nodes[low].event_id, event_id) == 0;
+}
+
+static int branch_fold_for(branch_fold **folds, int *count, int *capacity, const char *key, int member) {
+  for (int index = 0; index < *count; index += 1) {
+    if (strcmp((*folds)[index].key, key) == 0) return index;
+  }
+  if (*count == *capacity) {
+    *capacity = *capacity == 0 ? 16 : *capacity * 2;
+    branch_fold *larger = realloc(*folds, (size_t)*capacity * sizeof(branch_fold));
+    if (!larger) archive_error("archive-memory");
+    *folds = larger;
+  }
+  branch_fold *fold = &(*folds)[*count];
+  snprintf(fold->key, sizeof(fold->key), "%s", key);
+  fold->first = member;
+  fold->count = 0;
+  return (*count)++;
+}
+
+/* The entries of `run_id` in the batch that left the path ending at `tip`
+   after it began at `start`, each with its fold across the whole Run: the
+   entries that leave the path at the same point, or that grow from the same
+   root when they never touch it, named by the earliest of them. Read only
+   when the batch holds such an entry; the work is bounded by the Run's
+   entries since its start and the lineages they hang from. */
+static void write_branches(
+  sqlite3 *database,
+  const char *run_id,
+  const char *tip,
+  long long start,
+  const timeline_row *rows,
+  int count
+) {
+  fputs(",\"branches\":[", stdout);
+  bool wanted = false;
+  for (int index = 0; index < count && !wanted && start > 0; index += 1) {
+    wanted = rows[index].prompt && !rows[index].on_path
+      && rows[index].sequence > start && strcmp(rows[index].run_id, run_id) == 0;
+  }
+  if (!wanted) {
+    fputs("]", stdout);
+    return;
+  }
+
+  int entry_count = 0;
+  int capacity = 256;
+  branch_entry *entries = calloc((size_t)capacity, sizeof(branch_entry));
+  if (!entries) archive_error("archive-memory");
+  sqlite3_stmt *own = archive_prepare(
+    database,
+    "SELECT event_id, parent_event_id, sequence FROM prompt_entries"
+    " WHERE run_id=?1 AND sequence>?2 ORDER BY sequence"
+  );
+  archive_bind_text(database, own, 1, run_id);
+  sqlite3_bind_int64(own, 2, start);
+  int step;
+  while ((step = sqlite3_step(own)) == SQLITE_ROW) {
+    if (entry_count == capacity) {
+      capacity *= 2;
+      branch_entry *larger = realloc(entries, (size_t)capacity * sizeof(branch_entry));
+      if (!larger) archive_error("archive-memory");
+      entries = larger;
+    }
+    branch_entry *entry = &entries[entry_count++];
+    memset(entry, 0, sizeof(*entry));
+    copy_column(entry->event_id, own, 0);
+    copy_column(entry->parent_id, own, 1);
+    entry->sequence = sqlite3_column_int64(own, 2);
+    entry->fold = -1;
+  }
+  if (step != SQLITE_DONE) archive_error("archive-sqlite");
+  sqlite3_finalize(own);
+  int *by_id = calloc((size_t)entry_count + 1, sizeof(int));
+  if (!by_id) archive_error("archive-memory");
+  for (int index = 0; index < entry_count; index += 1) by_id[index] = index;
+  sorting_branches = entries;
+  qsort(by_id, (size_t)entry_count, sizeof(int), compare_branch_id);
+
+  sqlite3_stmt *lookup = archive_prepare(
+    database,
+    "SELECT parent_event_id, sequence FROM prompt_entries WHERE event_id=?1"
+  );
+  /* The path from the tip down to its start: mostly this Run's own entries,
+     marked in place; any other Run's it passes through are kept aside. */
+  path_node *crossing = NULL;
+  int crossing_count = 0;
+  int crossing_capacity = 0;
+  path_below below = { NULL, 0, 0, "" };
+  char node[129];
+  snprintf(node, sizeof(node), "%s", tip);
+  while (node[0] != '\0') {
+    int own_index = find_branch(entries, by_id, entry_count, node);
+    if (own_index >= 0) {
+      entries[own_index].on_path = true;
+      snprintf(node, sizeof(node), "%s", entries[own_index].parent_id);
+      continue;
+    }
+    char parent[129];
+    long long sequence = 0;
+    if (!entry_link(lookup, database, node, parent, &sequence)) break;
+    if (sequence < start) {
+      snprintf(below.next, sizeof(below.next), "%s", node);
+      break;
+    }
+    if (crossing_count == crossing_capacity) {
+      crossing_capacity = crossing_capacity == 0 ? 16 : crossing_capacity * 2;
+      path_node *larger = realloc(crossing, (size_t)crossing_capacity * sizeof(path_node));
+      if (!larger) archive_error("archive-memory");
+      crossing = larger;
+    }
+    snprintf(crossing[crossing_count].event_id, 129, "%s", node);
+    crossing[crossing_count].sequence = sequence;
+    crossing_count += 1;
+    snprintf(node, sizeof(node), "%s", parent);
+  }
+
+  branch_fold *folds = NULL;
+  int fold_count = 0;
+  int fold_capacity = 0;
+  char key[136];
+  for (int index = 0; index < entry_count; index += 1) {
+    branch_entry *entry = &entries[index];
+    if (entry->on_path) continue;
+    int fold = -1;
+    if (entry->parent_id[0] == '\0') {
+      snprintf(key, sizeof(key), "root:%s", entry->event_id);
+    } else {
+      int parent = find_branch(entries, by_id, entry_count, entry->parent_id);
+      if (parent >= 0 && !entries[parent].on_path) {
+        fold = entries[parent].fold;
+      } else if (parent >= 0) {
+        snprintf(key, sizeof(key), "at:%s", entry->parent_id);
+      } else {
+        /* A parent outside the Run's own entries since its start: climb until
+           the path, another of those entries, or a root. */
+        char top[129];
+        char at[129];
+        snprintf(top, sizeof(top), "%s", entry->event_id);
+        snprintf(at, sizeof(at), "%s", entry->parent_id);
+        for (;;) {
+          int held = find_branch(entries, by_id, entry_count, at);
+          if (held >= 0) {
+            if (entries[held].on_path) snprintf(key, sizeof(key), "at:%s", at);
+            else fold = entries[held].fold;
+            break;
+          }
+          char parent_id[129];
+          long long sequence = 0;
+          if (!entry_link(lookup, database, at, parent_id, &sequence)) {
+            snprintf(key, sizeof(key), "root:%s", top);
+            break;
+          }
+          bool on_path = false;
+          if (sequence >= start) {
+            for (int crossed = 0; crossed < crossing_count && !on_path; crossed += 1) {
+              on_path = strcmp(crossing[crossed].event_id, at) == 0;
+            }
+          } else {
+            on_path = below_holds(&below, lookup, database, at, sequence);
+          }
+          if (on_path) {
+            snprintf(key, sizeof(key), "at:%s", at);
+            break;
+          }
+          snprintf(top, sizeof(top), "%s", at);
+          if (parent_id[0] == '\0') {
+            snprintf(key, sizeof(key), "root:%s", top);
+            break;
+          }
+          snprintf(at, sizeof(at), "%s", parent_id);
+        }
+      }
+    }
+    if (fold < 0) fold = branch_fold_for(&folds, &fold_count, &fold_capacity, key, index);
+    entry->fold = fold;
+    folds[fold].count += 1;
+  }
+  sqlite3_finalize(lookup);
+
+  int listed = 0;
+  for (int index = 0; index < count; index += 1) {
+    if (!rows[index].prompt || strcmp(rows[index].run_id, run_id) != 0) continue;
+    int held = find_branch(entries, by_id, entry_count, rows[index].event_id);
+    if (held < 0 || entries[held].on_path || entries[held].fold < 0) continue;
+    const branch_fold *fold = &folds[entries[held].fold];
+    if (listed++ > 0) fputs(",", stdout);
+    write_status_string("{\"eventId\":", rows[index].event_id);
+    write_status_string(",\"fold\":", entries[fold->first].event_id);
+    printf(",\"count\":%lld}", fold->count);
+  }
+  fputs("]", stdout);
+  free(folds);
+  free(below.nodes);
+  free(crossing);
+  free(by_id);
+  free(entries);
+}
+
 static void timeline_read(int argc, char **argv) {
-  if (argc != 8 && argc != 10) usage();
+  if (argc < 8) usage();
   const char *database_root = argv[2];
   const char *project_id = argv[3];
   if (!lowercase_sha256(project_id)) archive_error("project-identity");
   /* 0: the latest batch; -1: before the cursor; 1: after it. */
   int direction = 0;
   long long cursor = 0;
-  if (argc == 10) {
-    if (strcmp(argv[6], "before") == 0) {
-      direction = -1;
-      if (!parse_sequence_cursor(argv[7], 1, &cursor)) archive_error("read-input");
-    } else if (strcmp(argv[6], "after") == 0) {
-      direction = 1;
-      if (!parse_sequence_cursor(argv[7], 0, &cursor)) archive_error("read-input");
-    } else {
-      usage();
-    }
+  int at = 6;
+  if (strcmp(argv[6], "before") == 0 || strcmp(argv[6], "after") == 0) {
+    if (argc < 10) usage();
+    direction = strcmp(argv[6], "before") == 0 ? -1 : 1;
+    if (!parse_sequence_cursor(argv[7], direction < 0 ? 1 : 0, &cursor)) archive_error("read-input");
+    at = 8;
   }
-  const char *run_id = argv[argc - 2];
-  const char *tip = argv[argc - 1];
+  if (argc != at + 2 && argc != at + 4) usage();
+  const char *run_id = argv[at];
+  const char *tip = argv[at + 1];
   bool with_path = strcmp(tip, "-") != 0;
   if (with_path != (strcmp(run_id, "-") != 0)
       || (with_path && (!pt_is_safe_identifier(run_id) || !pt_is_safe_identifier(tip)))) {
     archive_error("read-input");
+  }
+  /* The caller's hints: where the path began, and an entry of it to walk
+     down from. */
+  bool hinted = argc == at + 4;
+  long long hinted_start = 0;
+  const char *from = NULL;
+  if (hinted) {
+    const char *start = argv[at + 2];
+    from = argv[at + 3];
+    if (!with_path
+        || (strcmp(start, "none") != 0 && !parse_sequence_cursor(start, 1, &hinted_start))
+        || (strcmp(from, "-") != 0 && !pt_is_safe_identifier(from))) {
+      archive_error("read-input");
+    }
+    if (strcmp(from, "-") == 0) from = NULL;
   }
   bool root_present =
     capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
@@ -2620,14 +3307,7 @@ static void timeline_read(int argc, char **argv) {
   bool archived = false;
   if (root_present) {
     char database_path[PATH_MAX];
-    int length = snprintf(
-      database_path,
-      sizeof(database_path),
-      "%s/%s.sqlite3",
-      database_root,
-      project_id
-    );
-    if (length < 0 || (size_t)length >= sizeof(database_path)) {
+    if (!archive_path(database_root, project_id, database_path)) {
       archive_error("database-path");
     }
     /* Held before the archive is looked for, so a quarantine moving it
@@ -2646,8 +3326,11 @@ static void timeline_read(int argc, char **argv) {
     write_status_string("{\"projectId\":", project_id);
     fputs(",\"generation\":null", stdout);
     fputs(",\"events\":[],\"earlier\":false,\"later\":false", stdout);
-    if (with_path) fputs(",\"path\":{\"eventIds\":[],\"start\":null}", stdout);
-    fputs(",\"parents\":[],\"origins\":[]}\n", stdout);
+    if (with_path) {
+      fputs(",\"path\":{\"eventIds\":[],\"start\":null,\"below\":null", stdout);
+      fputs(hinted ? "}" : ",\"held\":[]}", stdout);
+    }
+    fputs(",\"parents\":[],\"origins\":[],\"leading\":[],\"runs\":[],\"branches\":[]}\n", stdout);
     return;
   }
 
@@ -2740,9 +3423,15 @@ static void timeline_read(int argc, char **argv) {
     timeline_has_event(database, "<", low) ? "true" : "false",
     timeline_has_event(database, ">", high) ? "true" : "false"
   );
-  if (with_path) write_path(database, run_id, tip, rows, count);
+  long long start = with_path
+    ? write_path(database, run_id, tip, hinted, hinted_start, from, rows, count, low, high)
+    : 0;
   write_parents(database, rows, count);
   write_origins(database, rows, count);
+  write_leading(database, rows, count, low);
+  write_runs(database, run_id, start, rows, count);
+  if (with_path) write_branches(database, run_id, tip, start, rows, count);
+  else fputs(",\"branches\":[]", stdout);
   fputs("}\n", stdout);
   free(rows);
   close_archive(database);
@@ -3183,14 +3872,7 @@ static void branch_match(int argc, char **argv) {
   bool archived = false;
   if (root_present) {
     char database_path[PATH_MAX];
-    int length = snprintf(
-      database_path,
-      sizeof(database_path),
-      "%s/%s.sqlite3",
-      database_root,
-      project_id
-    );
-    if (length < 0 || (size_t)length >= sizeof(database_path)) {
+    if (!archive_path(database_root, project_id, database_path)) {
       archive_error("database-path");
     }
     /* Held before the archive is looked for, so a quarantine moving it
@@ -3489,14 +4171,7 @@ static void integrity_check(int argc, char **argv) {
   bool root_present =
     capture_runtime(database_root, argv[4], argv[5], PT_ROOT_OPTIONAL);
   char database_path[PATH_MAX];
-  int length = snprintf(
-    database_path,
-    sizeof(database_path),
-    "%s/%s.sqlite3",
-    database_root,
-    project_id
-  );
-  if (length < 0 || (size_t)length >= sizeof(database_path)) {
+  if (!archive_path(database_root, project_id, database_path)) {
     archive_error("database-path");
   }
   char generation[129];
@@ -3580,13 +4255,7 @@ static void quarantine(int argc, char **argv) {
   const char *event_id = argv[8];
   long long occurred_at = nonnegative_integer(argv[9]);
   if (!lowercase_sha256(project_id)) archive_error("project-identity");
-  if (!pt_is_safe_identifier(expected)
-      || !pt_is_safe_identifier(run_id)
-      || !pt_is_safe_identifier(segment_id)
-      || !pt_is_safe_identifier(branch_id)
-      || !pt_is_safe_identifier(event_id)) {
-    archive_error("boundary-input");
-  }
+  require_event_identity(expected, run_id, segment_id, branch_id, event_id, "boundary-input");
   capture_runtime(database_root, argv[10], argv[11], PT_ROOT_REQUIRE);
   lock_project(database_root, project_id, true);
   lock_archive_health(database_root, project_id);
@@ -3598,19 +4267,17 @@ static void quarantine(int argc, char **argv) {
 
   char database_path[PATH_MAX];
   char intent[PATH_MAX];
-  char staged_intent[PATH_MAX];
   char quarantine_root[PATH_MAX];
   char project_root[PATH_MAX];
   int lengths[] = {
-    snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id),
-    snprintf(staged_intent, PATH_MAX, "%s/%s.quarantine.partial", database_root, project_id),
     snprintf(quarantine_root, PATH_MAX, "%s/quarantine", database_root),
     snprintf(project_root, PATH_MAX, "%s/quarantine/%s", database_root, project_id),
   };
   for (size_t index = 0; index < sizeof(lengths) / sizeof(lengths[0]); index += 1) {
     if (lengths[index] < 0 || lengths[index] >= PATH_MAX) archive_error("database-path");
   }
-  if (!quarantine_intent_path(database_root, project_id, intent)) {
+  if (!archive_path(database_root, project_id, database_path)
+      || !quarantine_intent_path(database_root, project_id, intent)) {
     archive_error("database-path");
   }
 
@@ -3644,21 +4311,9 @@ static void quarantine(int argc, char **argv) {
       quarantine_error();
     }
     snprintf(moved, sizeof(moved), "%s-%.8s", stamp, random);
-    unlink(staged_intent);
-    descriptor = open(
-      staged_intent,
-      O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC,
-      0600
-    );
-    if (descriptor < 0) quarantine_error();
-    size_t size = strlen(moved);
-    bool written = write(descriptor, moved, size) == (ssize_t)size
-      && (fcntl(descriptor, F_FULLFSYNC) == 0 || fsync(descriptor) == 0);
-    close(descriptor);
-    if (!written || rename(staged_intent, intent) != 0 || !sync_directory(database_root)) {
-      unlink(staged_intent);
-      quarantine_error();
-    }
+    const char *failure = publish_intent(intent, moved);
+    if (failure && strcmp(failure, "database-path") == 0) archive_error(failure);
+    if (failure || !sync_directory(database_root)) quarantine_error();
   }
 
   char target[PATH_MAX];
@@ -3670,8 +4325,7 @@ static void quarantine(int argc, char **argv) {
     quarantine_error();
   }
   char kept_database[PATH_MAX];
-  length = snprintf(kept_database, PATH_MAX, "%s/%s.sqlite3", target, project_id);
-  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  if (!archive_path(target, project_id, kept_database)) archive_error("database-path");
   char kept_generation[129];
   char current_generation[129];
   bool replacement_in_place = archive_generation(kept_database, kept_generation)
@@ -3763,18 +4417,23 @@ static void quarantine(int argc, char **argv) {
 }
 
 /* Each archive quarantined from the project, with its place and size, as
-   the `quarantined` member of an answer. No root, no quarantined archives. */
-static void write_quarantined(const char *database_root, const char *project_id) {
+   the `quarantined` member of an answer. No root, no quarantined archives.
+   Answers whether the project's quarantine directory stands at all, even
+   empty. */
+static bool write_quarantined(const char *database_root, const char *project_id) {
   fputs(",\"quarantined\":[", stdout);
   if (!database_root) {
     fputs("]", stdout);
-    return;
+    return false;
   }
   char project_root[PATH_MAX];
   int length = snprintf(project_root, PATH_MAX, "%s/quarantine/%s", database_root, project_id);
   if (length < 0 || length >= PATH_MAX) archive_error("database-path");
   DIR *directory = opendir(project_root);
   if (!directory && errno != ENOENT) archive_error("database-unavailable");
+  /* Whatever stands at the name, as a clear-all would remove it. */
+  struct stat named;
+  bool stands = directory || lstat(project_root, &named) == 0;
   bool first = true;
   for (struct dirent *entry; directory && (entry = readdir(directory)) != NULL;) {
     if (entry->d_name[0] == '.') continue;
@@ -3802,6 +4461,7 @@ static void write_quarantined(const char *database_root, const char *project_id)
   }
   if (directory) closedir(directory);
   fputs("]", stdout);
+  return stands;
 }
 
 /* How many bytes the archive in place takes: the file with its WAL and
@@ -3831,8 +4491,7 @@ static long long clear_count(sqlite3 *database, const char *sql, const char *bou
    quarantine or clear is cutting it. */
 static long long integrity_gaps(const char *database_root, const char *project_id, bool cutting) {
   char database_path[PATH_MAX];
-  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
-  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  if (!archive_path(database_root, project_id, database_path)) archive_error("database-path");
   struct stat status;
   if (lstat(database_path, &status) != 0) return errno == ENOENT && !cutting ? 0 : -1;
   if (cutting || !pt_path_is_private_file(database_path)) return -1;
@@ -3963,8 +4622,7 @@ static void guard_archive_write(const char *database_root, const char *project_i
   if (!read_archive_health(database_root, project_id, &health)) {
     if (generated) {
       char path[PATH_MAX];
-      int length = snprintf(path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
-      if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+      if (!archive_path(database_root, project_id, path)) archive_error("database-path");
       sqlite3 *reader = open_read_only(path);
       int version = archive_schema_version(reader);
       close_archive(reader);
@@ -4084,8 +4742,7 @@ static void establish_archive_health(
   sqlite3 *database = active_archive;
   if (owns_reader) {
     char path[PATH_MAX];
-    int length = snprintf(path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
-    if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+    if (!archive_path(database_root, project_id, path)) archive_error("database-path");
     database = open_read_only(path);
   }
   const char *failure = archive_health_check_failure(database, project_id);
@@ -4167,8 +4824,7 @@ static void archive_health_init(int argc, char **argv) {
     archive_error("archive-health-unknown");
   }
   char database_path[PATH_MAX];
-  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
-  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  if (!archive_path(database_root, project_id, database_path)) archive_error("database-path");
   snprintf(opened_generation, sizeof(opened_generation), "%s", generation);
   sqlite3 *database = open_read_only(database_path);
   const char *failure = archive_health_check_failure(database, project_id);
@@ -4483,23 +5139,10 @@ static void clear_session_index(
   }
 }
 
-/* Puts `content` at `intent` whole or not at all, durable before it is in
-   place; the directory entry is the caller's to make durable. */
+/* A clear's intent, put in place or the clear refused as it stopped. */
 static void place_intent(const char *intent, const char *content) {
-  char staged[PATH_MAX];
-  int length = snprintf(staged, PATH_MAX, "%s.partial", intent);
-  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
-  unlink(staged);
-  int descriptor = open(staged, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
-  if (descriptor < 0) archive_error(errno == ENOSPC ? "archive-full" : "database-unavailable");
-  size_t size = strlen(content);
-  bool written = write(descriptor, content, size) == (ssize_t)size
-    && (fcntl(descriptor, F_FULLFSYNC) == 0 || fsync(descriptor) == 0);
-  close(descriptor);
-  if (!written || rename(staged, intent) != 0) {
-    unlink(staged);
-    archive_error("database-unavailable");
-  }
+  const char *failure = publish_intent(intent, content);
+  if (failure) archive_error(failure);
 }
 
 static bool clear_run_intended(const char *intent, char run_id[129], bool strict);
@@ -4554,8 +5197,7 @@ static void clear_all(int argc, char **argv) {
   }
 
   char database_path[PATH_MAX];
-  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
-  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  if (!archive_path(database_root, project_id, database_path)) archive_error("database-path");
   clear_read_archive(database_path, &found);
   long long quarantined = clear_count_quarantined(database_root, project_id);
 
@@ -4577,12 +5219,12 @@ static void clear_all(int argc, char **argv) {
   for (struct dirent *entry; (entry = readdir(directory)) != NULL;) {
     if (!clear_owns_name(entry->d_name, project_id)) continue;
     char path[PATH_MAX];
-    length = snprintf(path, PATH_MAX, "%s/%s", database_root, entry->d_name);
+    int length = snprintf(path, PATH_MAX, "%s/%s", database_root, entry->d_name);
     left += length < 0 || length >= PATH_MAX ? 1 : clear_remove(path, 0);
   }
   closedir(directory);
   char kept[PATH_MAX];
-  length = snprintf(kept, PATH_MAX, "%s/quarantine/%s", database_root, project_id);
+  int length = snprintf(kept, PATH_MAX, "%s/quarantine/%s", database_root, project_id);
   if (length < 0 || length >= PATH_MAX) archive_error("database-path");
   left += clear_remove(kept, 3);
   char quarantine_root[PATH_MAX];
@@ -4696,8 +5338,7 @@ static void clear_inventory(int argc, char **argv) {
   if (!clear_run_intent_path(database_root, project_id, intent)) archive_error("database-path");
   bool clearing_run = intent_present(intent);
   char database_path[PATH_MAX];
-  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
-  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  if (!archive_path(database_root, project_id, database_path)) archive_error("database-path");
   /* Past the cut, what is left is listed by name and size only: nothing
      reads the records a clear has cut, and opening them would bring back
      the WAL and index the clear removed. */
@@ -4730,7 +5371,6 @@ static void clear_inventory(int argc, char **argv) {
   }
   free(found.run_ids);
 
-  printf(",\"present\":%s", clearing || clear_has_files(database_root, project_id) ? "true" : "false");
   printf(",\"clearUnderway\":%s", clearing ? "true" : "false");
   printf(",\"clearRunUnderway\":%s", clearing_run ? "true" : "false");
   if (archived) {
@@ -4747,22 +5387,27 @@ static void clear_inventory(int argc, char **argv) {
   fputs(",\"files\":[", stdout);
   DIR *directory = opendir(database_root);
   if (!directory) archive_error("database-unavailable");
+  /* Present while anything of the project stands to be cleared, an empty
+     quarantine directory included: the listings are what tells. */
+  bool present = clearing;
   bool first = true;
   for (struct dirent *entry; (entry = readdir(directory)) != NULL;) {
     if (!clear_owns_name(entry->d_name, project_id)) continue;
     char path[PATH_MAX];
     struct stat status;
-    length = snprintf(path, PATH_MAX, "%s/%s", database_root, entry->d_name);
+    int length = snprintf(path, PATH_MAX, "%s/%s", database_root, entry->d_name);
     if (length < 0 || length >= PATH_MAX || lstat(path, &status) != 0) {
       archive_error("database-unavailable");
     }
     write_status_string(first ? "{\"name\":" : ",{\"name\":", entry->d_name);
     printf(",\"bytes\":%llu}", (unsigned long long)status.st_size);
     first = false;
+    present = true;
   }
   closedir(directory);
   fputs("]", stdout);
-  write_quarantined(database_root, project_id);
+  if (write_quarantined(database_root, project_id)) present = true;
+  printf(",\"present\":%s", present ? "true" : "false");
   if (run_id && !run_known) {
     fputs(",\"run\":null", stdout);
   } else if (run_id) {
@@ -4849,15 +5494,23 @@ static void write_clear_run(
 }
 
 static void clear_run(int argc, char **argv) {
-  if (argc != 7 && argc != 8) usage();
   /* Only finishing a Run clear already under way, which the person agreed
      to when it began: one that has meanwhile finished starts no new clear. */
-  bool only_continue = argc == 8;
-  if (only_continue && strcmp(argv[7], "--continue") != 0) usage();
+  bool only_continue = argc == 8 && strcmp(argv[7], "--continue") == 0;
+  /* Otherwise the counts the person confirmed: a new clear begins only while
+     the archive still holds what they were shown. */
+  if (!only_continue && (argc != 12 || strcmp(argv[7], "--confirmed") != 0)) usage();
   const char *database_root = argv[2];
   const char *project_id = argv[3];
   if (!lowercase_sha256(project_id)) archive_error("project-identity");
   if (!pt_is_safe_identifier(argv[4])) archive_error("clear-input");
+  ClearRunCounts confirmed = { 0, 0, 0, 0, 0, 0 };
+  if (!only_continue) {
+    confirmed.entries = nonnegative_argument(argv[8], "clear-input");
+    confirmed.pending = nonnegative_argument(argv[9], "clear-input");
+    confirmed.events = nonnegative_argument(argv[10], "clear-input");
+    confirmed.unlinked = nonnegative_argument(argv[11], "clear-input");
+  }
   ClearRunCounts counts = { 0, 0, 0, 0, 0, 0 };
   if (!capture_runtime(database_root, argv[5], argv[6], PT_ROOT_OPTIONAL)) {
     write_clear_run(project_id, false, false, false, counts);
@@ -4886,8 +5539,7 @@ static void clear_run(int argc, char **argv) {
   clear_run_past_cut = resuming;
 
   char database_path[PATH_MAX];
-  int length = snprintf(database_path, PATH_MAX, "%s/%s.sqlite3", database_root, project_id);
-  if (length < 0 || length >= PATH_MAX) archive_error("database-path");
+  if (!archive_path(database_root, project_id, database_path)) archive_error("database-path");
   struct stat status;
   bool archived = lstat(database_path, &status) == 0;
   if (!archived && errno != ENOENT) archive_error("database-unavailable");
@@ -4909,6 +5561,14 @@ static void clear_run(int argc, char **argv) {
     if (!clear_run_counted(counts)) archive_error("archive-sqlite");
   }
   if (!resuming) {
+    /* Counted again under the exclusive lock: anything another Run did
+       since the person confirmed, such as forking from this Run's entries,
+       is asked about again before it is cut. */
+    if (counts.entries != confirmed.entries || counts.pending != confirmed.pending
+        || counts.events != confirmed.events || counts.unlinked != confirmed.unlinked) {
+      close_archive(database);
+      archive_error("clear-run-changed");
+    }
     if (counts.entries + counts.pending + counts.events == 0) {
       close_archive(database);
       write_clear_run(project_id, false, false, false, counts);
@@ -5007,6 +5667,10 @@ int main(int argc, char **argv) {
   }
   if (argc > 1 && strcmp(argv[1], "timeline-read") == 0) {
     timeline_read(argc, argv);
+    return 0;
+  }
+  if (argc > 1 && strcmp(argv[1], "run-collection-state") == 0) {
+    run_collection_state(argc, argv);
     return 0;
   }
   if (argc > 1 && strcmp(argv[1], "branch-match") == 0) {

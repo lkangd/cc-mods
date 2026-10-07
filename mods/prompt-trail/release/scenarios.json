@@ -1154,6 +1154,14 @@
         },
         {
           "kind": "plugin",
+          "ref": "tests/long_timeline.test.tsx::an arrow from the first entry onto the title shows the rows above that entry"
+        },
+        {
+          "kind": "plugin",
+          "ref": "tests/long_timeline.test.tsx::a ring the view followed is sent again from a later drawing, once"
+        },
+        {
+          "kind": "plugin",
           "ref": "tests/long_timeline.test.tsx::the ring reaching the window's first row fetches the batch before it"
         },
         {

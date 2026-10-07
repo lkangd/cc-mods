@@ -6,8 +6,8 @@ import type { ArchiveRow } from './support'
 import {
   BAND_ID,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
-  projectId,
   promptHistory,
   renderBand,
   session,
@@ -45,10 +45,6 @@ test('a row is cut to its cells with an ellipsis, never inside a character', () 
 const otherRunId = '12121212-3434-4565-8787-909090909090'
 const otherSessionId = '31313131-4242-4353-8464-757575757575'
 const branchId = 'dddddddd-eeee-4fff-8000-111111111111'
-
-function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' } }
-}
 
 /* One lineage of `count` entries from another Run, one row each. */
 function archiveOf(count: number): ArchiveRow[] {
@@ -226,11 +222,8 @@ test('a survey holding the band takes its place', async ($, on) => {
   expect(drawn(await renderBand($)).labels).toContain('40. PT-SECRET-OLD-40')
 })
 
-/* The title row's hints: how to take the band's keyboard, and a click that
-   takes the view up while rows lie above it. */
+/* The title row's hint: how to take the band's keyboard. */
 const FOCUS_HINT = 'ctrl+x tab 键盘选择'
-const UP_AT_BOTTOM = '↑ 点此向上浏览 · 底部不响应触控板'
-const UP = '↑ 点此向上浏览'
 
 test('the title row says how to take the keyboard, whatever holds it', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(3) })
@@ -240,45 +233,37 @@ test('the title row says how to take the keyboard, whatever holds it', async ($,
   const band = drawn(await renderBand($))
 
   expect(band.texts).toContain(FOCUS_HINT)
-  expect(band.labels).not.toContain(UP)
-  expect(band.labels).not.toContain(UP_AT_BOTTOM)
 })
 
-test('with rows above the view the title row takes it up, at the bottom or away from it', async ($, on) => {
+test('the title row offers no way up of its own: at the bottom or away from it the trackpad reaches the band', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
   await $.session.start(session)
   await promptHistory($)
 
+  /* Taller than its 12 rows, the tree has the engine hand the band its
+     scrolling; the title row holds the title alone among its buttons. */
   let band = drawn(await renderBand($))
-  expect(band.labels).toContain(UP_AT_BOTTOM)
+  expect(band.rows).toBeGreaterThan(12)
+  expect(band.labels.filter(label => !/^\d+\. /.test(label))).toEqual(['▾ Prompt Trail'])
   expect(band.texts).toContain(FOCUS_HINT)
 
   await scrollBand($, -10)
   band = drawn(await renderBand($))
-  expect(band.labels).toContain(UP)
-  expect(band.texts).toContain(FOCUS_HINT)
-  const top = band.labels.find(label => /^\d+\. /.test(label))
-
-  await $.ui.press({ plugin: 'prompt-trail', key: 'prompt-trail:earlier-hint' })
-  expect(drawn(await renderBand($)).labels).not.toContain(top)
+  expect(band.rows).toBeGreaterThan(12)
+  expect(band.labels.filter(label => !/^\d+\. /.test(label))).toEqual(['▾ Prompt Trail'])
 })
 
-test('short of room, the title row drops the keyboard hint before it cuts the way up', async ($, on) => {
+test('short of room, the title row drops the keyboard hint', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
   await $.session.start(session)
   await promptHistory($)
 
-  /* The title, the way up and the gap take 49 columns; the hint 21 more. */
-  let band = drawn(await renderBand($, { bodyColumns: 69 }))
-  expect(band.labels).toContain(UP_AT_BOTTOM)
+  /* The title takes 14 columns; the hint and its gap 21 more. */
+  let band = drawn(await renderBand($, { bodyColumns: 34 }))
   expect(band.texts).not.toContain(FOCUS_HINT)
 
-  band = drawn(await renderBand($, { bodyColumns: 70 }))
+  band = drawn(await renderBand($, { bodyColumns: 35 }))
   expect(band.texts).toContain(FOCUS_HINT)
-
-  band = drawn(await renderBand($, { bodyColumns: 40 }))
-  expect(band.labels[1]).toBe('↑ 点此向上浏览 · 底部不…')
-  expect(band.texts).not.toContain(FOCUS_HINT)
 })
 
 test('with nothing to select the title row gives no keyboard hint', async ($, on) => {
@@ -289,7 +274,7 @@ test('with nothing to select the title row gives no keyboard hint', async ($, on
   expect(drawn(await renderBand($)).texts).not.toContain(FOCUS_HINT)
 })
 
-test('with many new entries in a narrow band the title row keeps the way up on screen', async ($, on) => {
+test('with many new entries in a narrow band the title row keeps the count on screen', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
   await $.session.start(session)
   await promptHistory($)
@@ -299,10 +284,11 @@ test('with many new entries in a narrow band the title row keeps the way up on s
 
   const band = drawn(await renderBand($, { bodyColumns: 28 }))
 
-  /* The count still shows on the row that takes the view back down. */
-  expect(band.labels[0]).toBe('▾ Prompt Trail')
-  expect(band.labels[1]).toBe('↑ 点此向上…')
-  expect(textCells(band.labels[0]!) + 2 + textCells(band.labels[1]!)).toBeLessThanOrEqual(28)
+  /* The count shows on the title and on the row that takes the view back
+     down. */
+  expect(band.labels[0]).toBe(clipCells('▾ Prompt Trail · 10 条新条目', 28))
+  expect(band.labels[0]).toMatch(/^▾ Prompt Trail · 10/)
+  expect(textCells(band.labels[0]!)).toBeLessThanOrEqual(28)
   expect(band.labels).toContain('↓ 10 条新条目')
 })
 

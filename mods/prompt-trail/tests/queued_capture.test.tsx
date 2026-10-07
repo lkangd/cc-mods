@@ -8,9 +8,9 @@ import {
   composerPrompt,
   consentedStore,
   installSupportedTarget,
-  projectId,
   reconcileKeyFor,
   runId,
+  runModeKeyFor,
   session,
   sessionId,
   storeComposerRow,
@@ -304,7 +304,7 @@ test("rows of another Run's conversation are not counted for this Run's pending"
     ...consentedStore(),
     /* The Run resumed into collects nothing, so its prompts pass straight
        through and are stored outside any capture. */
-    [`prompt-trail:run-mode:${projectId}:${otherRun}`]: { version: 1, mode: 'disabled' },
+    [runModeKeyFor(otherRun)]: { version: 1, mode: 'disabled' },
   }
   const classicSession = { id: sessionId }
   const identity = { runId }

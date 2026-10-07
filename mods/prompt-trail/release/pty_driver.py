@@ -12,6 +12,7 @@ import pty
 import re
 import shutil
 import signal
+import stat
 import struct
 import subprocess
 import sys
@@ -19,6 +20,7 @@ import tempfile
 import termios
 import threading
 import time
+from collections.abc import Iterator
 
 import pyte
 
@@ -181,6 +183,13 @@ class Terminal:
         self._write(f"\x1b[<0;{column + 1};{row + 1}M")
         time.sleep(0.05)
         self._write(f"\x1b[<0;{column + 1};{row + 1}m")
+
+    def wheel(self, column: int, row: int, up: bool, ticks: int = 1) -> None:
+        """Wheel or trackpad ticks over a 0-based cell, in SGR mouse encoding,
+        one at a time."""
+        for _ in range(ticks):
+            self._write(f"\x1b[<{64 if up else 65};{column + 1};{row + 1}M")
+            time.sleep(0.05)
 
     def resize(self, columns: int, lines: int) -> None:
         with self.lock:
@@ -399,35 +408,49 @@ class Environment:
             raise ScenarioFailure(f"expected one project archive, found {len(found)}")
         return semantic_verifier.describe(found[0])
 
-    def private_modes(self) -> list[str]:
-        """Prompt Trail's directories that are not 0700 and its files that are
-        not 0600, each as its path under the config directory and its mode:
-        its data, archives, quarantine, session index and process locators."""
+    def _private_paths(self) -> Iterator[tuple[pathlib.Path, int | None]]:
+        """Every path of Prompt Trail's data, archives, quarantine, session
+        index and process locators, with its st_mode; None for one gone
+        between the listing and the look."""
         data = self.config / "plugins" / "data"
-        found = []
         for top in (data / "prompt-trail-inline", data / ".function-hook-locators" / "prompt-trail"):
             if not top.exists():
                 continue
             for path in [top, *top.rglob("*")]:
                 try:
-                    status = path.lstat()
+                    yield path, path.lstat().st_mode
                 except FileNotFoundError:
-                    continue  # Gone between the listing and the look.
-                mode = status.st_mode & 0o777
-                wanted = 0o700 if path.is_dir() and not path.is_symlink() else 0o600
-                if mode != wanted:
-                    found.append(f"{path.relative_to(self.config)} {mode:04o}")
-        return found
+                    yield path, None
+
+    def _wrong_mode(self, path: pathlib.Path, st_mode: int | None) -> str | None:
+        """The path under the config directory and its mode when it is a
+        directory that is not 0700 or a file that is not 0600."""
+        if st_mode is None:
+            return None
+        mode = st_mode & 0o777
+        wanted = 0o700 if stat.S_ISDIR(st_mode) else 0o600
+        return f"{path.relative_to(self.config)} {mode:04o}" if mode != wanted else None
+
+    def private_modes(self) -> list[str]:
+        """Prompt Trail's directories that are not 0700 and its files that are
+        not 0600, each as its path under the config directory and its mode:
+        its data, archives, quarantine, session index and process locators."""
+        wrong = (self._wrong_mode(path, st_mode) for path, st_mode in self._private_paths())
+        return [found for found in wrong if found]
 
     def watch_modes(self, interval: float = 0.05) -> None:
         """Samples Prompt Trail's modes until the world finishes, so a file
-        that stands only a moment is looked at too; every name seen is kept."""
+        that stands only a moment is looked at too; every name whose mode was
+        read is kept."""
+        inline = self.config / "plugins" / "data" / "prompt-trail-inline"
+
         def sample() -> None:
             while self._sampling:
-                self.mode_violations.update(self.private_modes())
-                inline = self.config / "plugins" / "data" / "prompt-trail-inline"
-                if inline.exists():
-                    self.names_seen.update(path.name for path in inline.rglob("*"))
+                for path, st_mode in self._private_paths():
+                    if wrong := self._wrong_mode(path, st_mode):
+                        self.mode_violations.add(wrong)
+                    if st_mode is not None and inline in path.parents:
+                        self.names_seen.add(path.name)
                 time.sleep(interval)
         self._watch(sample)
 

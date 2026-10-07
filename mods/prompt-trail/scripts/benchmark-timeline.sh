@@ -3,6 +3,10 @@
 # of the helper calls behind opening the band (the latest batch), loading the
 # next batch back, and showing a new entry (capture then re-read). The band's
 # own parsing and drawing (at most 129 events per read) are not timed here.
+# Then the same on one Run's single 100,000-deep lineage with a Run start
+# every 1,000 events (backlog timeline-read-per-batch-cost): the first read,
+# which walks the whole path once, and the reads after it, which the band
+# sends with where the path began and an entry of it next to the batch.
 # One warm-up, then ten runs each.
 # Not part of verify-startup.sh: it builds a large archive and measures this
 # machine. Works in a throwaway directory; prints identity, counts and timings
@@ -101,11 +105,55 @@ with tempfile.TemporaryDirectory() as temporary:
         state["parent"] = event_id
         read(tip_id=event_id)
 
+    deep_project = "c" * 64
+    helper_call(
+        "boundary-append", archives, deep_project, str(uuid.uuid4()), str(uuid.uuid4()),
+        str(uuid.uuid4()), "run-started", str(uuid.uuid4()), "1795000000000", "-", sha, "1",
+    )
+    deep = timeline_fixture.lineage(
+        pathlib.Path(archives) / f"{deep_project}.sqlite3", deep_project, count - 1,
+        starts_every=1000,
+    )
+    deep_prompts = [e for e in deep if e["kind"] == "prompt"]
+    deep_tip = deep_prompts[-1]
+    deep_start = str(deep_prompts[0]["sequence"])
+    deep_total = deep[-1]["sequence"]
+    # Each cursor leaves at least one entry of the path below it, however
+    # short the fixture.
+    deep_cursors = [max(at, deep_prompts[0]["sequence"] + 1) for at in (deep_total // 2, 200)]
+    deep_state = {"loads": 0}
+
+    def deep_read(*argv: str) -> None:
+        payload = json.loads(helper_call(
+            "timeline-read", archives, deep_project, sha, "1", *argv,
+        ))
+        assert len(payload["events"]) <= 129
+
+    def deep_first_read() -> None:
+        deep_read(deep_tip["runId"], deep_tip["eventId"])
+
+    def deep_expand() -> None:
+        deep_read(deep_tip["runId"], deep_tip["eventId"], deep_start, "-")
+
+    def deep_load_earlier() -> None:
+        cursor = deep_cursors[deep_state["loads"] % len(deep_cursors)]
+        deep_state["loads"] += 1
+        # The path's highest entry below the window, as the read that brought
+        # the window there answered it.
+        below = next(e for e in reversed(deep_prompts) if e["sequence"] < cursor)
+        deep_read(
+            "before", str(cursor), deep_tip["runId"], deep_tip["eventId"],
+            deep_start, below["eventId"],
+        )
+
     results = {}
     for name, action in (
         ("expand", expand),
         ("loadNextBatch", load_next_batch),
         ("showNewEntry", show_new_entry),
+        ("deepLineageFirstRead", deep_first_read),
+        ("deepLineageExpand", deep_expand),
+        ("deepLineageLoadNextBatch", deep_load_earlier),
     ):
         action()  # warm-up
         samples = []

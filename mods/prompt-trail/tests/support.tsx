@@ -65,6 +65,16 @@ export function ran(result: { exitCode: number; stdout: string; stderr: string }
   return { value: { ...result, isStdoutTruncated: false, isStderrTruncated: false } }
 }
 
+/* The `stat` format the plugin reads the helper file's identity with, and
+   that identity as the fakes answer it: a file whose digest changed was
+   replaced or rewritten, so its inode and change time move with the digest. */
+export const HELPER_STAMP_FORMAT = '%d|%i|%z|%Fm|%Fc'
+
+export function helperStamp(digest: string = EXPECTED_HELPER_SHA256): string {
+  const inode = Number.parseInt(digest.slice(0, 8), 16)
+  return `16777234|${inode}|1048576|1795000000.000000000|1795000000.${String(inode % 1_000_000_000).padStart(9, '0')}`
+}
+
 export function locatorName(forSessionId: string, hostPid = 4242): string {
   return `${forSessionId}.${hostPid}-100-200.json`
 }
@@ -81,13 +91,19 @@ export const session = {
 
 export const consentGranted = { policyVersion: 1, decision: 'enabled' as const }
 
-/* A store whose project has already agreed to collection. */
-export function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: consentGranted }
+/* A store whose project has already agreed to collection, holding `extra`
+   besides. */
+export function consentedStore(extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return { [`prompt-trail:consent:${projectId}`]: consentGranted, ...extra }
 }
 
 export function reconcileKeyFor(forRunId: string = runId): string {
   return `prompt-trail:reconcile:${projectId}:${forRunId}`
+}
+
+/* Where a Run's collection mode is kept. */
+export function runModeKeyFor(forRunId: string = runId): string {
+  return `prompt-trail:run-mode:${projectId}:${forRunId}`
 }
 
 export type StoredBranch = { branchId?: string; parentEventId?: string | null; explicitRoot?: boolean }
@@ -229,6 +245,8 @@ export type TargetOptions = {
   liveRuns?: string[]
   /* `archive-status` fails with this category. */
   statusFails?: string
+  /* `run-collection-state` fails with this category. */
+  collectionStateFails?: string
   /* The bytes `archive-status` gives for the archive in place. */
   archiveBytes?: number
   /* `clear-all` could not read the archive's counts: it was damaged, or an
@@ -289,6 +307,8 @@ export type TargetOptions = {
   /* Runs right after a store write lands, as another process writing the
      same key a moment later would. */
   afterStoreSet?: (key: string) => void
+  /* Every read of the store, in order: `keys`, or the key read. */
+  storeReads?: string[]
   beforeStoreDelete?: (key: string) => void
   run?: RunIdentity
   /* The session the locator says this one continues: the conversation was
@@ -328,10 +348,14 @@ function sequenceAllocator(archive: readonly ArchiveRow[]): (eventId: string) =>
 /* One `timeline-read` batch as the helper answers it: 128 events and one more
    on the side read towards, each Prompt Entry's ordinal, and the context the
    view derives from events outside the batch. `rest` is the argv after the
-   protocol: an optional `before|after <sequence>`, then `<run|-> <tip|->`. */
+   protocol: an optional `before|after <sequence>`, then `<run|-> <tip|->`,
+   then optionally the caller's `<start|none> <from|-|none>`. The double
+   answers from the whole archive, whatever the hints say. */
 export function timelineBatch(archive: readonly ArchiveRow[], rest: readonly string[]) {
-  const [direction, cursor] = rest.length === 4 ? [rest[0], Number(rest[1])] : [undefined, 0]
-  const [run, tip] = rest.slice(-2)
+  const directed = rest[0] === 'before' || rest[0] === 'after'
+  const [direction, cursor] = directed ? [rest[0], Number(rest[1])] : [undefined, 0]
+  const [run, tip, startHint, from] = rest.slice(directed ? 2 : 0)
+  const hinted = startHint !== undefined
   const ordered = [...archive].sort((left, right) => left.sequence - right.sequence)
   const rows = TIMELINE_READ_LIMIT + 1
   const events = direction === 'after'
@@ -352,14 +376,101 @@ export function timelineBatch(archive: readonly ArchiveRow[], rest: readonly str
     const holder = ordered.find(other => other.segmentId === row.segmentId)
     return holder && holder.runId !== row.runId ? [{ eventId: row.eventId, runId: holder.runId }] : []
   })
-  let path: { eventIds: string[]; start: number | null } | undefined
+  const batchRuns = [...new Set(events.map(row => row.runId))]
+  const leading = batchRuns.flatMap(runId => {
+    const last = ordered.filter(row => row.runId === runId && row.sequence < low).at(-1)
+    return last ? [{ runId, kind: last.kind }] : []
+  })
+
+  let path: { eventIds: string[]; start: number | null; below: string | null; held?: unknown[] } | undefined
+  const chain: ArchiveRow[] = []
+  let start: number | null = null
   if (tip !== undefined && tip !== '-') {
-    path = { eventIds: [], start: null }
-    for (let at = byId.get(tip); at; at = byId.get(at.parentEventId ?? '')) {
-      if (at.sequence >= low && at.sequence <= high) path.eventIds.push(at.eventId)
-      if (at.runId === run) path.start = at.sequence
+    for (let at = byId.get(tip); at; at = byId.get(at.parentEventId ?? '')) chain.push(at)
+    const own = chain.filter(row => row.runId === run)
+    start = hinted ? (startHint === 'none' ? null : Number(startHint)) : own.at(-1)?.sequence ?? null
+    const reached = hinted && from === 'none' ? [] : chain
+    path = {
+      eventIds: reached.filter(row => row.sequence >= low && row.sequence <= high).map(row => row.eventId),
+      start,
+      below: reached.find(row => row.sequence < low)?.eventId ?? null,
+    }
+    if (!hinted) {
+      const held = new Map<string, { before: number; after: number }>()
+      for (const row of chain) {
+        if (row.runId === run) continue
+        const counts = held.get(row.runId) ?? { before: 0, after: 0 }
+        if (start === null || row.sequence < start) counts.before += 1
+        else counts.after += 1
+        held.set(row.runId, counts)
+      }
+      path.held = [...held].map(([runId, counts]) => ({ runId, ...counts }))
     }
   }
+
+  const bound = start ?? Infinity
+  const writingBefore = new Set(
+    events.filter(row => row.runId !== run && row.sequence < bound).map(row => row.runId),
+  ).size
+  const runs = batchRuns.flatMap(runId => {
+    if (runId === run) return []
+    const mine = events.filter(row => row.runId === runId)
+    const all = ordered.filter(row => row.runId === runId)
+    const counted = (rows: ArchiveRow[]) => rows.filter(row => row.kind === 'prompt').length
+    const facts: Record<string, unknown> = {}
+    if (writingBefore >= 2 && mine.some(row => row.sequence < bound)) {
+      const earlier = all.filter(row => row.sequence < bound)
+      facts.before = {
+        eventId: all[0]!.eventId,
+        sequence: all[0]!.sequence,
+        last: earlier.at(-1)!.sequence,
+        count: counted(earlier),
+      }
+    }
+    if (start !== null && mine.some(row => row.sequence > start!)) {
+      const later = all.filter(row => row.sequence > start!)
+      facts.after = { eventId: later[0]!.eventId, count: counted(later) }
+    }
+    return Object.keys(facts).length > 0 ? [{ runId, ...facts }] : []
+  })
+
+  const branches: { eventId: string; fold: string; count: number }[] = []
+  if (path && start !== null) {
+    const onPath = new Set(chain.map(row => row.eventId))
+    const own = ordered.filter(row => row.kind === 'prompt' && row.runId === run && row.sequence > start!)
+    const isOwn = (row: ArchiveRow) => row.kind === 'prompt' && row.runId === run && row.sequence > start!
+    const foldOf = new Map<string, string>()
+    const firsts = new Map<string, string>()
+    const sizes = new Map<string, number>()
+    for (const entry of own) {
+      if (onPath.has(entry.eventId)) continue
+      let key: string | undefined
+      let top = entry
+      for (let at = byId.get(entry.parentEventId ?? ''); ; at = byId.get(at.parentEventId ?? '')) {
+        if (!at) {
+          key = `root:${top.eventId}`
+          break
+        }
+        if (onPath.has(at.eventId)) {
+          key = `at:${at.eventId}`
+          break
+        }
+        if (isOwn(at)) {
+          key = foldOf.get(at.eventId)
+          break
+        }
+        top = at
+      }
+      foldOf.set(entry.eventId, key!)
+      if (!firsts.has(key!)) firsts.set(key!, entry.eventId)
+      sizes.set(key!, (sizes.get(key!) ?? 0) + 1)
+    }
+    for (const row of events) {
+      const key = foldOf.get(row.eventId)
+      if (key) branches.push({ eventId: row.eventId, fold: firsts.get(key)!, count: sizes.get(key)! })
+    }
+  }
+
   return {
     projectId,
     events: events.map(row => ({
@@ -383,6 +494,9 @@ export function timelineBatch(archive: readonly ArchiveRow[], rest: readonly str
     ...(path ? { path } : {}),
     parents: [...parents].map(([eventId, runId]) => ({ eventId, runId })),
     origins,
+    leading,
+    runs,
+    branches,
   }
 }
 
@@ -435,6 +549,7 @@ export function installSupportedTarget(
   } else if (options.store) {
     const store = options.store
     on('store.get', (_$, e) => {
+      options.storeReads?.push(e.key)
       if (options.storeGetFailsFor && e.key.includes(options.storeGetFailsFor)) {
         throw new Error('store unavailable: PT-SECRET-STORE-GET')
       }
@@ -463,6 +578,7 @@ export function installSupportedTarget(
     /* The engine's own store answers `keys`; a double that did not would make
        every enumeration of another Run's lifecycle debt throw. */
     on('store.keys', () => {
+      options.storeReads?.push('keys')
       if (options.storeGetFailsFor === '*') {
         throw new Error('store unavailable: PT-SECRET-STORE-KEYS')
       }
@@ -612,6 +728,9 @@ export function installSupportedTarget(
     if (argv[0] === '/bin/realpath') {
       return ran({ exitCode: 0, stdout: `${argv[1]}\n`, stderr: '' })
     }
+    if (argv[0] === '/usr/bin/stat' && argv[2] === HELPER_STAMP_FORMAT) {
+      return ran({ exitCode: 0, stdout: `${helperStamp(options.helperDigest?.value)}\n`, stderr: '' })
+    }
     if (argv[0] === '/usr/bin/stat') {
       const path = argv[argv.length - 1]
       const directory = path === locatorDirectory
@@ -758,6 +877,19 @@ export function installSupportedTarget(
       const own = archive.filter(row => row.runId === cleared)
       const ownIds = new Set(own.map(row => row.eventId))
       const ownStaged = [...staged].filter(([, row]) => row.runId === cleared)
+      /* A new clear begins only while the archive holds what was confirmed. */
+      if (!underway) {
+        const counted = [
+          own.filter(row => row.kind === 'prompt').length,
+          ownStaged.length,
+          own.filter(row => row.kind !== 'prompt').length,
+          [...archive, ...staged.values()].filter(row =>
+            row.runId !== cleared && ownIds.has(row.parentEventId ?? '')).length,
+        ]
+        if (argv[7] !== '--confirmed' || argv.slice(8, 12).join(' ') !== counted.join(' ')) {
+          return refuse('clear-run-changed')
+        }
+      }
       if (!underway && own.length + ownStaged.length === 0) return nothing
       if (options.clearRunRejects) {
         if (options.clearRunUnderway) Object.assign(options.clearRunUnderway, { value: true, runId: cleared })
@@ -962,7 +1094,26 @@ export function installSupportedTarget(
       }
       return ran({
         exitCode: 0,
-        stdout: JSON.stringify({ eventId, projectId, kind, sequence }),
+        stdout: JSON.stringify({ eventId, projectId, kind, generation: generation.value, sequence }),
+        stderr: '',
+      })
+    }
+    if (argv[0] === helperPath && argv[1] === 'run-collection-state') {
+      if (options.collectionStateFails) return refuse(options.collectionStateFails, generation.value)
+      const forRun = argv[4]
+      const latest = [...archive]
+        .filter(row => row.runId === forRun && row.kind.startsWith('collection-'))
+        .sort((left, right) => right.sequence - left.sequence)[0]
+      const held = !(emptied && archive.length === 0 && staged.size === 0)
+      return ran({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          projectId,
+          runId: forRun,
+          generation: held ? generation.value : null,
+          kind: latest?.kind ?? null,
+          ...(latest ? { eventId: latest.eventId, sequence: latest.sequence } : {}),
+        }),
         stderr: '',
       })
     }

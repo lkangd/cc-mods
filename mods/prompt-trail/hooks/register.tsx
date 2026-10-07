@@ -6,8 +6,8 @@ import type {
   SessionMessage,
 } from 'claude-code'
 import { EXPECTED_HELPER_SHA256, HELPER_PROTOCOL } from './artifact'
-import type { BranchMatch, BranchState, TranscriptMark } from './branch'
-import { EARLIER_HINT_KEY, TITLE_KEY, arrowStep } from './band'
+import type { BranchMatch, BranchState, PathBeyond, RunFacts, TranscriptMark } from './branch'
+import { TITLE_KEY, arrowStep } from './band'
 import { clipCells, textCells } from './cells'
 import type { DrawnRow } from './jump'
 import { alignmentInput, jumpOutcome, jumpTargets, recordRow, vanishedRows } from './jump'
@@ -24,6 +24,7 @@ import {
   transcriptRows,
   trustsStoredBranch,
 } from './branch'
+import { HelperFailure, parseHelperFailure } from './failure'
 import { gitToplevelArgv, projectRootFrom } from './project'
 import type {
   Attachment,
@@ -85,10 +86,13 @@ type ProjectState = {
   archiveReady: boolean
 }
 
-type CollectionBoundaryKind =
-  | 'collection-started'
-  | 'collection-stopped'
-  | 'collection-resumed'
+const COLLECTION_BOUNDARY_KINDS = [
+  'collection-started',
+  'collection-stopped',
+  'collection-resumed',
+] as const
+
+type CollectionBoundaryKind = typeof COLLECTION_BOUNDARY_KINDS[number]
 
 /* Every non-prompt Timeline Event the plugin writes. A Clear Boundary is not a
    Collection Boundary: it records where a Conversation Segment ended, not
@@ -96,16 +100,23 @@ type CollectionBoundaryKind =
    appeared, or where a process took it up again or left it; an Integrity gap
    where a Run's records stopped being provable, and its recovery where they
    became provable again. They share the table, the project-level sequence and
-   the drawing of one row, and nothing else. */
-type BoundaryKind =
-  | CollectionBoundaryKind
-  | 'clear'
-  | 'run-started'
-  | 'run-attached'
-  | 'run-detached'
-  | 'archive-quarantined'
-  | 'integrity-gap'
-  | 'integrity-recovery'
+   the drawing of one row, and nothing else.
+
+   The helper's `boundary_kind_valid` list in prompt_trail_helper.c is the
+   same set less `archive-quarantined`, which the helper writes itself when it
+   quarantines an archive and never accepts through `boundary-append`. */
+const BOUNDARY_KINDS = [
+  ...COLLECTION_BOUNDARY_KINDS,
+  'clear',
+  'run-started',
+  'run-attached',
+  'run-detached',
+  'archive-quarantined',
+  'integrity-gap',
+  'integrity-recovery',
+] as const
+
+type BoundaryKind = typeof BOUNDARY_KINDS[number]
 
 /* The Run-level switch, persisted per project and Run so an explicit disable
    survives a module reload. A Run with no record collects by default; only
@@ -261,6 +272,7 @@ const SAFE_ERROR_CATEGORIES = new Set([
   'capture-input',
   'clear-input',
   'clear-unfinished',
+  'clear-run-changed',
   'clear-run-quarantined',
   'clear-run-unfinished',
   'match-input',
@@ -399,11 +411,25 @@ let timeline: TimelineItem[] = []
 let timelineEdges = { earlier: false, later: false }
 /* What the view derives from events outside the window, as the helper
    answered it: the Run of each parent the window lacks, the Run that held a
-   Run start's segment first, and the Active Branch where it crosses the
-   window and where it began in this Run. */
+   Run start's segment first, whether each Run's row just before the window
+   is an entry or a boundary, and what the archive holds of each other Run. */
 let parentRuns = new Map<string, string>()
 let segmentOrigins = new Map<string, string>()
-let activePath: { tip: string; eventIds: Set<string>; start: number | null } | undefined
+let leadingRows = new Map<string, TimelineItem['kind']>()
+let runFacts = new Map<string, RunFacts>()
+/* The Active Branch where it crosses the window and where it began in this
+   Run, with how this Run's branches fold across the whole Run. `below` is its
+   highest entry under the window (`null`: none; absent: not known), and
+   `above` its lowest entry in each stretch the window let go of later than
+   it, lowest first: where the next read on either side walks it from. */
+type ActivePath = PathBeyond & {
+  tip: string
+  eventIds: Set<string>
+  below?: string | null
+  above: { eventId: string; sequence: number }[]
+  branches: Map<string, { fold: string; count: number }>
+}
+let activePath: ActivePath | undefined
 /* Prompt Entries this process added while the person was looking elsewhere
    in the band, cleared once the band is back at its bottom. */
 let unread = 0
@@ -418,16 +444,16 @@ let bandAnchor: string | undefined
 let bandBottom = true
 /* What the last drawing showed: its instance, every row's key, the rows the
    focus can stop on, how many rows a scrolling view shows under the title,
-   those shown, and whether the tree fitted the band (nothing below the view,
-   so the engine scrolls nothing and walks the ring itself). */
+   those shown, and whether every row showed at once (the tree fitted the
+   band, so the engine scrolls nothing and walks the ring itself). */
 let bandView: {
   requestId?: string
   rowKeys: string[]
   stops: string[]
   capacity: number
   shown: string[]
-  fits: boolean
-} = { rowKeys: [], stops: [], capacity: 1, shown: [], fits: true }
+  whole: boolean
+} = { rowKeys: [], stops: [], capacity: 1, shown: [], whole: true }
 /* The band element holding its focus ring, as the last move left it or the
    last row a drawing sent it to, and a row the ring moves to once the next
    drawing shows it. */
@@ -437,12 +463,32 @@ let pendingFocus: string | undefined
    not yet in, is sent again this many times, this far apart. */
 const RING_RETRIES = 3
 const RING_RETRY_MS = 50
+/* A row a drawing sent the ring to after the view moved, sent again from a
+   later drawing, once: the engine keeps its ring by position, and when the
+   view moving down shows fewer stops than that position (boundary rows came
+   in with the row), 2.1.290 drops the ring, at times after the drawing's
+   own send had landed. With no drawing within this long, the band asks for
+   one. */
+let ringOwed: string | undefined
+const RING_CONFIRM_MS = 150
+/* The window offset the last drawing of the band was handed, and the view
+   top a seat of the window is still owed for, with the band's redraws it may
+   still ask for. The engine places `$.ui.scroll` against the layout the
+   terminal last reported: met right after the band opened from its one
+   folded row, a seat lands nowhere and moves nothing, and nothing would draw
+   again. So once a seat resolved, while the window has not been drawn on the
+   view this many times, the band is drawn again, this far apart, and that
+   drawing seats again against the layout now reported. */
+let drawnOffset = 0
+let seatTop: number | undefined
+let seatRedraws = 0
+const SEAT_REDRAWS = 4
+const SEAT_RETRY_MS = 100
 /* Whether the band last drew too small for its rows (under 28 columns or 6
    rows), and the element its ring stood on then, to return to with room. */
 let cramped = false
 let crampedRing: string | undefined
-/* The title row's word on giving the band the keyboard, and the fewest cells
-   its way up is cut to (`↑ 点…`). */
+/* The title row's word on giving the band the keyboard. */
 const FOCUS_HINT = 'ctrl+x tab 键盘选择'
 /* Said on the title row while this Run collects and cannot, so a failure
    another Run found shows before the next submission meets it. */
@@ -450,7 +496,6 @@ const UNAVAILABLE_MARK = '档案不可用'
 /* The cells at the right end of the band's column that the engine keeps for
    its `[-]`, which `bodyColumns` leaves out. */
 const BAND_MARK_CELLS = 5
-const UP_MIN_CELLS = 5
 /* AskUserQuestion dialogs now open, and whether the host's last drawing of
    the band had a survey holding it: the band gives way to either, and leaves
    the slot's scrolling and focus to them meanwhile. */
@@ -474,15 +519,26 @@ type Unavailable = {
   runId?: string
 }
 let archiveFailure: Unavailable | undefined
-/* The generation the latest `archive-integrity` failure named. */
-let damagedGeneration: string | undefined
-/* What `archive-status` last said of the project's archive, for `status`. */
+/* What `archive-status` last said of the project's archive, for `status`,
+   and the category it failed with when it could not say. */
 let archiveStatus: ArchiveStatus | undefined
+let archiveStatusFailure: string | undefined
 /* What the latest staged capture said about the archive's disk. */
 let diskSpace: 'low' | 'ok' | 'unknown' = 'unknown'
 /* Runs this module instance has warned of low disk space. */
 const spaceWarned = new Set<string>()
-let runMode: { key: string; value: RunModeState } | undefined
+/* `provisional`: the store held no record and the archive was not asked yet,
+   so the default stands in only until a helper this process trusts can ask.
+   `inStore`: the store holds a record for the Run, current or not.
+   `sessionId`: the classic session the Run was proven in: without a Run id,
+   only that session may go on reading it. */
+let runMode: {
+  key: string
+  value: RunModeState
+  provisional?: true
+  inStore?: true
+  sessionId?: string
+} | undefined
 /* `text` is present only while the module instance that staged the capture is
    still loaded; after a restart the staged bytes in the archive are the only
    copy of the prompt, and the helper confirms from them without handing them
@@ -515,7 +571,7 @@ let lifecycle: { key: string; value: LifecycleState } | undefined
 /* Why the last Clear Boundary write did not land, as the helper categorised it.
    Run-local and never persisted: it explains a queue that will not drain, and
    `$.store` is for facts the next process still owes, not for diagnostics. */
-let lifecycleFailure: string | undefined
+let lifecycleFailure: Failure | undefined
 /* A `/clear` that was seen but could not be turned into a durable write — the
    branch it cuts was unreadable, or the queue could not be saved. The instant
    is taken once and kept, so completing it later replays the same boundary
@@ -717,6 +773,7 @@ async function runArchive(
   timeoutMs: number,
   stdin?: string,
 ) {
+  await vouchHelper($, argv[0])
   try {
     return await run($, argv, timeoutMs, stdin)
   } catch {
@@ -764,6 +821,55 @@ async function fileIdentity(
   return { kind, owner, mode }
 }
 
+/* The helper file's identity: device, inode, size and its modification and
+   change times to the nanosecond. A file replaced, or rewritten in place,
+   since it was looked at says something else here. */
+const HELPER_STAMP_FORMAT = '%d|%i|%z|%Fm|%Fc'
+
+async function helperStamp($: EngineInterface, path: string): Promise<string> {
+  const result = await run($, ['/usr/bin/stat', '-f', HELPER_STAMP_FORMAT, path])
+  const stamp = result.stdout.trim()
+  if (result.exitCode !== 0 || !/^\d+\|\d+\|\d+\|\d+(\.\d+)?\|\d+(\.\d+)?$/.test(stamp)) {
+    throw new Error('helper-hash-unproven')
+  }
+  return stamp
+}
+
+/* The helper whose digest the latest proof of the target checked, and its
+   identity as it stood around that check. */
+let provenHelper: { path: string; stamp: string } | undefined
+
+/* Every helper call runs the file whose digest was proven: its identity is
+   checked first, and a helper that is not the file proven then is proven
+   again in full before it runs, and refused if it does not pass. */
+async function vouchHelper($: EngineInterface, path: string | undefined): Promise<void> {
+  if (path === undefined) throw new Error('digest-mismatch')
+  if (provenHelper?.path === path) {
+    let stamp: string | undefined
+    try {
+      stamp = await helperStamp($, path)
+    } catch {
+      // Proven again below.
+    }
+    if (stamp === provenHelper.stamp) return
+  }
+  if (!runtimeTarget) throw new Error('digest-mismatch')
+  let proven: StartupState
+  try {
+    proven = await inspectTarget(
+      $,
+      runtimeTarget.isInteractive,
+      runtimeTarget.surface,
+      runtimeTarget.cwd,
+    )
+  } catch {
+    throw new Error('digest-mismatch')
+  }
+  if (proven.support !== 'supported' || provenHelper?.path !== path) {
+    throw new Error('digest-mismatch')
+  }
+}
+
 async function hasExtendedAcl(
   $: EngineInterface,
   path: string,
@@ -782,25 +888,12 @@ function normalizedHome(home: string): string {
   return home.length > 1 && home.endsWith('/') ? home.slice(0, -1) : home
 }
 
+function helperFailure(stderr: string, fallback: string): HelperFailure {
+  return parseHelperFailure(stderr, fallback, SAFE_ERROR_CATEGORIES, isSafeId)
+}
+
 function safeCategory(stderr: string, fallback: string): string {
-  try {
-    const parsed: unknown = JSON.parse(stderr)
-    if (
-      isRecord(parsed) &&
-      typeof parsed.category === 'string' &&
-      SAFE_ERROR_CATEGORIES.has(parsed.category)
-    ) {
-      /* Damage names the generation it was met in, which is the one a
-         quarantine may move; it travels with the failure from here. */
-      if (parsed.category === 'archive-integrity') {
-        damagedGeneration = isSafeId(parsed.generation) ? parsed.generation : undefined
-      }
-      return parsed.category
-    }
-  } catch {
-    // Diagnostics never repeat untrusted helper output.
-  }
-  return fallback
+  return helperFailure(stderr, fallback).category
 }
 
 function unsupported(
@@ -945,6 +1038,14 @@ async function inspectTarget(
       { sessionId },
     )
   }
+  /* The owner and the locator directory are the same for every candidate, so
+     each is probed once, by the first candidate to reach it, and later
+     candidates reuse what it found. Every candidate still meets those results
+     at the same point in its own checks, so a refusal names the category it
+     always did. */
+  let ownerProbe: Promise<number> | undefined
+  let directoryProbe: Promise<FileIdentity> | undefined
+  let directoryAclProbe: Promise<boolean> | undefined
   let refusal: StartupState | undefined
   for (const candidate of candidates) {
     const inspected = await inspectLocator(candidate)
@@ -953,15 +1054,20 @@ async function inspectTarget(
   }
   return refusal as StartupState
 
+  async function currentOwner(): Promise<number> {
+    const ownerText = await runText($, ['/usr/bin/id', '-u'])
+    const owner = Number.parseInt(ownerText ?? '', 10)
+    if (!Number.isSafeInteger(owner)) throw new Error('locator-permissions')
+    return owner
+  }
+
   async function inspectLocator(locatorPath: string): Promise<StartupState> {
     let owner: number
     try {
-      const ownerText = await runText($, ['/usr/bin/id', '-u'])
-      owner = Number.parseInt(ownerText ?? '', 10)
-      if (!Number.isSafeInteger(owner)) throw new Error('locator-permissions')
+      owner = await (ownerProbe ??= currentOwner())
       const [locatorFile, locatorDir] = await Promise.all([
         fileIdentity($, locatorPath, 'claude-code-version-unproven'),
-        fileIdentity($, locatorDirectory, 'locator-directory-permissions'),
+        directoryProbe ??= fileIdentity($, locatorDirectory, 'locator-directory-permissions'),
       ])
       if (locatorFile.kind !== 'Regular File'
           || locatorFile.owner !== owner
@@ -975,7 +1081,7 @@ async function inspectTarget(
       }
       const [locatorAcl, locatorDirectoryAcl] = await Promise.all([
         hasExtendedAcl($, locatorPath, 'locator-permissions'),
-        hasExtendedAcl($, locatorDirectory, 'locator-directory-permissions'),
+        directoryAclProbe ??= hasExtendedAcl($, locatorDirectory, 'locator-directory-permissions'),
       ])
       if (locatorAcl) throw new Error('locator-permissions')
       if (locatorDirectoryAcl) throw new Error('locator-directory-permissions')
@@ -1063,6 +1169,7 @@ async function inspectTarget(
       return unavailable('locator-path', detected, cwd, commonFields)
     }
 
+    let helperStampProven: string
     try {
       const pluginBin = `${locator.pluginRoot}/bin`
       const pluginArtifacts = `${locator.pluginRoot}/artifacts`
@@ -1112,6 +1219,10 @@ async function inspectTarget(
         if (await realpath($, path) !== path) throw new Error('noncanonical-path')
       }
 
+      /* The file's identity is taken on both sides of the digest: the same
+         before and after, the digest describes the file it names, and every
+         later call checks that identity before running it. */
+      const stampBefore = await helperStamp($, locator.helperPath)
       const digest = await run(
         $,
         ['/usr/bin/shasum', '-a', '256', locator.helperPath],
@@ -1120,6 +1231,8 @@ async function inspectTarget(
         ? digest.stdout.trim().split(/\s+/, 1)[0]
         : undefined
       if (actualDigest !== EXPECTED_HELPER_SHA256) throw new Error('digest-mismatch')
+      helperStampProven = await helperStamp($, locator.helperPath)
+      if (helperStampProven !== stampBefore) throw new Error('digest-mismatch')
     } catch (error) {
       const reason = error instanceof Error && SAFE_ERROR_CATEGORIES.has(error.message)
         ? error.message
@@ -1181,6 +1294,7 @@ async function inspectTarget(
       return unavailable('preflight-response', detected, cwd, commonFields)
     }
 
+    provenHelper = { path: locator.helperPath, stamp: helperStampProven }
     return {
       support: 'supported',
       reason: 'preflight-ok',
@@ -1530,35 +1644,125 @@ function storedLifecycle(value: unknown): LifecycleState | undefined {
   }
 }
 
+const COLLECTION_BOUNDARY_KIND_SET = new Set<unknown>(COLLECTION_BOUNDARY_KINDS)
+
 function isCollectionBoundaryKind(value: unknown): value is CollectionBoundaryKind {
-  return value === 'collection-started'
-    || value === 'collection-stopped'
-    || value === 'collection-resumed'
+  return COLLECTION_BOUNDARY_KIND_SET.has(value)
 }
 
 /* A Run with no stored record collects by default; `stored` tells enable
-   whether this Run is resuming after its own explicit disable. */
+   whether this Run is resuming after its own explicit disable.
+
+   `$.store` is the fast path. When it holds no record for the Run — a
+   disable whose store write failed leaves none — the Run's latest Collection
+   Boundary in the archive decides: a trailing `collection-stopped` keeps it
+   disabled across a reload. `archive` says how far to go for that answer:
+   `ask` fails closed when the archive cannot say; `try` resolves the default
+   then (a disable, which stops whatever it finds); `skip` does not run the
+   helper at all, for a caller that has not proven it yet. A default the
+   archive did not confirm is provisional, and asked again next time.
+   `inStore` says whether the store holds a record for the Run, which a
+   reload reads back, stale or not, before it would ever ask the archive. */
 async function loadRunMode(
   $: EngineInterface,
   currentProject: ProjectState,
-): Promise<{ key: string; value: RunModeState }> {
+  archive: 'ask' | 'try' | 'skip' = 'ask',
+): Promise<{ key: string; value: RunModeState; inStore: boolean }> {
   if (!startup.runId) {
     /* Without a proven Run id the switch still has to be readable, or an
-       unhealthy target would silently resume collecting a disabled Run. */
-    if (runMode?.key.startsWith(`prompt-trail:run-mode:${currentProject.id}:`)) {
-      return { key: runMode.key, value: runMode.value }
+       unhealthy target would silently resume collecting a disabled Run. It is
+       the cached one only while the session is the one it was proven in: a
+       session this process moved to since may be in another Run. */
+    let sessionId: string | undefined
+    try {
+      sessionId = await $.session.id()
+    } catch {
+      // Not provably the same session.
+    }
+    if (runMode?.key.startsWith(`prompt-trail:run-mode:${currentProject.id}:`)
+        && runMode.sessionId !== undefined
+        && runMode.sessionId === sessionId) {
+      return { key: runMode.key, value: runMode.value, inStore: runMode.inStore === true }
     }
     throw new Error('capture-identity')
   }
   const key = runModeKey(currentProject.id, startup.runId)
-  if (runMode?.key === key) return { key, value: runMode.value }
+  const askable = archive !== 'skip'
+    && startup.support === 'supported' && Boolean(startup.helperPath && startup.databaseRoot)
+  if (runMode?.key === key && (!runMode.provisional || !askable)) {
+    runMode.sessionId = startup.sessionId
+    return { key, value: runMode.value, inStore: runMode.inStore === true }
+  }
   /* An unreadable switch is not an absent one: defaulting to enabled here
      would resume collecting a Run the person explicitly disabled, so the
      failure propagates and the caller fails closed. */
-  const value = storedRunMode(await $.store.get(key))
-    ?? { version: 1, mode: 'enabled' as const }
-  runMode = { key, value }
-  return { key, value }
+  const stored = storedRunMode(await $.store.get(key))
+  if (stored) {
+    runMode = { key, value: stored, inStore: true, ...provenIn() }
+    return { key, value: stored, inStore: true }
+  }
+  const fallback: RunModeState = { version: 1, mode: 'enabled' }
+  let value: RunModeState | undefined
+  if (askable) {
+    try {
+      value = await readRunCollectionState($, currentProject, startup.runId)
+    } catch (error) {
+      if (archive === 'ask') throw error
+    }
+  }
+  runMode = value
+    ? { key, value, ...provenIn() }
+    : { key, value: fallback, provisional: true, ...provenIn() }
+  return { key, value: value ?? fallback, inStore: false }
+}
+
+/* What the archive says of one Run's switch: its latest Collection Boundary,
+   or none. It never creates an archive; like every read, an archive still
+   owed its migration takes the write lock once to finish it. */
+async function readRunCollectionState(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  forRunId: string,
+): Promise<RunModeState> {
+  if (!startup.helperPath || !startup.databaseRoot) throw new Error('capture-identity')
+  const result = await runArchive(
+    $,
+    [
+      startup.helperPath,
+      'run-collection-state',
+      startup.databaseRoot,
+      currentProject.id,
+      forRunId,
+      EXPECTED_HELPER_SHA256,
+      String(HELPER_PROTOCOL),
+    ],
+    10_000,
+  )
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'run-mode-unreadable')
+  const value: unknown = JSON.parse(result.stdout)
+  if (
+    !isRecord(value) ||
+    value.projectId !== currentProject.id ||
+    value.runId !== forRunId ||
+    (value.kind !== null && !isCollectionBoundaryKind(value.kind))
+  ) throw new Error('run-mode-unreadable')
+  nullableGeneration(value.generation, 'run-mode-unreadable')
+  if (value.kind === null) return { version: 1, mode: 'enabled' }
+  if (
+    !isSafeId(value.eventId) ||
+    !Number.isSafeInteger(value.sequence) ||
+    (value.sequence as number) < 1
+  ) throw new Error('run-mode-unreadable')
+  return {
+    version: 1,
+    mode: value.kind === 'collection-stopped' ? 'disabled' : 'enabled',
+    boundary: { kind: value.kind, eventId: value.eventId, sequence: value.sequence as number },
+  }
+}
+
+/* The session a switch read or written now was proven in. */
+function provenIn(): { sessionId?: string } {
+  return startup.sessionId ? { sessionId: startup.sessionId } : {}
 }
 
 async function saveRunMode(
@@ -1566,8 +1770,11 @@ async function saveRunMode(
   key: string,
   value: RunModeState,
 ): Promise<void> {
-  runMode = { key, value }
+  /* Taken at once: a failed write still switches this module instance. */
+  const inStore = runMode?.key === key && runMode.inStore === true
+  runMode = { key, value, ...(inStore ? { inStore: true as const } : {}), ...provenIn() }
   await $.store.set(key, value)
+  runMode = { key, value, inStore: true, ...provenIn() }
 }
 
 /* An unreadable lifecycle record is not an empty one: it may be hiding a Clear
@@ -1644,13 +1851,15 @@ async function stampGenerations(
 /* What the project's other Runs left behind. A Run that crashed mid-`/clear`
    cannot come back to finish it, so whoever archives next in this project owes
    its boundary — and, for the report, its interrupted transition. */
+type ForeignRecords = { key: string; value: LifecycleState }[]
+
 async function foreignLifecycles(
   $: EngineInterface,
   currentProject: ProjectState,
-): Promise<{ key: string; value: LifecycleState }[]> {
+): Promise<ForeignRecords> {
   const prefix = lifecyclePrefix(currentProject.id)
   const own = startup.runId ? lifecycleKey(currentProject.id, startup.runId) : undefined
-  const found: { key: string; value: LifecycleState }[] = []
+  const found: ForeignRecords = []
   for (const key of await $.store.keys()) {
     if (!key.startsWith(prefix) || key === own) continue
     /* A record that cannot be read lost what it owed, as this Run's own does. */
@@ -1667,22 +1876,17 @@ async function foreignLifecycles(
   return found
 }
 
+/* The generation the boundary landed in comes back with it, so a Run that
+   starts a new root there names that generation to its first capture. */
 function parseBoundaryResponse(
   text: string,
   eventId: string,
   projectId: string,
   kind: BoundaryKind,
-): number {
-  const value: unknown = JSON.parse(text)
-  if (
-    !isRecord(value) ||
-    value.eventId !== eventId ||
-    value.projectId !== projectId ||
-    value.kind !== kind ||
-    !Number.isSafeInteger(value.sequence) ||
-    (value.sequence as number) < 1
-  ) throw new Error('boundary-response')
-  return value.sequence as number
+): { sequence: number; generation: string } {
+  const { value, sequence } = parseSequenceResponse(text, eventId, projectId, 'boundary-response')
+  if (value.kind !== kind || !isSafeId(value.generation)) throw new Error('boundary-response')
+  return { sequence, generation: value.generation }
 }
 
 /* A boundary is a non-prompt Timeline Event: it carries no text and takes the
@@ -1705,7 +1909,7 @@ async function appendBoundary(
     runId?: string
     generation?: string | null
   } = {},
-): Promise<{ eventId: string; sequence: number }> {
+): Promise<{ eventId: string; sequence: number; generation: string }> {
   const segmentId = overrides.segmentId ?? startup.sessionId
   /* A replay must name the Run that owns the boundary, not the Run replaying
      it: the helper compares `run_id` on a repeated event id and refuses a
@@ -1739,9 +1943,9 @@ async function appendBoundary(
      that fails leaves nothing behind but this, and a boundary the archive
      never took is exactly the kind of failure that has to stay identifiable. */
   if (result.exitCode !== 0) {
-    throw new Error(safeCategory(result.stderr, 'boundary-append'))
+    throw helperFailure(result.stderr, 'boundary-append')
   }
-  const sequence = parseBoundaryResponse(
+  const { sequence, generation } = parseBoundaryResponse(
     result.stdout,
     eventId,
     currentProject.id,
@@ -1749,7 +1953,7 @@ async function appendBoundary(
   )
   currentProject.archiveReady = true
   await archiveRecovered($, currentProject)
-  return { eventId, sequence }
+  return { eventId, sequence, generation }
 }
 
 async function canonicalProjectRoot(
@@ -1957,6 +2161,20 @@ function failureCategory(error: unknown, fallback: string): string {
   return error instanceof Error && isFailureCategory(error.message) ? error.message : fallback
 }
 
+/* The generation a failure of damage was met in, when the helper named one. */
+function failureGeneration(error: unknown): string | undefined {
+  return error instanceof HelperFailure ? error.generation : undefined
+}
+
+/* A failure as it is held for later: its category and the generation it
+   names, if any. */
+type Failure = { category: string; generation?: string }
+
+function failureOf(error: unknown, fallback: string): Failure {
+  const generation = failureGeneration(error)
+  return { category: failureCategory(error, fallback), ...(generation ? { generation } : {}) }
+}
+
 /* A failure of the archive itself goes on record for the project's other
    Runs; a Run-local one stays with this Run, which tries again for real at
    its next submission. */
@@ -1964,7 +2182,10 @@ async function markUnavailable(
   $: EngineInterface,
   currentProject: ProjectState | undefined,
   category: string,
-  scope: 'run' | 'archive' = SHARED_FAILURES.has(category) ? 'archive' : 'run',
+  {
+    scope = SHARED_FAILURES.has(category) ? 'archive' : 'run',
+    generation: named,
+  }: { scope?: 'run' | 'archive'; generation?: string | undefined } = {},
 ): Promise<Unavailable> {
   /* Damage met again keeps the generation already on record when this
      failure could not name one; a quarantine that failed keeps the
@@ -1972,7 +2193,7 @@ async function markUnavailable(
      they describe. */
   const damage = DAMAGE_FAILURES.has(category)
   const generation = category === 'archive-integrity'
-    ? damagedGeneration ?? archiveFailure?.generation
+    ? named ?? archiveFailure?.generation
     : damage ? archiveFailure?.generation : undefined
   const recheck = damage ? archiveFailure?.recheck : undefined
   archiveFailure = scope === 'archive'
@@ -2137,11 +2358,7 @@ async function branchState(
       await $.store.get(branchKey(currentProject.id, startup.runId, startup.continuedFrom)),
     )
     : undefined
-  const value: BranchState = continued ?? {
-    version: 1,
-    branchId: crypto.randomUUID(),
-    parentEventId: null,
-  }
+  const value: BranchState = continued ?? newRoot()
   await $.store.set(key, value)
   return { key, value }
 }
@@ -2169,22 +2386,37 @@ function parsePendingResponse(
 
 type Confirmed = { sequence: number; ordinal: number }
 
-function parseConfirmedResponse(
+/* A helper reply that placed an event in the project order echoes the event
+   and project it was asked about and the sequence it took, which is never
+   below 1. Each caller checks its own extra fields and fails in its own
+   category. */
+function parseSequenceResponse(
   text: string,
   eventId: string,
   projectId: string,
-): Confirmed {
+  category: string,
+): { value: Record<string, unknown>; sequence: number } {
   const value: unknown = JSON.parse(text)
   if (
     !isRecord(value) ||
     value.eventId !== eventId ||
     value.projectId !== projectId ||
     !Number.isSafeInteger(value.sequence) ||
-    (value.sequence as number) < 1 ||
-    !Number.isSafeInteger(value.ordinal) ||
-    (value.ordinal as number) < 1
-  ) throw new Error('capture-response')
-  return { sequence: value.sequence as number, ordinal: value.ordinal as number }
+    (value.sequence as number) < 1
+  ) throw new Error(category)
+  return { value, sequence: value.sequence as number }
+}
+
+function parseConfirmedResponse(
+  text: string,
+  eventId: string,
+  projectId: string,
+): Confirmed {
+  const { value, sequence } = parseSequenceResponse(text, eventId, projectId, 'capture-response')
+  if (!Number.isSafeInteger(value.ordinal) || (value.ordinal as number) < 1) {
+    throw new Error('capture-response')
+  }
+  return { sequence, ordinal: value.ordinal as number }
 }
 
 async function beginCapture(
@@ -2222,7 +2454,7 @@ async function beginCapture(
     10_000,
     text,
   )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-begin'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'capture-begin')
   const staged = parsePendingResponse(result.stdout, eventId, currentProject.id)
   currentProject.archiveReady = true
   await archiveRecovered($, currentProject)
@@ -2256,7 +2488,7 @@ async function confirmCapture(
     10_000,
     text,
   )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-confirm'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'capture-confirm')
   const confirmed = parseConfirmedResponse(result.stdout, eventId, currentProject.id)
   await archiveRecovered($, currentProject)
   return confirmed
@@ -2309,22 +2541,11 @@ async function listPending(
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-list'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'capture-list')
   return parsePendingList(result.stdout, currentProject.id)
 }
 
-const TIMELINE_KINDS = new Set<string>([
-  'collection-started',
-  'collection-stopped',
-  'collection-resumed',
-  'clear',
-  'run-started',
-  'run-attached',
-  'run-detached',
-  'archive-quarantined',
-  'integrity-gap',
-  'integrity-recovery',
-])
+const TIMELINE_KINDS = new Set<string>(BOUNDARY_KINDS)
 
 /* What an archive written before a Run became a conversation's lineage called
    a process leaving it. */
@@ -2399,10 +2620,23 @@ type TimelineBatch = {
   items: TimelineItem[]
   earlier: boolean
   later: boolean
-  path?: { tip: string; eventIds: string[]; start: number | null }
+  path?: {
+    tip: string
+    eventIds: string[]
+    start: number | null
+    below: string | null
+    /* Only on a read that walked the whole path. */
+    held?: Map<string, { before: number; after: number }>
+  }
   parents: Map<string, string>
   origins: Map<string, string>
+  leading: Map<string, TimelineItem['kind']>
+  runs: Map<string, RunFacts>
+  branches: Map<string, { fold: string; count: number }>
 }
+
+const isCount = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0
+const isSequence = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 1
 
 function parseContext(value: unknown): Map<string, string> {
   if (!Array.isArray(value)) throw new Error('timeline-read')
@@ -2411,6 +2645,49 @@ function parseContext(value: unknown): Map<string, string> {
       throw new Error('timeline-read')
     }
     return [row.eventId, row.runId] as const
+  }))
+}
+
+function parseLeading(value: unknown): Map<string, TimelineItem['kind']> {
+  if (!Array.isArray(value)) throw new Error('timeline-read')
+  return new Map(value.map((row: unknown) => {
+    if (!isRecord(row) || !isSafeId(row.runId) || typeof row.kind !== 'string') {
+      throw new Error('timeline-read')
+    }
+    const kind = row.kind === 'prompt' ? 'prompt' : LEGACY_KINDS.get(row.kind) ?? row.kind
+    if (kind !== 'prompt' && !TIMELINE_KINDS.has(kind)) throw new Error('timeline-read')
+    return [row.runId, kind === 'prompt' ? 'prompt' : 'boundary'] as const
+  }))
+}
+
+function parseRuns(value: unknown): Map<string, RunFacts> {
+  if (!Array.isArray(value)) throw new Error('timeline-read')
+  return new Map(value.map((row: unknown) => {
+    if (!isRecord(row) || !isSafeId(row.runId)) throw new Error('timeline-read')
+    const facts: RunFacts = {}
+    const { before, after } = row
+    if (before !== undefined) {
+      if (
+        !isRecord(before) || !isSafeId(before.eventId) || !isSequence(before.sequence) ||
+        !isSequence(before.last) || !isCount(before.count)
+      ) throw new Error('timeline-read')
+      facts.before = { eventId: before.eventId, sequence: before.sequence, last: before.last, count: before.count }
+    }
+    if (after !== undefined) {
+      if (!isRecord(after) || !isSafeId(after.eventId) || !isCount(after.count)) throw new Error('timeline-read')
+      facts.after = { eventId: after.eventId, count: after.count }
+    }
+    return [row.runId, facts] as const
+  }))
+}
+
+function parseBranches(value: unknown): Map<string, { fold: string; count: number }> {
+  if (!Array.isArray(value)) throw new Error('timeline-read')
+  return new Map(value.map((row: unknown) => {
+    if (!isRecord(row) || !isSafeId(row.eventId) || !isSafeId(row.fold) || !isSequence(row.count)) {
+      throw new Error('timeline-read')
+    }
+    return [row.eventId, { fold: row.fold, count: row.count }] as const
   }))
 }
 
@@ -2424,6 +2701,9 @@ function parseBatch(text: string, projectId: string, tip: string | undefined): T
     later: value.later as boolean,
     parents: parseContext(value.parents),
     origins: parseContext(value.origins),
+    leading: parseLeading(value.leading),
+    runs: parseRuns(value.runs),
+    branches: parseBranches(value.branches),
   }
   if (tip !== undefined) {
     const path = value.path
@@ -2431,9 +2711,24 @@ function parseBatch(text: string, projectId: string, tip: string | undefined): T
       !isRecord(path) ||
       !Array.isArray(path.eventIds) ||
       !path.eventIds.every(isSafeId) ||
-      !(path.start === null || (Number.isSafeInteger(path.start) && (path.start as number) >= 1))
+      !(path.start === null || isSequence(path.start)) ||
+      !(path.below === null || isSafeId(path.below))
     ) throw new Error('timeline-read')
-    batch.path = { tip, eventIds: path.eventIds, start: path.start as number | null }
+    batch.path = {
+      tip,
+      eventIds: path.eventIds,
+      start: path.start as number | null,
+      below: path.below as string | null,
+    }
+    if (path.held !== undefined) {
+      if (!Array.isArray(path.held)) throw new Error('timeline-read')
+      batch.path.held = new Map(path.held.map((row: unknown) => {
+        if (!isRecord(row) || !isSafeId(row.runId) || !isCount(row.before) || !isCount(row.after)) {
+          throw new Error('timeline-read')
+        }
+        return [row.runId, { before: row.before, after: row.after }] as const
+      }))
+    }
   }
   return batch
 }
@@ -2443,6 +2738,21 @@ function currentTip(currentProject: ProjectState): string | undefined {
   if (!startup.runId || !startup.sessionId) return undefined
   const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
   return activeBranch?.key === key ? activeBranch.value.parentEventId ?? undefined : undefined
+}
+
+/* What the window already knows of the path, so the helper walks it only
+   as far as the batch: where it began in this Run, and the entry nearest the
+   batch to walk down from (`-`: the tip; `none`: nothing of it lies there). */
+function pathHints(tip: string, cursor?: readonly ['before' | 'after', number]): string[] {
+  if (!activePath || activePath.tip !== tip) return []
+  const start = activePath.start === null ? 'none' : String(activePath.start)
+  if (cursor?.[0] === 'before') {
+    return [start, activePath.below === undefined ? '-' : activePath.below ?? 'none']
+  }
+  if (cursor?.[0] === 'after') {
+    return [start, activePath.above.find(node => node.sequence > cursor[1])?.eventId ?? '-']
+  }
+  return [start, '-']
 }
 
 /* One fixed batch: the latest, or the one next to an event the window holds. */
@@ -2465,10 +2775,11 @@ async function readBatch(
       ...(cursor ? [cursor[0], String(cursor[1])] : []),
       tip === undefined ? '-' : startup.runId ?? '-',
       tip ?? '-',
+      ...(tip === undefined || !startup.runId ? [] : pathHints(tip, cursor)),
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'timeline-read'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'timeline-read')
   return parseBatch(result.stdout, currentProject.id, tip)
 }
 
@@ -2478,6 +2789,8 @@ function resetWindow(): void {
   timelineEdges = { earlier: false, later: false }
   parentRuns = new Map()
   segmentOrigins = new Map()
+  leadingRows = new Map()
+  runFacts = new Map()
   activePath = undefined
   unread = 0
 }
@@ -2487,20 +2800,36 @@ function resetWindow(): void {
 function boundWindow(grew: 'earlier' | 'later'): void {
   if (timeline.length > WINDOW_LIMIT) {
     if (grew === 'earlier') {
+      const dropped = timeline.slice(WINDOW_LIMIT)
       timeline = timeline.slice(0, WINDOW_LIMIT)
       timelineEdges.later = true
+      /* The path's lowest entry let go of is where a read back down to it
+         walks from. */
+      const lowest = dropped.find(item => activePath?.eventIds.has(item.eventId))
+      if (activePath && lowest) activePath.above.unshift({ eventId: lowest.eventId, sequence: lowest.sequence })
     } else {
+      const dropped = timeline.slice(0, timeline.length - WINDOW_LIMIT)
       timeline = timeline.slice(-WINDOW_LIMIT)
       timelineEdges.earlier = true
+      const highest = dropped.findLast(item => activePath?.eventIds.has(item.eventId))
+      if (activePath && highest) activePath.below = highest.eventId
+      /* Each Run's last row let go of is now its row before the window. */
+      for (const item of dropped) leadingRows.set(item.runId, item.kind)
     }
   }
   const held = new Set(timeline.map(item => item.eventId))
+  const runs = new Set(timeline.map(item => item.runId))
   const parents = new Set(timeline.flatMap(item =>
     item.kind === 'prompt' && item.parentEventId ? [item.parentEventId] : []))
   parentRuns = new Map([...parentRuns].filter(([eventId]) => parents.has(eventId)))
   segmentOrigins = new Map([...segmentOrigins].filter(([eventId]) => held.has(eventId)))
+  leadingRows = new Map([...leadingRows].filter(([runId]) => runs.has(runId)))
+  runFacts = new Map([...runFacts].filter(([runId]) => runs.has(runId)))
   if (activePath) {
     activePath.eventIds = new Set([...activePath.eventIds].filter(eventId => held.has(eventId)))
+    const high = timeline.at(-1)?.sequence ?? 0
+    activePath.above = activePath.above.filter(node => node.sequence > high)
+    activePath.branches = new Map([...activePath.branches].filter(([eventId]) => held.has(eventId)))
   }
 }
 
@@ -2510,6 +2839,7 @@ function mergeBatch(batch: TimelineBatch, at: 'latest' | 'earlier' | 'later'): v
   if (viewGeneration !== undefined && batch.generation !== viewGeneration) resetWindow()
   viewGeneration = batch.generation
   const known = new Set(batch.items.map(item => item.eventId))
+  const runsBefore = new Set(timeline.map(item => item.runId))
   if (at === 'latest') {
     /* What this module instance appended while the read was in flight is
        newer than the batch and stays. */
@@ -2521,6 +2851,8 @@ function mergeBatch(batch: TimelineBatch, at: 'latest' | 'earlier' | 'later'): v
     timelineEdges = { earlier: batch.earlier, later: false }
     parentRuns = new Map()
     segmentOrigins = new Map()
+    leadingRows = new Map(batch.leading)
+    runFacts = new Map()
   } else if (at === 'earlier') {
     timeline = [...batch.items, ...timeline.filter(item => !known.has(item.eventId))]
     timelineEdges.earlier = batch.earlier
@@ -2531,12 +2863,34 @@ function mergeBatch(batch: TimelineBatch, at: 'latest' | 'earlier' | 'later'): v
   timeline.sort((left, right) => left.sequence - right.sequence)
   for (const [eventId, runId] of batch.parents) parentRuns.set(eventId, runId)
   for (const [eventId, runId] of batch.origins) segmentOrigins.set(eventId, runId)
+  /* A batch's `leading` is each Run's row before the batch: before the window
+     too for a Run the window did not hold, or for any Run in a batch read
+     before it. */
+  if (at !== 'latest') {
+    for (const runId of new Set(batch.items.map(item => item.runId))) {
+      if (at === 'later' && runsBefore.has(runId)) continue
+      const kind = batch.leading.get(runId)
+      if (kind) leadingRows.set(runId, kind)
+      else leadingRows.delete(runId)
+    }
+  }
+  for (const [runId, facts] of batch.runs) {
+    const kept = runFacts.get(runId)
+    runFacts.set(runId, { before: facts.before ?? kept?.before, after: facts.after ?? kept?.after })
+  }
   if (batch.path) {
-    const same = at !== 'latest' && activePath?.tip === batch.path.tip
+    /* The same tip keeps what earlier reads placed; a read at the latest end
+       replaces the window, and with it the path's place in it. */
+    const kept = activePath?.tip === batch.path.tip ? activePath : undefined
+    const window = at === 'latest' ? undefined : kept
     activePath = {
       tip: batch.path.tip,
-      eventIds: new Set([...(same ? activePath!.eventIds : []), ...batch.path.eventIds]),
+      eventIds: new Set([...(window?.eventIds ?? []), ...batch.path.eventIds]),
       start: batch.path.start,
+      below: at === 'later' ? kept?.below : batch.path.below,
+      above: window?.above ?? [],
+      held: batch.path.held ?? kept?.held,
+      branches: new Map([...(window?.branches ?? []), ...batch.branches]),
     }
   } else {
     activePath = undefined
@@ -2609,19 +2963,6 @@ async function scrollView($: EngineInterface, by: number): Promise<void> {
   else if (bandTop === last && timelineEdges.later) await extendWindow($, 'later')
 }
 
-/* The title row's way up from the band's bottom, where no scrolling reaches
-   it: a page up, the ring on the title so the arrows walk from there. */
-async function pageUp($: EngineInterface): Promise<void> {
-  await scrollView($, -bandView.capacity)
-  try {
-    if (!(await $.ui.focus({ requestId: bandView.requestId ?? '', key: TITLE_KEY })).deny) {
-      ringKey = TITLE_KEY
-    }
-  } catch {
-    // The ring stays where the press left it.
-  }
-}
-
 /* One arrow press walking the ring: to the neighbouring stop, fetching the
    batch beyond first when the ring stands on the window's last stop that way.
    The view follows the ring, and reaching the window's end stop fetches
@@ -2639,6 +2980,15 @@ async function stepRing($: EngineInterface, by: 1 | -1): Promise<void> {
   if (target === undefined) {
     await scrollView($, by)
     return
+  }
+  /* The title stands above the project's first row: the view follows the
+     ring onto it by showing the rows above the first stop too, so the arrow
+     that reaches it is the one that shows the top. */
+  if (target === TITLE_KEY && bandTop > 0) {
+    bandTop = 0
+    bandAnchor = bandView.rowKeys[0]
+    bandBottom = false
+    $.ui.invalidate('ui.render')
   }
   if (target === TITLE_KEY || bandView.shown.includes(target)) {
     try {
@@ -2671,6 +3021,27 @@ function sendRing($: EngineInterface, requestId: string, key: string, left = RIN
     } catch {
       again()
     }
+  })()
+}
+
+/* Puts the engine's window back on the band's title, where a drawing left
+   it elsewhere: the tree moved under a window that stayed. A seat that did
+   not reach the band's next drawing (refused, failed, or answered `{}` with
+   the window left where it was) has the band drawn again while redraws
+   remain, and that drawing asks again; a drawing on the view ends it. */
+function seatWindow($: EngineInterface, requestId: string, top: number): void {
+  void (async () => {
+    try {
+      await $.ui.scroll({ in: requestId, to: { key: TITLE_KEY }, block: 'start' })
+    } catch {
+      // The window stays; the check below draws the band again.
+    }
+    $.clock.after(SEAT_RETRY_MS, () => {
+      if (seatTop !== top || drawnOffset === top || seatRedraws <= 0) return
+      if (!expanded || cramped || bandView.whole || dialogs > 0 || surveyHeld) return
+      seatRedraws -= 1
+      $.ui.invalidate('ui.render')
+    })
   })()
 }
 
@@ -2845,7 +3216,7 @@ async function abortCapture(
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'capture-abort'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'capture-abort')
   await archiveRecovered($, currentProject)
 }
 
@@ -2905,21 +3276,14 @@ async function reconcilePending(
       /* Only the Run that staged it may chain its own Active Branch onto the
          entry; another Run's branch is not this reconciliation's to move. */
       if (startup.runId === owed.state.runId && startup.sessionId) {
-        const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
-        const settled: BranchState = {
+        await setActiveBranch($, branchKey(currentProject.id, startup.runId, startup.sessionId), {
           version: 1,
           branchId: owed.state.branchId,
           parentEventId: owed.state.eventId,
-        }
-        await $.store.set(key, settled)
-        rememberBranch(key, settled)
+        })
       }
       if (owed.text !== undefined) {
-        appendToWindow($, {
-          kind: 'prompt',
-          eventId: owed.state.eventId,
-          sequence: confirmed.sequence,
-          ordinal: confirmed.ordinal,
+        recordPrompt($, owed.state.eventId, confirmed, {
           runId: owed.state.runId,
           branchId: owed.state.branchId,
           parentEventId: owed.state.parentEventId,
@@ -3001,17 +3365,15 @@ async function reconcilePending(
   if (answer === '新根分支') {
     /* Nothing after an outcome nobody could vouch for is chained onto it. The
        new root is written first: if that write fails the pending is still
-       there, so the block holds and the choice is not silently lost. */
+       there, so the block holds and the choice is not silently lost. Written,
+       it is the session's Active Branch at once, so the band stops showing
+       the abandoned path before the next prompt. */
     if (startup.runId && startup.sessionId) {
       try {
-        await $.store.set(
+        await setActiveBranch(
+          $,
           branchKey(currentProject.id, startup.runId, startup.sessionId),
-          {
-            version: 1,
-            branchId: crypto.randomUUID(),
-            parentEventId: null,
-            explicitRoot: true,
-          } satisfies BranchState,
+          newExplicitRoot(),
         )
       } catch {
         return 'blocked'
@@ -3192,7 +3554,7 @@ async function runBranchMatch(
     10_000,
     rows.stdin,
   )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'branch-match'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'branch-match')
   return result.stdout
 }
 
@@ -3428,20 +3790,20 @@ async function alignBranch(
 type Alignment =
   | { messages: readonly SessionMessage[] }
   | { drop: string }
-  | { failed: string }
+  | { failed: Failure }
 
 async function settleAlignment(
   $: EngineInterface,
   currentProject: ProjectState,
   draft: string,
 ): Promise<Alignment> {
-  if (!startup.runId || !startup.sessionId) return { failed: 'capture-identity' }
+  if (!startup.runId || !startup.sessionId) return { failed: { category: 'capture-identity' } }
   const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
   let messages: readonly SessionMessage[]
   try {
     messages = await $.session.messages()
   } catch {
-    return { failed: 'transcript-unreadable' }
+    return { failed: { category: 'transcript-unreadable' } }
   }
   const settled = () => {
     transcriptMark = { key, mark: markTranscript(messages) }
@@ -3470,7 +3832,7 @@ async function settleAlignment(
        one now in place is its lineage, so it starts over there rather than
        be matched, or put to the person, against it. */
     if (stored?.generation && found.generation !== stored.generation) {
-      const root = await enterNewGeneration($, currentProject, stored.generation)
+      const root = await enterNewGeneration($, currentProject, stored.generation, found.generation)
       settled()
       rememberBranch(root.key, root.value)
       return { messages }
@@ -3481,14 +3843,13 @@ async function settleAlignment(
       const state: BranchState = found.generation
         ? { ...settlement.state, generation: found.generation }
         : settlement.state
-      await $.store.set(key, state)
-      rememberBranch(key, state)
+      await setActiveBranch($, key, state)
       queueAlignment($)
     } else if (settlement.kind === 'keep' && stored) {
       rememberBranch(key, stored)
     }
   } catch (error) {
-    return { failed: failureCategory(error, 'branch-match') }
+    return { failed: failureOf(error, 'branch-match') }
   }
   if (settlement.kind !== 'ask') {
     settled()
@@ -3577,8 +3938,7 @@ async function settleParentChoice(
     const chosen: BranchState = choice.generation && picked.parentEventId !== null
       ? { ...picked, generation: choice.generation }
       : picked
-    await $.store.set(choice.key, chosen)
-    rememberBranch(choice.key, chosen)
+    await setActiveBranch($, choice.key, chosen)
     queueAlignment($)
   } catch {
     choice.settling = undefined
@@ -3633,6 +3993,27 @@ async function markCompacted($: EngineInterface, sessionId: string): Promise<voi
   } catch {
     // Written on the next alignment instead.
   }
+}
+
+/* A root Conversation Branch: nothing before it is its parent. */
+function newRoot(branchId: string = crypto.randomUUID()): BranchState {
+  return { version: 1, branchId, parentEventId: null }
+}
+
+/* A root someone or something chose, which a later transcript does not
+   overrule, in the generation it was started in when that is known. */
+function newExplicitRoot(
+  branchId: string = crypto.randomUUID(),
+  generation?: string | null,
+): BranchState {
+  return { ...newRoot(branchId), explicitRoot: true, ...(generation ? { generation } : {}) }
+}
+
+/* Moves this session's Active Branch: stored first, so a failed write leaves
+   both the store and the band where they were, then remembered. */
+async function setActiveBranch($: EngineInterface, key: string, value: BranchState): Promise<void> {
+  await $.store.set(key, value)
+  rememberBranch(key, value)
 }
 
 function rememberBranch(key: string, value: BranchState): void {
@@ -3696,12 +4077,13 @@ async function runBoundaryEventId(
 async function detachAbandonedRuns(
   $: EngineInterface,
   currentProject: ProjectState,
+  foreign?: ForeignRecords,
 ): Promise<boolean> {
   const host = startup.hostGeneration
   if (!host) return false
   const prefix = lifecyclePrefix(currentProject.id)
   try {
-    for (const record of await foreignLifecycles($, currentProject)) {
+    for (const record of foreign ?? await foreignLifecycles($, currentProject)) {
       const attachment = record.value.attachment
       if (!attachment || attachment.closed || attachment.host !== host) continue
       const abandonedRunId = record.key.slice(prefix.length)
@@ -3722,7 +4104,10 @@ async function detachAbandonedRuns(
           occurredAt: await $.clock.now(),
         },
       )
-      await $.store.set(record.key, await stampGenerations($, currentProject, decision.state))
+      const detached = await stampGenerations($, currentProject, decision.state)
+      await $.store.set(record.key, detached)
+      /* The drain reading these records once goes on from what was written. */
+      record.value = detached
     }
     return true
   } catch {
@@ -3741,13 +4126,14 @@ async function ensureRunAttached(
   $: EngineInterface,
   currentProject: ProjectState,
   forSessionId?: string,
+  foreign?: ForeignRecords,
 ): Promise<boolean> {
   const sessionId = forSessionId ?? startup.sessionId
   const host = startup.hostGeneration
   if (!startup.runId || !sessionId || startup.hostStartedAt === undefined || !host) {
     return false
   }
-  if (!await detachAbandonedRuns($, currentProject)) return false
+  if (!await detachAbandonedRuns($, currentProject, foreign)) return false
   try {
     const state = await loadLifecycle($, currentProject)
     const kind = attachmentOpening(state, host)
@@ -3839,10 +4225,11 @@ async function flushOwnLifecycle(
 async function flushForeignLifecycles(
   $: EngineInterface,
   currentProject: ProjectState,
+  records?: ForeignRecords,
 ): Promise<boolean> {
-  let foreign: { key: string; value: LifecycleState }[]
+  let foreign: ForeignRecords
   try {
-    foreign = await foreignLifecycles($, currentProject)
+    foreign = records ?? await foreignLifecycles($, currentProject)
   } catch {
     return false
   }
@@ -4206,8 +4593,8 @@ async function writeBoundary(
     $.ui.invalidate('ui.render')
   } catch (error) {
     lifecycleFailure = error instanceof Error && SAFE_ERROR_CATEGORIES.has(error.message)
-      ? error.message
-      : 'boundary-append'
+      ? failureOf(error, 'boundary-append')
+      : { category: 'boundary-append' }
     throw error
   }
 }
@@ -4422,7 +4809,7 @@ async function writeIntegrity(
     lifecycleFailure = undefined
     $.ui.invalidate('ui.render')
   } catch (error) {
-    lifecycleFailure = failureCategory(error, 'boundary-append')
+    lifecycleFailure = failureOf(error, 'boundary-append')
     throw error
   }
 }
@@ -4485,8 +4872,17 @@ async function drainLifecycle(
   currentProject: ProjectState,
   recover = true,
 ): Promise<'clear' | 'blocked'> {
+  /* The project's other Runs' records, read once for the whole drain: the
+     detach of a Run this process left and the debts of Runs that have gone
+     both go through them, and every submission drains. */
+  let foreign: ForeignRecords
+  try {
+    foreign = await foreignLifecycles($, currentProject)
+  } catch {
+    return 'blocked'
+  }
   /* Every caller is about to write for this Run, so its start is owed first. */
-  if (!await ensureRunAttached($, currentProject)) return 'blocked'
+  if (!await ensureRunAttached($, currentProject, undefined, foreign)) return 'blocked'
 
   /* A `/clear` this Run saw but never managed to write down. Completing it now
      replays the instant it was seen, not the instant of the retry. */
@@ -4513,7 +4909,7 @@ async function drainLifecycle(
 
   /* Another Run's debts first: they are facts of a process that has already
      gone, and this Run's own start is not ordered ahead of them. */
-  const foreignSettled = await flushForeignLifecycles($, currentProject)
+  const foreignSettled = await flushForeignLifecycles($, currentProject, foreign)
   const ownSettled = await flushOwnLifecycle($, currentProject)
   if (!foreignSettled || !ownSettled) return 'blocked'
   return await recordIntegrityGap($, currentProject, recover) ? 'clear' : 'blocked'
@@ -4547,13 +4943,31 @@ type ArchiveStatus = {
   clearResidual?: number
   clearRunUnderway: boolean
   clearRunResidual?: number
-  quarantined: { name: string; path: string; bytes: number }[]
+  quarantined: QuarantinedArchive[]
   /* How many Integrity gaps the archive holds; null when it cannot say. */
   integrityGaps: number | null
   /* The Runs other live processes hold; null when that cannot be read. */
   liveRuns: string[] | null
   /* The bytes the archive in place takes; null when the helper did not say. */
   archiveBytes: number | null
+}
+
+/* One archive quarantined from the project, as the helper lists it. */
+type QuarantinedArchive = { name: string; path: string; bytes: number }
+
+/* The helper's `quarantined` listing, refused whole as `category` when any
+   member is not what the helper writes. */
+function parseQuarantined(value: unknown, category: string): QuarantinedArchive[] {
+  if (!Array.isArray(value)) throw new Error(category)
+  return value.map((kept: unknown) => {
+    if (
+      !isRecord(kept) ||
+      !isSafeId(kept.name) ||
+      typeof kept.path !== 'string' ||
+      !Number.isSafeInteger(kept.bytes)
+    ) throw new Error(category)
+    return { name: kept.name, path: kept.path, bytes: kept.bytes as number }
+  })
 }
 
 type ArchiveHealth =
@@ -4594,7 +5008,7 @@ async function resetArchiveHealth($: EngineInterface, currentProject: ProjectSta
     startup.helperPath!, command, startup.databaseRoot!, currentProject.id, health.generation,
     ...(health.token ? [health.token] : []), EXPECTED_HELPER_SHA256, String(HELPER_PROTOCOL),
   ], 10_000)
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'archive-health-unknown'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'archive-health-unknown')
   const receipt = parseArchiveHealth(result.stdout, currentProject.id)
   if (receipt.generation !== health.generation || receipt.state === 'unknown') throw new Error('archive-health-unknown')
   return receipt
@@ -4607,11 +5021,18 @@ type SubmitOutcome = { done: PromptSubmitResult } | { blocked: Blocked }
    there. It starts over in the generation now in place: an attach saying
    where it took that generation up, a new root branch no transcript may
    overrule, and nothing owed to the archive it left, whose pending went
-   with it into quarantine. */
+   with it into quarantine.
+
+   The new root names the generation its attach landed in, so its first
+   capture is refused there if yet another quarantine replaced it meanwhile,
+   and the Run starts over once more rather than go on unattached. An attach
+   an earlier try wrote names none: `current`, the generation the caller saw
+   in place, stands in, and at worst costs one more start over. */
 async function enterNewGeneration(
   $: EngineInterface,
   currentProject: ProjectState,
   left: string,
+  current?: string | null,
 ): Promise<{ key: string; value: BranchState }> {
   if (!startup.runId || !startup.sessionId) throw new Error('capture-identity')
   const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
@@ -4619,23 +5040,18 @@ async function enterNewGeneration(
      the same attach on the same branch, and another session of the Run
      leaving that generation writes its own. */
   const derived = `${currentProject.id}:${startup.runId}:${startup.sessionId}:${left}`
-  const root: BranchState = {
-    version: 1,
-    branchId: await sha256(`prompt-trail:generation-root:1:${derived}`),
-    parentEventId: null,
-    explicitRoot: true,
-  }
-  let attached: { eventId: string; sequence: number } | undefined
+  const branchId = await sha256(`prompt-trail:generation-root:1:${derived}`)
+  let attached: { eventId: string; sequence: number; generation: string } | undefined
   try {
-    attached = await appendBoundary($, currentProject, root.branchId, 'run-attached', {
+    attached = await appendBoundary($, currentProject, branchId, 'run-attached', {
       eventId: await sha256(`prompt-trail:run-attached:generation:1:${derived}`),
     })
   } catch (error) {
     /* Written by an earlier try, at another moment: the attach is there. */
     if (failureCategory(error, 'boundary-append') !== 'boundary-conflict') throw error
   }
-  await $.store.set(key, root)
-  rememberBranch(key, root)
+  const root = newExplicitRoot(branchId, attached?.generation ?? current)
+  await setActiveBranch($, key, root)
   await clearReconcile($, currentProject)
   resetWindow()
   timelineLoaded = undefined
@@ -4663,7 +5079,7 @@ async function recheckArchive(
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'integrity-check'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'integrity-check')
   const value: unknown = JSON.parse(result.stdout)
   if (
     !isRecord(value) ||
@@ -4708,7 +5124,7 @@ async function quarantineArchive(
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'quarantine'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'quarantine')
   const value: unknown = JSON.parse(result.stdout)
   if (
     !isRecord(value) ||
@@ -4737,13 +5153,12 @@ async function readArchiveStatus(
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'archive-status'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'archive-status')
   const value: unknown = JSON.parse(result.stdout)
   if (
     !isRecord(value) ||
     value.projectId !== currentProject.id ||
-    typeof value.quarantineUnderway !== 'boolean' ||
-    !Array.isArray(value.quarantined)
+    typeof value.quarantineUnderway !== 'boolean'
   ) throw new Error('archive-status')
   return {
     generation: nullableGeneration(value.generation, 'archive-status'),
@@ -4759,15 +5174,7 @@ async function readArchiveStatus(
     archiveBytes: Number.isSafeInteger(value.archiveBytes) && (value.archiveBytes as number) >= 0
       ? value.archiveBytes as number
       : null,
-    quarantined: value.quarantined.map((kept: unknown) => {
-      if (
-        !isRecord(kept) ||
-        !isSafeId(kept.name) ||
-        typeof kept.path !== 'string' ||
-        !Number.isSafeInteger(kept.bytes)
-      ) throw new Error('archive-status')
-      return { name: kept.name, path: kept.path, bytes: kept.bytes as number }
-    }),
+    quarantined: parseQuarantined(value.quarantined, 'archive-status'),
   }
 }
 
@@ -4778,9 +5185,9 @@ async function holdSubmission(
   currentProject: ProjectState | undefined,
   category: string,
   reason: string,
-  scope?: 'run',
+  options: { scope?: 'run'; generation?: string | undefined } = {},
 ): Promise<SubmitOutcome> {
-  return { blocked: { ...await markUnavailable($, currentProject, category, scope), reason } }
+  return { blocked: { ...await markUnavailable($, currentProject, category, options), reason } }
 }
 
 /* The dialog a held submission waits on. It offers only what spec §13 allows:
@@ -4882,7 +5289,9 @@ async function answerClear(
     }
     return true
   } catch (error) {
-    Object.assign(failure, await markUnavailable($, currentProject, failureCategory(error, 'clear-all')))
+    Object.assign(failure, await markUnavailable($, currentProject, failureCategory(error, 'clear-all'), {
+      generation: failureGeneration(error),
+    }))
     return false
   }
 }
@@ -4910,19 +5319,20 @@ async function answerDamage(
         return true
       }
       const found = await recheckArchive($, currentProject)
-      /* What was checked is what a quarantine now moves: another Run may
-         have replaced the generation this failure first named. */
-      damagedGeneration = found.generation ?? undefined
       if (archiveFailure) {
         archiveFailure.recheck = {
           result: found.result === 'unreadable' ? 'unreadable' : 'damaged',
           problems: found.problems,
         }
       }
-      Object.assign(failure, await markUnavailable($, currentProject, 'archive-integrity'))
+      /* What was checked is what a quarantine now moves: another Run may
+         have replaced the generation this failure first named. */
+      Object.assign(failure, await markUnavailable($, currentProject, 'archive-integrity', {
+        generation: found.generation ?? undefined,
+      }))
       return false
     }
-    let damaged = failure.generation ?? damagedGeneration
+    let damaged = failure.generation
     if (!damaged && (await readArchiveStatus($, currentProject)).quarantineUnderway) {
       /* A quarantine already begun is finished whatever generation is named,
          and nothing may be checked until it is. */
@@ -4947,24 +5357,16 @@ async function answerDamage(
       throw new Error(health.state === 'damaged' ? 'archive-integrity' : 'archive-health-unknown')
     }
     await archiveRecovered($, currentProject, health)
-    damagedGeneration = undefined
-    await enterNewGeneration($, currentProject, damaged)
-    try {
-      const branch = await branchState($, currentProject)
-      const next = { ...branch.value, generation: moved.generation }
-      await $.store.set(branch.key, next)
-      rememberBranch(branch.key, next)
-    } catch {
-      // The next capture names no generation and learns it.
-    }
+    await enterNewGeneration($, currentProject, damaged, moved.generation)
     if (moved.moved) $.ui.toast('Prompt Trail 已把损坏的档案原样隔离，新时间线从空开始；/prompt-history status 可查看隔离位置。')
     return true
   } catch (error) {
     const category = failureCategory(error, choice === 'recheck' ? 'integrity-check' : 'quarantine')
     if (category === 'archive-integrity' || category === 'archive-health-stale' || category === 'archive-health-unknown') {
       await readArchiveState($, currentProject)
-      damagedGeneration = archiveFailure?.generation
-      Object.assign(failure, await markUnavailable($, currentProject, archiveFailure?.category ?? category))
+      Object.assign(failure, await markUnavailable($, currentProject, archiveFailure?.category ?? category, {
+        generation: archiveFailure?.generation,
+      }))
     } else {
       Object.assign(failure, await markUnavailable($, currentProject, category))
     }
@@ -4989,7 +5391,7 @@ type ClearInventory = {
   pending: number | null
   otherLiveRuns: number | null
   files: { name: string; bytes: number }[]
-  quarantined: { name: string; path: string; bytes: number }[]
+  quarantined: QuarantinedArchive[]
 }
 
 function nullableCount(value: unknown): number | null {
@@ -5017,15 +5419,14 @@ async function readClearInventory(
     ],
     10_000,
   )
-  if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'clear-inventory'))
+  if (result.exitCode !== 0) throw helperFailure(result.stderr, 'clear-inventory')
   const value: unknown = JSON.parse(result.stdout)
   if (
     !isRecord(value) ||
     value.projectId !== currentProject.id ||
     typeof value.present !== 'boolean' ||
     typeof value.clearUnderway !== 'boolean' ||
-    !Array.isArray(value.files) ||
-    !Array.isArray(value.quarantined)
+    !Array.isArray(value.files)
   ) throw new Error('clear-inventory')
   return {
     present: value.present,
@@ -5041,15 +5442,7 @@ async function readClearInventory(
       }
       return { name: file.name, bytes: file.bytes as number }
     }),
-    quarantined: value.quarantined.map((kept: unknown) => {
-      if (
-        !isRecord(kept) ||
-        !isSafeId(kept.name) ||
-        typeof kept.path !== 'string' ||
-        !Number.isSafeInteger(kept.bytes)
-      ) throw new Error('clear-inventory')
-      return { name: kept.name, path: kept.path, bytes: kept.bytes as number }
-    }),
+    quarantined: parseQuarantined(value.quarantined, 'clear-inventory'),
   }
 }
 
@@ -5135,6 +5528,8 @@ type Cleared = {
   sessionsFailed: number
   /* Whether the store forgot everything it kept of the cleared history. */
   forgotten: boolean
+  /* Whether a reload still reads this Run's collection mode. */
+  modeKept: boolean
 }
 
 /* What the store kept about the cleared history goes with it: the pending
@@ -5153,7 +5548,6 @@ async function forgetClearedHistory($: EngineInterface, currentProject: ProjectS
     // The mirror cannot authorize a write; helper health is read below.
   }
   await readArchiveState($, currentProject)
-  damagedGeneration = undefined
   archiveStatus = undefined
   /* A `/clear` this Run saw and never recorded belongs to the cleared
      history too. */
@@ -5258,7 +5652,7 @@ async function clearTimeline(
       30_000,
       runs.map(owner => `${owner}\n`).join(''),
     )
-    if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'clear-all'))
+    if (result.exitCode !== 0) throw helperFailure(result.stderr, 'clear-all')
   } catch (error) {
     /* A clear stopped past its cut, whatever stopped it, is unfinished:
        the archive stays unavailable and nothing may call it undone. */
@@ -5282,6 +5676,7 @@ async function clearTimeline(
     !Number.isSafeInteger(value.sessionsFailed)
   ) throw new Error('clear-all')
   const forgotten = value.cleared ? await forgetClearedHistory($, currentProject) : true
+  const modeKept = value.cleared ? await keepRunModeAcrossCut($, currentProject) : true
   return {
     cleared: value.cleared,
     entries: nullableCount(value.entries),
@@ -5289,6 +5684,7 @@ async function clearTimeline(
     quarantined: value.quarantined as number,
     sessionsFailed: value.sessionsFailed as number,
     forgotten,
+    modeKept,
   }
 }
 
@@ -5312,8 +5708,29 @@ function clearedText(cleared: Cleared, damaged: boolean): string {
     ...(cleared.forgotten
       ? []
       : ['部分 Prompt Trail 状态未能清理（不含 prompt 原文）；status 可能仍显示旧的 Collection Boundary 或待写边界。']),
+    ...(cleared.modeKept ? [] : [MODE_NOT_KEPT]),
     CLEAR_BOUNDARY,
   ].join('\n')
+}
+
+const MODE_NOT_KEPT = '当前 Run 仍停用采集，但无法保存 Run collection mode；停用原本只记在已清除的档案里，reload 后会回到默认值。'
+
+/* A disable the store never took was kept by its stop boundary alone, and
+   the cut took that boundary: the mode is written to the store now, or the
+   person is told a reload will not keep it. */
+async function keepRunModeAcrossCut($: EngineInterface, currentProject: ProjectState): Promise<boolean> {
+  if (
+    !startup.runId ||
+    runMode?.key !== runModeKey(currentProject.id, startup.runId) ||
+    runMode.inStore ||
+    runMode.value.mode !== 'disabled'
+  ) return true
+  try {
+    await saveRunMode($, runMode.key, { version: 1, mode: 'disabled' })
+    return true
+  } catch {
+    return false
+  }
 }
 
 /* A clear that cut but left files behind: the archive stays unavailable
@@ -5431,7 +5848,8 @@ async function submitCollected(
      no Prompt Entry, and no archive block standing in its way. */
   let mode: RunModeState
   try {
-    mode = (await loadRunMode($, currentProject)).value
+    /* The archive is asked only once the target is proven, below. */
+    mode = (await loadRunMode($, currentProject, 'skip')).value
   } catch {
     if (currentProject.consent === 'enabled') {
       return holdSubmission($, currentProject, 'run-mode-unreadable', '无法读取当前 Run collection mode')
@@ -5458,7 +5876,7 @@ async function submitCollected(
     if (currentProject.consent === 'enabled') {
       /* Whatever the target lacks is this process's, never the archive's, and
          is named by the reason status reports for it. */
-      return holdSubmission($, undefined, statusValue(startup.reason), '当前不可采集', 'run')
+      return holdSubmission($, undefined, statusValue(startup.reason), '当前不可采集', { scope: 'run' })
     }
     return { done: await next(e) }
   }
@@ -5472,6 +5890,22 @@ async function submitCollected(
   startup.projectPath = currentProject.root
   await readArchiveState($, currentProject)
 
+  /* A switch the store holds no record of is the archive's to say: a stop
+     whose store write failed still keeps the Run disabled. Before consent
+     nothing is collected, so an archive that cannot say yet does not keep the
+     person from being asked. */
+  try {
+    mode = (await loadRunMode($, currentProject, currentProject.consent === 'enabled' ? 'ask' : 'try')).value
+  } catch (error) {
+    if (currentProject.consent === 'enabled') {
+      return holdSubmission(
+        $, currentProject, failureCategory(error, 'run-mode-unreadable'), '无法读取当前 Run collection mode',
+      )
+    }
+    return { done: await next(e) }
+  }
+  if (mode.mode === 'disabled') return { done: await next(e) }
+
   let decision: ConsentDecision | undefined
   try {
     decision = await requestConsent($, currentProject)
@@ -5482,6 +5916,16 @@ async function submitCollected(
   if (decision !== 'enabled') {
     return { done: { drop: '请选择“启用”或“继续但不启用”后再提交。' } }
   }
+  /* A switch read before consent may be a default the archive never
+     confirmed: what is collected now needs the archive's answer. */
+  try {
+    mode = (await loadRunMode($, currentProject, 'ask')).value
+  } catch (error) {
+    return holdSubmission(
+      $, currentProject, failureCategory(error, 'run-mode-unreadable'), '无法读取当前 Run collection mode',
+    )
+  }
+  if (mode.mode === 'disabled') return { done: await next(e) }
 
   /* What an earlier call left unfinished is judged before this one leaves
      its own marker, and before any pending is listed: a call that died after
@@ -5538,6 +5982,7 @@ async function submitCollected(
       currentProject,
       category,
       DAMAGE_FAILURES.has(category) ? '无法完成未决 Pending Capture 的对账' : '无法读取未决的 Pending Capture',
+      { generation: failureGeneration(error) },
     )
   }
   if (settled !== 'clear') {
@@ -5562,8 +6007,9 @@ async function submitCollected(
     return holdSubmission(
       $,
       currentProject,
-      lifecycleFailure ?? 'lifecycle-write',
+      lifecycleFailure?.category ?? 'lifecycle-write',
       '无法补写中断的 Clear Boundary 或 Run 边界',
+      { generation: lifecycleFailure?.generation },
     )
   }
 
@@ -5584,7 +6030,13 @@ async function submitCollected(
   }
   const aligned = await alignBranch($, currentProject, e.text)
   if ('failed' in aligned) {
-    return holdSubmission($, currentProject, aligned.failed, '无法重建 Conversation Branch')
+    return holdSubmission(
+      $,
+      currentProject,
+      aligned.failed.category,
+      '无法重建 Conversation Branch',
+      { generation: aligned.failed.generation },
+    )
   }
   if ('drop' in aligned) return { done: aligned }
 
@@ -5624,7 +6076,13 @@ async function submitCollected(
        so, so this Run stops trusting its earlier "nothing owed" answer and
        asks the archive again on the next submission. */
     pendingDiscovered = false
-    return holdSubmission($, currentProject, failureCategory(error, 'capture-begin'), '无法预写 Pending Capture')
+    return holdSubmission(
+      $,
+      currentProject,
+      failureCategory(error, 'capture-begin'),
+      '无法预写 Pending Capture',
+      { generation: failureGeneration(error) },
+    )
   }
   /* Staged: from here a hook that stops leaves a pending to reconcile rather
      than a prompt nothing records. Unrecorded, the marker still says an
@@ -5641,8 +6099,7 @@ async function submitCollected(
   if (branch.value.generation !== staged.generation) {
     branch = { key: branch.key, value: { ...branch.value, generation: staged.generation } }
     try {
-      await $.store.set(branch.key, branch.value)
-      rememberBranch(branch.key, branch.value)
+      await setActiveBranch($, branch.key, branch.value)
     } catch {
       // Unrecorded, the next capture names no generation and learns it again.
     }
@@ -5672,7 +6129,9 @@ async function submitCollected(
     try {
       await abortCapture($, currentProject, eventId)
     } catch (error) {
-      await markUnavailable($, currentProject, failureCategory(error, 'capture-abort'))
+      await markUnavailable($, currentProject, failureCategory(error, 'capture-abort'), {
+        generation: failureGeneration(error),
+      })
     }
     return { done: result }
   }
@@ -5692,7 +6151,9 @@ async function submitCollected(
     try {
       await abortCapture($, currentProject, eventId)
     } catch (error) {
-      await markUnavailable($, currentProject, failureCategory(error, 'capture-abort'))
+      await markUnavailable($, currentProject, failureCategory(error, 'capture-abort'), {
+        generation: failureGeneration(error),
+      })
     }
     return { done: result }
   }
@@ -5739,22 +6200,15 @@ async function submitCollected(
   try {
     confirmed = await confirmCapture($, currentProject, eventId, finalText)
   } catch (error) {
-    await markUnavailable($, currentProject, failureCategory(error, 'capture-confirm'))
+    await markUnavailable($, currentProject, failureCategory(error, 'capture-confirm'), {
+      generation: failureGeneration(error),
+    })
   }
   try {
     if (!confirmed) throw new Error('capture-confirm')
-    const nextBranch: BranchState = {
-      ...branch.value,
-      parentEventId: eventId,
-    }
-    await $.store.set(branch.key, nextBranch)
-    rememberBranch(branch.key, nextBranch)
+    await setActiveBranch($, branch.key, { ...branch.value, parentEventId: eventId })
     transcriptMark = { key: branch.key, mark: markTranscript(aligned.messages, finalText) }
-    appendToWindow($, {
-      kind: 'prompt',
-      eventId,
-      sequence: confirmed.sequence,
-      ordinal: confirmed.ordinal,
+    recordPrompt($, eventId, confirmed, {
       runId: startup.runId ?? '',
       ...(startup.sessionId ? { segmentId: startup.sessionId } : {}),
       branchId: branch.value.branchId,
@@ -5950,7 +6404,7 @@ function clearSummary(): string {
   }
   if (state.queue.length > 0) {
     parts.push(owedText(state.queue))
-    if (lifecycleFailure) parts.push(`上次补写失败：${statusValue(lifecycleFailure)}`)
+    if (lifecycleFailure) parts.push(`上次补写失败：${statusValue(lifecycleFailure.category)}`)
   }
   if (lifecycleOthers?.queue.length) {
     parts.push(`其他 Run 遗留 ${owedText(lifecycleOthers.queue)}`)
@@ -6039,15 +6493,26 @@ function statusText(): string {
   /* The Run switch and what it actually amounts to are reported together, so a
      Run that is switched on but not collecting never reads as collecting. */
   const collectionMode = collectionModeText()
+  /* A failure of the archive itself that the pending listing met and, as
+     status only displays, did not put on record: the next write meets and
+     records it. */
+  const met = pendingUnknown !== undefined && SHARED_FAILURES.has(pendingUnknown)
+    ? pendingUnknown
+    : undefined
   const archive = archiveFailure
     ? `unavailable · 范围 ${archiveFailure.scope} · 类别 ${archiveFailure.category}${archiveFailure.elsewhere ? ' · 由另一个 Run 报告' : ''}${archiveFailure.recheck ? ` · ${recheckNote(archiveFailure.recheck)}` : ''}`
     : startup.support !== 'supported'
       ? `unknown · ${startup.support}，无法检查档案`
-      /* Once written, until the helper answers that no file stands at the
-         path: a clear, this Run's or another's, leaves none. */
-      : project?.archiveReady && project.databasePath && archiveStatus?.generation !== null
-        ? `ready · ${statusValue(project.databasePath)} · ${archiveSize()}`
-        : 'not created'
+      : met
+        ? `unavailable · 范围 archive · 类别 ${met} · 本次 status 遇到，未记录`
+        /* Once written, until the helper answers that no file stands at the
+           path: a clear, this Run's or another's, leaves none. An
+           `archive-status` that failed is named, never passed over. */
+        : project?.archiveReady && project.databasePath && archiveStatus?.generation !== null
+          ? `ready · ${statusValue(project.databasePath)} · ${archiveSize()}${archiveStatusFailure ? ` · 档案状态不可读（${archiveStatusFailure}）` : ''}`
+          : archiveStatusFailure
+            ? `unknown · 档案状态不可读（${archiveStatusFailure}）`
+            : 'not created'
   const damageChoices = archiveFailure && DAMAGE_FAILURES.has(archiveFailure.category)
     ? ['choices: 重新检查完整性 / 隔离并开始新档案 / 清除全部档案 / 禁用当前 Run 后继续（在下一次提交时选择）']
     : archiveFailure && HEALTH_FAILURES.has(archiveFailure.category)
@@ -6123,6 +6588,36 @@ async function refreshStartup($: EngineInterface): Promise<void> {
       projectPath: runtimeTarget.cwd,
     }
   }
+  await inheritContinuation($)
+}
+
+/* A session the conversation was moved to takes up the branch of the one it
+   came from, and its compaction, but the locator names only that one session.
+   A session that never writes would leave nothing for a session continued
+   from it in turn, so what it takes up is recorded under its own key as soon
+   as the move is proven, not at its first write. No boundary is written: a
+   Run's boundaries still wait for its writes. */
+const inheritedSessions = new Set<string>()
+
+async function inheritContinuation($: EngineInterface): Promise<void> {
+  const { runId, sessionId, continuedFrom } = startup
+  if (startup.support !== 'supported' || !runId || !sessionId || !continuedFrom || !runtimeTarget) return
+  if (inheritedSessions.has(sessionId)) return
+  try {
+    const projectId = project?.id ?? await sha256(await canonicalProjectRoot($, runtimeTarget.cwd))
+    const key = branchKey(projectId, runId, sessionId)
+    if (!storedBranch(await $.store.get(key))) {
+      const source = storedBranch(await $.store.get(branchKey(projectId, runId, continuedFrom)))
+      if (source) await $.store.set(key, source)
+    }
+    if ((await $.store.get(compactedKey(projectId, sessionId))) !== true
+        && (await $.store.get(compactedKey(projectId, continuedFrom))) === true) {
+      await $.store.set(compactedKey(projectId, sessionId), true)
+    }
+    inheritedSessions.add(sessionId)
+  } catch {
+    // Taken up at the session's first write instead, as before.
+  }
 }
 
 /* A session the host started a moment ago can run its hooks before the bridge
@@ -6168,6 +6663,26 @@ async function ensureTimeline($: EngineInterface): Promise<void> {
   } catch {
     // The band shows what this module instance records from here on.
   }
+}
+
+/* A Prompt Entry this process just confirmed, placed in the window at the
+   sequence and ordinal the confirmation answered. */
+function recordPrompt(
+  $: EngineInterface,
+  eventId: string,
+  confirmed: Confirmed,
+  entry: Pick<
+    Extract<TimelineItem, { kind: 'prompt' }>,
+    'runId' | 'segmentId' | 'branchId' | 'parentEventId' | 'text' | 'attachmentCount'
+  >,
+): void {
+  appendToWindow($, {
+    kind: 'prompt',
+    eventId,
+    sequence: confirmed.sequence,
+    ordinal: confirmed.ordinal,
+    ...entry,
+  })
 }
 
 /* Idempotent by event id: a boundary can be appended more than once — the
@@ -6252,7 +6767,9 @@ async function enableCollection($: EngineInterface): Promise<string> {
       if (receipt.state !== 'healthy') throw new Error('archive-integrity')
       await archiveRecovered($, currentProject, receipt)
     } catch (error) {
-      const failure = await markUnavailable($, currentProject, failureCategory(error, 'archive-health-unknown'))
+      const failure = await markUnavailable($, currentProject, failureCategory(error, 'archive-health-unknown'), {
+        generation: failureGeneration(error),
+      })
       return `Prompt Trail 完整复检未能证明档案健康（${failure.category}），未启用采集；当前采集模式未改变。`
     }
     if (archiveFailure?.blocking) {
@@ -6276,7 +6793,9 @@ async function enableCollection($: EngineInterface): Promise<string> {
       return '仍有未决的 Pending Capture 待对账，未启用采集；请先完成对账。'
     }
   } catch (error) {
-    const failure = await markUnavailable($, currentProject, failureCategory(error, 'capture-list'))
+    const failure = await markUnavailable($, currentProject, failureCategory(error, 'capture-list'), {
+      generation: failureGeneration(error),
+    })
     return DAMAGE_FAILURES.has(failure.category)
       ? `Prompt Trail 无法完成未决 Pending Capture 的对账（${failure.category}），未启用采集。${DAMAGE_NEXT_SUBMISSION}`
       : `Prompt Trail 无法读取未决的 Pending Capture（${failure.category}），未启用采集。`
@@ -6287,7 +6806,9 @@ async function enableCollection($: EngineInterface): Promise<string> {
      is emptied first and enable refuses while anything is left in it. */
   if (await drainLifecycle($, currentProject, false) === 'blocked') {
     const failure = lifecycleFailure
-      ? `（${(await markUnavailable($, currentProject, lifecycleFailure)).category}）`
+      ? `（${(await markUnavailable($, currentProject, lifecycleFailure.category, {
+        generation: lifecycleFailure.generation,
+      })).category}）`
       : ''
     return `Prompt Trail 仍有中断的 Clear Boundary 或 Run 边界待补写${failure}，未启用采集。`
   }
@@ -6326,7 +6847,7 @@ async function enableCollection($: EngineInterface): Promise<string> {
       value: {
         version: 1,
         mode: current.value.mode,
-        boundary: { kind: 'collection-stopped', ...stop },
+        boundary: { kind: 'collection-stopped', eventId: stop.eventId, sequence: stop.sequence },
       },
     }
     await saveRunMode($, current.key, current.value)
@@ -6336,21 +6857,25 @@ async function enableCollection($: EngineInterface): Promise<string> {
     ? 'collection-resumed'
     : 'collection-started'
   const branchId = crypto.randomUUID()
-  let appended: { eventId: string; sequence: number }
+  let appended: { eventId: string; sequence: number; generation: string }
   try {
     appended = await appendBoundary($, currentProject, branchId, kind)
   } catch (error) {
-    const failure = await markUnavailable($, currentProject, failureCategory(error, 'boundary-append'))
+    const failure = await markUnavailable($, currentProject, failureCategory(error, 'boundary-append'), {
+      generation: failureGeneration(error),
+    })
     const damage = DAMAGE_FAILURES.has(failure.category) ? DAMAGE_NEXT_SUBMISSION : ''
     return `Prompt Trail 无法写入 Collection Boundary（${failure.category}），未启用采集。${damage}`
   }
 
   try {
     if (startup.runId && startup.sessionId) {
-      const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
-      const root: BranchState = { version: 1, branchId, parentEventId: null, explicitRoot: true }
-      await $.store.set(key, root)
-      rememberBranch(key, root)
+      /* The new root lies in the generation its boundary landed in. */
+      await setActiveBranch(
+        $,
+        branchKey(currentProject.id, startup.runId, startup.sessionId),
+        newExplicitRoot(branchId, appended.generation),
+      )
     }
     await saveRunMode($, current.key, {
       version: 1,
@@ -6385,9 +6910,20 @@ async function disableCollection($: EngineInterface): Promise<string> {
     return 'Prompt Trail 无法证明当前项目身份，未改变 Run collection mode。'
   }
 
-  let current: { key: string; value: RunModeState }
+  /* An in-process `/resume` may have moved this process to another Run. The
+     switch turned off is that Run's, so the locator is read again before it,
+     as a submission does. */
   try {
-    current = await loadRunMode($, currentProject)
+    if ((await $.session.id()) !== startup.sessionId) await refreshStartup($)
+  } catch {
+    // The switch is read for the Run last proven; the target is read again below.
+  }
+
+  let current: { key: string; value: RunModeState; inStore: boolean }
+  try {
+    /* Stopping never waits on the archive: one that cannot say whether an
+       earlier stop holds is stopped again. */
+    current = await loadRunMode($, currentProject, 'try')
   } catch {
     return 'Prompt Trail 无法读取当前 Run collection mode，未改变采集开关。'
   }
@@ -6416,8 +6952,9 @@ async function disableCollection($: EngineInterface): Promise<string> {
       /* The stop is a write of this Run, so the Run's start and whatever it
          already owes land first — after what other Runs owe, where that can
          land. Another Run's stuck debt does not stand in the way of stopping. */
-      if (!await ensureRunAttached($, currentProject)) throw new Error('lifecycle-owed')
-      await flushForeignLifecycles($, currentProject)
+      const foreign = await foreignLifecycles($, currentProject)
+      if (!await ensureRunAttached($, currentProject, undefined, foreign)) throw new Error('lifecycle-owed')
+      await flushForeignLifecycles($, currentProject, foreign)
       if (!await flushOwnLifecycle($, currentProject)) throw new Error('lifecycle-owed')
       /* A gap it owes lands ahead of the stop; its recovery waits for a
          resume, since nothing is collected in between to prove. */
@@ -6444,12 +6981,26 @@ async function disableCollection($: EngineInterface): Promise<string> {
       : {}),
     ...(boundaryRequired && !appended ? { stopBoundaryMissing: true as const } : {}),
   }
+  /* Saved under the Run the boundary was written for: the target read
+     again above may name another Run than the switch read before it. */
+  const key = startup.runId ? runModeKey(currentProject.id, startup.runId) : current.key
   let persisted = true
+  let inStore = current.inStore
   try {
-    await saveRunMode($, current.key, value)
+    await saveRunMode($, key, value)
   } catch {
     persisted = false
-    runMode = { key: current.key, value }
+    /* A record already there would be read back before the stop that
+       landed: it goes, so a reload asks the archive instead. */
+    if (appended && inStore) {
+      try {
+        await $.store.delete(key)
+        inStore = false
+      } catch {
+        // The record stays, and says what it said.
+      }
+    }
+    runMode = { key, value, ...(inStore ? { inStore: true as const } : {}), ...provenIn() }
   }
 
   if (appended) {
@@ -6461,9 +7012,14 @@ async function disableCollection($: EngineInterface): Promise<string> {
     : appended
       ? '已写入 Collection Boundary'
       : '未能写入 Collection Boundary；在它补写成功前 enable 不会恢复采集'
+  /* With no record in the store, a reload asks the archive, where the stop
+     that landed keeps the Run disabled. A record already there is read back
+     instead, and a stop that never landed leaves the archive nothing to say. */
   const persistenceNote = persisted
     ? ''
-    : '；无法保存 Run collection mode，reload 后可能回到默认值'
+    : appended && !inStore
+      ? '；无法保存 Run collection mode，reload 后由档案中的这条 Collection Boundary 保持停用（档案被清除或隔离后会回到默认值）'
+      : '；无法保存 Run collection mode，reload 后可能回到默认值'
   return `当前 Run 已停用采集，${boundaryNote}${persistenceNote}。既有 Prompt Entries、Collection consent 和其他 Run 均未改变。`
 }
 
@@ -6509,7 +7065,7 @@ function bandRows(): BandRow[] {
   )
   const origins = splitOrigins(ordered)
   const forks = forkSources(ordered, parentRuns)
-  const starts = branchStarts(ordered, parentRuns)
+  const starts = branchStarts(ordered, parentRuns, leadingRows)
   const currentKey = project && startup.runId && startup.sessionId
     ? branchKey(project.id, startup.runId, startup.sessionId)
     : undefined
@@ -6519,12 +7075,17 @@ function bandRows(): BandRow[] {
     startup.runId ?? '',
     tip,
     activePath && activePath.tip === tip ? activePath : undefined,
+    runFacts,
   )
+  /* Each fold is drawn at its first member the window holds, whether or not
+     that is its first member of all. */
+  const drawnFolds = new Set<string>()
   const rows = ordered.flatMap((item): BandRow[] => {
     const before: BandRow[] = []
     /* Another Run's fold holds its boundaries too, so it may begin at one. */
     const fold = folds.folded.get(item.eventId)
-    if (fold === item.eventId) {
+    if (fold !== undefined && !drawnFolds.has(fold)) {
+      drawnFolds.add(fold)
       const open = openFolds.has(fold)
       before.push({
         key: `prompt-trail:fold:${fold}`,
@@ -6715,10 +7276,12 @@ function localTime(at: number): string {
 }
 
 /* The person's answer to a Run clear: one confirmation, or a Run clear
-   already under way taken up. */
+   already under way taken up. `changed` says the archive no longer held what
+   an earlier confirmation showed, so this one shows it again. */
 async function askClearRun(
   $: EngineInterface,
   inventory: ClearInventory,
+  changed: boolean,
 ): Promise<'clear' | 'cancelled'> {
   try {
     if (inventory.clearRunUnderway) {
@@ -6736,6 +7299,7 @@ async function askClearRun(
     if (!scope) return 'cancelled'
     const answer = await $.ui.ask(
       [
+        ...(changed ? ['确认期间档案中的记录有了变化，未删除任何内容；以下是最新的范围，请再确认一次。'] : []),
         'Prompt Trail 将永久删除当前 Run 的全部记录。',
         `范围：当前 Run 的整条会话谱系，包括它此前所有进程接入（共 ${scope.attaches} 次）中的记录${scope.startedAt === null ? '' : `，最早一条在 ${localTime(scope.startedAt)}`}。`,
         `${scope.entries} 条 Prompt Entry、${scope.pending} 个 Pending Capture、${scope.events} 条边界事件。`,
@@ -6765,6 +7329,8 @@ type RunCleared = {
   unlinked: number
   /* Whether the store forgot what it kept of this Run's cleared history. */
   forgotten: boolean
+  /* Whether a reload still reads this Run's collection mode. */
+  modeKept: boolean
 }
 
 /* A new root for a branch whose entry a Run clear took. Only the branch
@@ -6773,13 +7339,7 @@ async function rootAfterRunClear(
   $: EngineInterface,
   branch: { key: string; value: BranchState },
 ): Promise<{ key: string; value: BranchState }> {
-  const root: BranchState = {
-    version: 1,
-    branchId: crypto.randomUUID(),
-    parentEventId: null,
-    explicitRoot: true,
-    ...(branch.value.generation ? { generation: branch.value.generation } : {}),
-  }
+  const root = newExplicitRoot(undefined, branch.value.generation)
   await $.store.set(branch.key, root)
   if (branch.key.endsWith(`:${startup.runId}:${startup.sessionId}`)) rememberBranch(branch.key, root)
   return { key: branch.key, value: root }
@@ -6823,11 +7383,12 @@ async function forgetClearedRun($: EngineInterface, currentProject: ProjectState
 }
 
 /* Runs the Run clear the person confirmed, or only finishes one under way.
-   Answers what it removed, or the category it stopped at. */
+   Answers what it removed, or the category it stopped at: the helper begins
+   a new clear only while the archive still holds the counts confirmed. */
 async function clearRun(
   $: EngineInterface,
   currentProject: ProjectState,
-  onlyContinue: boolean,
+  confirmed: RunInventory | 'continue',
 ): Promise<RunCleared> {
   if (!startup.helperPath || !startup.databaseRoot || !startup.runId) {
     throw new Error('capture-identity')
@@ -6844,14 +7405,18 @@ async function clearRun(
         startup.runId,
         EXPECTED_HELPER_SHA256,
         String(HELPER_PROTOCOL),
-        ...(onlyContinue ? ['--continue'] : []),
+        ...(confirmed === 'continue'
+          ? ['--continue']
+          : ['--confirmed', ...[confirmed.entries, confirmed.pending, confirmed.events, confirmed.unlinked].map(String)]),
       ],
       30_000,
     )
-    if (result.exitCode !== 0) throw new Error(safeCategory(result.stderr, 'clear-run'))
+    if (result.exitCode !== 0) throw helperFailure(result.stderr, 'clear-run')
   } catch (error) {
-    /* A Run clear stopped past its cut, whatever stopped it, is unfinished. */
-    if (failureCategory(error, 'clear-run') !== 'clear-run-unfinished') {
+    /* A Run clear stopped past its cut, whatever stopped it, is unfinished;
+       one refused for changed counts stopped before it. */
+    const category = failureCategory(error, 'clear-run')
+    if (category !== 'clear-run-unfinished' && category !== 'clear-run-changed') {
       let underway = false
       try {
         underway = (await readClearInventory($, currentProject)).clearRunUnderway
@@ -6873,9 +7438,13 @@ async function clearRun(
     ![value.entries, value.pending, value.events, value.unlinked].every(counted)
   ) throw new Error('clear-run')
   let forgotten = true
+  let modeKept = true
   if (value.cleared) {
     await archiveRecovered($, currentProject)
-    if (value.ownRun) forgotten = await forgetClearedRun($, currentProject)
+    if (value.ownRun) {
+      forgotten = await forgetClearedRun($, currentProject)
+      modeKept = await keepRunModeAcrossCut($, currentProject)
+    }
     /* What the view drew of the cleared Run is read again. */
     resetWindow()
     timelineLoaded = undefined
@@ -6890,13 +7459,17 @@ async function clearRun(
     events: value.events as number,
     unlinked: value.unlinked as number,
     forgotten,
+    modeKept,
   }
 }
 
 function runClearedText(cleared: RunCleared): string {
-  const kept = cleared.forgotten
-    ? []
-    : ['部分 Prompt Trail 状态未能清理（不含 prompt 原文）；status 可能仍显示旧的 Collection Boundary 或待写边界。']
+  const kept = [
+    ...(cleared.forgotten
+      ? []
+      : ['部分 Prompt Trail 状态未能清理（不含 prompt 原文）；status 可能仍显示旧的 Collection Boundary 或待写边界。']),
+    ...(cleared.modeKept ? [] : [MODE_NOT_KEPT]),
+  ]
   if (cleared.continued && !cleared.ownRun) {
     return [
       '之前确认过的按 Run 清除已完成。当前 Run 的记录未清除；如需清除，请再执行一次 /prompt-history clear-run。',
@@ -6956,25 +7529,46 @@ async function clearRunCommand($: EngineInterface): Promise<string> {
   }
   if (!startup.runId) return 'Prompt Trail 无法确定当前 Run，未清除任何内容。'
   let currentProject: ProjectState
-  let inventory: ClearInventory
   try {
     currentProject = await prepareProject($)
-    inventory = await readClearInventory($, currentProject, startup.runId)
   } catch (error) {
     return `Prompt Trail 无法列出当前 Run 的记录（${failureCategory(error, 'clear-inventory')}），未清除任何内容。`
   }
-  if (inventory.clearUnderway) return runClearRefusal('clear-unfinished')
-  if (!inventory.clearRunUnderway) {
-    if (inventory.quarantined.length > 0) return quarantinedRefusal()
-    const scope = inventory.run
-    if (!scope) return runClearRefusal('archive-integrity')
-    if (scope.entries + scope.pending + scope.events === 0) return '当前 Run 没有可清除的 Prompt Trail 记录。'
+  /* Asked again, with what the archive now holds, whenever the helper finds
+     it no longer holds what the person confirmed. */
+  for (let changed = false; ; changed = true) {
+    let inventory: ClearInventory
+    try {
+      inventory = await readClearInventory($, currentProject, startup.runId)
+    } catch (error) {
+      return `Prompt Trail 无法列出当前 Run 的记录（${failureCategory(error, 'clear-inventory')}），未清除任何内容。`
+    }
+    if (inventory.clearUnderway) return runClearRefusal('clear-unfinished')
+    let confirmed: RunInventory | 'continue' = 'continue'
+    if (!inventory.clearRunUnderway) {
+      if (inventory.quarantined.length > 0) return quarantinedRefusal()
+      const scope = inventory.run
+      if (!scope) return runClearRefusal('archive-integrity')
+      if (scope.entries + scope.pending + scope.events === 0) return '当前 Run 没有可清除的 Prompt Trail 记录。'
+      confirmed = scope
+    }
+    if (await askClearRun($, inventory, changed) !== 'clear') return '已取消，未删除任何内容。'
+    const answer = await runClearConfirmed($, currentProject, confirmed)
+    if (answer !== undefined) return answer
   }
-  if (await askClearRun($, inventory) !== 'clear') return '已取消，未删除任何内容。'
+}
+
+/* What a confirmed Run clear came to, or undefined when the archive no
+   longer held what the person confirmed and nothing was removed. */
+async function runClearConfirmed(
+  $: EngineInterface,
+  currentProject: ProjectState,
+  confirmed: RunInventory | 'continue',
+): Promise<string | undefined> {
   /* A clear begun here, not one taken up: it is this Run's records. */
-  const own = !inventory.clearRunUnderway
+  const own = confirmed !== 'continue'
   try {
-    const cleared = await clearRun($, currentProject, inventory.clearRunUnderway)
+    const cleared = await clearRun($, currentProject, confirmed)
     if (!cleared.cleared) {
       await archiveRecovered($, currentProject)
       return '之前的按 Run 清除已由其他 Run 完成，未删除任何新记录。'
@@ -6982,6 +7576,7 @@ async function clearRunCommand($: EngineInterface): Promise<string> {
     return runClearedText(cleared)
   } catch (error) {
     const category = failureCategory(error, 'clear-run')
+    if (category === 'clear-run-changed') return undefined
     if (category !== 'clear-run-unfinished') {
       if (own && (category === 'helper-call-failed' || category === 'clear-run')
           && await runClearFinished($, currentProject)) {
@@ -7029,12 +7624,14 @@ async function continueRunClear($: EngineInterface, failure: Blocked): Promise<b
     return false
   }
   try {
-    const cleared = await clearRun($, currentProject, true)
+    const cleared = await clearRun($, currentProject, 'continue')
     if (cleared.cleared) $.ui.toast('Prompt Trail 已完成之前确认的按 Run 清除，这次提交继续。')
     else await archiveRecovered($, currentProject)
     return true
   } catch (error) {
-    Object.assign(failure, await markUnavailable($, currentProject, failureCategory(error, 'clear-run')))
+    Object.assign(failure, await markUnavailable($, currentProject, failureCategory(error, 'clear-run'), {
+      generation: failureGeneration(error),
+    }))
     return false
   }
 }
@@ -7083,6 +7680,17 @@ export const register: Register = on => {
       } catch {
         // The band shows what this module instance records from here on.
       }
+    }
+    await inheritContinuation($)
+    /* The bridge may publish a moved conversation's locator only after this
+       runs: the session is looked at once more, a moment later, so one that
+       never submits still hands its branch on. */
+    if (!startup.runId && RETRYABLE_LOCATOR_REASONS.has(startup.reason)) {
+      $.clock.after(LOCATOR_WAIT_MS, () => {
+        void (async () => {
+          if (!startup.runId) await refreshStartup($)
+        })()
+      })
     }
     /* A reload or a resume replays the transcript's rows before this. */
     queueAlignment($)
@@ -7175,6 +7783,7 @@ export const register: Register = on => {
       const loaded = project !== undefined && timelineLoaded === project.id
       await ensureTimeline($)
       expanded = true
+      $.ui.invalidate('ui.render')
       await saveExpanded($)
       queueAlignment($)
       /* Opening always shows the latest events. */
@@ -7190,7 +7799,13 @@ export const register: Register = on => {
       if (startup.support !== 'unsupported target') {
         try {
           const currentProject = await prepareProject($)
-          await loadRunMode($, currentProject)
+          try {
+            await loadRunMode($, currentProject)
+          } catch {
+            /* An archive that cannot say what the store does not know leaves
+               the mode unknown; the rest of the report stands. */
+            if (runMode?.provisional) runMode = undefined
+          }
           await loadLifecycle($, currentProject)
           await foreignLifecycles($, currentProject)
           unsettledCalls = 0
@@ -7199,6 +7814,7 @@ export const register: Register = on => {
             if (owner && owner.runOf === startup.runId && !liveCalls.has(owner.call)) unsettledCalls += 1
           }
           archiveStatus = undefined
+          archiveStatusFailure = undefined
           /* Only a helper the preflight vouched for is run: one found missing,
              changed or untrusted is never executed, and what it would have
              said of the archive and its pendings stays unknown. */
@@ -7212,8 +7828,10 @@ export const register: Register = on => {
               if (archiveStatus.clearRunUnderway) {
                 archiveStatus.clearRunResidual = runResidue(await readClearInventory($, currentProject)).length
               }
-            } catch {
-              // Reported as unknown; the rest of the report stands.
+            } catch (error) {
+              /* Reported as unknown, never as ready; the rest of the report
+                 stands. */
+              if (!archiveStatus) archiveStatusFailure = failureCategory(error, 'archive-status')
             }
             /* Best effort: a pending this Run has not met yet still blocks it,
                so status says so rather than reading as healthy. A failure here
@@ -7350,12 +7968,13 @@ export const register: Register = on => {
     )
   })
 
-  /* While rows lie below the view, the band's tree is taller than the
+  /* While rows lie outside the view, the band's tree is taller than the
      engine's window, so the engine hands the person's wheel, trackpad and
      scroll keys here, arrows included, instead of moving the ring itself.
-     The window is never passed on and stays at offset 0 under the title; the
-     band's own view moves instead, and an arrow key (a step of one row, no
-     pointer) while the ring is on the band walks the ring. */
+     The person's moves are never passed on: the band's own view moves
+     instead, and the window follows it onto the title once drawn (the
+     band's own `$.ui.scroll`, passed on). An arrow key (a step of one row,
+     no pointer) while the ring is on the band walks the ring. */
   on('ui.scroll', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.origin.kind !== 'person' || !expanded || dialogs > 0 || surveyHeld) return next(e)
     const arrow = e.pointer === undefined && Math.abs(e.by) === 1
@@ -7368,28 +7987,26 @@ export const register: Register = on => {
     return {}
   })
 
-  /* While the tree fits (the band resting at the window's end), the engine
-     walks the ring itself and wraps it at both ends. The band takes the
-     moves that leave the rows shown: up off the first row, or from the title
-     round to the last row, moves the view up; down from the last row round
-     to the title goes on only to a later batch. A click or Tab can still
-     land the ring on the window's end row, which fetches ahead. */
+  /* While every row shows (the tree fits), the engine walks the ring itself
+     and wraps it at both ends. The band refuses the wraps, except toward a
+     batch beyond the window: up off the first row, or from the title round
+     to the last row, fetches the earlier batch; down from the last row round
+     to the title, the later one. A click or Tab can still land the ring on
+     the window's end row, which fetches ahead. */
   on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (dialogs > 0 || surveyHeld) return next(e)
-    if (e.origin.kind === 'person' && expanded && bandView.fits && ringKey !== undefined) {
-      const showing = bandView.stops.filter(key => bandView.shown.includes(key))
-      const hiddenAbove = bandView.shown[0] !== bandView.rowKeys[0] || timelineEdges.earlier
-      const onTitle = e.element === TITLE_KEY || e.element === EARLIER_HINT_KEY
-      if (hiddenAbove && onTitle && ringKey === showing[0]) {
+    if (e.origin.kind === 'person' && expanded && bandView.whole && ringKey !== undefined) {
+      const { stops } = bandView
+      if (timelineEdges.earlier && e.element === TITLE_KEY && ringKey === stops[0]) {
         await stepRing($, -1)
         return {}
       }
-      if (ringKey === TITLE_KEY && e.element === showing.at(-1)) {
-        if (!hiddenAbove) return { deny: 'the band does not wrap' }
+      if (ringKey === TITLE_KEY && e.element === stops.at(-1)) {
+        if (!timelineEdges.earlier) return { deny: 'the band does not wrap' }
         await scrollView($, -1)
         return {}
       }
-      if (ringKey === showing.at(-1) && e.element === TITLE_KEY) {
+      if (ringKey === stops.at(-1) && e.element === TITLE_KEY) {
         if (!timelineEdges.later) return { deny: 'the band does not wrap' }
         await stepRing($, 1)
         return {}
@@ -7444,6 +8061,8 @@ export const register: Register = on => {
       && project?.consent === 'enabled'
       && runMode?.value.mode !== 'disabled'
     if (!expanded) {
+      /* Opened again, the band owes its window a seat afresh. */
+      seatTop = undefined
       return (
         <Button
           key="prompt-trail:toggle"
@@ -7460,6 +8079,7 @@ export const register: Register = on => {
     if (e.props.bodyColumns + BAND_MARK_CELLS < 28 || e.props.maxRows < 6) {
       if (!cramped) crampedRing = ringKey
       cramped = true
+      seatTop = undefined
       return (
         <Button
           key="prompt-trail:toggle"
@@ -7480,29 +8100,25 @@ export const register: Register = on => {
     const width = Math.max(1, e.props.bodyColumns)
     /* The view: as many rows as fit under the title (and the new-entry row),
        resting on the last row while it follows, else where its first row
-       was, moved just enough to show a row the ring is headed for. A view
-       with rows below it draws a blank row for each, so the tree is taller
-       than the band and the engine hands the person's scrolling here, the
-       blanks under the engine's `n more` row. One reaching the window's end
-       draws none: the tree fits, with a row more than a scrolling view has
-       room for, and the engine counts nothing below it. */
+       was, moved just enough to show a row the ring is headed for. A window
+       with at most one row more than that shows whole: the tree fits.
+       Otherwise a blank row stands above the title for each row above the
+       view, and below it for each row below, so the tree is taller than the
+       band and the engine hands the person's scrolling here, at the bottom
+       too. The engine's window rests on the title, and its `↑ n more · ↓ n
+       more` row counts the rows above and below the view. */
     const layout = (hint: boolean) => {
       const capacity = Math.max(1, e.props.maxRows - 2 - (hint ? 1 : 0))
-      const last = Math.max(0, rows.length - capacity)
+      if (rows.length <= capacity + 1) {
+        return { capacity, top: 0, size: rows.length, whole: true, bottom: !timelineEdges.later }
+      }
+      const last = rows.length - capacity
       const anchored = bandAnchor === undefined ? -1 : rows.findIndex(row => row.key === bandAnchor)
       let top = bandBottom ? last : Math.min(Math.max(anchored >= 0 ? anchored : bandTop, 0), last)
       const heading = pendingFocus === undefined ? -1 : rows.findIndex(row => row.key === pendingFocus)
       if (heading >= 0 && heading < top) top = heading
       if (heading >= top + capacity) top = heading - capacity + 1
-      const fits = rows.length - top <= capacity + 1
-      if (fits) top = Math.max(0, rows.length - capacity - 1)
-      return {
-        capacity,
-        top,
-        size: fits ? capacity + 1 : capacity,
-        fits,
-        bottom: !timelineEdges.later && fits,
-      }
+      return { capacity, top, size: capacity, whole: false, bottom: !timelineEdges.later && top === last }
     }
     let view = layout(unread > 0)
     if (view.bottom && unread > 0) {
@@ -7520,7 +8136,7 @@ export const register: Register = on => {
       stops,
       capacity: view.capacity,
       shown: shownKeys,
-      fits: view.fits,
+      whole: view.whole,
     }
     /* A ring whose row the view scrolled away follows it onto the nearest
        row still shown. */
@@ -7530,42 +8146,53 @@ export const register: Register = on => {
       const showing = stops.filter(key => shownKeys.includes(key))
       pendingFocus = above ? showing[0] : showing.at(-1)
     }
+    /* The window follows the view onto the title before the ring moves. A
+       view the window is not yet on is owed a seat, with its redraws while
+       the seat is for a new view; a drawing on the view settles it. */
+    drawnOffset = e.props.scroll.offset
+    if (!view.whole && drawnOffset !== view.top) {
+      if (seatTop !== view.top) {
+        seatTop = view.top
+        seatRedraws = SEAT_REDRAWS
+      }
+      const top = view.top
+      $.clock.after(0, () => seatWindow($, e.requestId, top))
+    } else {
+      seatTop = undefined
+    }
     const focusTo = pendingFocus !== undefined && shownKeys.includes(pendingFocus) ? pendingFocus : undefined
+    const owed = ringOwed
+    ringOwed = undefined
     if (focusTo !== undefined) {
       pendingFocus = undefined
       ringKey = focusTo
+      ringOwed = focusTo
       $.clock.after(0, () => sendRing($, e.requestId, focusTo))
+      $.clock.after(RING_CONFIRM_MS, () => {
+        if (ringOwed === focusTo && ringKey === focusTo && expanded) $.ui.invalidate('ui.render')
+      })
+    } else if (owed !== undefined && owed === ringKey && shownKeys.includes(owed)) {
+      $.clock.after(0, () => sendRing($, e.requestId, owed))
     }
     const lastShownStop = stops.filter(key => shownKeys.includes(key)).at(-1)
     const below = rows.length - view.top - shown.length
-    /* The title row: while rows lie above the view, a click that takes it up
-       a page (resting at the window's end the engine sends the band no
-       scrolling at all, so it says so); then how to give the band the
-       keyboard, which reads true whoever holds it now. The hint goes whole
-       or not at all, before the way up is cut. */
-    const upLabel = view.top > 0 || timelineEdges.earlier
-      ? (view.fits ? '↑ 点此向上浏览 · 底部不响应触控板' : '↑ 点此向上浏览')
-      : undefined
-    /* A count crowding out the way up leaves the title: it still shows on the
-       row that takes the view back down. */
-    let title = unread > 0 ? `▾ Prompt Trail · ${unread} 条新条目` : '▾ Prompt Trail'
-    if (upLabel !== undefined && width - textCells(title) < 2 + UP_MIN_CELLS) title = '▾ Prompt Trail'
-    title = clipCells(title, width)
+    /* The title row: the count of new entries, then how to give the band
+       the keyboard, which reads true whoever holds it now; the hint goes
+       whole or not at all. */
+    const title = clipCells(unread > 0 ? `▾ Prompt Trail · ${unread} 条新条目` : '▾ Prompt Trail', width)
     let room = width - textCells(title)
-    const up = upLabel === undefined || room < 2 + UP_MIN_CELLS ? undefined : clipCells(upLabel, room - 2)
-    if (up !== undefined) room -= 2 + textCells(up)
     const focusHint = stops.length > 0 && room >= 2 + textCells(FOCUS_HINT)
     if (focusHint) room -= 2 + textCells(FOCUS_HINT)
     /* The first thing a narrow row gives up: status still says it. */
     const mark = unavailableShown && room >= 2 + textCells(UNAVAILABLE_MARK)
     return (
       <Box flexDirection="column">
-        {up !== undefined || focusHint || mark ? (
+        {Array.from({ length: view.top }, (_, index) => (
+          <Text key={`prompt-trail:above:${index}`}> </Text>
+        ))}
+        {focusHint || mark ? (
           <Box flexDirection="row" gap={2}>
             <Button key="prompt-trail:toggle" plain label={title} onPress={toggle} />
-            {up !== undefined ? (
-              <Button key={EARLIER_HINT_KEY} plain dimColor label={up} onPress={() => pageUp($)} />
-            ) : null}
             {focusHint ? <Text dimColor>{FOCUS_HINT}</Text> : null}
             {mark ? <Text color="yellow">{UNAVAILABLE_MARK}</Text> : null}
           </Box>

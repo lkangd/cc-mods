@@ -4,9 +4,12 @@ import type { Engine, MockClock } from 'claude-code/testing'
 import { TITLE_KEY, arrowStep } from '../hooks/band'
 import { branchStarts, foldTimeline, forkSources } from '../hooks/branch'
 import type { ArchiveRow, ProcessCall } from './support'
+import { EXPECTED_HELPER_SHA256 } from '../hooks/artifact'
 import {
   BAND_ID,
   composerPrompt,
+  consentedStore,
+  helperPath,
   installSupportedTarget,
   projectId,
   promptHistory,
@@ -25,10 +28,6 @@ const otherSessionId = '31313131-4242-4353-8464-757575757575'
 const branchId = 'dddddddd-eeee-4fff-8000-111111111111'
 /* Two batches and the overscan row. */
 const WINDOW_LIMIT = 257
-
-function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' } }
-}
 
 function entry(sequence: number, fields: Partial<ArchiveRow> = {}): ArchiveRow {
   return {
@@ -50,14 +49,23 @@ function archiveOf(count: number): ArchiveRow[] {
     entry(index + 1, index === 0 ? { parentEventId: null } : { parentEventId: entry(index).eventId }))
 }
 
-type Band = { keys: string[]; prompts: string[]; labels: string[]; rows: number; text: string }
+type Band = {
+  keys: string[]
+  prompts: string[]
+  labels: string[]
+  rows: number
+  above: number
+  below: number
+  text: string
+}
 
-/* The keyed rows the band drew, in order; Prompt Entries by their labels,
-   the title row's way up left out of them.
+/* The keyed rows the band drew, in order; Prompt Entries by their labels.
    A Text keeps no key in the drawn tree, so `rows` counts every row and
-   `text` holds what they say. The archived entries here are none of this
-   transcript's rows, so each is marked ×; a label leaves the mark out, which
-   is Issue 22's to test. */
+   `text` holds what they say. `above` and `below` count the blank rows
+   before the title and after the last row: every row of the band here is a
+   Button, so they are the leading and trailing Texts. The archived entries
+   here are none of this transcript's rows, so each is marked ×; a label
+   leaves the mark out, which is Issue 22's to test. */
 function band(tree: unknown): Band {
   const keys: string[] = []
   const labels: string[] = []
@@ -67,7 +75,7 @@ function band(tree: unknown): Band {
     const { props, children } = node as { props?: Record<string, unknown>; children?: unknown }
     if (typeof props?.key === 'string') {
       keys.push(props.key)
-      if (typeof props.label === 'string' && props.key !== EARLIER_HINT) {
+      if (typeof props.label === 'string') {
         labels.push(props.label.replace(/^× /, ''))
       }
     }
@@ -75,11 +83,17 @@ function band(tree: unknown): Band {
   }
   walk(tree)
   const root = tree as { children?: unknown[] } | undefined
+  const kids = (root?.children ?? []) as { type?: string }[]
+  const blank = (kid: { type?: string }) => kid.type === 'Text'
+  const firstDrawn = kids.findIndex(kid => !blank(kid))
+  const lastDrawn = kids.findLastIndex(kid => !blank(kid))
   return {
     keys,
     prompts: keys.filter(key => key.startsWith('prompt-trail:prompt:')),
     labels,
-    rows: root?.children?.length ?? 0,
+    rows: kids.length,
+    above: firstDrawn < 0 ? 0 : firstDrawn,
+    below: lastDrawn < 0 ? 0 : kids.length - 1 - lastDrawn,
     text: JSON.stringify(tree),
   }
 }
@@ -102,8 +116,9 @@ function focusRow($: Engine, key: string) {
 
 /* The person's wheel or trackpad over the band, or with `keys` the engine's
    scroll keys, an arrow being a step of one. The engine sends these only
-   while the band's tree is taller than it, a blank row standing for each row
-   below the view; its window never leaves offset 0. */
+   while the band's tree is taller than it, blank rows standing for the rows
+   above and below the view; where its window lands is the terminal
+   acceptance's (the test engine lays nothing out). */
 function scrollBand($: Engine, by: number, input: 'wheel' | 'keys' = 'wheel') {
   return $.ui.scroll({
     component: 'AbovePrompt',
@@ -119,9 +134,6 @@ function scrollBand($: Engine, by: number, input: 'wheel' | 'keys' = 'wheel') {
 
 /* A band tall enough to show the whole window at once. */
 const WHOLE = { maxRows: 400 }
-/* The title row's button that takes the band up from its bottom, where the
-   engine sends it no scrolling. */
-const EARLIER_HINT = 'prompt-trail:earlier-hint'
 
 test('the band opens on the latest batch and one earlier entry, numbered in the project', async ($, on) => {
   const calls = installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600) })
@@ -136,20 +148,25 @@ test('the band opens on the latest batch and one earlier entry, numbered in the 
   expect(reads(calls).every(argv => !argv.includes('before') && !argv.includes('after'))).toBe(true)
 })
 
-test('at the bottom the band fits whole under its title, with nothing counted below', async ($, on) => {
+test('at the bottom a blank row stands above the title for each row above the view', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600) })
   await $.session.start(session)
   await promptHistory($)
 
   const drawn = band(await renderBand($, { maxRows: 12 }))
 
+  /* The engine's `↑ n more` row takes the last of its `maxRows`: the title
+     and ten rows show, and the 119 rows from 472 to 590 are what it counts.
+     The tree is taller than the band, so the trackpad reaches it here too. */
   expect(drawn.keys[0]).toBe('prompt-trail:toggle')
-  expect(drawn.rows).toBe(12)
-  expect(drawn.prompts).toHaveLength(11)
+  expect(drawn.prompts).toHaveLength(10)
   expect(drawn.labels.at(-1)).toBe('600. PT-SECRET-OLD-600')
+  expect(drawn.above).toBe(119)
+  expect(drawn.below).toBe(0)
+  expect(drawn.rows).toBe(119 + 1 + 10)
 })
 
-test('away from the bottom a blank row stands for each row below the view', async ($, on) => {
+test('away from the bottom blank rows stand for the rows above and below the view', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600) })
   await $.session.start(session)
   await promptHistory($)
@@ -158,28 +175,101 @@ test('away from the bottom a blank row stands for each row below the view', asyn
   await scrollBand($, -20)
   const drawn = band(await renderBand($, { maxRows: 12 }))
 
-  /* The engine's `n more` row takes the last of its `maxRows`: the title and
-     ten rows show, and the 21 rows from 580 to 600 are what it counts. */
+  /* `↑ 99 more · ↓ 20 more`: 472 to 570 above, 581 to 600 below. */
   expect(drawn.keys[0]).toBe('prompt-trail:toggle')
   expect(drawn.prompts).toHaveLength(10)
-  expect(drawn.labels.at(-1)).toBe('579. PT-SECRET-OLD-579')
-  expect(drawn.rows).toBe(1 + 10 + 21)
+  expect(drawn.labels.at(-1)).toBe('580. PT-SECRET-OLD-580')
+  expect(drawn.above).toBe(99)
+  expect(drawn.below).toBe(20)
+  expect(drawn.rows).toBe(99 + 1 + 10 + 20)
 })
 
-test('at the bottom with rows above, the title row says the trackpad needs the band moved first', async ($, on) => {
+test('at the bottom the trackpad moves the view up a row', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600) })
   await $.session.start(session)
   await promptHistory($)
-  expect(band(await renderBand($, { maxRows: 12 })).keys).toContain(EARLIER_HINT)
+  await renderBand($, { maxRows: 12 })
 
-  await $.ui.press({ plugin: 'prompt-trail', key: EARLIER_HINT })
+  await scrollBand($, -1)
   const drawn = band(await renderBand($, { maxRows: 12 }))
 
-  expect(drawn.rows).toBeGreaterThan(12)
-  expect(drawn.labels.at(-1)).not.toBe('600. PT-SECRET-OLD-600')
-  /* Away from the bottom the trackpad reaches the band, and the title row
-     no longer says it does not. */
-  expect(drawn.text).not.toContain('底部不响应触控板')
+  expect(drawn.labels.at(-1)).toBe('599. PT-SECRET-OLD-599')
+  expect(drawn.above).toBe(118)
+  expect(drawn.below).toBe(1)
+})
+
+/* PT-UI-002/004/006 on 2.1.290: the engine places the band's seat of its
+   window against the layout the terminal last reported, so right after the
+   band opens from its folded row the seat lands nowhere, answers `{}` and
+   nothing draws again. Here every drawing is handed the window at the top
+   (offset 0) while the view rests 119 rows down, as a seat that never lands;
+   the host draws the band again only when asked to. */
+test('a seat that leaves the window off the view draws the band again, a bounded number of times', async ($, on) => {
+  const invalidations: string[] = []
+  on('ui.invalidate', (_$, e, next) => {
+    invalidations.push(e.event)
+    return next(e)
+  })
+  let clock: MockClock | undefined
+  installSupportedTarget(on, {
+    store: consentedStore(),
+    archive: archiveOf(600),
+    onClock: mocked => { clock = mocked },
+  })
+  await $.session.start(session)
+  await promptHistory($)
+  invalidations.length = 0
+
+  await renderBand($, { maxRows: 12 })
+  const counts: number[] = []
+  for (let round = 0; round < 10; round++) {
+    const before = invalidations.length
+    await clock!.advance(1000)
+    counts.push(invalidations.length)
+    if (invalidations.length > before) await renderBand($, { maxRows: 12 })
+  }
+
+  expect(invalidations.every(event => event === 'ui.render')).toBe(true)
+  expect(counts[0]).toBe(1)
+  expect(counts.at(-1)).toBeGreaterThan(1)
+  expect(counts.at(-1)).toBeLessThan(10)
+  expect(counts.at(-1)).toBe(counts.at(-2))
+
+  /* Folded and opened again, the band seats its window afresh. */
+  await promptHistory($)
+  await renderBand($, { maxRows: 12 })
+  await promptHistory($)
+  invalidations.length = 0
+  await renderBand($, { maxRows: 12 })
+  await clock!.advance(1000)
+  expect(invalidations).toEqual(['ui.render'])
+})
+
+test('a drawing with the window on the view ends the seat\'s redraws', async ($, on) => {
+  const invalidations: string[] = []
+  on('ui.invalidate', (_$, e, next) => {
+    invalidations.push(e.event)
+    return next(e)
+  })
+  let clock: MockClock | undefined
+  installSupportedTarget(on, {
+    store: consentedStore(),
+    archive: archiveOf(600),
+    onClock: mocked => { clock = mocked },
+  })
+  await $.session.start(session)
+  await promptHistory($)
+  invalidations.length = 0
+
+  await renderBand($, { maxRows: 12 })
+  await clock!.advance(1000)
+  expect(invalidations).toEqual(['ui.render'])
+
+  /* The second seat landed: the window now starts on the view's 119 blank
+     rows, the title on its first row. */
+  await renderBand($, { maxRows: 12, offset: 119 })
+  await clock!.advance(5000)
+  expect(invalidations).toEqual(['ui.render'])
 })
 
 test('a band whose rows all fit draws no blank rows', async ($, on) => {
@@ -191,7 +281,18 @@ test('a band whose rows all fit draws no blank rows', async ($, on) => {
 
   expect(drawn.rows).toBeLessThanOrEqual(12)
   expect(drawn.rows).toBe(drawn.keys.length)
-  expect(drawn.keys).not.toContain(EARLIER_HINT)
+})
+
+test('a window one row longer than a scrolling view shows whole, with nothing hidden or counted', async ($, on) => {
+  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(11) })
+  await $.session.start(session)
+  await promptHistory($)
+
+  const drawn = band(await renderBand($, { maxRows: 12 }))
+
+  expect(drawn.rows).toBe(12)
+  expect(drawn.prompts).toHaveLength(11)
+  expect(drawn.above + drawn.below).toBe(0)
 })
 
 test('scrolling to the top of the window loads the batch before it without moving the view', async ($, on) => {
@@ -209,6 +310,21 @@ test('scrolling to the top of the window loads the batch before it without movin
   /* The view still starts on the window's former first row. */
   expect(drawn.labels[1]).toBe('472. PT-SECRET-OLD-472')
   expect(band(await renderBand($, WHOLE)).labels).toContain('343. PT-SECRET-OLD-343')
+})
+
+test('scrolling to the top of the window runs no helper that changed since the band opened', async ($, on) => {
+  const helperDigest = { value: EXPECTED_HELPER_SHA256 }
+  const calls = installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600), helperDigest })
+  await $.session.start(session)
+  await promptHistory($)
+  await renderBand($, { maxRows: 12 })
+
+  helperDigest.value = 'f'.repeat(64)
+  const ranBefore = calls.length
+  await scrollBand($, -100)
+  await scrollBand($, -100)
+
+  expect(calls.slice(ranBefore).filter(call => call.argv[0] === helperPath)).toStrictEqual([])
 })
 
 test('scrolling alone walks to the first event and back to the latest, never holding more than the window', async ($, on) => {
@@ -238,6 +354,47 @@ test('scrolling alone walks to the first event and back to the latest, never hol
   expect(JSON.stringify(drawn)).not.toMatch(/第 \d+ 页|page/i)
 })
 
+test('walking this Run\'s path both ways, each read walks it from an entry next to the batch', async ($, on) => {
+  const archive = archiveOf(1_000).map(row => ({ ...row, runId }))
+  const bySequence = new Map(archive.map(row => [row.eventId, row.sequence]))
+  const calls = installSupportedTarget(on, {
+    store: {
+      ...consentedStore(),
+      [`prompt-trail:branch:${projectId}:${runId}:${sessionId}`]: {
+        version: 1,
+        branchId,
+        parentEventId: archive.at(-1)!.eventId,
+      },
+    },
+    archive,
+    transcript: [],
+  })
+  await $.session.start(session)
+  await promptHistory($)
+
+  let drawn = band(await renderBand($, { maxRows: 12 }))
+  for (let step = 0; step < 40 && drawn.labels[1] !== '1. PT-SECRET-OLD-1'; step += 1) {
+    await scrollBand($, -200)
+    drawn = band(await renderBand($, { maxRows: 12 }))
+  }
+  for (let step = 0; step < 40 && drawn.labels.at(-1) !== '1000. PT-SECRET-OLD-1000'; step += 1) {
+    await scrollBand($, 200)
+    drawn = band(await renderBand($, { maxRows: 12 }))
+  }
+
+  expect(drawn.labels.at(-1)).toBe('1000. PT-SECRET-OLD-1000')
+  const cursors = reads(calls).filter(argv => argv[0] === 'before' || argv[0] === 'after')
+  expect(cursors.filter(argv => argv[0] === 'after').length).toBeGreaterThan(2)
+  for (const argv of cursors) {
+    const [direction, cursor, , , start, from] = argv
+    expect(start).toBe('1')
+    /* Below the window for an earlier batch, above it for a later one; the
+       first entry's batch has nothing of the path below it. */
+    if (direction === 'before') expect(from === 'none' || bySequence.get(from!)! < Number(cursor)).toBe(true)
+    else expect(bySequence.get(from!)!).toBeGreaterThan(Number(cursor))
+  }
+})
+
 test('the engine\'s scroll keys move the view the same way', async ($, on) => {
   installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600) })
   await $.session.start(session)
@@ -247,7 +404,7 @@ test('the engine\'s scroll keys move the view the same way', async ($, on) => {
   await scrollBand($, -11, 'keys')
   const drawn = band(await renderBand($, { maxRows: 12 }))
 
-  expect(drawn.labels.at(-1)).toBe('588. PT-SECRET-OLD-588')
+  expect(drawn.labels.at(-1)).toBe('589. PT-SECRET-OLD-589')
 })
 
 test('an arrow off the first row shown moves the view up one row', async ($, on) => {
@@ -257,55 +414,37 @@ test('an arrow off the first row shown moves the view up one row', async ($, on)
   await renderBand($, { maxRows: 12 })
   await scrollBand($, -5)
   const drawn = band(await renderBand($, { maxRows: 12 }))
-  expect(drawn.labels[1]).toBe('585. PT-SECRET-OLD-585')
+  expect(drawn.labels[1]).toBe('586. PT-SECRET-OLD-586')
   await focusRow($, drawn.prompts[0]!)
 
   await scrollBand($, -1, 'keys')
   const moved = band(await renderBand($, { maxRows: 12 }))
 
-  expect(moved.labels[1]).toBe('584. PT-SECRET-OLD-584')
+  expect(moved.labels[1]).toBe('585. PT-SECRET-OLD-585')
 })
 
-/* At the bottom the tree fits, so the engine walks the ring itself and
-   wraps it at both ends; the band takes the moves that leave the rows shown. */
+/* While every row shows the tree fits, so the engine walks the ring itself
+   and wraps it at both ends; the band refuses the wraps. */
 
-test('at the bottom, the engine moving the ring off the first row onto the title moves the view up', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600) })
-  await $.session.start(session)
-  await promptHistory($)
-  const drawn = band(await renderBand($, { maxRows: 12 }))
-  expect(drawn.labels[1]).toBe('590. PT-SECRET-OLD-590')
-  await focusRow($, drawn.prompts[0]!)
-
-  expect((await focusRow($, 'prompt-trail:toggle')).deny).toBeUndefined()
-  const moved = band(await renderBand($, { maxRows: 12 }))
-
-  expect(moved.labels[1]).toBe('589. PT-SECRET-OLD-589')
-  expect(moved.rows).toBe(1 + 10 + 2)
-})
-
-test('at the bottom, the engine wrapping the ring from the title to the last row moves the view up', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600) })
+test('a band showing every row refuses the engine wrapping the ring from the title to the last row', async ($, on) => {
+  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(5) })
   await $.session.start(session)
   await promptHistory($)
   const drawn = band(await renderBand($, { maxRows: 12 }))
   await focusRow($, 'prompt-trail:toggle')
 
-  await focusRow($, drawn.prompts.at(-1)!)
-  const moved = band(await renderBand($, { maxRows: 12 }))
-
-  expect(moved.labels[1]).toBe('589. PT-SECRET-OLD-589')
+  expect((await focusRow($, drawn.prompts.at(-1)!)).deny).toBeDefined()
 })
 
-test('at the bottom, the engine wrapping the ring from the last row to the title is refused', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(600) })
+test('a band showing every row refuses the engine wrapping the ring from the last row to the title', async ($, on) => {
+  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(5) })
   await $.session.start(session)
   await promptHistory($)
   const drawn = band(await renderBand($, { maxRows: 12 }))
   await focusRow($, drawn.prompts.at(-1)!)
 
   expect((await focusRow($, 'prompt-trail:toggle')).deny).toBeDefined()
-  expect(band(await renderBand($, { maxRows: 12 })).labels.at(-1)).toBe('600. PT-SECRET-OLD-600')
+  expect(band(await renderBand($, { maxRows: 12 })).labels.at(-1)).toBe('5. PT-SECRET-OLD-5')
 })
 
 test('an arrow off the last row shown moves the view down one row', async ($, on) => {
@@ -315,13 +454,13 @@ test('an arrow off the last row shown moves the view down one row', async ($, on
   await renderBand($, { maxRows: 12 })
   await scrollBand($, -5)
   const drawn = band(await renderBand($, { maxRows: 12 }))
-  expect(drawn.labels.at(-1)).toBe('594. PT-SECRET-OLD-594')
+  expect(drawn.labels.at(-1)).toBe('595. PT-SECRET-OLD-595')
   await focusRow($, drawn.prompts.at(-1)!)
 
   await scrollBand($, 1, 'keys')
   const moved = band(await renderBand($, { maxRows: 12 }))
 
-  expect(moved.labels.at(-1)).toBe('595. PT-SECRET-OLD-595')
+  expect(moved.labels.at(-1)).toBe('596. PT-SECRET-OLD-596')
 })
 
 test('an arrow up from the title shows the rows still above it', async ($, on) => {
@@ -339,6 +478,44 @@ test('an arrow up from the title shows the rows still above it', async ($, on) =
   await scrollBand($, -1, 'keys')
 
   expect(band(await renderBand($, { maxRows: 12 })).keys[1]).toBe(first)
+})
+
+/* PT-UI-002/004 on 2.1.290: the walk up reached the first entry with the
+   view following it there, one row down, the Run's start above it unseen;
+   the arrow onto the title left the view where it was, so the next arrow,
+   on the title, only moved the view up and the ring stood still. The title
+   row drew a way up while rows lay above the view, so before its blank rows
+   that press changed the ring's row and passed for a move. */
+test('an arrow from the first entry onto the title shows the rows above that entry', async ($, on) => {
+  const started: ArchiveRow = {
+    kind: 'run-started',
+    eventId: 'a0000000-0000-4000-8000-00000000beef',
+    sequence: 1,
+    runId: otherRunId,
+    segmentId: otherSessionId,
+    branchId,
+  }
+  const entries = archiveOf(30).map(row => ({ ...row, sequence: row.sequence + 1 }))
+  installSupportedTarget(on, { store: consentedStore(), archive: [started, ...entries] })
+  await $.session.start(session)
+  await promptHistory($)
+  const first = band(await renderBand($, WHOLE))
+  expect(first.text).toContain('Run 开始')
+  await renderBand($, { maxRows: 12 })
+  await scrollBand($, -100)
+  await renderBand($, { maxRows: 12 })
+  await scrollBand($, 1)
+  const below = band(await renderBand($, { maxRows: 12 }))
+  expect(below.above).toBe(1)
+  expect(below.prompts[0]).toBe(first.prompts[0])
+  await focusRow($, below.prompts[0]!)
+
+  await scrollBand($, -1, 'keys')
+  const top = band(await renderBand($, { maxRows: 12 }))
+
+  expect(top.above).toBe(0)
+  expect(top.keys.slice(0, 2)).toEqual(first.keys.slice(0, 2))
+  expect(top.text).toContain('Run 开始')
 })
 
 test('an arrow down from the last entry shows the rows still below it and follows again', async ($, on) => {
@@ -386,7 +563,7 @@ test('each arrow walks on from the row the view followed to, even while the engi
   await renderBand($, { maxRows: 12 })
   await scrollBand($, -5)
   const drawn = band(await renderBand($, { maxRows: 12 }))
-  expect(drawn.prompts[0]).toBe(`prompt-trail:prompt:${entry(585).eventId}`)
+  expect(drawn.prompts[0]).toBe(`prompt-trail:prompt:${entry(586).eventId}`)
   await focusRow($, drawn.prompts[0]!)
 
   const tops: string[] = []
@@ -396,7 +573,48 @@ test('each arrow walks on from the row the view followed to, even while the engi
     await clock!.settle()
   }
 
-  expect(tops).toEqual([584, 583, 582].map(sequence => `prompt-trail:prompt:${entry(sequence).eventId}`))
+  expect(tops).toEqual([585, 584, 583].map(sequence => `prompt-trail:prompt:${entry(sequence).eventId}`))
+})
+
+/* PT-UI-004 on 2.1.290: walking down, the view followed the ring onto an
+   entry below it with three boundary rows between, and the ring was drawn
+   nowhere. The engine keeps its ring by position: the new drawing showed
+   fewer stops than the ring's position, so the engine dropped it, and could
+   drop it again after the drawing's own send had landed. A later drawing
+   sends it again; the test engine refuses every focus the plugin asks for,
+   so what shows here is the band asking to be drawn again, once. */
+test('a ring the view followed is sent again from a later drawing, once', async ($, on) => {
+  const invalidations: string[] = []
+  on('ui.invalidate', (_$, e, next) => {
+    invalidations.push(e.event)
+    return next(e)
+  })
+  let clock: MockClock | undefined
+  installSupportedTarget(on, {
+    store: consentedStore(),
+    archive: archiveOf(600),
+    onClock: mocked => { clock = mocked },
+  })
+  await $.session.start(session)
+  await promptHistory($)
+  await renderBand($, { maxRows: 12 })
+  await scrollBand($, -5)
+  const drawn = band(await renderBand($, { maxRows: 12, offset: 114 }))
+  expect(drawn.labels.at(-1)).toBe('595. PT-SECRET-OLD-595')
+  await focusRow($, drawn.prompts.at(-1)!)
+  await scrollBand($, 1, 'keys')
+  await clock!.settle()
+  invalidations.length = 0
+
+  /* The window already on the view's top: no seat draws the band again. */
+  const followed = band(await renderBand($, { maxRows: 12, offset: 115 }))
+  expect(followed.labels.at(-1)).toBe('596. PT-SECRET-OLD-596')
+  await clock!.advance(1000)
+  expect(invalidations).toEqual(['ui.render'])
+
+  await renderBand($, { maxRows: 12, offset: 115 })
+  await clock!.advance(1000)
+  expect(invalidations).toEqual(['ui.render'])
 })
 
 test('arrows pressed faster than the band draws each walk a row', async ($, on) => {
@@ -411,7 +629,7 @@ test('arrows pressed faster than the band draws each walk a row', async ($, on) 
   await scrollBand($, -1, 'keys')
   await scrollBand($, -1, 'keys')
 
-  expect(band(await renderBand($, { maxRows: 12 })).prompts[0]).toBe(`prompt-trail:prompt:${entry(583).eventId}`)
+  expect(band(await renderBand($, { maxRows: 12 })).prompts[0]).toBe(`prompt-trail:prompt:${entry(584).eventId}`)
 })
 
 test('the ring reaching the window\'s first row fetches the batch before it', async ($, on) => {
@@ -699,6 +917,79 @@ test('an entry whose parent in another Run lies outside the window still begins 
   expect([...branchStarts(rows, new Map([['x9', 'run-x']]))]).toEqual([['a2', 'cross-run']])
   expect([...branchStarts(rows)]).toEqual([])
   expect([...forkSources(rows, new Map([['a0', 'run-x']]))]).toEqual([['run-a', 'run-x']])
+})
+
+test('an entry at the window\'s top whose Run wrote an entry just before it still begins a new branch', () => {
+  const rows = [
+    { kind: 'prompt' as const, eventId: 'a5', sequence: 300, runId: 'run-a', parentEventId: 'x9' },
+  ]
+  const parents = new Map([['x9', 'run-x']])
+
+  expect([...branchStarts(rows, parents, new Map([['run-a', 'prompt' as const]]))]).toEqual([['a5', 'cross-run']])
+  /* Right after a boundary of its own Run, or with nothing of its Run before
+     it, the boundary or the Run's start already says why it begins there. */
+  expect([...branchStarts(rows, parents, new Map([['run-a', 'boundary' as const]]))]).toEqual([])
+  expect([...branchStarts(rows, parents)]).toEqual([])
+})
+
+test('a branch the archive folded across the whole Run keeps its name and count in any window', () => {
+  const rows = [
+    { kind: 'prompt' as const, eventId: 'p1', sequence: 500, runId: 'run-a', parentEventId: 'p0' },
+    { kind: 'prompt' as const, eventId: 'q7', sequence: 501, runId: 'run-a', parentEventId: 'q6' },
+    { kind: 'prompt' as const, eventId: 'p2', sequence: 502, runId: 'run-a', parentEventId: 'p1' },
+  ]
+
+  const folds = foldTimeline(rows, 'run-a', 'tip-beyond', {
+    eventIds: new Set(['p1', 'p2']),
+    start: 12,
+    branches: new Map([['q7', { fold: 'q1', count: 140 }]]),
+  })
+
+  expect([...folds.folded]).toEqual([['q7', 'q1']])
+  expect([...folds.counts]).toEqual([['q1', 140]])
+})
+
+test('a branch crossing the window\'s edge is counted whole and stays one fold as the window moves', async ($, on) => {
+  const mine = (sequence: number, parent: number | null) =>
+    entry(sequence, { runId, parentEventId: parent === null ? null : entry(parent).eventId })
+  /* A root, a stretch of 300 left behind by a rewind to it, then the path. */
+  const archive = [
+    mine(1, null),
+    ...Array.from({ length: 300 }, (_, index) => mine(index + 2, index === 0 ? 1 : index + 1)),
+    mine(302, 1),
+    ...Array.from({ length: 98 }, (_, index) => mine(index + 303, index + 302)),
+  ]
+  const tip = archive.at(-1)!
+  const fold = `prompt-trail:fold:${entry(2).eventId}`
+  const calls = installSupportedTarget(on, {
+    store: {
+      ...consentedStore(),
+      [`prompt-trail:branch:${projectId}:${runId}:${sessionId}`]: {
+        version: 1,
+        branchId,
+        parentEventId: tip.eventId,
+      },
+    },
+    archive,
+    transcript: [],
+  })
+  await $.session.start(session)
+  await promptHistory($)
+
+  const latest = band(await renderBand($, WHOLE))
+  expect(latest.text).toContain('另一分支 · 300 条')
+  expect(latest.keys).toContain(fold)
+  await $.ui.press({ plugin: 'prompt-trail', key: fold, requestId: BAND_ID })
+  await renderBand($, { maxRows: 12 })
+  await scrollBand($, -400)
+  const earlier = band(await renderBand($, WHOLE))
+
+  /* The batch before is in, read with where the path began and its entry
+   below the window to walk from; the fold the same one and still open. */
+  expect(reads(calls).find(argv => argv[0] === 'before')?.slice(-2)).toEqual(['1', entry(1).eventId])
+  expect(earlier.keys.filter(key => key === fold)).toEqual([fold])
+  expect(earlier.text).toContain('▾ 另一分支 · 300 条')
+  expect(earlier.labels).toContain('150. PT-SECRET-OLD-150')
 })
 
 test('a path that begins and ends outside the window still folds what left it', () => {

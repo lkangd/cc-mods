@@ -6,6 +6,7 @@ import {
   SECRET,
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   parentChoices,
   parentPane,
@@ -25,12 +26,6 @@ import {
 const branchId = 'b1b1b1b1-0000-4000-8000-000000000001'
 const earlier = 'e1e1e1e1-0000-4000-8000-000000000001'
 const forkPoint = 'e2e2e2e2-0000-4000-8000-000000000002'
-
-const consent = { policyVersion: 1, decision: 'enabled' }
-
-function consentedStore(extra: Record<string, unknown> = {}): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: consent, ...extra }
-}
 
 function branchKey(): string {
   return `prompt-trail:branch:${projectId}:${runId}:${sessionId}`

@@ -8,6 +8,7 @@ import {
   SECRET,
   captureCalls,
   composerPrompt,
+  consentedStore,
   installSupportedTarget,
   parentPane,
   projectId,
@@ -15,12 +16,9 @@ import {
   promptHistory,
   renderBand,
   runId,
+  runModeKeyFor,
   session,
 } from './support'
-
-function consentedStore(): Record<string, unknown> {
-  return { [`prompt-trail:consent:${projectId}`]: { policyVersion: 1, decision: 'enabled' } }
-}
 
 /* Issue 24: each canonical project root has a Project Timeline of its own,
    decided from the directory Claude Code started in and nothing else. */
@@ -94,7 +92,7 @@ test('disabling this Run leaves another Run its branch, its owed writes and its 
 
   await promptHistory($, 'disable')
 
-  expect(store[`prompt-trail:run-mode:${projectId}:${runId}`]).toMatchObject({ mode: 'disabled' })
+  expect(store[runModeKeyFor()]).toMatchObject({ mode: 'disabled' })
   expect(store[otherBranch]).toStrictEqual(branch)
   expect(store[otherLifecycle]).toStrictEqual(lifecycle)
   expect(store[`prompt-trail:archive-state:${projectId}`]).toBeUndefined()
@@ -190,6 +188,128 @@ test('each other Run folds on its own', () => {
   ]
 
   expect([...foldTimeline(rows, 'run-a', 'a2').counts]).toEqual([['b1', 2], ['c1', 1]])
+})
+
+/* Before this Run began, Runs that wrote at the same time are told apart the
+   same way: the one with fewer entries in its stretch folds into one place. */
+
+test('before this Run began, a Run writing alongside a busier one folds whole into one place', () => {
+  const rows: Row[] = [
+    boundary('x-start', 1, 'run-x'),
+    prompt('x1', 2, null, 'run-x'),
+    boundary('y-start', 3, 'run-y'),
+    prompt('y1', 4, null, 'run-y'),
+    prompt('x2', 5, 'x1', 'run-x'),
+    boundary('y-off', 6, 'run-y'),
+    prompt('x3', 7, 'x2', 'run-x'),
+    boundary('x-off', 8, 'run-x'),
+    prompt('a1', 9, null),
+    prompt('a2', 10, 'a1'),
+  ]
+
+  const folds = foldTimeline(rows, 'run-a', 'a2')
+
+  expect([...folds.folded]).toEqual([['y-start', 'y-start'], ['y1', 'y-start'], ['y-off', 'y-start']])
+  expect([...folds.counts]).toEqual([['y-start', 1]])
+  expect([...folds.runs]).toEqual(['y-start'])
+})
+
+test('Runs that wrote one after another before this Run began are drawn as they are', () => {
+  const rows: Row[] = [
+    boundary('x-start', 1, 'run-x'),
+    prompt('x1', 2, null, 'run-x'),
+    boundary('x-off', 3, 'run-x'),
+    boundary('y-start', 4, 'run-y'),
+    prompt('y1', 5, null, 'run-y'),
+    boundary('y-off', 6, 'run-y'),
+    prompt('a1', 7, null),
+  ]
+
+  expect(foldTimeline(rows, 'run-a', 'a1').folded.size).toBe(0)
+  /* Without an active path, the whole view is "before". */
+  expect(foldTimeline(rows, 'run-a', null).folded.size).toBe(0)
+})
+
+test('a Run folded before this Run began takes its entries after the start into the same place', () => {
+  const rows: Row[] = [
+    prompt('x1', 1, null, 'run-x'),
+    prompt('y1', 2, null, 'run-y'),
+    prompt('x2', 3, 'x1', 'run-x'),
+    prompt('a1', 4, null),
+    prompt('y2', 5, 'y1', 'run-y'),
+    prompt('a2', 6, 'a1'),
+  ]
+
+  const folds = foldTimeline(rows, 'run-a', 'a2')
+
+  expect([...folds.folded]).toEqual([['y1', 'y1'], ['y2', 'y1']])
+  expect([...folds.counts]).toEqual([['y1', 2]])
+})
+
+test('what the archive says of other Runs decides and counts their folds beyond the window', () => {
+  const rows: Row[] = [
+    prompt('y5', 40, null, 'run-y'),
+    prompt('x9', 41, null, 'run-x'),
+    prompt('a1', 50, null),
+    prompt('b3', 51, null, 'run-b'),
+    prompt('a2', 52, 'a1'),
+  ]
+  const facts = new Map([
+    ['run-x', { before: { eventId: 'x0', sequence: 1, last: 45, count: 40 } }],
+    ['run-y', { before: { eventId: 'y0', sequence: 30, last: 42, count: 2 } }],
+    ['run-b', { after: { eventId: 'b0', count: 9 } }],
+  ])
+
+  const folds = foldTimeline(rows, 'run-a', 'a2', {
+    eventIds: new Set(['a1', 'a2']),
+    start: 50,
+    held: new Map([['run-b', { before: 0, after: 1 }]]),
+  }, facts)
+
+  /* Named by each Run's first event of all, counted across the timeline, and
+     less what the path holds of it. */
+  expect([...folds.folded]).toEqual([['y5', 'y0'], ['b3', 'b0']])
+  expect([...folds.counts]).toEqual([['y0', 2], ['b0', 8]])
+  expect([...folds.runs]).toEqual(['y0', 'b0'])
+})
+
+test('the band folds a Run that wrote alongside a busier one before this Run began', async ($, on) => {
+  const x = { runId: 'cdcdcdcd-0000-4000-8000-000000000001', segmentId: 'cdcdcdcd-0000-4000-8000-000000000011', branchId: 'cdcdcdcd-0000-4000-8000-000000000021' }
+  const y = { runId: 'cdcdcdcd-0000-4000-8000-000000000002', segmentId: 'cdcdcdcd-0000-4000-8000-000000000012', branchId: 'cdcdcdcd-0000-4000-8000-000000000022' }
+  let sequence = 0
+  const id = () => `cdcdcdcd-1000-4000-8000-${String(++sequence).padStart(12, '0')}`
+  const row = (kind: string, run: typeof x, text?: string): ArchiveRow => ({
+    kind,
+    eventId: id(),
+    sequence,
+    ...run,
+    ...(text === undefined ? {} : { parentEventId: null, text, attachmentCount: 0 }),
+  })
+  const archive: ArchiveRow[] = [
+    row('run-started', x),
+    row('prompt', x, 'PT-SECRET-BUSY-1'),
+    row('run-started', y),
+    row('prompt', y, 'PT-SECRET-SIDE'),
+    row('prompt', x, 'PT-SECRET-BUSY-2'),
+    row('run-detached', y),
+    row('prompt', x, 'PT-SECRET-BUSY-3'),
+    row('run-detached', x),
+  ]
+  installSupportedTarget(on, { store: consentedStore(), archive, transcript: [] })
+  await $.session.start(session)
+  await promptHistory($)
+  await composerPrompt($, { text: 'PT-SECRET-MINE' })
+  await promptHistory($)
+  await promptHistory($)
+  const folded = JSON.stringify(await renderBand($, { maxRows: 40 }))
+
+  expect(folded).toContain('▸ 另一 Run · 1 条')
+  expect(folded).not.toContain('PT-SECRET-SIDE')
+  expect(folded).toContain('PT-SECRET-BUSY-2')
+  expect(folded).toContain('PT-SECRET-MINE')
+  /* One Run's start and leaving remain in view, not two interleaved. */
+  expect(folded.match(/Run 开始/g)?.length).toBe(2)
+  expect(folded.match(/Run 离开/g)?.length).toBe(1)
 })
 
 test('the band folds a Run writing alongside this one and opens it on a press', async ($, on) => {

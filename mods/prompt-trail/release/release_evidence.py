@@ -21,14 +21,9 @@ REPO = ROOT.parents[1]
 MINIMUM_CLAUDE_VERSION = "2.1.290"
 CURRENT_CLAUDE_VERSION = "2.1.290"
 TYPESCRIPT_VERSION = "5.9.3"
-UNIT_MODULES = [
-    "artifact_static", "bridge_protocol", "helper_protocol", "project_root", "release_verdict",
-]
 TOKEN_SERVICE = "prompt-trail-release"
-ARTIFACTS = [
-    "bin/prompt-trail-helper", "bin/prompt-trail-bridge", "artifacts/helper-manifest.json",
-    "hooks/artifact.ts", "src/prompt_trail_generated_artifact.h",
-]
+# The files scripts/build-artifacts.sh writes; verify-startup.sh reads the same list.
+ARTIFACTS = (ROOT / "scripts/artifact-paths.txt").read_text().split()
 
 
 class Run:
@@ -116,7 +111,7 @@ def run_gates(run: Run, versions: list[str]) -> dict:
     )
     run.gate("typescript", typed.returncode == 0, typed.log)
     units = run.command(
-        "unit-tests", [sys.executable, str(ROOT / "release/unit_runner.py"), *UNIT_MODULES]
+        "unit-tests", [sys.executable, str(ROOT / "release/unit_runner.py")]
     )
     try:
         outcomes = json.loads(units.stdout.strip().splitlines()[-1])
