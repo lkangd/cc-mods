@@ -70,9 +70,9 @@
 
 ## 修改范围
 
-- `mods/prompt-trail/src/prompt_trail_helper.c`：守卫、健康语义命令、所有变更/维护入口、替换恢复。
-- `mods/prompt-trail/hooks/register.tsx`：健康响应校验、权威状态、损坏与重试/恢复入口；不改 Issue 35 资格。
-- `mods/prompt-trail/tests/helper_protocol.py`、`tests/quarantine_archive.test.tsx`、`tests/archive_unavailable.test.tsx`、`tests/clear_all.test.tsx`、`tests/clear_run.test.tsx`、`tests/support.tsx`：上述公开 seams 及现有回归，按需要局部增加。
+- `mods/prompt-history/src/prompt_history_helper.c`：守卫、健康语义命令、所有变更/维护入口、替换恢复。
+- `mods/prompt-history/hooks/register.tsx`：健康响应校验、权威状态、损坏与重试/恢复入口；不改 Issue 35 资格。
+- `mods/prompt-history/tests/helper_protocol.py`、`tests/quarantine_archive.test.tsx`、`tests/archive_unavailable.test.tsx`、`tests/clear_all.test.tsx`、`tests/clear_run.test.tsx`、`tests/support.tsx`：上述公开 seams 及现有回归，按需要局部增加。
 - 构建生成的 helper/bridge、摘要、artifact.ts、generated header、manifest：由现有 build-artifacts.sh 重建，不手改；schema/protocol 矩阵保持原值。
 - README、spec 对共享损坏权威/升级边界的说明、Issue 53、backlog 和地图；现有 Issue 35 原型及未提交改动原样保留。
 

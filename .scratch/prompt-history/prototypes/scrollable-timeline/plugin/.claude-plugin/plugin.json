@@ -1,0 +1,5 @@
+{
+  "name": "prompt-history-scroll-probe",
+  "version": "0.0.0",
+  "description": "一次性原型：验证 Claude Code 2.1.273 AbovePrompt 时间线交互。"
+}

@@ -4,7 +4,7 @@ status: open
 severity: minor
 found: 2026-10-07
 source: /code-review, round 1
-target: Prompt Trail backlog sweep, working tree vs b54339e (branch prompt-trail/backlog-sweep)
+target: prompt-history backlog sweep, working tree vs b54339e (branch prompt-trail/backlog-sweep)
 ---
 
 # clear-all can return another Run's archive-only disable to the default
@@ -13,7 +13,7 @@ target: Prompt Trail backlog sweep, working tree vs b54339e (branch prompt-trail
 
 When `$.store` could not save a disable, the Run's `collection-stopped` boundary in the archive
 is the only durable record of it (`loadRunMode` / `readRunCollectionState` in
-`mods/prompt-trail/hooks/register.tsx`). `clear-all` deletes the archive. For the current Run
+`mods/prompt-history/hooks/register.tsx`). `clear-all` deletes the archive. For the current Run
 this round fixed it: `keepRunModeAcrossCut()` writes the disabled mode to the store after the cut,
 or the clear reply says a reload will not keep it. For **other** Runs of the project nothing
 holds the disable afterwards: `forgetClearedHistory()` only rewrites run-mode keys that are
@@ -36,5 +36,5 @@ disabled only in the archive still resolves `disabled` after clear-all and a mod
 
 ## Recommended tools
 
-- `grep -n 'forgetClearedHistory\|keepRunModeAcrossCut\|readRunCollectionState\|run-collection-state' mods/prompt-trail/hooks/register.tsx mods/prompt-trail/src/prompt_trail_helper.c`
-- `mods/prompt-trail/tests/collection_mode.test.tsx` (`storeSetFails`)
+- `grep -n 'forgetClearedHistory\|keepRunModeAcrossCut\|readRunCollectionState\|run-collection-state' mods/prompt-history/hooks/register.tsx mods/prompt-history/src/prompt_history_helper.c`
+- `mods/prompt-history/tests/collection_mode.test.tsx` (`storeSetFails`)

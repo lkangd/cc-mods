@@ -1,0 +1,5 @@
+{
+  "name": "prompt-history-downstream-fixture",
+  "version": "0.1.0",
+  "description": "Release fixture: a hook beneath prompt-history that drops or holds marked prompts."
+}

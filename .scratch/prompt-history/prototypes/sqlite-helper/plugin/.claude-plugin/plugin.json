@@ -1,0 +1,5 @@
+{
+  "name": "prompt-history-sqlite-probe",
+  "version": "0.0.0",
+  "description": "一次性原型：验证 function hook 到随插件分发 SQLite helper 的边界。"
+}

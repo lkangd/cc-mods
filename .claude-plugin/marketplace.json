@@ -1,0 +1,22 @@
+{
+  "name": "cc-mods",
+  "owner": {
+    "name": "lkangd",
+    "url": "https://github.com/lkangd"
+  },
+  "description": "Claude Code mods maintained in this repository",
+  "plugins": [
+    {
+      "name": "prompt-history",
+      "source": "./mods/prompt-history",
+      "description": "A durable local timeline of human-entered prompts for Claude Code terminals.",
+      "version": "0.3.0",
+      "author": {
+        "name": "prompt-history contributors"
+      }
+    }
+  ],
+  "renames": {
+    "prompt-trail": "prompt-history"
+  }
+}

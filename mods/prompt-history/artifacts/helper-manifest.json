@@ -1,0 +1,33 @@
+{
+  "formatVersion": 1,
+  "target": "darwin-arm64-macos15",
+  "file": "bin/prompt-history-helper",
+  "sha256": "8f792afd30842d60be45edfbcecc1344eee39f03ba7159539f9d4b664734609c",
+  "bridgeFile": "bin/prompt-history-bridge",
+  "bridgeSha256": "83d70fcbeedfc2ffa02622743727b9b036d0b9f1a26c4c104ec540ba32fe282c",
+  "helperProtocol": 1,
+  "schemaReadMin": 1,
+  "schemaReadMax": 2,
+  "schemaWriteMin": 2,
+  "schemaWriteMax": 2,
+  "schemaMigrations": ["1->2"],
+  "sqliteMinimumVersionNumber": 3035000,
+  "sqliteRequiredCapability": "UPDATE RETURNING",
+  "compiler": "Apple clang version 17.0.0 (clang-1700.3.19.1)",
+  "sdkVersion": "26.0",
+  "linker": "ld64 through Apple clang",
+  "source": "src/prompt_history_helper.c",
+  "sourceSha256": "6623b75a01be32085a6ddb5e6638b09594c17ece0fb05d76124eed1e09d5101c",
+  "bridgeSource": "src/prompt_history_bridge.c",
+  "bridgeSourceSha256": "07077daa73bf29ff5af72c71f3cb6392068d48e172f847fe41b70a9fed54f1bf",
+  "commonSource": "src/prompt_history_common.c",
+  "commonSourceSha256": "f0ca105a168bf67577f55bd58daea59c6df66048ffe333f1ecf3c4370f6dc5c0",
+  "generatedHeader": "src/prompt_history_generated_artifact.h",
+  "generatedHeaderSha256": "76290e0f05ba523bf752ba6a8654426d531cb0eabcb8cbdd98c1836ed7ace4bc",
+  "buildCommand": "scripts/build-artifacts.sh",
+  "buildScriptSha256": "a05ff1c889d486a70db9e90e5e5f96a2b50927f0d5a19c649853e26cdb0a30b4",
+  "allowedDynamicDependencies": [
+    "/usr/lib/libSystem.B.dylib",
+    "/usr/lib/libsqlite3.dylib"
+  ]
+}

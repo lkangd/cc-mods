@@ -1,8 +1,0 @@
-{
-  "name": "prompt-trail",
-  "version": "0.2.0",
-  "author": {
-    "name": "Prompt Trail contributors"
-  },
-  "description": "A durable local timeline of human-entered prompts for Claude Code terminals."
-}
