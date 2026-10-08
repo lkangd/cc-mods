@@ -1,0 +1,15 @@
+{
+  "name": "prompt-history-fixtures",
+  "owner": {
+    "name": "prompt-history release fixtures"
+  },
+  "description": "Release fixtures loaded beside prompt-history in marketplace mode",
+  "plugins": [
+    {
+      "name": "prompt-history-downstream-fixture",
+      "source": "./downstream",
+      "description": "Release fixture: a hook beneath prompt-history that drops or holds marked prompts.",
+      "version": "0.1.0"
+    }
+  ]
+}

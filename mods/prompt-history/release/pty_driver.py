@@ -69,6 +69,15 @@ class ScenarioFailure(Exception):
     pass
 
 
+# Downstream fixtures that marketplace mode installs as plugins of their own,
+# after prompt-history, so that they sit beneath it in the prompt.submit chain
+# as they do under --plugin-dir: name -> (marketplace under release/fixtures,
+# plugin id).
+MARKETPLACE_EXTRAS = {
+    "downstream": ("marketplace", "prompt-history-downstream-fixture@prompt-history-fixtures"),
+}
+
+
 class Host:
     """One Claude Code version, as npm publishes it: the native arm64 build,
     or the x86_64 build run under Rosetta, as on a Mac that took the Intel one."""
@@ -357,6 +366,8 @@ class Environment:
         # does: this repository added as a marketplace and installed into this
         # scenario's own config, with no --plugin-dir for the plugin itself.
         self.install = os.environ.get("PROMPT_HISTORY_PTY_INSTALL", "plugin-dir")
+        self.installed_extras: set[str] = set()
+        self.overridden = False
         if self.install == "marketplace":
             self._install_marketplace()
 
@@ -371,6 +382,32 @@ class Environment:
                 [*self.host.command, *arguments], cwd=self.base, env=environment,
                 capture_output=True, text=True, check=True, timeout=180,
             )
+
+    def _override_installed(self) -> None:
+        """A scenario that loads its own build in marketplace mode turns the install
+        off in its own config first, so the build is the only copy of the plugin.
+        Its data then sits under the plugin-dir name, as it does under --plugin-dir."""
+        self.overridden = True
+        path = self.config / "settings.json"
+        settings = json.loads(path.read_text()) if path.exists() else {}
+        plugins = ["prompt-history@cc-mods", *(MARKETPLACE_EXTRAS[name][1] for name in self.installed_extras)]
+        settings.setdefault("enabledPlugins", {}).update({plugin: False for plugin in plugins})
+        path.write_text(json.dumps(settings))
+
+    def _install_extra(self, name: str) -> None:
+        if name in self.installed_extras:
+            return
+        folder, plugin = MARKETPLACE_EXTRAS[name]
+        environment = self.process_environment()
+        for arguments in (
+            ["plugin", "marketplace", "add", str(self.plugin_root / "release" / "fixtures" / folder)],
+            ["plugin", "install", plugin],
+        ):
+            subprocess.run(
+                [*self.host.command, *arguments], cwd=self.base, env=environment,
+                capture_output=True, text=True, check=True, timeout=180,
+            )
+        self.installed_extras.add(name)
 
     def project(self, name: str = "project") -> pathlib.Path:
         if name not in self.projects:
@@ -410,17 +447,22 @@ class Environment:
         host: Host | None = None,
     ) -> Terminal:
         root = plugin_root or self.plugin_root
+        if self.install == "marketplace" and plugin_root is not None:
+            self._override_installed()
         argv = [*(host or self.host).command, "--model", "haiku"]
         if plugin_root is not None or self.install != "marketplace":
             argv += ["--plugin-dir", str(root)]
         for extra in plugins:
-            argv += ["--plugin-dir", str(extra)]
+            if self.install == "marketplace" and not self.overridden and extra.name in MARKETPLACE_EXTRAS:
+                self._install_extra(extra.name)
+            else:
+                argv += ["--plugin-dir", str(extra)]
         terminal = Terminal(self, argv + list(args), self.project(project), columns, lines)
         self.terminals.append(terminal)
         return terminal
 
     def data_dir(self) -> pathlib.Path:
-        name = "prompt-history-cc-mods" if self.install == "marketplace" else "prompt-history-inline"
+        name = "prompt-history-cc-mods" if self.install == "marketplace" and not self.overridden else "prompt-history-inline"
         return self.config / "plugins" / "data" / name
 
     def archive(self, project: str = "project") -> dict | None:
