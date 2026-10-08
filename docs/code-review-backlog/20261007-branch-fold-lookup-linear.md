@@ -4,14 +4,14 @@ status: open
 severity: minor
 found: 2026-10-07
 source: /code-review, round 1
-target: Prompt Trail backlog sweep, working tree vs b54339e (branch prompt-trail/backlog-sweep)
+target: prompt-history backlog sweep, working tree vs b54339e (branch prompt-trail/backlog-sweep)
 ---
 
 # `timeline-read` groups a Run's branch folds with a linear key search
 
 ## Problem
 
-`mods/prompt-trail/src/prompt_trail_helper.c` `branch_fold_for()` scans every fold found so far
+`mods/prompt-history/src/prompt_history_helper.c` `branch_fold_for()` scans every fold found so far
 with `strcmp` before adding a new one, and `write_branches()` calls it once per off-path entry of
 the Run since its path began. With K distinct folds (independent roots or distinct leave points)
 the grouping costs about K²/2 string comparisons, and every window of the same long branch that
@@ -34,6 +34,6 @@ independent roots in one Run reads within budget in `scripts/benchmark-timeline.
 
 ## Recommended tools
 
-- `grep -n 'branch_fold_for\|write_branches\|find_branch' mods/prompt-trail/src/prompt_trail_helper.c`
-- `bash mods/prompt-trail/scripts/benchmark-timeline.sh <count>` and `tests/timeline_fixture.py` for a many-roots fixture
-- `python3 -m unittest tests.helper_protocol` from `mods/prompt-trail`, then `scripts/build-artifacts.sh`
+- `grep -n 'branch_fold_for\|write_branches\|find_branch' mods/prompt-history/src/prompt_history_helper.c`
+- `bash mods/prompt-history/scripts/benchmark-timeline.sh <count>` and `tests/timeline_fixture.py` for a many-roots fixture
+- `python3 -m unittest tests.helper_protocol` from `mods/prompt-history`, then `scripts/build-artifacts.sh`

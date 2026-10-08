@@ -1,3 +1,3 @@
 # Context Map
 
-- [Prompt Trail](mods/prompt-trail/CONTEXT.md): Claude Code prompt timeline mod.
+- [prompt-history](mods/prompt-history/CONTEXT.md): Claude Code prompt timeline mod.

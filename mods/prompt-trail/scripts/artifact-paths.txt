@@ -1,5 +1,0 @@
-bin/prompt-trail-helper
-bin/prompt-trail-bridge
-artifacts/helper-manifest.json
-hooks/artifact.ts
-src/prompt_trail_generated_artifact.h

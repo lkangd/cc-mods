@@ -1,0 +1,5 @@
+bin/prompt-history-helper
+bin/prompt-history-bridge
+artifacts/helper-manifest.json
+hooks/artifact.ts
+src/prompt_history_generated_artifact.h

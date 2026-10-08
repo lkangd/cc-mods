@@ -20,7 +20,7 @@
 
 ## 第 1 步：先用真实宿主验证前提，这是后续设计的关卡
 
-扩展现有观察插件 `.scratch/prompt-trail/prototypes/queued-capture-proof/queue-probe/hooks/observe.ts`，增加对 `session.append` 的观察：只记录 door、origin.kind、message.type、name、isMeta、有无 agentId、uuid 的哈希，以及与 `prompt.submit` 前后的先后顺序，不记录正文。复用 `run_probe.py` 的隔离与扫描流程。要确认三件事：
+扩展现有观察插件 `.scratch/prompt-history/prototypes/queued-capture-proof/queue-probe/hooks/observe.ts`，增加对 `session.append` 的观察：只记录 door、origin.kind、message.type、name、isMeta、有无 agentId、uuid 的哈希，以及与 `prompt.submit` 前后的先后顺序，不记录正文。复用 `run_probe.py` 的隔离与扫描流程。要确认三件事：
 
 1. 空闲时提交：composer 的 `door: 'prompt'` 行，是否在本次 `prompt.submit` 的 `next(e)` 返回**之前**被存储。
 2. 排队后正常出队：这一行以什么 door/origin 存储，是 `prompt`/`composer`，还是 `attachment` 的 `queued_command`。
@@ -30,7 +30,7 @@
 
 ## 第 2 步：最低宿主版本提到 2.1.290
 
-- `hooks/register.tsx:218` 的 `MINIMUM_CLAUDE_VERSION` 和 `src/prompt_trail_helper.c:30` 的 `MINIMUM_CLAUDE_VERSION_PATCH` 改为 290，然后用 `scripts/build-artifacts.sh` 重建制品（helper 的 SHA 会变）。
+- `hooks/register.tsx:218` 的 `MINIMUM_CLAUDE_VERSION` 和 `src/prompt_history_helper.c:30` 的 `MINIMUM_CLAUDE_VERSION_PATCH` 改为 290，然后用 `scripts/build-artifacts.sh` 重建制品（helper 的 SHA 会变）。
 - 用 2.1.290 bundled 的声明替换 `.claude/types/claude-code.d.ts`（目前是 2.1.273 写的），配套的 mcp/plugins 声明一并更新。
 - `scripts/verify-startup.sh`、`release/release_evidence.py` 的固定宿主改为 2.1.290，只保留一个版本，循环去重。`release/scenarios.json` 和 `release/pty_scenarios.py` 中关于版本下限的文字和注入版本相应更新（例如用 2.1.289 测拒绝）。这里只改常量，不跑发布门禁。
 - 测试夹具里的支持版本（`tests/startup.test.tsx`、`startup_refusal.test.tsx` 等的 2.1.278、2.1.272）改为 ≥2.1.290 或 <2.1.290 的对应值。`tests/release_verdict.py` 的 VERSIONS 和 `tests/artifact_static.py`、`tests/helper_protocol.py` 里与下限相关的断言同步修改；版本解析器用的样例字符串只要与下限无关就保留。
@@ -73,11 +73,11 @@
 
 ## 第 5 步：文档
 
-`.scratch/prompt-trail/spec.md` 修改 Pending Capture、Prompt Entry 成员资格和最低版本的条文（约第 124、158–160 行和版本条目）；同步 `mods/prompt-trail/README.md`、`CONTEXT.md`，在 Issue 35 票据里补实施记录和停点，更新 `map.md`。不动 Issue 53 的已提交内容。
+`.scratch/prompt-history/spec.md` 修改 Pending Capture、Prompt Entry 成员资格和最低版本的条文（约第 124、158–160 行和版本条目）；同步 `mods/prompt-history/README.md`、`CONTEXT.md`，在 Issue 35 票据里补实施记录和停点，更新 `map.md`。不动 Issue 53 的已提交内容。
 
 ## 验证
 
 - 第 1 步：探针报告，加 0 泄漏扫描。
-- 开发中：`npx -y @anthropic-ai/claude-code@2.1.290 plugin test mods/prompt-trail`、`plugin validate`、`tsc -p mods/prompt-trail/tsconfig.json`，以及不含系统 fixture 的 helper 普通子集（可复用 `/private/tmp/issue53-review-no-system.py` 的思路，脚本放进 scratchpad）。
+- 开发中：`npx -y @anthropic-ai/claude-code@2.1.290 plugin test mods/prompt-history`、`plugin validate`、`tsc -p mods/prompt-history/tsconfig.json`，以及不含系统 fixture 的 helper 普通子集（可复用 `/private/tmp/issue53-review-no-system.py` 的思路，脚本放进 scratchpad）。
 - 收尾：一次 `verify-startup.sh`（单宿主 2.1.290，含完整 helper），如实记录在票据。
 - Issue 35 票据里“真实 PTY 复现”这一项要等另行授权的验收，本计划完成后票据仍是 claimed。

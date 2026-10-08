@@ -1,0 +1,27 @@
+{
+  "description": "prompt-history function hooks and lifecycle bridge",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|fork|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/prompt-history-bridge\" publish \"${CLAUDE_PLUGIN_ROOT}\" \"${CLAUDE_PLUGIN_DATA}\" \"${CLAUDE_PLUGIN_ROOT}/bin/prompt-history-helper\" \"${CLAUDE_PLUGIN_ROOT}/artifacts/helper-manifest.json\""
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/prompt-history-bridge\" remove \"${CLAUDE_PLUGIN_ROOT}\" \"${CLAUDE_PLUGIN_DATA}\" \"${CLAUDE_PLUGIN_ROOT}/bin/prompt-history-helper\" \"${CLAUDE_PLUGIN_ROOT}/artifacts/helper-manifest.json\""
+          }
+        ]
+      }
+    ]
+  },
+  "modules": ["./register.tsx"]
+}
