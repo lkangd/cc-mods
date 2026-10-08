@@ -1651,9 +1651,9 @@ def ui_007(ctx: Context) -> str:
     # Short of space, the title still folds and opens the band.
     terminal.resize(27, 40)
     terminal.wait_for(lambda t: cramped(ctx, t), "the band to give way", 10)
-    click_title(ctx, terminal, "Prompt")
+    click_title(ctx, terminal, "prompt-history")
     terminal.wait_for(lambda t: collapsed(ctx, t), "the title to fold the band", 10)
-    click_title(ctx, terminal, "Prompt")
+    click_title(ctx, terminal, "prompt-history")
     terminal.wait_for(lambda t: cramped(ctx, t), "the title to open the band", 10)
     ctx.env.snap(terminal, "folded and opened while cramped")
     terminal.resize(100, 40)
