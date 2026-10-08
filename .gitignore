@@ -10,3 +10,6 @@ mods/*/build/evidence/
 # Python test caches
 __pycache__/
 *.py[cod]
+
+# Handoff documents for the next session (local only)
+docs/handoffs/
