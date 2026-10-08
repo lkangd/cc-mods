@@ -1,0 +1,681 @@
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+❯ <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-g8k2_tkn/home/.claude/plugins/data/prompt-history-cc-mods/archives/d7f7a28a16e61de7b112ff3b6c1dfb4befeabf3f3d83b2383e97e381f18c485d.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+❯ <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 7s · done 2:37 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+❯ <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 7s · done 2:37 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                                                                                                                                                                                 [-]
+—— Run 开始 ——
+1. <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+❯ <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 7s · done 2:37 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                                                                                                                                                                                 [-]
+—— Run 开始 ——
+1. <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+❯ <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 7s · done 2:37 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-g8k2_tkn/home/.claude/plugins/data/prompt-history-cc-mods/archives/d7f7a28a16e61de7b112ff3b6c1dfb4befeabf3f3d83b2383e97e381f18c485d.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb62bef-6ac73a3b-b34b916
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-g8k2_tkn/project
+     database root: <tmp>/ptr-g8k2_tkn/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-g8k2_tkn/home/.claude/plugins/data/.function-hook-locators/prompt-history/b17649e4-c14e-48da-8395-577042a4d825.95257-1791441458-749479.json
+     run: a8aa9bf0-a371-4189-83c9-415209b38449
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                                                                                                                                                                                 [-]
+—— Run 开始 ——
+1. <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 清除当前 Run dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+❯ <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 7s · done 2:37 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-g8k2_tkn/home/.claude/plugins/data/prompt-history-cc-mods/archives/d7f7a28a16e61de7b112ff3b6c1dfb4befeabf3f3d83b2383e97e381f18c485d.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb62bef-6ac73a3b-b34b916
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-g8k2_tkn/project
+     database root: <tmp>/ptr-g8k2_tkn/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-g8k2_tkn/home/.claude/plugins/data/.function-hook-locators/prompt-history/b17649e4-c14e-48da-8395-577042a4d825.95257-1791441458-749479.json
+     run: a8aa9bf0-a371-4189-83c9-415209b38449
+
+❯ /prompt-history clear-run
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除当前 Run
+
+│ prompt-history 将永久删除当前 Run 的全部记录。
+│ 范围：当前 Run 的整条会话谱系，包括它此前所有进程接入（共 1 次）中的记录，最早一条在 2026-10-08 14:37。
+│ 1 条 Prompt Entry、0 个 Pending Capture、1 条边界事件。
+│ 其他 Run 的记录保持不变，但其后条目的编号可能前移。Collection consent 与当前 Run 的采集模式不变。
+│ prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD 上的数据在物理上不可恢复。
+
+❯ 1. 清除当前 Run
+  2. 取消
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+==== /prompt-history clear-run answered (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+❯ <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 7s · done 2:37 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-g8k2_tkn/home/.claude/plugins/data/prompt-history-cc-mods/archives/d7f7a28a16e61de7b112ff3b6c1dfb4befeabf3f3d83b2383e97e381f18c485d.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb62bef-6ac73a3b-b34b916
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-g8k2_tkn/project
+     database root: <tmp>/ptr-g8k2_tkn/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-g8k2_tkn/home/.claude/plugins/data/.function-hook-locators/prompt-history/b17649e4-c14e-48da-8395-577042a4d825.95257-1791441458-749479.json
+     run: a8aa9bf0-a371-4189-83c9-415209b38449
+
+❯ /prompt-history clear-run
+  ⎿  prompt-history: 已取消，未删除任何内容。
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                                                                                                                                                                                 [-]
+—— Run 开始 ——
+1. <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+❯ <marker:98>································ 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ prompt-history 无法预写 Pending Capture，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本项目所有 Run
+│ 类别：archive-integrity
+│ “重新检查完整性”只读检查档案，通过后提交；“隔离并开始新档案”把旧记录原样保留在隔离目录，新时间线从空开始，之后提交；“清除全部档案”在输入确认短语后永久删除本项目的全部档案，之后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt
+│ 不会入档。prompt-history 不会修复或覆盖损坏的档案。
+
+❯ 1. 重新检查完整性
+  2. 隔离并开始新档案
+  3. 清除全部档案
+  4. 禁用当前 Run 后继续
+  5. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  6. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-g8k2_tkn/project
+
+
+⏺ Prompt dropped by a hook: prompt-history 无法预写 Pending Capture（archive-integrity），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history · 档案不可用                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

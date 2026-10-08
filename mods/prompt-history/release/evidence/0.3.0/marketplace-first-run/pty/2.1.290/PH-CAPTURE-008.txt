@@ -1,0 +1,293 @@
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-hsn7oy7z/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-hsn7oy7z/project
+
+
+❯ <marker:10>···································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-hsn7oy7z/home/.claude/plugins/data/prompt-history
+│ -cc-mods/archives/e5b8a822ae631bab15f75edc49201168830ff610ca2eeddd2ebc0fff25037b77.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-hsn7oy7z/project
+
+
+❯ <marker:10>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 4s · done 2:12 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== confirmation refused (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-hsn7oy7z/project
+
+
+❯ <marker:10>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 4s · done 2:12 PM
+
+❯ <marker:11>···································· 这是自动化验收的测试输入，请只回复 ok PH-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Cogitated for 10s · done 2:12 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history · 档案不可用                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x40)
+
+
+❯ <marker:11>···································· 这是自动化验收的测试输入，请只回复 ok PH-FIXTURE-HOLD
+
+⏺ ok
+
+✻ Cogitated for 10s · done 2:12 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 未决 Pending Capture 待对账
+     latest collection boundary: none
+     pending reconciliation: 4470597b · 待对账
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: unavailable · 范围 archive · 类别 archive-busy
+     Archive generation: 1000011-1fb5551f-6ac73441-c8a5c19
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-hsn7oy7z/project
+     database root: <tmp>/ptr-hsn7oy7z/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-hsn7oy7z/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/82c58e75-2d72-4bde-b5e3-d3949e8a718b.39394-1791439931-157410.json
+     run: 696d049a-d3cd-46b9-b74e-c7dad7d93c95
+▸ prompt-history · 档案不可用                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== reconciled (120x40)
+
+
+⏺ ok
+
+✻ Cogitated for 10s · done 2:12 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 未决 Pending Capture 待对账
+     latest collection boundary: none
+     pending reconciliation: 4470597b · 待对账
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: unavailable · 范围 archive · 类别 archive-busy
+     Archive generation: 1000011-1fb5551f-6ac73441-c8a5c19
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-hsn7oy7z/project
+     database root: <tmp>/ptr-hsn7oy7z/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-hsn7oy7z/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/82c58e75-2d72-4bde-b5e3-d3949e8a718b.39394-1791439931-157410.json
+     run: 696d049a-d3cd-46b9-b74e-c7dad7d93c95
+
+⏺ Prompt dropped by a hook: prompt-history 已完成对账，草稿已恢复；请重新提交。
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ <marker:12>···································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on
+
+==== resubmitted (120x40)
+
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 未决 Pending Capture 待对账
+     latest collection boundary: none
+     pending reconciliation: 4470597b · 待对账
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: unavailable · 范围 archive · 类别 archive-busy
+     Archive generation: 1000011-1fb5551f-6ac73441-c8a5c19
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-hsn7oy7z/project
+     database root: <tmp>/ptr-hsn7oy7z/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-hsn7oy7z/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/82c58e75-2d72-4bde-b5e3-d3949e8a718b.39394-1791439931-157410.json
+     run: 696d049a-d3cd-46b9-b74e-c7dad7d93c95
+
+⏺ Prompt dropped by a hook: prompt-history 已完成对账，草稿已恢复；请重新提交。
+
+❯ <marker:12>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 2s · done 2:12 PM
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

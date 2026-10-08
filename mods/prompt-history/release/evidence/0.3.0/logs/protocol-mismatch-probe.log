@@ -1,0 +1,7 @@
+$ <repo>/mods/prompt-history/bin/prompt-history-helper probe --protocol 99
+exit 23
+
+--- stdout
+
+--- stderr
+{"category":"protocol-mismatch"}

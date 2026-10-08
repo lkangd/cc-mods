@@ -1,0 +1,293 @@
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pqm3g96r/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pqm3g96r/project
+
+
+❯ <marker:7>····································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-pqm3g96r/home/.claude/plugins/data/prompt-history
+│ -cc-mods/archives/b81a10e40574661077ecbbbcd671e3cf99c067ddf447c0c74d791d46e0fb849f.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pqm3g96r/project
+
+
+❯ <marker:7>····································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 6s · done 2:11 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /compact (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pqm3g96r/project
+
+
+❯ <marker:7>····································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 6s · done 2:11 PM
+
+❯ /compact
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+✻ Compacting conversation… (0s)
+  ⎿  Tip: Start with small features or bug fixes, tell Claude to propose a plan, and verify its suggested edits
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== /prompt-history (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pqm3g96r/project
+
+
+❯ <marker:7>····································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 6s · done 2:11 PM
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ /prompt-history
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+✻ Effecting…
+  ⎿  Tip: Use Plan Mode to prepare for a complex request before making changes. Press shift+tab twice to enable.
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== /prompt-history (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pqm3g96r/project
+
+
+❯ <marker:7>····································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 6s · done 2:11 PM
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已折叠。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /reload-plugins (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pqm3g96r/project
+
+
+❯ <marker:7>····································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 6s · done 2:11 PM
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已折叠。
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

@@ -1,0 +1,7 @@
+$ <repo>/mods/prompt-history/bin/prompt-history-helper probe --protocol 1
+exit 0
+
+--- stdout
+{"status":"supported","helperProtocol":1,"target":"darwin-arm64-macos15","macosVersion":"15.8","sqliteVersionNumber":3043002,"sqliteReturning":true}
+
+--- stderr

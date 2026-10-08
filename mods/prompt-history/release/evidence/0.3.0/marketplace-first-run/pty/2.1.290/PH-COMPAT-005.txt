@@ -1,0 +1,557 @@
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝        <tmp>/ptr-hlngc94j/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-hlngc94j/project
+
+
+❯ <marker:134>·································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-hlngc94j/home/.claude/plugins/data/prompt-history
+│ -inline/archives/fd9866f3df0c4ec87de53d1993da75e7100d37617f1d24a7fca95f259b1718fb.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-hlngc94j/project
+
+
+❯ <marker:134>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 9s · done 2:48 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-hlngc94j/project
+
+
+❯ <marker:134>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 9s · done 2:48 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-hlngc94j/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/fd9866f3df0c4ec87de53d1993da75e7100d37617f1d24a7fca95f259b1718fb.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb67129-6ac73cbb-16e8afb6
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-hlngc94j/project
+     database root: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted ·
+     <tmp>/ptr-hlngc94j/plugin/bin/prompt-history-helper
+     locator: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/7c96a5c2-ec08-4c89-83a2-41e2a2099c84.61526-1791442098-44349.json
+     run: 00d235c3-0fe0-4a87-b5ef-18d6574f7c3a
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /reload-plugins (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-hlngc94j/project
+
+
+❯ <marker:134>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 9s · done 2:48 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-hlngc94j/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/fd9866f3df0c4ec87de53d1993da75e7100d37617f1d24a7fca95f259b1718fb.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb67129-6ac73cbb-16e8afb6
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-hlngc94j/project
+     database root: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted ·
+     <tmp>/ptr-hlngc94j/plugin/bin/prompt-history-helper
+     locator: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/7c96a5c2-ec08-4c89-83a2-41e2a2099c84.61526-1791442098-44349.json
+     run: 00d235c3-0fe0-4a87-b5ef-18d6574f7c3a
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-hlngc94j/project
+
+
+❯ <marker:134>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 9s · done 2:48 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-hlngc94j/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/fd9866f3df0c4ec87de53d1993da75e7100d37617f1d24a7fca95f259b1718fb.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb67129-6ac73cbb-16e8afb6
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-hlngc94j/project
+     database root: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted ·
+     <tmp>/ptr-hlngc94j/plugin/bin/prompt-history-helper
+     locator: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/7c96a5c2-ec08-4c89-83a2-41e2a2099c84.61526-1791442098-44349.json
+     run: 00d235c3-0fe0-4a87-b5ef-18d6574f7c3a
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+❯ <marker:135>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 2:48 PM
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (120x60)
+
+
+⏺ ok
+
+✻ Sautéed for 9s · done 2:48 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-hlngc94j/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/fd9866f3df0c4ec87de53d1993da75e7100d37617f1d24a7fca95f259b1718fb.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb67129-6ac73cbb-16e8afb6
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-hlngc94j/project
+     database root: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted ·
+     <tmp>/ptr-hlngc94j/plugin/bin/prompt-history-helper
+     locator: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/7c96a5c2-ec08-4c89-83a2-41e2a2099c84.61526-1791442098-44349.json
+     run: 00d235c3-0fe0-4a87-b5ef-18d6574f7c3a
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+❯ <marker:135>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 2:48 PM
+
+❯ <marker:136>·································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ prompt-history 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：digest-mismatch
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+==== retried (120x60)
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-hlngc94j/project
+
+
+❯ <marker:134>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 9s · done 2:48 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-hlngc94j/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/fd9866f3df0c4ec87de53d1993da75e7100d37617f1d24a7fca95f259b1718fb.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb67129-6ac73cbb-16e8afb6
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-hlngc94j/project
+     database root: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted ·
+     <tmp>/ptr-hlngc94j/plugin/bin/prompt-history-helper
+     locator: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/7c96a5c2-ec08-4c89-83a2-41e2a2099c84.61526-1791442098-44349.json
+     run: 00d235c3-0fe0-4a87-b5ef-18d6574f7c3a
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+❯ <marker:135>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 2:48 PM
+
+❯ <marker:136>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 1s · done 2:48 PM
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-hlngc94j/project
+     database root: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted ·
+     <tmp>/ptr-hlngc94j/plugin/bin/prompt-history-helper
+     locator: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/7c96a5c2-ec08-4c89-83a2-41e2a2099c84.61526-1791442098-44349.json
+     run: 00d235c3-0fe0-4a87-b5ef-18d6574f7c3a
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+❯ <marker:135>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 2:48 PM
+
+❯ <marker:136>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 1s · done 2:48 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-hlngc94j/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/fd9866f3df0c4ec87de53d1993da75e7100d37617f1d24a7fca95f259b1718fb.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb67129-6ac73cbb-16e8afb6
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-hlngc94j/project
+     database root: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted ·
+     <tmp>/ptr-hlngc94j/plugin/bin/prompt-history-helper
+     locator: <tmp>/ptr-hlngc94j/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/7c96a5c2-ec08-4c89-83a2-41e2a2099c84.61526-1791442098-44349.json
+     run: 00d235c3-0fe0-4a87-b5ef-18d6574f7c3a
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

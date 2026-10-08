@@ -1,0 +1,253 @@
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9113bn5_/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9113bn5_/project
+
+
+❯ <marker:64>······························· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-9113bn5_/home/.claude/plugins/data/prompt-history
+│ -inline/archives/e3921170f238cfe8f237a7dfac67a7c8da570af44458a29e6d961375c48818e3.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9113bn5_/project
+
+
+❯ <marker:64>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 5s · done 1:37 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-9113bn5_/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (100x30)
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+× 74194. PH-FIXTURE 99996 继续
+× 74195. PH-FIXTURE 99997 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 74196. PH-FIXTURE 100000 继续
+× 74197. PH-FIXTURE 100001 继续
+× 74198. PH-FIXTURE 100002 继续
+—— Run 离开 ——
+↑ 121 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (100x30)
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+× 74194. PH-FIXTURE 99996 继续
+× 74195. PH-FIXTURE 99997 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 74196. PH-FIXTURE 100000 继续
+× 74197. PH-FIXTURE 100001 继续
+× 74198. PH-FIXTURE 100002 继续
+—— Run 离开 ——
+↑ 121 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== walked back (100x30)
+
+
+✻ Cogitated for 2s · done 1:38 PM
+
+❯ <marker:74>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 1s · done 1:38 PM
+
+❯ <marker:75>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 1s · done 1:38 PM
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+× 73063. PH-FIXTURE 98465 继续
+× 73064. PH-FIXTURE 98466 继续
+× 73065. PH-FIXTURE 98467 继续
+× 73066. PH-FIXTURE 98468 继续
+× 73067. PH-FIXTURE 98469 继续
+× 73068. PH-FIXTURE 98470 继续
+× 73069. PH-FIXTURE 98471 继续
+× 73070. PH-FIXTURE 98472 继续
+↑ 9 more · ↓ 241 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

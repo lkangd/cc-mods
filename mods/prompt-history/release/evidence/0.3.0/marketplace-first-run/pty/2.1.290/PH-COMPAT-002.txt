@@ -1,0 +1,805 @@
+==== started (250x60)
+
+           Claude Code v2.1.289
+           Haiku 4.5 · Claude API
+           <tmp>/ptr-tgkh396u/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.289
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: unsupported target
+     reason: claude-code-version
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.289
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-tgkh396u/project
+     database root: <tmp>/ptr-tgkh396u/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: not checked · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-tgkh396u/home/.claude/plugins/data/.function-hook-locators/prompt-history/4b997199-f71a-482d-817d-cc55368ff02a.49515-1791441981-268943.json
+     run: 131876b7-481c-433b-91f7-538920652420
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== Claude Code below the minimum: submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.289
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: unsupported target
+     reason: claude-code-version
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.289
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-tgkh396u/project
+     database root: <tmp>/ptr-tgkh396u/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: not checked · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-tgkh396u/home/.claude/plugins/data/.function-hook-locators/prompt-history/4b997199-f71a-482d-817d-cc55368ff02a.49515-1791441981-268943.json
+     run: 131876b7-481c-433b-91f7-538920652420
+
+❯ <marker:127>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 5s · done 2:46 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐█▟███▟   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: unsupported target
+     reason: architecture
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: Darwin x86_64
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-tgkh396u/project
+     database root: unavailable
+     helper: not checked
+     locator: unavailable
+     run: unavailable
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== the Intel build under Rosetta: submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: unsupported target
+     reason: architecture
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: Darwin x86_64
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-tgkh396u/project
+     database root: unavailable
+     helper: not checked
+     locator: unavailable
+     run: unavailable
+
+❯ <marker:128>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 8s · done 2:46 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/project
+
+  ⎿  SessionStart:startup hook error
+  ⎿  Failed with non-blocking status code: {"category":"locator-create"}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/project
+
+  ⎿  SessionStart:startup hook error
+  ⎿  Failed with non-blocking status code: {"category":"locator-create"}
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: unsupported target
+     reason: claude-code-version-unproven
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code version unproven
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-tgkh396u/project
+     database root: unavailable
+     helper: not checked
+     locator: unavailable
+     run: unavailable
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== no locator: submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/project
+
+  ⎿  SessionStart:startup hook error
+  ⎿  Failed with non-blocking status code: {"category":"locator-create"}
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: unsupported target
+     reason: claude-code-version-unproven
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code version unproven
+     collection consent: not granted · policy 1
+     Run collection mode: unknown · Run collection mode 不可读
+     latest collection boundary: none
+     pending reconciliation: unknown · unsupported target，无法检查档案
+     clear transition: unknown · lifecycle 记录不可读
+     integrity: unknown · lifecycle 记录不可读
+     integrity gaps: unknown
+     archive: unknown · unsupported target，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-tgkh396u/project
+     database root: unavailable
+     helper: not checked
+     locator: unavailable
+     run: unavailable
+
+❯ <marker:129>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 7s · done 2:47 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/supported
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/supported
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: not granted · policy 1
+     Run collection mode: disabled · 未授予 Collection consent
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-tgkh396u/supported
+     database root: <tmp>/ptr-tgkh396u/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-tgkh396u/home/.claude/plugins/data/.function-hook-locators/prompt-history/3fd733a2-67c4-453a-b1ae-9f0bad456e27.54357-1791442027-234042.json
+     run: 9d816494-3446-4c9b-9b99-ee48e79de833
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/supported
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: not granted · policy 1
+     Run collection mode: disabled · 未授予 Collection consent
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-tgkh396u/supported
+     database root: <tmp>/ptr-tgkh396u/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-tgkh396u/home/.claude/plugins/data/.function-hook-locators/prompt-history/3fd733a2-67c4-453a-b1ae-9f0bad456e27.54357-1791442027-234042.json
+     run: 9d816494-3446-4c9b-9b99-ee48e79de833
+
+❯ <marker:130>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-tgkh396u/home/.claude/plugins/data/prompt-history-cc-mods/archives/acbb9e5d617d7fd0564366417b2112c43de882f9714a64fda83b3d15f2e876e2.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-tgkh396u/supported
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: not granted · policy 1
+     Run collection mode: disabled · 未授予 Collection consent
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-tgkh396u/supported
+     database root: <tmp>/ptr-tgkh396u/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-tgkh396u/home/.claude/plugins/data/.function-hook-locators/prompt-history/3fd733a2-67c4-453a-b1ae-9f0bad456e27.54357-1791442027-234042.json
+     run: 9d816494-3446-4c9b-9b99-ee48e79de833
+
+❯ <marker:130>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 7s · done 2:47 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

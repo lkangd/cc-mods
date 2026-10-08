@@ -1,0 +1,335 @@
+==== started (120x40)
+
+           Claude Code v2.1.290
+ ▐▛███▛█   Haiku 4.5 · Claude API
+·▜██████·  <tmp>/ptr-zxg35soy/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-zxg35soy/project
+
+
+❯ <marker:79>······························· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-zxg35soy/home/.claude/plugins/data/prompt-history
+│ -cc-mods/archives/c8e892d89e9e3bfa8231c341991cd0630773b5437decba85c08bfd7a9fd96c0f.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-zxg35soy/project
+
+
+❯ <marker:79>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 8s · done 2:31 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-zxg35soy/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-zxg35soy/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                [-]
+
+
+
+
+
+
+
+
+
+
+
+
+
+↓ 31 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-zxg35soy/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+× 19. PH-FIXTURE 32 继续
+× 20. PH-FIXTURE 33 继续
+× 21. PH-FIXTURE 34 继续
+× 22. PH-FIXTURE 35 继续
+× 23. PH-FIXTURE 36 继续
+× 24. PH-FIXTURE 37 继续
+× 25. PH-FIXTURE 38 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PH-FIXTURE 41 继续
+× 27. PH-FIXTURE 42 继续
+× 28. PH-FIXTURE 43 继续
+—— Run 未记录离开 ——
+↑ 31 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== away from the bottom (100x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-zxg35soy/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+—— Run 开始（从 Run fd234065 分出）——
+× 12. PH-FIXTURE 23 继续
+× 13. PH-FIXTURE 24 继续
+× 14. PH-FIXTURE 25 继续
+× 15. PH-FIXTURE 26 继续
+× 16. PH-FIXTURE 27 继续
+× 17. PH-FIXTURE 28 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PH-FIXTURE 31 继续
+× 19. PH-FIXTURE 32 继续
+× 20. PH-FIXTURE 33 继续
+× 21. PH-FIXTURE 34 继续
+↑ 21 more · ↓ 10 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== timed out: the model's AskUserQuestion dialog (100x40)
+ ▝▝   ▝▝   <tmp>/ptr-zxg35soy/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ <marker:80>······························· 请调用 AskUserQuestion
+  工具问我一个问题：选甲还是乙？选项只有「甲」和「乙」。不要做别的事。
+
+⏺ I see the prompt-history output, but I notice it's showing a historical command item rather than a
+  request from you just now.
+
+  Could you clarify what you'd like me to do? Are you asking me to:
+  - Load your full prompt history?
+  - Follow an instruction from a previous session?
+  - Something else?
+
+  Let me know how I can help!
+
+✻ Cogitated for 9s · done 2:31 PM
+▾ prompt-history · 1 条新条目  ctrl+x tab 键盘选择                                              [-]
+—— Run 开始（从 Run fd234065 分出）——
+× 12. PH-FIXTURE 23 继续
+× 13. PH-FIXTURE 24 继续
+× 14. PH-FIXTURE 25 继续
+× 15. PH-FIXTURE 26 继续
+× 16. PH-FIXTURE 27 继续
+× 17. PH-FIXTURE 28 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PH-FIXTURE 31 继续
+× 19. PH-FIXTURE 32 继续
+× 20. PH-FIXTURE 33 继续
+↓ 1 条新条目
+↑ 21 more · ↓ 13 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

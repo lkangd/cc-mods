@@ -1,0 +1,2541 @@
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (250x60)
+
+  ▐████    Claude Code v2.1.290
+  ▐████    Haiku 4.5 · Claude API
+  ▝▝ ▝▝    <tmp>/ptr-nf8obrsr/project
+
+
+❯ <marker:132>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives/bbc1012bccb8bacb173721725c8a6ddf38df586eff761e1d7c9fb67d1ec578c3.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ <marker:132>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 5s · done 1:53 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ <marker:132>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 5s · done 1:53 PM
+
+❯ <marker:133>·································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 2s · done 1:53 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-missing
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-missing
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-0/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/4942631b-db5f-48e6-a9ed-56231a9a093b.14686-1791438803-932023.json
+     run: eb5b08f6-4dbc-4697-9ee6-c84a80a86e9d
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-missing
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-missing
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-0/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/4942631b-db5f-48e6-a9ed-56231a9a093b.14686-1791438803-932023.json
+     run: eb5b08f6-4dbc-4697-9ee6-c84a80a86e9d
+
+❯ <marker:134>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ prompt-history 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：helper-missing
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-missing
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-missing
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-0/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/4942631b-db5f-48e6-a9ed-56231a9a093b.14686-1791438803-932023.json
+     run: eb5b08f6-4dbc-4697-9ee6-c84a80a86e9d
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-missing），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history · 档案不可用                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-missing
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-missing
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-0/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/4942631b-db5f-48e6-a9ed-56231a9a093b.14686-1791438803-932023.json
+     run: eb5b08f6-4dbc-4697-9ee6-c84a80a86e9d
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-missing），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== missing: band (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-missing
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-missing
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-0/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/4942631b-db5f-48e6-a9ed-56231a9a093b.14686-1791438803-932023.json
+     run: eb5b08f6-4dbc-4697-9ee6-c84a80a86e9d
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-missing），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-not-regular
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-regular
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-1/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/196fb75c-ca28-4a6c-b96e-4954039e58a4.15517-1791438813-376059.json
+     run: c246682a-c8e6-4a05-a163-252f5f9ac043
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-not-regular
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-regular
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-1/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/196fb75c-ca28-4a6c-b96e-4954039e58a4.15517-1791438813-376059.json
+     run: c246682a-c8e6-4a05-a163-252f5f9ac043
+
+❯ <marker:135>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ prompt-history 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：helper-not-regular
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-not-regular
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-regular
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-1/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/196fb75c-ca28-4a6c-b96e-4954039e58a4.15517-1791438813-376059.json
+     run: c246682a-c8e6-4a05-a163-252f5f9ac043
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-not-regular），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history · 档案不可用                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-not-regular
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-regular
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-1/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/196fb75c-ca28-4a6c-b96e-4954039e58a4.15517-1791438813-376059.json
+     run: c246682a-c8e6-4a05-a163-252f5f9ac043
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-not-regular），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== a symlink: band (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-not-regular
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-regular
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-1/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/196fb75c-ca28-4a6c-b96e-4954039e58a4.15517-1791438813-376059.json
+     run: c246682a-c8e6-4a05-a163-252f5f9ac043
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-not-regular），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-not-executable
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-executable
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-2/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/e7fe0679-4eee-4d6b-9a58-cbf1f8858532.16405-1791438822-893341.json
+     run: 99d393cc-891e-40b0-bd5b-121700065578
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-not-executable
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-executable
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-2/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/e7fe0679-4eee-4d6b-9a58-cbf1f8858532.16405-1791438822-893341.json
+     run: 99d393cc-891e-40b0-bd5b-121700065578
+
+❯ <marker:136>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ prompt-history 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：helper-not-executable
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-not-executable
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-executable
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-2/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/e7fe0679-4eee-4d6b-9a58-cbf1f8858532.16405-1791438822-893341.json
+     run: 99d393cc-891e-40b0-bd5b-121700065578
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-not-executable），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history · 档案不可用                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-not-executable
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-executable
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-2/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/e7fe0679-4eee-4d6b-9a58-cbf1f8858532.16405-1791438822-893341.json
+     run: 99d393cc-891e-40b0-bd5b-121700065578
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-not-executable），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== not executable: band (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-not-executable
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-not-executable
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-2/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/e7fe0679-4eee-4d6b-9a58-cbf1f8858532.16405-1791438822-893341.json
+     run: 99d393cc-891e-40b0-bd5b-121700065578
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-not-executable），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-untrusted
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-untrusted
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-3/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/651eebad-1f79-467c-bb30-84fe1c73cc87.17218-1791438832-486246.json
+     run: 7642859a-355c-4408-b4f0-b16a885b82c1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-untrusted
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-untrusted
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-3/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/651eebad-1f79-467c-bb30-84fe1c73cc87.17218-1791438832-486246.json
+     run: 7642859a-355c-4408-b4f0-b16a885b82c1
+
+❯ <marker:137>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ prompt-history 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：helper-untrusted
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-untrusted
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-untrusted
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-3/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/651eebad-1f79-467c-bb30-84fe1c73cc87.17218-1791438832-486246.json
+     run: 7642859a-355c-4408-b4f0-b16a885b82c1
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-untrusted），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history · 档案不可用                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-untrusted
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-untrusted
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-3/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/651eebad-1f79-467c-bb30-84fe1c73cc87.17218-1791438832-486246.json
+     run: 7642859a-355c-4408-b4f0-b16a885b82c1
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-untrusted），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== group-writable: band (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: helper-untrusted
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · helper-untrusted
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-3/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/651eebad-1f79-467c-bb30-84fe1c73cc87.17218-1791438832-486246.json
+     run: 7642859a-355c-4408-b4f0-b16a885b82c1
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（helper-untrusted），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-4/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/df0a0a85-da9e-47d0-885a-38889466fc64.18093-1791438841-960970.json
+     run: 55a2c81d-ae69-4614-a686-46582c17b379
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-4/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/df0a0a85-da9e-47d0-885a-38889466fc64.18093-1791438841-960970.json
+     run: 55a2c81d-ae69-4614-a686-46582c17b379
+
+❯ <marker:138>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ prompt-history 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：digest-mismatch
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-4/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/df0a0a85-da9e-47d0-885a-38889466fc64.18093-1791438841-960970.json
+     run: 55a2c81d-ae69-4614-a686-46582c17b379
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（digest-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history · 档案不可用                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-4/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/df0a0a85-da9e-47d0-885a-38889466fc64.18093-1791438841-960970.json
+     run: 55a2c81d-ae69-4614-a686-46582c17b379
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（digest-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== another build: band (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-4/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/df0a0a85-da9e-47d0-885a-38889466fc64.18093-1791438841-960970.json
+     run: 55a2c81d-ae69-4614-a686-46582c17b379
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（digest-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: protocol-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · protocol-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (250x60)
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: protocol-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · protocol-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+❯ <marker:139>·································· 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ prompt-history 当前不可采集，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本 Run（其他 Run 不受影响）
+│ 类别：protocol-mismatch
+│ “重试”重新检查，成功后提交；“禁用当前 Run 后继续”停止本 Run 的采集后提交，停用期间的 prompt 不会入档。
+
+❯ 1. 重试
+  2. 禁用当前 Run 后继续
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+==== dismissed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: protocol-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · protocol-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（protocol-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+▸ prompt-history · 档案不可用                                                                                                                                                                                                                         [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: protocol-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · protocol-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（protocol-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== a locator of another protocol: band (250x60)
+ ▝▝   ▝▝   <tmp>/ptr-nf8obrsr/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: digest-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · digest-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: helper unavailable
+     reason: protocol-mismatch
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · protocol-mismatch
+     latest collection boundary: none
+     pending reconciliation: unknown · helper unavailable，无法检查档案
+     clear transition: none
+     integrity: healthy
+     integrity gaps: unknown
+     archive: unknown · helper unavailable，无法检查档案
+     Archive generation: unknown
+     disk space: unknown
+     project: <tmp>/ptr-nf8obrsr/project
+     database root: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/prompt-history-inline/archives
+     helper: unavailable · <tmp>/ptr-nf8obrsr/plugin-5/bin/prompt-history-helper
+     locator: <tmp>/ptr-nf8obrsr/home/.claude/plugins/data/.function-hook-locators/prompt-history/8adbe6e6-bd3f-48af-a22f-9c1d6592fdbd.18884-1791438851-441097.json
+     run: 4b92407f-5058-4a40-9935-8276daaa58cb
+
+⏺ Prompt dropped by a hook: prompt-history 当前不可采集（protocol-mismatch），草稿已恢复；为避免漏记，本次提交已阻止。
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  档案不可用                                                                                                                                                                                                                          [-]
+尚无 Prompt Entry
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

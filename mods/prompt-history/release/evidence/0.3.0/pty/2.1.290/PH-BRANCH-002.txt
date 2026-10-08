@@ -1,0 +1,991 @@
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-kt0t9_cy/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-kt0t9_cy/project
+
+
+❯ <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prompt-history
+│ -inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-kt0t9_cy/project
+
+
+❯ <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 6s · done 1:27 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-kt0t9_cy/project
+
+
+❯ <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 6s · done 1:27 PM
+
+❯ <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-kt0t9_cy/project
+
+
+❯ <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 6s · done 1:27 PM
+
+❯ <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-kt0t9_cy/project
+
+
+❯ <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 6s · done 1:27 PM
+
+❯ <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (120x60)
+
+
+❯ <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 6s · done 1:27 PM
+
+❯ <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+× 1. <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+× 2. <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 开始（从 Run 94e8b6e7 分出）——
+× 3. <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (120x60)
+
+
+❯ <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 6s · done 1:27 PM
+
+❯ <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+× 1. <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+× 2. <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 开始（从 Run 94e8b6e7 分出）——
+× 3. <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ <marker:35>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 4s · done 1:27 PM
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+1. <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+2. <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 开始（从 Run 94e8b6e7 分出）——
+× 3. <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 开始（从 Run 94e8b6e7 分出）——
+4. <marker:35>··································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ <marker:35>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 4s · done 1:27 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/031a9e7a-49f0-44e3-b147-9ea1ed023ca0.71467-1791437248-588128.json
+     run: ea26ba90-087b-4ec0-9280-a89e85bf9d32
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+1. <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+2. <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 开始（从 Run 94e8b6e7 分出）——
+× 3. <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 开始（从 Run 94e8b6e7 分出）——
+4. <marker:35>··································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /compact (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-kt0t9_cy/project
+
+
+❯ <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 6s · done 1:27 PM
+
+❯ <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+❯ /compact
+
+
+✶ Compacting conversation… (0s)
+  ⎿  Tip: Use /theme to change the color theme
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== submitted (120x60)
+ ▝▝   ▝▝   <tmp>/ptr-kt0t9_cy/project
+
+
+❯ <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 6s · done 1:27 PM
+
+❯ <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ <marker:36>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-kt0t9_cy/project
+
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ <marker:36>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /fork <marker:37>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:37>··································· 这是自动化验收的测试输入，
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (120x60)
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ <marker:36>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /fork <marker:37>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:37>··································· 这是自动化验收的测试输入，
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+× 1. <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+× 2. <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+▸ 另一 Run · 1 条
+—— Run 未记录离开 ——
+▸ 另一 Run · 1 条
+—— Run 未记录离开 ——
+5. <marker:36>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 开始（从 Run 94e8b6e7 分出）——
+× 6. <marker:37>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (120x60)
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ <marker:36>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /fork <marker:37>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:37>··································· 这是自动化验收的测试输入，
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+× 1. <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+× 2. <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+▸ 另一 Run · 1 条
+—— Run 未记录离开 ——
+▸ 另一 Run · 1 条
+—— Run 未记录离开 ——
+5. <marker:36>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 开始（从 Run 94e8b6e7 分出）——
+× 6. <marker:37>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/pr
+     ompt-history-inline/archives/269b31c51d82f5bef40ba68bf57390ad8352b94fc37277a1fc8a7792e509f10b.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb4118c-6ac729b5-3ab1767
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-kt0t9_cy/project
+     database root: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/prom
+     pt-history-inline/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-kt0t9_cy/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/bf8e1034-be5d-4393-b3d2-9a5a3c742d81.69681-1791437231-521923.json
+     run: 94e8b6e7-355d-4151-bc4a-4ca037dddd2b
+
+❯ /fork <marker:34>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:34>··································· 这是自动化验收的测试输入，
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ <marker:36>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 2s · done 1:27 PM
+
+❯ /fork <marker:37>··································· 这是自动化验收的测试输入，请只回复 ok
+  ⎿  session running · 自动化验收的测试输入 ⑂ <marker:37>··································· 这是自动化验收的测试输入，
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ <marker:38>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 7s · done 1:28 PM
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+× 1. <marker:32>··································· 这是自动化验收的测试输入，请只回复 ok
+× 2. <marker:33>··································· 这是自动化验收的测试输入，请只回复 ok
+▸ 另一 Run · 1 条
+—— Run 未记录离开 ——
+▸ 另一 Run · 1 条
+—— Run 未记录离开 ——
+5. <marker:36>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 开始（从 Run 94e8b6e7 分出）——
+× 6. <marker:37>··································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 开始（从 Run 94e8b6e7 分出）——
+7. <marker:38>··································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

@@ -1,0 +1,253 @@
+==== started (120x40)
+
+           Claude Code v2.1.290
+           Haiku 4.5 · Claude API
+           <tmp>/ptr-3wpsht5q/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3wpsht5q/project
+
+
+❯ <marker:54>······························· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-3wpsht5q/home/.claude/plugins/data/prompt-history
+│ -cc-mods/archives/334ed93c930bcf6b8918b69b0fc80ef9bfe2152c395c1f1b2c0be27540f916b4.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3wpsht5q/project
+
+
+❯ <marker:54>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 12s · done 2:21 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3wpsht5q/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3wpsht5q/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+× 289. PH-FIXTURE 397 继续
+× 290. PH-FIXTURE 398 继续
+—— /clear：新的 Conversation Segment ——
+× 291. PH-FIXTURE 400 继续
+× 292. PH-FIXTURE 401 继续
+× 293. PH-FIXTURE 402 继续
+—— Integrity gap：此前的记录无法证明与对话一致 ——
+—— Run 未记录离开 ——
+↑ 122 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3wpsht5q/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+× 289. PH-FIXTURE 397 继续
+× 290. PH-FIXTURE 398 继续
+—— /clear：新的 Conversation Segment ——
+× 291. PH-FIXTURE 400 继续
+× 292. PH-FIXTURE 401 继续
+× 293. PH-FIXTURE 402 继续
+—— Integrity gap：此前的记录无法证明与对话一致 ——
+—— Run 未记录离开 ——
+↑ 122 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== first event (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-3wpsht5q/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+—— Run 开始 ——
+× 1. <marker:54>······························· 这是自动化验收的测试输入，请只回复 ok
+—— Run 离开 ——
+—— Run 开始 ——
+—— 采集已停止（其后的 prompt 未记录）——
+—— 采集已恢复（新根分支；停用期间的 prompt 不补录）——
+—— Run 离开 ——
+—— Run 续接 ——
+↓ 250 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
