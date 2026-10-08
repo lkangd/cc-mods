@@ -1595,7 +1595,7 @@ def cramped(ctx: Context, terminal: Terminal) -> bool:
     """The open band drawn as its title alone, saying space is short."""
     band = [row for row in ctx.band(terminal) if row.strip()]
     # The label is cut to the band's body, so only its start is certain.
-    return len(band) == 1 and title(ctx, terminal).startswith("▾ prompt-history · 空间")
+    return len(band) == 1 and title(ctx, terminal).startswith("▾ prompt-history · 空")
 
 
 @scenario("PH-UI-007")

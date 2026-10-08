@@ -1200,7 +1200,7 @@
         },
         {
           "kind": "plugin",
-          "ref": "tests/long_timeline.test.tsx::at the bottom with rows above, the title row says the trackpad needs the band moved first"
+          "ref": "tests/long_timeline.test.tsx::an arrow from the first entry onto the title shows the rows above that entry"
         },
         {
           "kind": "plugin",
