@@ -1,0 +1,1053 @@
+==== started (120x60)
+
+ ▐█▜██▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-wmxi1v_0/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x60)
+
+   ▛██▌    Claude Code v2.1.290
+   ███▌    Haiku 4.5 · Claude API
+   ▘  ▘    <tmp>/ptr-wmxi1v_0/project
+
+
+❯ <marker:91>··································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prompt-history
+│ -cc-mods/archives/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-wmxi1v_0/project
+
+
+❯ <marker:91>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 2:35 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-wmxi1v_0/project
+
+
+❯ <marker:91>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 7s · done 2:35 PM
+
+❯ <marker:92>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Brewed for 3s · done 2:35 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-wmxi1v_0/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 档案不可用 dialog (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-wmxi1v_0/project
+
+
+❯ <marker:93>··································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 档案不可用
+
+│ prompt-history 无法预写 Pending Capture，无法证明这次提交能被正确保存；本次提交尚未进入会话。
+│ 范围：本项目所有 Run
+│ 类别：archive-integrity
+│ “重新检查完整性”只读检查档案，通过后提交；“隔离并开始新档案”把旧记录原样保留在隔离目录，新时间线从空开始，之后提交；“
+│ 清除全部档案”在输入确认短语后永久删除本项目的全部档案，之后提交；“禁用当前 Run 后继续”停止本 Run
+│ 的采集后提交，停用期间的 prompt 不会入档。prompt-history 不会修复或覆盖损坏的档案。
+
+❯ 1. 重新检查完整性
+  2. 隔离并开始新档案
+  3. 清除全部档案
+  4. 禁用当前 Run 后继续
+  5. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  6. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== quarantined (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-wmxi1v_0/project
+
+
+❯ <marker:93>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 10s · done 2:36 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-wmxi1v_0/project
+
+
+❯ <marker:93>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 10s · done 2:36 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb61a45-6ac739d2-2c859acb
+     Quarantined archives: 1
+       <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prompt-history-cc
+     -mods/archives/quarantine/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce/20261008T063602Z-aa5fbee
+     e（94421 bytes）
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 清除档案 dialog (120x60)
+
+
+✻ Crunched for 10s · done 2:36 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb61a45-6ac739d2-2c859acb
+     Quarantined archives: 1
+       <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prompt-history-cc
+     -mods/archives/quarantine/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce/20261008T063602Z-aa5fbee
+     e（94421 bytes）
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+❯ /prompt-history clear-all
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除档案
+
+│ prompt-history 将永久删除这个 Project Timeline 的全部档案。
+│ 项目：<tmp>/ptr-wmxi1v_0/project
+│ 活动档案：1 条 Prompt Entry、0 个 Pending Capture
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3-shm（32768 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3-wal（0 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3（61440 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3.health（214 字节）
+│ 隔离档案：20261008T063602Z-aa5fbeee（94421 字节）
+│ 正在提交中的 prompt 也会被清除。Collection consent 与当前 Run 的采集模式不变。
+│ prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+│ 上的数据在物理上不可恢复。
+│ 确认删除请选对话框的自由输入项，输入：delete all prompts
+
+❯ 1. 取消
+  2. 返回
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+==== phrase typed (120x60)
+
+
+✻ Crunched for 10s · done 2:36 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb61a45-6ac739d2-2c859acb
+     Quarantined archives: 1
+       <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prompt-history-cc
+     -mods/archives/quarantine/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce/20261008T063602Z-aa5fbee
+     e（94421 bytes）
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+❯ /prompt-history clear-all
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除档案
+
+│ prompt-history 将永久删除这个 Project Timeline 的全部档案。
+│ 项目：<tmp>/ptr-wmxi1v_0/project
+│ 活动档案：1 条 Prompt Entry、0 个 Pending Capture
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3-shm（32768 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3-wal（0 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3（61440 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3.health（214 字节）
+│ 隔离档案：20261008T063602Z-aa5fbeee（94421 字节）
+│ 正在提交中的 prompt 也会被清除。Collection consent 与当前 Run 的采集模式不变。
+│ prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+│ 上的数据在物理上不可恢复。
+│ 确认删除请选对话框的自由输入项，输入：delete all prompts
+
+  1. 取消
+  2. 返回
+❯ 3. delete all
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · ctrl+g to edit in Vim · Esc to cancel
+
+==== /prompt-history clear-all answered (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-wmxi1v_0/project
+
+
+❯ <marker:93>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 10s · done 2:36 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb61a45-6ac739d2-2c859acb
+     Quarantined archives: 1
+       <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prompt-history-cc
+     -mods/archives/quarantine/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce/20261008T063602Z-aa5fbee
+     e（94421 bytes）
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+❯ /prompt-history clear-all
+  ⎿  prompt-history: 确认短语不符，未删除任何内容。
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 清除档案 dialog (120x60)
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb61a45-6ac739d2-2c859acb
+     Quarantined archives: 1
+       <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prompt-history-cc
+     -mods/archives/quarantine/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce/20261008T063602Z-aa5fbee
+     e（94421 bytes）
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+❯ /prompt-history clear-all
+  ⎿  prompt-history: 确认短语不符，未删除任何内容。
+
+❯ /prompt-history clear-all
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除档案
+
+│ prompt-history 将永久删除这个 Project Timeline 的全部档案。
+│ 项目：<tmp>/ptr-wmxi1v_0/project
+│ 活动档案：1 条 Prompt Entry、0 个 Pending Capture
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3-shm（32768 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3-wal（0 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3（61440 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3.health（214 字节）
+│ 隔离档案：20261008T063602Z-aa5fbeee（94421 字节）
+│ 正在提交中的 prompt 也会被清除。Collection consent 与当前 Run 的采集模式不变。
+│ prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+│ 上的数据在物理上不可恢复。
+│ 确认删除请选对话框的自由输入项，输入：delete all prompts
+
+❯ 1. 取消
+  2. 返回
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+==== phrase typed (120x60)
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb61a45-6ac739d2-2c859acb
+     Quarantined archives: 1
+       <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prompt-history-cc
+     -mods/archives/quarantine/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce/20261008T063602Z-aa5fbee
+     e（94421 bytes）
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+❯ /prompt-history clear-all
+  ⎿  prompt-history: 确认短语不符，未删除任何内容。
+
+❯ /prompt-history clear-all
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除档案
+
+│ prompt-history 将永久删除这个 Project Timeline 的全部档案。
+│ 项目：<tmp>/ptr-wmxi1v_0/project
+│ 活动档案：1 条 Prompt Entry、0 个 Pending Capture
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3-shm（32768 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3-wal（0 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3（61440 字节）
+│ 文件：2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3.health（214 字节）
+│ 隔离档案：20261008T063602Z-aa5fbeee（94421 字节）
+│ 正在提交中的 prompt 也会被清除。Collection consent 与当前 Run 的采集模式不变。
+│ prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+│ 上的数据在物理上不可恢复。
+│ 确认删除请选对话框的自由输入项，输入：delete all prompts
+
+  1. 取消
+  2. 返回
+❯ 3. delete all prompts
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · ctrl+g to edit in Vim · Esc to cancel
+
+==== /prompt-history clear-all answered (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-wmxi1v_0/project
+
+
+❯ <marker:93>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Crunched for 10s · done 2:36 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb61a45-6ac739d2-2c859acb
+     Quarantined archives: 1
+       <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prompt-history-cc
+     -mods/archives/quarantine/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce/20261008T063602Z-aa5fbee
+     e（94421 bytes）
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+❯ /prompt-history clear-all
+  ⎿  prompt-history: 确认短语不符，未删除任何内容。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-history: 已清除本项目的 prompt-history 档案：1 条 Prompt Entry、0 个 Pending Capture、1 个隔离档案。
+     Collection consent 与当前 Run 的采集模式未改变；新时间线从下一次提交开始。
+     prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+     上的数据在物理上不可恢复。
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb61a45-6ac739d2-2c859acb
+     Quarantined archives: 1
+       <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prompt-history-cc
+     -mods/archives/quarantine/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce/20261008T063602Z-aa5fbee
+     e（94421 bytes）
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+❯ /prompt-history clear-all
+  ⎿  prompt-history: 确认短语不符，未删除任何内容。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-history: 已清除本项目的 prompt-history 档案：1 条 Prompt Entry、0 个 Pending Capture、1 个隔离档案。
+     Collection consent 与当前 Run 的采集模式未改变；新时间线从下一次提交开始。
+     prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+     上的数据在物理上不可恢复。
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+     Quarantined archives: 1
+       <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prompt-history-cc
+     -mods/archives/quarantine/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce/20261008T063602Z-aa5fbee
+     e（94421 bytes）
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+❯ /prompt-history clear-all
+  ⎿  prompt-history: 确认短语不符，未删除任何内容。
+
+❯ /prompt-history clear-all
+  ⎿  prompt-history: 已清除本项目的 prompt-history 档案：1 条 Prompt Entry、0 个 Pending Capture、1 个隔离档案。
+     Collection consent 与当前 Run 的采集模式未改变；新时间线从下一次提交开始。
+     prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD
+     上的数据在物理上不可恢复。
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+❯ <marker:94>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 11s · done 2:36 PM
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: none
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+
+❯ <marker:94>··································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 11s · done 2:36 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/2537a2ba86b2952bf1fcf1112463f6cf328b92d4afd1cc2363f1cdc710165bce.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb61af3-6ac739e7-195d5066
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-wmxi1v_0/project
+     database root: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-wmxi1v_0/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/f5634e7c-b9fe-4a4d-8056-663753d69e02.85042-1791441359-506200.json
+     run: 4b923a5f-fd28-40cb-ab64-49721ddeb233
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

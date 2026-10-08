@@ -1,0 +1,335 @@
+==== started (120x40)
+
+           Claude Code v2.1.290
+           Haiku 4.5 · Claude API
+           <tmp>/ptr-52b21wy1/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+███▛█▄     Claude Code v2.1.290
+█████▘     Haiku 4.5 · Claude API
+   ▝▝      <tmp>/ptr-52b21wy1/project
+
+
+❯ <marker:21>································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-52b21wy1/home/.claude/plugins/data/prompt-history
+│ -cc-mods/archives/ca52fc7070b5a33f207e753e2a762aa7a79b8f45713737feded2d1dcbd5812ab.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-52b21wy1/project
+
+
+❯ <marker:21>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 2:14 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x40)
+
+
+⏺ ok
+
+✻ Sautéed for 5s · done 2:14 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-52b21wy1/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/ca52fc7070b5a33f207e753e2a762aa7a79b8f45713737feded2d1dcbd5812ab.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb56c05-6ac734cf-2676929b
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-52b21wy1/project
+     database root: <tmp>/ptr-52b21wy1/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-52b21wy1/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/60c494f1-e1bd-401d-a7cd-df4e4ead7cfb.52713-1791440074-396771.json
+     run: 81171f75-c688-4a7b-9b94-1d1ee3275cae
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-52b21wy1/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-52b21wy1/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: 1000011-1fb56c05-6ac734cf-2676929b
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-52b21wy1/project
+     database root: <tmp>/ptr-52b21wy1/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-52b21wy1/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/8c721667-9965-4c81-8962-5c9893170bd2.53821-1791440086-611959.json
+     run: 42e90960-a7db-4fec-bbe5-bf5dab728cba
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (120x40)
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: 1000011-1fb56c05-6ac734cf-2676929b
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-52b21wy1/project
+     database root: <tmp>/ptr-52b21wy1/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-52b21wy1/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/8c721667-9965-4c81-8962-5c9893170bd2.53821-1791440086-611959.json
+     run: 42e90960-a7db-4fec-bbe5-bf5dab728cba
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+× 1. <marker:21>································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (120x40)
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: 1000011-1fb56c05-6ac734cf-2676929b
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-52b21wy1/project
+     database root: <tmp>/ptr-52b21wy1/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-52b21wy1/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/8c721667-9965-4c81-8962-5c9893170bd2.53821-1791440086-611959.json
+     run: 42e90960-a7db-4fec-bbe5-bf5dab728cba
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+× 1. <marker:21>································· 这是自动化验收的测试输入，请只回复 ok
+—— Run 离开 ——
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

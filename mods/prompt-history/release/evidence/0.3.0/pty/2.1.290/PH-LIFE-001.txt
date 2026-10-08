@@ -1,0 +1,545 @@
+==== started (120x40)
+
+ ▐█▟███▟   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ <marker:13>································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-y0nji4aa/home/.claude/plugins/data/prompt-history
+│ -inline/archives/8fe9a9f246219d791e91d9e30c2f473645f4ac381cd00a508cf843512457cd47.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ <marker:13>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cooked for 6s · done 1:23 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /clear (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ /clear
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ /clear
+
+❯ <marker:14>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ I see you've cleared the conversation context. I'm ready to help with whatever you'd like to work on. What can I
+  assist you with?
+
+✻ Sautéed for 5s · done 1:24 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ /clear
+
+❯ <marker:14>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ I see you've cleared the conversation context. I'm ready to help with whatever you'd like to work on. What can I
+  assist you with?
+
+✻ Sautéed for 5s · done 1:24 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+× 1. <marker:13>································· 这是自动化验收的测试输入，请只回复 ok
+—— /clear：新的 Conversation Segment ——
+2. <marker:14>································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ /clear
+
+❯ <marker:14>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ I see you've cleared the conversation context. I'm ready to help with whatever you'd like to work on. What can I
+  assist you with?
+
+✻ Sautéed for 5s · done 1:24 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+× 1. <marker:13>································· 这是自动化验收的测试输入，请只回复 ok
+—— /clear：新的 Conversation Segment ——
+2. <marker:14>································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /clear (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ /clear
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+✶ Zigzagging…
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ /clear
+
+❯ <marker:15>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 11s · done 1:24 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ /clear
+
+❯ <marker:14>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ I see you've cleared the conversation context. I'm ready to help with whatever you'd like to work on. What can I
+  assist you with?
+
+✻ Sautéed for 5s · done 1:24 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents
+
+==== /clear (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ /clear
+
+❯ <marker:14>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ I see you've cleared the conversation context. I'm ready to help with whatever you'd like to work on. What can I
+  assist you with?
+
+✻ Sautéed for 5s · done 1:24 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /clear
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+✳ Meandering…
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-y0nji4aa/project
+
+
+❯ /clear
+
+❯ <marker:16>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ I've cleared the conversation context. I'm ready to help with your next task. What would you like to work on?
+
+✻ Baked for 9s · done 1:24 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

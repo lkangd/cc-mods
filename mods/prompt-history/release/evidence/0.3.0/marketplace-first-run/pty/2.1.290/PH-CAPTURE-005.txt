@@ -1,0 +1,377 @@
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-uzsfl0s4/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-uzsfl0s4/project
+
+
+❯ <marker:6>····································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/prompt-history
+│ -cc-mods/archives/66451c6ebfc4d5c06ff33e8a0364076bbc9d588d313a6d3123c0591a750ae356.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-uzsfl0s4/project
+
+
+❯ <marker:6>····································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 17s · done 2:10 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /cost (120x40)
+
+✻ Churned for 17s · done 2:10 PM
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Settings  Status   Config   Usage   Stats
+
+   Session
+
+   Total cost:            $0.0182
+   Total duration (API):  22s
+   Total duration (wall): 23s
+   Total code changes:    0 lines added, 0 lines removed
+   Usage by model:
+       claude-haiku-4-5:  945 input, 181 output, 14.7k cache read, 7.4k cache write ($0.0182)
+   Prompt cache (main):   1 request · 66% of input tokens from cache · no misses · warm (1h TTL, last activity 17s
+   ago)
+
+   Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== /prompt-history status (120x40)
+
+
+⏺ ok
+
+✻ Churned for 17s · done 2:10 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/66451c6ebfc4d5c06ff33e8a0364076bbc9d588d313a6d3123c0591a750ae356.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb53d8a-6ac733c1-e0c60b7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-uzsfl0s4/project
+     database root: <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/a92e0417-37a2-4537-a209-d94576b9ff20.28458-1791439803-454978.json
+     run: 3ffd7d3d-e627-4fd2-a021-13d67329d819
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /reload-plugins (120x40)
+
+✻ Churned for 17s · done 2:10 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/66451c6ebfc4d5c06ff33e8a0364076bbc9d588d313a6d3123c0591a750ae356.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb53d8a-6ac733c1-e0c60b7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-uzsfl0s4/project
+     database root: <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/a92e0417-37a2-4537-a209-d94576b9ff20.28458-1791439803-454978.json
+     run: 3ffd7d3d-e627-4fd2-a021-13d67329d819
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /compact (120x40)
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/66451c6ebfc4d5c06ff33e8a0364076bbc9d588d313a6d3123c0591a750ae356.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb53d8a-6ac733c1-e0c60b7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-uzsfl0s4/project
+     database root: <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/a92e0417-37a2-4537-a209-d94576b9ff20.28458-1791439803-454978.json
+     run: 3ffd7d3d-e627-4fd2-a021-13d67329d819
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+❯ /compact
+
+✽ Compacting conversation… (0s)
+  ⎿  Tip: Use /memory to view and manage Claude memory
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== /clear (120x40)
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/66451c6ebfc4d5c06ff33e8a0364076bbc9d588d313a6d3123c0591a750ae356.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb53d8a-6ac733c1-e0c60b7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-uzsfl0s4/project
+     database root: <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-uzsfl0s4/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/a92e0417-37a2-4537-a209-d94576b9ff20.28458-1791439803-454978.json
+     run: 3ffd7d3d-e627-4fd2-a021-13d67329d819
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ /clear
+
+✻ Seasoning…
+  ⎿  Tip: Use /theme to change the color theme
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== /rewind menu (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-uzsfl0s4/project
+
+
+❯ /clear
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Rewind
+
+   Restore the code and/or conversation to the point before…
+
+     ↑ 1 more
+     /clear
+     No code changes
+
+   ❯ (current)
+
+
+
+
+   Enter to continue · Esc to cancel

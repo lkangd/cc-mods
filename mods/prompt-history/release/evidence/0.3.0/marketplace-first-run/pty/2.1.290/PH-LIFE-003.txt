@@ -1,0 +1,503 @@
+==== started (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nuq50ivd/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nuq50ivd/project
+
+
+❯ <marker:19>································· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-nuq50ivd/home/.claude/plugins/data/prompt-history
+│ -cc-mods/archives/3ac6786d5fc04f047b94485573779e0bed90e3f06cb2699c33bdbd1a9782c5e5.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nuq50ivd/project
+
+
+❯ <marker:19>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 6s · done 2:14 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-nuq50ivd/project
+
+
+❯ <marker:19>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 6s · done 2:14 PM
+
+❯ <marker:20>································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 3s · done 2:14 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x40)
+
+
+⏺ ok
+
+✻ Baked for 3s · done 2:14 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/3ac6786d5fc04f047b94485573779e0bed90e3f06cb2699c33bdbd1a9782c5e5.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb56699-6ac734b9-6573c7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-nuq50ivd/project
+     database root: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/1f55ae84-3e3d-469c-8df7-bcd17c34c46f.50450-1791440050-750755.json
+     run: 9e2ebdd0-6028-4079-a3a5-57241a4f1278
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (120x40)
+
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/3ac6786d5fc04f047b94485573779e0bed90e3f06cb2699c33bdbd1a9782c5e5.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb56699-6ac734b9-6573c7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-nuq50ivd/project
+     database root: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/1f55ae84-3e3d-469c-8df7-bcd17c34c46f.50450-1791440050-750755.json
+     run: 9e2ebdd0-6028-4079-a3a5-57241a4f1278
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+1. <marker:19>································· 这是自动化验收的测试输入，请只回复 ok
+2. <marker:20>································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (120x40)
+
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/3ac6786d5fc04f047b94485573779e0bed90e3f06cb2699c33bdbd1a9782c5e5.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb56699-6ac734b9-6573c7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-nuq50ivd/project
+     database root: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/1f55ae84-3e3d-469c-8df7-bcd17c34c46f.50450-1791440050-750755.json
+     run: 9e2ebdd0-6028-4079-a3a5-57241a4f1278
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+1. <marker:19>································· 这是自动化验收的测试输入，请只回复 ok
+2. <marker:20>································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== earlier entry selected (120x40)
+
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/3ac6786d5fc04f047b94485573779e0bed90e3f06cb2699c33bdbd1a9782c5e5.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb56699-6ac734b9-6573c7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-nuq50ivd/project
+     database root: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/1f55ae84-3e3d-469c-8df7-bcd17c34c46f.50450-1791440050-750755.json
+     run: 9e2ebdd0-6028-4079-a3a5-57241a4f1278
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+1. <marker:19>································· 这是自动化验收的测试输入，请只回复 ok
+2. <marker:20>································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /reload-plugins (120x40)
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/3ac6786d5fc04f047b94485573779e0bed90e3f06cb2699c33bdbd1a9782c5e5.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb56699-6ac734b9-6573c7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-nuq50ivd/project
+     database root: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/1f55ae84-3e3d-469c-8df7-bcd17c34c46f.50450-1791440050-750755.json
+     run: 9e2ebdd0-6028-4079-a3a5-57241a4f1278
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+1. <marker:19>································· 这是自动化验收的测试输入，请只回复 ok
+2. <marker:20>································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== reloaded (120x40)
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/3ac6786d5fc04f047b94485573779e0bed90e3f06cb2699c33bdbd1a9782c5e5.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb56699-6ac734b9-6573c7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-nuq50ivd/project
+     database root: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/1f55ae84-3e3d-469c-8df7-bcd17c34c46f.50450-1791440050-750755.json
+     run: 9e2ebdd0-6028-4079-a3a5-57241a4f1278
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /reload-plugins
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+1. <marker:19>································· 这是自动化验收的测试输入，请只回复 ok
+2. <marker:20>································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x40)
+
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/3ac6786d5fc04f047b94485573779e0bed90e3f06cb2699c33bdbd1a9782c5e5.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb56699-6ac734b9-6573c7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-nuq50ivd/project
+     database root: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/1f55ae84-3e3d-469c-8df7-bcd17c34c46f.50450-1791440050-750755.json
+     run: 9e2ebdd0-6028-4079-a3a5-57241a4f1278
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+1. <marker:19>································· 这是自动化验收的测试输入，请只回复 ok
+2. <marker:20>································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== entered after reload (120x40)
+
+  ⎿  Reloaded: 1 plugin · 0 skills · 6 agents · 2 hooks · 0 plugin MCP servers · 0 plugin LSP servers
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/3ac6786d5fc04f047b94485573779e0bed90e3f06cb2699c33bdbd1a9782c5e5.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb56699-6ac734b9-6573c7
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-nuq50ivd/project
+     database root: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-nuq50ivd/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/1f55ae84-3e3d-469c-8df7-bcd17c34c46f.50450-1791440050-750755.json
+     run: 9e2ebdd0-6028-4079-a3a5-57241a4f1278
+▾ prompt-history  ctrl+x tab 键盘选择                                                                               [-]
+—— Run 开始 ——
+1. <marker:19>································· 这是自动化验收的测试输入，请只回复 ok
+2. <marker:20>································· 这是自动化验收的测试输入，请只回复 ok
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

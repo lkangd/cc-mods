@@ -1,0 +1,743 @@
+==== started (120x60)
+
+ ▐▛███▂█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pmfxuknj/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pmfxuknj/project
+
+
+❯ /prompt-history enable
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-pmfxuknj/home/.claude/plugins/data/prompt-history
+│ -cc-mods/archives/da683a86a10b7c5a2f71475c7e8c36f7b5a740d052f8320ec47910b4e933d521.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== /prompt-history enable answered (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pmfxuknj/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pmfxuknj/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+❯ <marker:82>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 11s · done 2:33 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history disable (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pmfxuknj/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+❯ <marker:82>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 11s · done 2:33 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-history: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pmfxuknj/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+❯ <marker:82>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 11s · done 2:33 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-history: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 3s · done 2:33 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (120x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pmfxuknj/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+❯ <marker:82>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 11s · done 2:33 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-history: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 3s · done 2:33 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/da683a86a10b7c5a2f71475c7e8c36f7b5a740d052f8320ec47910b4e933d521.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb605ae-6ac73946-5e71874
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pmfxuknj/project
+     database root: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/747ee850-3366-458c-9790-b3d2886a32c4.69905-1791441216-967832.json
+     run: 63416fd3-c008-40c2-adbc-44d325233389
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history enable (120x60)
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-pmfxuknj/project
+
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已开始采集，并从新的根 Conversation Branch 开始。
+
+❯ <marker:82>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 11s · done 2:33 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-history: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 3s · done 2:33 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/da683a86a10b7c5a2f71475c7e8c36f7b5a740d052f8320ec47910b4e933d521.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb605ae-6ac73946-5e71874
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pmfxuknj/project
+     database root: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/747ee850-3366-458c-9790-b3d2886a32c4.69905-1791441216-967832.json
+     run: 63416fd3-c008-40c2-adbc-44d325233389
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== confirmation refused (120x60)
+
+❯ <marker:82>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 11s · done 2:33 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-history: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 3s · done 2:33 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/da683a86a10b7c5a2f71475c7e8c36f7b5a740d052f8320ec47910b4e933d521.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb605ae-6ac73946-5e71874
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pmfxuknj/project
+     database root: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/747ee850-3366-458c-9790-b3d2886a32c4.69905-1791441216-967832.json
+     run: 63416fd3-c008-40c2-adbc-44d325233389
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+
+❯ <marker:84>···································· 这是自动化验收的测试输入，请只回复 ok PH-FIXTURE-HOLD
+
+⏺ ok PH-FIXTURE-HOLD
+
+✻ Cooked for 10s · done 2:34 PM
+▸ prompt-history · 档案不可用                                                                                       [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history disable (120x60)
+
+✻ Churned for 11s · done 2:33 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-history: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 3s · done 2:33 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/da683a86a10b7c5a2f71475c7e8c36f7b5a740d052f8320ec47910b4e933d521.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb605ae-6ac73946-5e71874
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pmfxuknj/project
+     database root: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/747ee850-3366-458c-9790-b3d2886a32c4.69905-1791441216-967832.json
+     run: 63416fd3-c008-40c2-adbc-44d325233389
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+
+❯ <marker:84>···································· 这是自动化验收的测试输入，请只回复 ok PH-FIXTURE-HOLD
+
+⏺ ok PH-FIXTURE-HOLD
+
+✻ Cooked for 10s · done 2:34 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-history: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history enable (120x60)
+
+  ⎿  prompt-history: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ <marker:83>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Baked for 3s · done 2:33 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/da683a86a10b7c5a2f71475c7e8c36f7b5a740d052f8320ec47910b4e933d521.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb605ae-6ac73946-5e71874
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pmfxuknj/project
+     database root: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/747ee850-3366-458c-9790-b3d2886a32c4.69905-1791441216-967832.json
+     run: 63416fd3-c008-40c2-adbc-44d325233389
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+
+❯ <marker:84>···································· 这是自动化验收的测试输入，请只回复 ok PH-FIXTURE-HOLD
+
+⏺ ok PH-FIXTURE-HOLD
+
+✻ Cooked for 10s · done 2:34 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-history: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (120x60)
+
+
+✻ Baked for 3s · done 2:33 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 ·
+     删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: disabled · 本 Run 已停用采集
+     latest collection boundary: collection-stopped · sequence 4
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/pr
+     ompt-history-cc-mods/archives/da683a86a10b7c5a2f71475c7e8c36f7b5a740d052f8320ec47910b4e933d521.sqlite3 · 94208
+     bytes
+     Archive generation: 1000011-1fb605ae-6ac73946-5e71874
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-pmfxuknj/project
+     database root: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/prom
+     pt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-pmfxuknj/home/.claude/plugins/data/.function-
+     hook-locators/prompt-history/747ee850-3366-458c-9790-b3d2886a32c4.69905-1791441216-967832.json
+     run: 63416fd3-c008-40c2-adbc-44d325233389
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+
+❯ <marker:84>···································· 这是自动化验收的测试输入，请只回复 ok PH-FIXTURE-HOLD
+
+⏺ ok PH-FIXTURE-HOLD
+
+✻ Cooked for 10s · done 2:34 PM
+
+❯ /prompt-history disable
+  ⎿  prompt-history: 当前 Run 已停用采集，已写入 Collection Boundary。既有 Prompt Entries、Collection consent 和其他 Run
+     均未改变。
+
+❯ /prompt-history enable
+  ⎿  prompt-history: 当前 Run 已恢复采集，并从新的根 Conversation Branch 开始；停用期间的 prompt 不补录。
+
+❯ <marker:85>···································· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 2s · done 2:34 PM
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

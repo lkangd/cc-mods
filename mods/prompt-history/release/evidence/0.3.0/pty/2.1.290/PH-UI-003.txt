@@ -1,0 +1,413 @@
+==== started (120x40)
+
+           Claude Code v2.1.290
+           Haiku 4.5 · Claude API
+           <tmp>/ptr-i1vuggqf/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+███▛█▄     Claude Code v2.1.290
+█████▘     Haiku 4.5 · Claude API
+   ▝▝      <tmp>/ptr-i1vuggqf/project
+
+
+❯ <marker:58>······························· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-i1vuggqf/home/.claude/plugins/data/prompt-history
+│ -inline/archives/2391c715bcfcc107993d9c36623705c38a1b666b8da33eced1e3ce816f9c1423.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-i1vuggqf/project
+
+
+❯ <marker:58>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 10s · done 1:32 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-i1vuggqf/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-i1vuggqf/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+× 24. PH-FIXTURE 37 继续
+× 25. PH-FIXTURE 38 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PH-FIXTURE 41 继续
+× 27. PH-FIXTURE 42 继续
+× 28. PH-FIXTURE 43 继续
+—— Run 未记录离开 ——
+↑ 36 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-i1vuggqf/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+× 24. PH-FIXTURE 37 继续
+× 25. PH-FIXTURE 38 继续
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PH-FIXTURE 41 继续
+× 27. PH-FIXTURE 42 继续
+× 28. PH-FIXTURE 43 继续
+—— Run 未记录离开 ——
+↑ 36 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-i1vuggqf/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ <marker:55>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 4s · done 1:33 PM
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+—— Run 离开 ——
+—— Run 开始 ——
+× 26. PH-FIXTURE 41 继续
+× 27. PH-FIXTURE 42 继续
+× 28. PH-FIXTURE 43 继续
+—— Run 未记录离开 ——
+—— Run 开始 ——
+29. <marker:55>······························· 这是自动化验收的测试输入，请只回复 ok
+↑ 38 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== away from the bottom (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-i1vuggqf/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ <marker:55>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 4s · done 1:33 PM
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PH-FIXTURE 31 继续
+× 19. PH-FIXTURE 32 继续
+× 20. PH-FIXTURE 33 继续
+× 21. PH-FIXTURE 34 继续
+× 22. PH-FIXTURE 35 继续
+× 23. PH-FIXTURE 36 继续
+↑ 28 more · ↓ 10 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (100x30)
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ <marker:55>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 4s · done 1:33 PM
+
+❯ <marker:56>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 2s · done 1:33 PM
+▾ prompt-history · 1 条新条目  ctrl+x tab 键盘选择                                              [-]
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PH-FIXTURE 31 继续
+× 19. PH-FIXTURE 32 继续
+× 20. PH-FIXTURE 33 继续
+× 21. PH-FIXTURE 34 继续
+× 22. PH-FIXTURE 35 继续
+↓ 1 条新条目
+↑ 28 more · ↓ 12 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (100x30)
+
+
+✻ Churned for 4s · done 1:33 PM
+
+❯ <marker:56>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 2s · done 1:33 PM
+
+❯ <marker:57>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 1s · done 1:33 PM
+▾ prompt-history · 2 条新条目  ctrl+x tab 键盘选择                                              [-]
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PH-FIXTURE 31 继续
+× 19. PH-FIXTURE 32 继续
+× 20. PH-FIXTURE 33 继续
+× 21. PH-FIXTURE 34 继续
+× 22. PH-FIXTURE 35 继续
+↓ 2 条新条目
+↑ 28 more · ↓ 13 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== counted (100x30)
+
+
+✻ Churned for 4s · done 1:33 PM
+
+❯ <marker:56>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 2s · done 1:33 PM
+
+❯ <marker:57>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 1s · done 1:33 PM
+▾ prompt-history · 2 条新条目  ctrl+x tab 键盘选择                                              [-]
+—— Run 离开 ——
+—— Run 续接 ——
+× 18. PH-FIXTURE 31 继续
+× 19. PH-FIXTURE 32 继续
+× 20. PH-FIXTURE 33 继续
+× 21. PH-FIXTURE 34 继续
+× 22. PH-FIXTURE 35 继续
+↓ 2 条新条目
+↑ 28 more · ↓ 13 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== back at the latest (100x30)
+
+
+✻ Churned for 4s · done 1:33 PM
+
+❯ <marker:56>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 2s · done 1:33 PM
+
+❯ <marker:57>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Cogitated for 1s · done 1:33 PM
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+× 26. PH-FIXTURE 41 继续
+× 27. PH-FIXTURE 42 继续
+× 28. PH-FIXTURE 43 继续
+—— Run 未记录离开 ——
+—— Run 开始 ——
+29. <marker:55>······························· 这是自动化验收的测试输入，请只回复 ok
+30. <marker:56>······························· 这是自动化验收的测试输入，请只回复 ok
+31. <marker:57>······························· 这是自动化验收的测试输入，请只回复 ok
+↑ 40 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

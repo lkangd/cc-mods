@@ -1,0 +1,44 @@
+$ <repo>/mods/prompt-history/scripts/benchmark-timeline.sh
+exit 0
+
+--- stdout
+{
+  "events": 100000,
+  "fixtureBuildSeconds": 1.0,
+  "warmup": 1,
+  "runs": 10,
+  "machine": "MacBookPro18,3",
+  "cpu": "Apple M1 Pro",
+  "memoryGiB": 32,
+  "macOS": "15.8",
+  "sqliteVersionNumber": 3043002,
+  "helperSha256": "8f792afd30842d60be45edfbcecc1344eee39f03ba7159539f9d4b664734609c",
+  "results": {
+    "expand": {
+      "p95Ms": 35.8,
+      "medianMs": 34.4
+    },
+    "loadNextBatch": {
+      "p95Ms": 67.8,
+      "medianMs": 33.2
+    },
+    "showNewEntry": {
+      "p95Ms": 82.5,
+      "medianMs": 79.5
+    },
+    "deepLineageFirstRead": {
+      "p95Ms": 176.3,
+      "medianMs": 167.3
+    },
+    "deepLineageExpand": {
+      "p95Ms": 38.7,
+      "medianMs": 36.6
+    },
+    "deepLineageLoadNextBatch": {
+      "p95Ms": 40.3,
+      "medianMs": 36.8
+    }
+  }
+}
+
+--- stderr

@@ -38,7 +38,7 @@ Issue 53 已于 2026-10-06 resolved：审查修复后的完整非模型 startup 
 
 ## 加载方式与 Marketplace 边界
 
-- Marketplace：仓库根目录的 `.claude-plugin/marketplace.json` 把 prompt-history 作为 `cc-mods` marketplace 的插件发布（`./mods/prompt-history`）。安装与卸载已在真实终端中验证；Marketplace 更新与 scope 合并未验证，不作承诺。
+- Marketplace：仓库根目录的 `.claude-plugin/marketplace.json` 把 prompt-history 作为 `cc-mods` marketplace 的插件发布（`./mods/prompt-history`）。安装、常规运行与卸载已在真实终端中验证：52/56 个 PTY 场景通过，另 4 个注入类场景（PH-SEC-002、PH-FAIL-006、PH-SEC-004、PH-COMPAT-003）在 Marketplace 下未通过，只在 `--plugin-dir` 下验证，原因待查（见 `release/evidence/0.3.0/marketplace.md`）；Marketplace 更新与 scope 合并未验证，不作承诺。
 - `--plugin-dir`：本地开发与调试用，与 Marketplace 安装互斥。
 - 卸载前的数据清理见文末。
 

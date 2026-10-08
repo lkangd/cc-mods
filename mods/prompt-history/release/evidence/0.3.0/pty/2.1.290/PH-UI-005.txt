@@ -1,0 +1,317 @@
+==== started (120x40)
+
+ ▐▟███▟█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-mrrlsy02/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-mrrlsy02/project
+
+
+❯ <marker:63>······························· 这是自动化验收的测试输入，请只回复 ok
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-mrrlsy02/home/.claude/plugins/data/prompt-history
+│ -inline/archives/8017fc38aa72810ff65d97ef0bc48cdce2a09e8fe00201052ab01624cdbba652.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (120x40)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-mrrlsy02/project
+
+
+❯ <marker:63>······························· 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 5s · done 1:37 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                    [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-mrrlsy02/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                [-]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-mrrlsy02/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+—— Run 离开 ——
+—— Run 续接 ——
+× 289. PH-FIXTURE 398 继续
+× 290. PH-FIXTURE 399 继续
+× 291. PH-FIXTURE 400 继续
+× 292. PH-FIXTURE 401 继续
+× 293. PH-FIXTURE 402 继续
+—— Run 离开 ——
+↑ 121 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-mrrlsy02/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+—— Run 离开 ——
+—— Run 续接 ——
+× 289. PH-FIXTURE 398 继续
+× 290. PH-FIXTURE 399 继续
+× 291. PH-FIXTURE 400 继续
+× 292. PH-FIXTURE 401 继续
+× 293. PH-FIXTURE 402 继续
+—— Run 离开 ——
+↑ 121 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== first event by the trackpad (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-mrrlsy02/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+—— Run 开始 ——
+× 1. <marker:63>······························· 这是自动化验收的测试输入，请只回复 ok
+—— Run 离开 ——
+—— Run 开始 ——
+× 2. PH-FIXTURE 5 继续
+× 3. PH-FIXTURE 6 继续
+× 4. PH-FIXTURE 7 继续
+× 5. PH-FIXTURE 8 继续
+↓ 249 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== latest by clicks (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-mrrlsy02/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+—— Run 离开 ——
+—— Run 续接 ——
+× 289. PH-FIXTURE 398 继续
+× 290. PH-FIXTURE 399 继续
+× 291. PH-FIXTURE 400 继续
+× 292. PH-FIXTURE 401 继续
+× 293. PH-FIXTURE 402 继续
+—— Run 离开 ——
+↑ 121 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== left the bottom by arrows (100x30)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-mrrlsy02/project
+
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                           [-]
+× 288. PH-FIXTURE 395 继续
+—— Run 离开 ——
+—— Run 续接 ——
+× 289. PH-FIXTURE 398 继续
+× 290. PH-FIXTURE 399 继续
+× 291. PH-FIXTURE 400 继续
+× 292. PH-FIXTURE 401 继续
+× 293. PH-FIXTURE 402 继续
+↑ 120 more · ↓ 1 more
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

@@ -1,0 +1,1301 @@
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝        <tmp>/ptr-jtly12_k/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== consent asked (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 采集同意
+
+│ prompt-history 会保存每次成功提交的完整最终文本。
+│ 内容以明文保存在本机，永久保留且没有应用配额，可能包含凭据。
+│ 数据库：<tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3
+│ 同一系统账户或 root 可读取或篡改这些数据。
+│ prompt-history 的删除不会删除 Claude Code transcript、文件系统快照或外部备份中的副本。
+│ 是否为这个 Project Timeline 启用采集？
+
+❯ 1. 启用
+  2. 继续但不启用
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 22s · done 2:58 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 22s · done 2:58 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.36073-1791442689-277632.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== waiting when killed (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 22s · done 2:58 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.36073-1791442689-277632.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ <marker:185>································ 这是自动化验收的测试输入，请只回复 ok
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+✻ Cerebrating…
+  ⎿  Tip: Use Plan Mode to prepare for a complex request before making changes. Press shift+tab twice to enable.
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 22s · done 2:58 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.36073-1791442689-277632.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 22s · done 2:58 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.36073-1791442689-277632.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ <marker:186>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 7s · done 2:58 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 22s · done 2:58 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.36073-1791442689-277632.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ <marker:186>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 7s · done 2:58 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                                                                                                                                                                                 [-]
+—— Run 开始 ——
+1. <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 续接 ——
+—— Integrity gap：此前的记录无法证明与对话一致 ——
+—— 已恢复可验证采集（此前的缺口不会补齐）——
+2. <marker:186>································ 这是自动化验收的测试输入，请只回复 ok
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== band open (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Churned for 22s · done 2:58 PM
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.36073-1791442689-277632.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ <marker:186>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 7s · done 2:58 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+
+
+▾ prompt-history  ctrl+x tab 键盘选择                                                                                                                                                                                                                 [-]
+—— Run 开始 ——
+1. <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 续接 ——
+—— Integrity gap：此前的记录无法证明与对话一致 ——
+—— 已恢复可验证采集（此前的缺口不会补齐）——
+2. <marker:186>································ 这是自动化验收的测试输入，请只回复 ok
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.36073-1791442689-277632.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ <marker:186>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 7s · done 2:58 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.42571-1791442724-711427.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+▾ prompt-history  ctrl+x tab 键盘选择                                                                                                                                                                                                                 [-]
+—— Run 开始 ——
+1. <marker:184>································ 这是自动化验收的测试输入，请只回复 ok
+—— Run 未记录离开 ——
+—— Run 续接 ——
+—— Integrity gap：此前的记录无法证明与对话一致 ——
+—— 已恢复可验证采集（此前的缺口不会补齐）——
+2. <marker:186>································ 这是自动化验收的测试输入，请只回复 ok
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: not created
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/b05b26df-e037-40c3-84a9-d9efbc6f6c1b.44478-1791442735-805515.json
+     run: 40411572-2aa1-438d-bd4d-d0f172fe3895
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== submitted (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: not created
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/b05b26df-e037-40c3-84a9-d9efbc6f6c1b.44478-1791442735-805515.json
+     run: 40411572-2aa1-438d-bd4d-d0f172fe3895
+
+❯ <marker:187>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 9s · done 2:59 PM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 清除当前 Run dialog (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: not created
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/b05b26df-e037-40c3-84a9-d9efbc6f6c1b.44478-1791442735-805515.json
+     run: 40411572-2aa1-438d-bd4d-d0f172fe3895
+
+❯ <marker:187>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 9s · done 2:59 PM
+
+❯ /prompt-history clear-run
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除当前 Run
+
+│ prompt-history 将永久删除当前 Run 的全部记录。
+│ 范围：当前 Run 的整条会话谱系，包括它此前所有进程接入（共 1 次）中的记录，最早一条在 2026-10-08 14:58。
+│ 1 条 Prompt Entry、0 个 Pending Capture、1 条边界事件。
+│ 其他 Run 的记录保持不变，但其后条目的编号可能前移。Collection consent 与当前 Run 的采集模式不变。
+│ prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD 上的数据在物理上不可恢复。
+
+❯ 1. 清除当前 Run
+  2. 取消
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+
+
+
+
+
+
+
+==== /prompt-history clear-run answered (250x60)
+
+ ▐▛███▛█   Claude Code v2.1.290
+▝▜██████▀  Haiku 4.5 · Claude API
+ ▝▝   ▝▝   <tmp>/ptr-jtly12_k/project
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: not created
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/b05b26df-e037-40c3-84a9-d9efbc6f6c1b.44478-1791442735-805515.json
+     run: 40411572-2aa1-438d-bd4d-d0f172fe3895
+
+❯ <marker:187>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 9s · done 2:59 PM
+
+❯ /prompt-history clear-run
+  ⎿  prompt-history: 已清除当前 Run 的 prompt-history 记录：1 条 Prompt Entry、0 个 Pending Capture、1 条边界事件。
+     其他 Run 的记录不变，其条目编号可能前移。Collection consent 与当前 Run 的采集模式未改变；下一次提交开始新的根。
+     prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD 上的数据在物理上不可恢复。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: not created
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/b05b26df-e037-40c3-84a9-d9efbc6f6c1b.44478-1791442735-805515.json
+     run: 40411572-2aa1-438d-bd4d-d0f172fe3895
+
+❯ <marker:187>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Worked for 9s · done 2:59 PM
+
+❯ /prompt-history clear-run
+  ⎿  prompt-history: 已清除当前 Run 的 prompt-history 记录：1 条 Prompt Entry、0 个 Pending Capture、1 条边界事件。
+     其他 Run 的记录不变，其条目编号可能前移。Collection consent 与当前 Run 的采集模式未改变；下一次提交开始新的根。
+     prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD 上的数据在物理上不可恢复。
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/b05b26df-e037-40c3-84a9-d9efbc6f6c1b.44478-1791442735-805515.json
+     run: 40411572-2aa1-438d-bd4d-d0f172fe3895
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== started (250x60)
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.36073-1791442689-277632.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ <marker:186>································ 这是自动化验收的测试输入，请只回复 ok
+
+⏺ ok
+
+✻ Sautéed for 7s · done 2:58 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.42571-1791442724-711427.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+
+✻ Sautéed for 7s · done 2:58 PM
+
+❯ /prompt-history
+  ⎿  prompt-history: prompt-history 已展开。
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.42571-1791442724-711427.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: not created
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.46936-1791442751-733828.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== 清除当前 Run dialog (250x60)
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.42571-1791442724-711427.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: not created
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.46936-1791442751-733828.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ /prompt-history clear-run
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☐ 清除当前 Run
+
+│ prompt-history 将永久删除当前 Run 的全部记录。
+│ 范围：当前 Run 的整条会话谱系，包括它此前所有进程接入（共 2 次）中的记录，最早一条在 2026-10-08 14:58。
+│ 2 条 Prompt Entry、0 个 Pending Capture、5 条边界事件。
+│ 其他 Run 的记录保持不变，但其后条目的编号可能前移。Collection consent 与当前 Run 的采集模式不变。
+│ prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD 上的数据在物理上不可恢复。
+
+❯ 1. 清除当前 Run
+  2. 取消
+  3. Type something.
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to cancel
+
+==== /prompt-history clear-run answered (250x60)
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: ready · <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives/7aa3e7ccb5c44299cf87346ea464d74573cf6283863973e2e5c8ffebd2f7e914.sqlite3 · 94208 bytes
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: ok
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.42571-1791442724-711427.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: not created
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.46936-1791442751-733828.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ /prompt-history clear-run
+  ⎿  prompt-history: 已清除当前 Run 的 prompt-history 记录：2 条 Prompt Entry、0 个 Pending Capture、5 条边界事件。
+     其他 Run 的记录不变，其条目编号可能前移。Collection consent 与当前 Run 的采集模式未改变；下一次提交开始新的根。
+     prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD 上的数据在物理上不可恢复。
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
+
+==== /prompt-history status (250x60)
+
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 1 · 本项目的时间线跨越这些 Integrity gap 的部分不完整
+     archive: not created
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.46936-1791442751-733828.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+
+❯ /prompt-history clear-run
+  ⎿  prompt-history: 已清除当前 Run 的 prompt-history 记录：2 条 Prompt Entry、0 个 Pending Capture、5 条边界事件。
+     其他 Run 的记录不变，其条目编号可能前移。Collection consent 与当前 Run 的采集模式未改变；下一次提交开始新的根。
+     prompt-history 的删除不会删除 Claude Code 的 transcript/history、文件系统快照或第三方备份中的副本，也不保证 SSD 上的数据在物理上不可恢复。
+
+❯ /prompt-history status
+  ⎿  prompt-history: prompt-history status
+     support: supported
+     reason: preflight-ok
+     target: macOS 15.x arm64 · Claude Code >=2.1.290 · interactive terminal
+     not promised: 其他平台与 surface · Marketplace 更新与 scope 合并 · 自动焦点、Esc 折叠、触控板与滚轮、槽位仲裁 · 删除不触及 transcript 与外部副本 · 卸载前先清除（见 README）
+     detected: macOS 15.8 arm64 · Claude Code 2.1.290
+     collection consent: granted · policy 1
+     Run collection mode: enabled
+     latest collection boundary: none
+     pending reconciliation: none
+     clear transition: none
+     integrity: healthy
+     integrity gaps: 0
+     archive: not created
+     Archive generation: 1000011-1fb6e212-6ac73f0c-62405ee
+     Quarantined archives: 0
+     disk space: unknown
+     project: <tmp>/ptr-jtly12_k/project
+     database root: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/prompt-history-cc-mods/archives
+     helper: trusted · <repo>/mods/prompt-history/bin/prompt-history-helper
+     locator: <tmp>/ptr-jtly12_k/home/.claude/plugins/data/.function-hook-locators/prompt-history/f6003e6b-2694-4805-b8cf-536ca707bcd4.46936-1791442751-733828.json
+     run: a5ea84ac-3faf-4e91-8aa5-e8b5c755b9bd
+▸ prompt-history                                                                                                                                                                                                                                      [-]
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
