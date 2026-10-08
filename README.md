@@ -6,7 +6,7 @@ Claude Code 的 mod 合集。每个 mod 是一个独立的插件，位于 `mods/
 
 | Mod | 版本 | 作用 |
 | --- | --- | --- |
-| [prompt-history](#prompt-history) | 0.2.0 | 保存成功提交的 prompt，在输入框上方显示可跳转的时间线 |
+| [prompt-history](#prompt-history) | 0.3.0 | 保存成功提交的 prompt，在输入框上方显示可跳转的时间线 |
 
 新增 mod 时，在上表加一行，并在本文件中新增一个与下方 prompt-history 同级的一节。
 
@@ -106,4 +106,4 @@ claude --plugin-dir /path/to/cc-mods/mods/prompt-history
 
 - 本地加载（不经 marketplace）：`claude --plugin-dir /path/to/cc-mods/mods/prompt-history`
 - `mods/prompt-history/scripts/verify-startup.sh` 是快速门禁，`build-artifacts.sh` 重建 helper（需要 Xcode 命令行工具），`release-evidence.sh` 是发布门禁。
-- 发布证据：`mods/prompt-history/release/evidence/0.2.0/`。更详细的限制与数据说明见 [`mods/prompt-history/README.md`](mods/prompt-history/README.md)。
+- 发布证据：`mods/prompt-history/release/evidence/0.3.0/`。`--plugin-dir` 全量 56/56 通过；Marketplace 52/56 通过，4 个注入类场景未通过，见 `marketplace.md`。更详细的限制与数据说明见 [`mods/prompt-history/README.md`](mods/prompt-history/README.md)。
