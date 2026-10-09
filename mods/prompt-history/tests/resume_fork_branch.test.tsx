@@ -556,7 +556,7 @@ test('a forked Run names the Run its first entry continues', () => {
 const left = 'e4e4e4e4-0000-4000-8000-00000000000d'
 const otherRun = 'f0f0f0f0-1111-4222-8333-444444444444'
 
-test('entries a resume left behind fold into one row that expands', async ($, on) => {
+test('a resumed session draws its own transcript, never the entries of the branch it left', async ($, on) => {
   const store = consentedStore({ [branchKey()]: stored(left) })
   installSupportedTarget(on, {
     store,
@@ -565,47 +565,18 @@ test('entries a resume left behind fold into one row that expands', async ($, on
       { ...archivedEntry(left, 2, 'PH-SECRET-LEFT'), parentEventId: earlier },
     ],
     /* The resumed transcript ends on the first entry, not the second. */
+    transcript: [{ role: 'user', text: 'PH-SECRET-KEPT' }],
     branchMatch: unique(earlier),
   })
   await $.session.start(session)
   await composerPrompt($)
   await promptHistory($)
 
-  const folded = JSON.stringify(await renderBand($))
-  expect(folded).toContain('PH-SECRET-KEPT')
-  expect(folded).toContain('另一分支 · 1 条')
-  expect(folded).not.toContain('PH-SECRET-LEFT')
-  expect(folded).toContain('PH-SECRET-CONSENT-CAPTURE')
-
-  await $.ui.press({ plugin: 'prompt-history', key: `prompt-history:fold:${left}` })
-  const open = JSON.stringify(await renderBand($))
-  expect(open).toContain('PH-SECRET-LEFT')
-
-  await $.ui.press({ plugin: 'prompt-history', key: `prompt-history:fold:${left}` })
-  expect(JSON.stringify(await renderBand($))).not.toContain('PH-SECRET-LEFT')
-})
-
-test('a forked Run names the Run whose entry it continues', async ($, on) => {
-  const store = consentedStore()
-  installSupportedTarget(on, {
-    store,
-    archive: [{ ...archivedEntry(forkPoint, 1, 'PH-SECRET-SHARED'), runId: otherRun, segmentId: otherRun }],
-    branchMatch: unique(forkPoint),
-  })
-  await $.session.start(session)
-  await composerPrompt($)
-  await promptHistory($)
-
-  expect(JSON.stringify(await renderBand($))).toContain(`从 Run ${otherRun.slice(0, 8)} 分出`)
-})
-
-test('a fork that could not be tied to one lineage says so where its branch begins', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), branchMatch: ambiguous(earlier, forkPoint) })
-  await $.session.start(session)
-  await composerPrompt($)
-  await promptHistory($)
-
-  expect(JSON.stringify(await renderBand($))).toContain('共享前缀无法唯一确定')
+  const band = JSON.stringify(await renderBand($))
+  expect(band).toContain('1. PH-SECRET-KEPT')
+  expect(band).toContain('2. PH-SECRET-CONSENT-CAPTURE')
+  expect(band).not.toContain('PH-SECRET-LEFT')
+  expect(band).not.toContain('另一分支')
 })
 
 test('a resume replaying shared history archives nothing for it', async ($, on) => {
@@ -661,19 +632,21 @@ test('a submission that reaches a session before its locator waits for the bridg
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(1)
 })
 
-test('a band opened after a late locator reads the archive it missed at start', async ($, on) => {
+test('a band opened before the locator arrives still draws the transcript', async ($, on) => {
   const locatorPublished = { value: false }
   installSupportedTarget(on, {
     store: consentedStore(),
     locatorPublished,
-    archive: [archivedEntry(earlier, 1, 'PH-SECRET-EARLIER')],
+    archive: [archivedEntry(earlier, 1, 'PH-SECRET-ARCHIVED')],
+    transcript: [{ role: 'user', text: 'PH-SECRET-EARLIER' }],
   })
   await $.session.start(session)
-  locatorPublished.value = true
 
   await promptHistory($)
 
-  expect(JSON.stringify(await renderBand($))).toContain('PH-SECRET-EARLIER')
+  const band = JSON.stringify(await renderBand($))
+  expect(band).toContain('1. PH-SECRET-EARLIER')
+  expect(band).not.toContain('PH-SECRET-ARCHIVED')
 })
 
 test('a session changed in process waits for its own late locator', async ($, on) => {

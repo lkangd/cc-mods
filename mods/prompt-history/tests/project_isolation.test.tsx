@@ -273,46 +273,7 @@ test('what the archive says of other Runs decides and counts their folds beyond 
   expect([...folds.runs]).toEqual(['y0', 'b0'])
 })
 
-test('the band folds a Run that wrote alongside a busier one before this Run began', async ($, on) => {
-  const x = { runId: 'cdcdcdcd-0000-4000-8000-000000000001', segmentId: 'cdcdcdcd-0000-4000-8000-000000000011', branchId: 'cdcdcdcd-0000-4000-8000-000000000021' }
-  const y = { runId: 'cdcdcdcd-0000-4000-8000-000000000002', segmentId: 'cdcdcdcd-0000-4000-8000-000000000012', branchId: 'cdcdcdcd-0000-4000-8000-000000000022' }
-  let sequence = 0
-  const id = () => `cdcdcdcd-1000-4000-8000-${String(++sequence).padStart(12, '0')}`
-  const row = (kind: string, run: typeof x, text?: string): ArchiveRow => ({
-    kind,
-    eventId: id(),
-    sequence,
-    ...run,
-    ...(text === undefined ? {} : { parentEventId: null, text, attachmentCount: 0 }),
-  })
-  const archive: ArchiveRow[] = [
-    row('run-started', x),
-    row('prompt', x, 'PH-SECRET-BUSY-1'),
-    row('run-started', y),
-    row('prompt', y, 'PH-SECRET-SIDE'),
-    row('prompt', x, 'PH-SECRET-BUSY-2'),
-    row('run-detached', y),
-    row('prompt', x, 'PH-SECRET-BUSY-3'),
-    row('run-detached', x),
-  ]
-  installSupportedTarget(on, { store: consentedStore(), archive, transcript: [] })
-  await $.session.start(session)
-  await promptHistory($)
-  await composerPrompt($, { text: 'PH-SECRET-MINE' })
-  await promptHistory($)
-  await promptHistory($)
-  const folded = JSON.stringify(await renderBand($, { maxRows: 40 }))
-
-  expect(folded).toContain('▸ 另一 Run · 1 条')
-  expect(folded).not.toContain('PH-SECRET-SIDE')
-  expect(folded).toContain('PH-SECRET-BUSY-2')
-  expect(folded).toContain('PH-SECRET-MINE')
-  /* One Run's start and leaving remain in view, not two interleaved. */
-  expect(folded.match(/Run 开始/g)?.length).toBe(2)
-  expect(folded.match(/Run 离开/g)?.length).toBe(1)
-})
-
-test('the band folds a Run writing alongside this one and opens it on a press', async ($, on) => {
+test('another Run writing alongside this one never reaches the band: it draws only this session’s transcript', async ($, on) => {
   const archive: ArchiveRow[] = []
   const otherRun = 'abababab-cdcd-4efe-8a0a-121212121212'
   const other = { runId: otherRun, segmentId: '45454545-6767-4898-8a9a-bcbcbcbcbcbc', branchId: '56565656-7878-4989-8aba-cdcdcdcdcdcd' }
@@ -326,22 +287,17 @@ test('the band folds a Run writing alongside this one and opens it on a press', 
   archive.push({ kind: 'prompt', eventId: 'b1000000-0000-4000-8000-000000000000', sequence: next(), ...other, parentEventId: null, text: 'PH-SECRET-OTHER', attachmentCount: 0 })
   archive.push({ kind: 'run-detached', eventId: 'b2000000-0000-4000-8000-000000000000', sequence: next(), ...other })
   await composerPrompt($, { text: 'PH-SECRET-MINE-2' })
-  /* Folded and opened again, the band reads the latest batch. */
+  /* Folded and opened again, the band reads the transcript anew. */
   await promptHistory($)
   await promptHistory($)
-  const folded = JSON.stringify(await renderBand($, { maxRows: 40 }))
-  await $.ui.press({ plugin: 'prompt-history', key: 'prompt-history:fold:b1000000-0000-4000-8000-000000000000', requestId: BAND_ID })
-  const opened = JSON.stringify(await renderBand($, { maxRows: 40 }))
+  const band = JSON.stringify(await renderBand($, { maxRows: 40 }))
 
-  expect(folded).toContain('▸ 另一 Run · 1 条')
-  expect(folded).not.toContain('PH-SECRET-OTHER')
-  expect(folded).not.toContain('Run 离开')
-  expect(folded).toContain('PH-SECRET-MINE-2')
-  expect(opened).toContain('▾ 另一 Run · 1 条')
-  expect(opened).toContain('PH-SECRET-OTHER')
-  expect(opened).toContain('Run 离开')
+  expect(band).toContain('1. PH-SECRET-MINE-1')
+  expect(band).toContain('2. PH-SECRET-MINE-2')
+  expect(band).not.toContain('PH-SECRET-OTHER')
+  expect(band).not.toContain('另一 Run')
+  expect(band).not.toContain('Run 离开')
 })
-
 test('a consent another Run gave after this one started is not asked again, nor overwritten', async ($, on) => {
   const store: Record<string, unknown> = {}
   const calls = installSupportedTarget(on, { store, ask: '继续但不启用' })

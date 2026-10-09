@@ -303,10 +303,6 @@ test('a queued Clear Boundary is written before the next Prompt Entry', async ($
   const confirmed = captureCalls(calls, 'capture-confirm')
   expect(confirmed).toHaveLength(1)
   expect((store[lifecycleKey()] as { queue: unknown[] }).queue).toEqual([])
-
-  await promptHistory($, '')
-  const band = await renderBand($)
-  expect(JSON.stringify(band)).toContain('新的 Conversation Segment')
 })
 
 test('a Clear Boundary that will not write blocks the submission', async ($, on) => {
@@ -410,13 +406,14 @@ test('the segment after a clear starts a new root branch', async ($, on) => {
   expect(third?.branchId).not.toBe(first?.branchId)
 })
 
-test('the timeline keeps both sides of a clear in their original order', async ($, on) => {
+test('the archive keeps both sides of a clear in their original order', async ($, on) => {
   const classicSession = { id: endedSessionId }
   const store: Record<string, unknown> = {
     ...consentedStore(),
     [lifecycleKey()]: { version: 1, started: true, attachment: ownAttachment, queue: [] },
   }
-  const calls = installSupportedTarget(on, { store, classicSession })
+  const archive: ArchiveRow[] = []
+  const calls = installSupportedTarget(on, { store, classicSession, archive })
 
   await $.session.start(session)
   await composerPrompt($, { text: 'PH-SECRET-BEFORE-CLEAR' })
@@ -426,17 +423,9 @@ test('the timeline keeps both sides of a clear in their original order', async (
   store[lifecycleKey()] = { version: 1, queue: [clearWrite({ occurredAt: 1_795_000_000_000 })] }
   await composerPrompt($, { text: 'PH-SECRET-AFTER-CLEAR' })
 
-  await promptHistory($, '')
-  const band = JSON.stringify(await renderBand($))
-  const rows = [
-    band.indexOf('PH-SECRET-BEFORE-CLEAR'),
-    band.indexOf('新的 Conversation Segment'),
-    band.indexOf('PH-SECRET-AFTER-CLEAR'),
-  ]
-  expect(rows.every(index => index >= 0)).toBe(true)
-  expect([...rows].sort((left, right) => left - right)).toEqual(rows)
-  /* Exactly one boundary row, however often the band is drawn. */
-  expect(band.split('新的 Conversation Segment')).toHaveLength(2)
+  expect(archive.flatMap(row => row.kind === 'prompt' ? [row.text] : row.kind === 'clear' ? ['clear'] : []))
+    .toEqual(['PH-SECRET-BEFORE-CLEAR', 'clear', 'PH-SECRET-AFTER-CLEAR'])
+  /* Exactly one boundary. */
   expect(boundaryCalls(calls)).toHaveLength(1)
 })
 
@@ -526,10 +515,6 @@ test('a boundary replayed after an unsaved drain still draws one row', async ($,
   const boundaries = boundaryCalls(calls)
   expect(boundaries).toHaveLength(2)
   expect(boundaries.map(call => call.argv[8])).toEqual([clearEventId, clearEventId])
-
-  await promptHistory($, '')
-  const band = JSON.stringify(await renderBand($))
-  expect(band.split('新的 Conversation Segment')).toHaveLength(2)
 })
 
 test('a failed drain names the category the helper refused with', async ($, on) => {

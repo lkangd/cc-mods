@@ -699,10 +699,13 @@ export function installSupportedTarget(
       return { isFilled: !options.fillFails }
     })
   }
+  /* Without `messages`, the transcript is live: what the band draws is what
+     the person submitted. */
+  const liveTranscript = options.transcript ?? (options.messages ? undefined : [])
   on('session.messages', () => {
     if (options.messagesFail) throw new Error('transcript unavailable: PH-SECRET-MESSAGES')
     return {
-      value: (options.transcript ?? options.messages ?? []).map(message => ({ ...message, toolUses: [] })),
+      value: (liveTranscript ?? options.messages ?? []).map(message => ({ ...message, toolUses: [] })),
     }
   })
   on('process.run', (_$, e) => {
@@ -1255,7 +1258,7 @@ export function installSupportedTarget(
     if (options.dropBeneath !== undefined) return { drop: options.dropBeneath }
     const text = options.rewrite ? FINAL_SECRET : e.text
     if (e.turnId === undefined) {
-      options.transcript?.push({ role: 'user', text })
+      liveTranscript?.push({ role: 'user', text })
       for (let row = 0; row < (options.rowsInSubmit ?? 1); row += 1) await storeComposerRow(text)
     }
     return { text, context: e.context, origin: e.origin }

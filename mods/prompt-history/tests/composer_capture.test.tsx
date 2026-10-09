@@ -48,11 +48,6 @@ test('no origin but the composer creates a Prompt Entry', async ($, on) => {
   }
 
   expect(calls.some(call => call.argv[1]?.startsWith('capture-'))).toBe(false)
-  await expand($)
-  /* The Run did start — its first capture was staged — but no entry exists. */
-  const band = JSON.stringify(await renderBand($))
-  expect(band).not.toContain('PH-SECRET')
-  expect(band).not.toContain('1. ')
 })
 
 test('a slash command run archives nothing while slash text still does', async ($, on) => {
@@ -121,7 +116,7 @@ test('wide, blank-line and combining text is archived verbatim and shown on one 
   await expand($)
   const rendered = JSON.stringify(await renderBand($))
   expect(rendered).toContain(`1. ${text.replace(/\n/g, ' ↵ ')}`)
-  expect(rendered).toContain('wrap')
+  expect(rendered).not.toContain('\\n')
 })
 
 test('attachments archive only their count and broad kinds', async ($, on) => {
@@ -164,7 +159,9 @@ test('an attachment-only submission forms a text-less Prompt Entry', async ($, o
 
   await expand($)
   const rendered = JSON.stringify(await renderBand($))
-  expect(rendered).toContain('1. （附件 ×1）')
+  /* The transcript's row holds no text: the band says so, and nothing of
+     the attachment. */
+  expect(rendered).toContain('1. （无文本）')
   expect(rendered).not.toContain('PH-SECRET')
 })
 

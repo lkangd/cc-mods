@@ -10,12 +10,9 @@ import type { BranchMatch, BranchState, PathBeyond, RunFacts, TranscriptMark } f
 import { TITLE_KEY, arrowStep } from './band'
 import { clipCells, textCells } from './cells'
 import type { DrawnRow } from './jump'
-import { alignmentInput, jumpOutcome, jumpTargets, recordRow, vanishedRows } from './jump'
+import { jumpOutcome, promptTargets, recordRow, transcriptPrompts, vanishedRows } from './jump'
 import {
-  branchStarts,
   chooseBranch,
-  foldTimeline,
-  forkSources,
   isPersonRow,
   markTranscript,
   opensOnCompactionSummary,
@@ -430,10 +427,9 @@ type ActivePath = PathBeyond & {
   branches: Map<string, { fold: string; count: number }>
 }
 let activePath: ActivePath | undefined
-/* Prompt Entries this process added while the person was looking elsewhere
-   in the band, cleared once the band is back at its bottom. */
+/* Prompts the transcript gained while the person was looking elsewhere in
+   the band, cleared once the band is back at its bottom. */
 let unread = 0
-let windowLoading = false
 /* The band draws its own window over its rows, under a title that stays put:
    the row shown first, kept by key so a batch arriving above or below leaves
    the view where it was (its index is the fallback when that row is gone),
@@ -618,18 +614,19 @@ let locatorAwaited: string | undefined
    fork's shared history matched several lineages. Both only shape the view. */
 let activeBranch: { key: string; value: BranchState } | undefined
 const ambiguousRoots = new Set<string>()
-/* The person's rows the transcript drew, in the order first drawn, and the
-   Jump Target of each Prompt Entry the helper tied to one: the row's
-   `requestId`, in memory only. A row the transcript lost (a rewind, a clear,
-   a row the engine would not scroll to) is gone, and never kept or tied
-   again until another session's transcript starts. The generation moves
-   whenever the transcript starts over, so an alignment asked of the old rows
-   cannot land on the new ones; one asked while another runs is run again
-   once it ends. */
+/* The person's rows the transcript drew, in the order first drawn, and what
+   the band draws: the prompts the current session's transcript holds, as it
+   was last read, each with the `requestId` of the drawn row it can be jumped
+   back to, in memory only. A row the transcript lost (a rewind, a clear, a
+   row the engine would not scroll to) is gone, and never kept or tied again
+   until another session's transcript starts. The generation moves whenever
+   the transcript starts over, so a read asked of the old transcript cannot
+   land on the new one; one asked while another runs is run again once it
+   ends. */
 let drawnRows: DrawnRow[] = []
 let seenRows = new Set<string>()
 let goneRows = new Set<string>()
-let jumpTable = new Map<string, string>()
+let shownPrompts: { text: string; requestId?: string }[] = []
 let drawnGeneration = 0
 /* Between a classic SessionEnd that another session follows (a clear, a
    resume) and that session's SessionStart: what the engine draws then is the
@@ -643,8 +640,6 @@ let alignment: { again: boolean } | undefined
    wait for that follow-up. */
 const RECHECK_INTERVAL = 500
 let recheckQueued = false
-/* The folds the person opened, by the entry each is drawn at. */
-const openFolds = new Set<string>()
 /* A parent the transcript could not place, waiting on the person in its Pane:
    the branch it settles, what it may be settled to, and the draft of the
    submission it dropped. The draft never leaves this module instance; a
@@ -2919,64 +2914,21 @@ async function loadTimeline(
   timelineLoaded = currentProject.id
 }
 
-/* The batch beyond one end of the window, when the person's view or focus
-   reached that end. The view is kept by its first row's key, so what arrives
-   lands out of sight beyond the rows on screen and the next step continues
-   into it. One load at a time; answers whether the window grew. */
-async function extendWindow($: EngineInterface, edge: 'earlier' | 'later'): Promise<boolean> {
-  if (windowLoading || !project || timelineLoaded !== project.id) return false
-  const edgeItem = edge === 'earlier' ? timeline[0] : timeline.at(-1)
-  if (!edgeItem) return false
-  windowLoading = true
-  try {
-    const batch = await readBatch(
-      $,
-      project,
-      edge === 'earlier' ? ['before', edgeItem.sequence] : ['after', edgeItem.sequence],
-    )
-    /* A cursor means nothing in another generation: the view starts again
-       from that generation's latest events. */
-    if (batch.generation !== viewGeneration) {
-      mergeBatch(await readBatch($, project), 'latest')
-    } else {
-      mergeBatch(batch, edge)
-    }
-    $.ui.invalidate('ui.render')
-    return true
-  } catch {
-    // The window stays as it was; the next step at the edge tries again.
-    return false
-  } finally {
-    windowLoading = false
-  }
-}
-
 /* Moves the band's own view by `by` rows, as the wheel, the trackpad or the
-   engine's scroll keys ask, and fetches the batch beyond an end it reaches. */
+   engine's scroll keys ask. */
 async function scrollView($: EngineInterface, by: number): Promise<void> {
   const last = Math.max(0, bandView.rowKeys.length - bandView.capacity)
   bandTop = Math.min(Math.max(bandTop + by, 0), last)
   bandAnchor = bandView.rowKeys[bandTop]
   bandBottom = false
   $.ui.invalidate('ui.render')
-  if (bandTop === 0 && timelineEdges.earlier) await extendWindow($, 'earlier')
-  else if (bandTop === last && timelineEdges.later) await extendWindow($, 'later')
 }
 
-/* One arrow press walking the ring: to the neighbouring stop, fetching the
-   batch beyond first when the ring stands on the window's last stop that way.
-   The view follows the ring, and reaching the window's end stop fetches
-   ahead, so the walk does not pause there. With no stop left that way, the
-   press scrolls the view a row instead, onto the rows past the last stop. */
+/* One arrow press walking the ring: to the neighbouring stop, the view
+   following it. With no stop left that way, the press scrolls the view a row
+   instead. */
 async function stepRing($: EngineInterface, by: 1 | -1): Promise<void> {
-  let stops = stopKeys(bandRows())
-  let target = arrowStep(stops, ringKey, by, timelineEdges.earlier)
-  const edge = by < 0 ? 'earlier' : 'later'
-  if (target === undefined && ringKey !== undefined && stops.includes(ringKey)
-      && timelineEdges[edge] && await extendWindow($, edge)) {
-    stops = stopKeys(bandRows())
-    target = arrowStep(stops, ringKey, by, timelineEdges.earlier)
-  }
+  const target = arrowStep(stopKeys(bandRows()), ringKey, by, false)
   if (target === undefined) {
     await scrollView($, by)
     return
@@ -3003,8 +2955,6 @@ async function stepRing($: EngineInterface, by: 1 | -1): Promise<void> {
     ringKey = target
     $.ui.invalidate('ui.render')
   }
-  if (target === stops[0] && timelineEdges.earlier) await extendWindow($, 'earlier')
-  else if (target === stops.at(-1) && timelineEdges.later) await extendWindow($, 'later')
 }
 
 /* Moves the ring onto a row a drawing now shows. Refused, the move is sent
@@ -3045,20 +2995,8 @@ function seatWindow($: EngineInterface, requestId: string, top: number): void {
   })()
 }
 
-/* Back to the latest events, the band's bottom. */
-/* `reread` is an opening band's: another Run may have archived meanwhile, and
-   no signal crosses processes, so the latest batch is read even when the
-   window believes it already holds it. */
-async function returnToLatest($: EngineInterface, reread = false): Promise<void> {
-  if ((timelineEdges.later || reread) && project && timelineLoaded === project.id) {
-    try {
-      mergeBatch(await readBatch($, project), 'latest')
-    } catch {
-      // The window and its count stay as they were, for another try.
-      $.ui.invalidate('ui.render')
-      return
-    }
-  }
+/* Back to the latest prompts, the band's bottom. */
+function returnToLatest($: EngineInterface): void {
   unread = 0
   bandBottom = true
   $.ui.invalidate('ui.render')
@@ -3067,8 +3005,9 @@ async function returnToLatest($: EngineInterface, reread = false): Promise<void>
 /* An event this process just archived. The window takes it only when it
    continues the window's last event: anything another Run wrote in between
    would otherwise go missing unseen. At the bottom, a gap re-reads the latest
-   batch; elsewhere it leaves the window where it is. A Prompt Entry that
-   arrives while the band is looking elsewhere is counted. */
+   batch; elsewhere it leaves the window where it is. The band draws the
+   transcript, not this window: an entry asks it to read the transcript
+   again. */
 function appendToWindow($: EngineInterface, item: TimelineItem): void {
   if (item.kind === 'prompt') queueAlignment($)
   if (timeline.some(held => held.eventId === item.eventId)) return
@@ -3087,7 +3026,6 @@ function appendToWindow($: EngineInterface, item: TimelineItem): void {
   }
   const following = expanded && bandBottom
   if (item.kind === 'prompt') {
-    if (expanded && !following) unread += 1
     if (activePath && item.parentEventId === activePath.tip) {
       activePath.tip = item.eventId
       activePath.eventIds.add(item.eventId)
@@ -3558,26 +3496,8 @@ async function runBranchMatch(
   return result.stdout
 }
 
-/* The rows `branch-match --rows` placed: a row of its input and the entry
-   that took it. */
-function parseAlignedRows(text: string, projectId: string): { row: number; eventId: string }[] {
-  const value: unknown = JSON.parse(text)
-  if (!isRecord(value) || value.projectId !== projectId || !Array.isArray(value.rows)) {
-    throw new Error('branch-match')
-  }
-  return value.rows.map((row: unknown) => {
-    if (
-      !isRecord(row) ||
-      !Number.isSafeInteger(row.row) ||
-      (row.row as number) < 0 ||
-      !isSafeId(row.eventId)
-    ) throw new Error('branch-match')
-    return { row: row.row as number, eventId: row.eventId }
-  })
-}
-
-/* Ties the rows drawn so far to Prompt Entries, once whatever is drawing or
-   settling right now has finished. */
+/* Reads the transcript the band draws, once whatever is drawing or settling
+   right now has finished. */
 function queueAlignment($: EngineInterface): void {
   if (alignmentQueued) return
   alignmentQueued = true
@@ -3604,126 +3524,106 @@ async function alignJumpTargets($: EngineInterface): Promise<void> {
   }
 }
 
-/* Drops the rows the transcript no longer holds, then asks the helper which
-   entry each remaining row is, matched the way this session's branch is
-   settled. A rewind or a clear says nothing, so the transcript is read each
-   time. An alignment that fails keeps the targets already proven: a row that
-   has gone since is refused when jumped to. */
+/* Reads the session's transcript again: the prompts it holds are what the
+   band draws, each tied to the drawn row with its text, and drawn rows it no
+   longer holds are no row to jump to. A rewind or a clear says nothing, so
+   the transcript is read each time. A read that fails keeps what the band
+   last drew: a row that has gone since is refused when jumped to. */
 async function alignOnce($: EngineInterface): Promise<void> {
-  const currentProject = project
-  if (
-    startup.support !== 'supported' ||
-    currentProject?.consent !== 'enabled' ||
-    !startup.runId ||
-    !startup.sessionId ||
-    drawnRows.length === 0
-  ) return
-  let generation = drawnGeneration
+  if (transcriptEnding) return
+  const generation = drawnGeneration
   /* Only rows drawn before the read: one drawn while it was on its way may
      be missing from it without being gone. */
   const asked = drawnRows.slice()
-  let messages: readonly SessionMessage[] | undefined
+  let messages: readonly SessionMessage[]
   try {
     messages = await $.session.messages()
-    const held = messages.filter(isPersonRow).map(message => message.text)
-    if (generation === drawnGeneration) forgetRows($, vanishedRows(asked, held))
-  } catch {
-    // Unread, the transcript proves nothing gone; a jump still finds out.
-  }
-  if (drawnRows.length === 0) return
-  generation = drawnGeneration
-  const rows = drawnRows.slice()
-  const input = alignmentInput(rows)
-  const key = branchKey(currentProject.id, startup.runId, startup.sessionId)
-  const stored = activeBranch?.key === key ? activeBranch.value : undefined
-  let aligned: { row: number; eventId: string }[]
-  try {
-    const compacted = await sessionCompacted($, currentProject.id, startup.sessionId, messages)
-    /* Scoped even for a root somebody chose: its rows are tied among the
-       session's own entries before anyone else's. */
-    const stdout = await runBranchMatch($, currentProject, stored, compacted, input, true, true)
-    aligned = parseAlignedRows(stdout, currentProject.id)
   } catch {
     return
   }
-  if (generation !== drawnGeneration) return
-  const table = jumpTargets(rows, input.indices, aligned, goneRows)
-  if (table.size === jumpTable.size && [...table].every(([eventId, requestId]) => jumpTable.get(eventId) === requestId)) {
-    return
-  }
-  jumpTable = table
+  if (generation !== drawnGeneration || transcriptEnding) return
+  forgetRows($, vanishedRows(asked, messages.filter(isPersonRow).map(message => message.text)))
+  showPrompts($, transcriptPrompts(messages))
+}
+
+/* What the band draws from here on. Prompts past the ones it drew, while
+   the person looks elsewhere in it, are counted until it is back at its
+   bottom. */
+function showPrompts($: EngineInterface, texts: readonly string[]): void {
+  const targets = promptTargets(texts, drawnRows)
+  const next = texts.map((text, index) => {
+    const requestId = targets[index]
+    return requestId === undefined ? { text } : { text, requestId }
+  })
+  const before = shownPrompts
+  if (
+    next.length === before.length &&
+    next.every((prompt, index) => prompt.text === before[index]?.text && prompt.requestId === before[index]?.requestId)
+  ) return
+  if (
+    expanded && !bandBottom &&
+    next.length > before.length &&
+    before.every((prompt, index) => prompt.text === next[index]?.text)
+  ) unread += next.length - before.length
+  shownPrompts = next
   $.ui.invalidate('ui.render')
 }
 
-/* Whether the transcript still holds the rows with targets: a row it lost
-   takes its target with it, and the rest are tied again. */
+/* Whether the transcript still holds what the band draws, asked at once and
+   once more a moment later. */
 function queueRecheck($: EngineInterface): void {
-  if (recheckQueued || jumpTable.size === 0) return
+  if (recheckQueued || transcriptEnding) return
   recheckQueued = true
-  $.clock.after(0, () => void recheckRows($))
+  $.clock.after(0, () => void alignJumpTargets($))
   $.clock.after(RECHECK_INTERVAL, () => {
     recheckQueued = false
-    void recheckRows($)
+    void alignJumpTargets($)
   })
-}
-
-async function recheckRows($: EngineInterface): Promise<void> {
-  if (jumpTable.size === 0) return
-  const generation = drawnGeneration
-  const asked = drawnRows.slice()
-  let held: string[]
-  try {
-    held = (await $.session.messages()).filter(isPersonRow).map(message => message.text)
-  } catch {
-    return
-  }
-  if (generation !== drawnGeneration) return
-  const vanished = vanishedRows(asked, held)
-  forgetRows($, vanished)
-  if (vanished.length > 0) queueAlignment($)
 }
 
 /* The transcript is ending: a clear, a resume into another session, an
    exit. Nothing drawn before is where it was, and the engine may draw some
    of it once more on the way out, so all of it is gone until the next
-   session starts, when one does: after a clear or a resume. */
+   session starts, when one does: after a clear or a resume. The band draws
+   nothing of it any more. */
 function forgetDrawnRows($: EngineInterface, reason: string): void {
   for (const row of drawnRows) goneRows.add(row.requestId)
   drawnRows = []
   drawnGeneration += 1
   transcriptEnding = reason === 'clear' || reason === 'resume'
-  if (jumpTable.size > 0) $.ui.invalidate('ui.render')
-  jumpTable = new Map()
+  if (shownPrompts.length > 0) $.ui.invalidate('ui.render')
+  shownPrompts = []
+  unread = 0
 }
 
 /* The next session's transcript has started. A resume replays its rows under
    the requestIds they had, even ones this process drew before it left that
    session: drawn now, they are held again, and kept anew. */
-function startDrawnRows(): void {
+function startDrawnRows($: EngineInterface): void {
   if (!transcriptEnding) return
   transcriptEnding = false
   seenRows = new Set()
   goneRows = new Set()
+  queueAlignment($)
 }
 
-/* Rows the transcript lost: no longer kept, and no entry's target. */
+/* Rows the transcript lost: no longer kept, and no prompt's target. */
 function forgetRows($: EngineInterface, requestIds: readonly string[]): void {
   if (requestIds.length === 0) return
   const lost = new Set(requestIds)
   for (const requestId of lost) goneRows.add(requestId)
   drawnRows = drawnRows.filter(row => !lost.has(row.requestId))
-  const before = jumpTable.size
-  jumpTable = new Map([...jumpTable].filter(([, requestId]) => !lost.has(requestId)))
-  if (jumpTable.size !== before) $.ui.invalidate('ui.render')
+  if (!shownPrompts.some(prompt => prompt.requestId !== undefined && lost.has(prompt.requestId))) return
+  shownPrompts = shownPrompts.map(prompt =>
+    prompt.requestId !== undefined && lost.has(prompt.requestId) ? { text: prompt.text } : prompt)
+  $.ui.invalidate('ui.render')
 }
 
-/* Activating a Prompt Entry: back to its row in the transcript, the band
-   folding away once the engine got there. A row the engine refused is gone,
-   and its entry is marked as no longer reachable; a call that failed proves
-   nothing and changes nothing. An entry without a target does nothing. */
-async function jumpTo($: EngineInterface, eventId: string): Promise<void> {
-  const requestId = jumpTable.get(eventId)
-  if (requestId === undefined) return
+/* Activating a prompt: back to its row in the transcript, the band folding
+   away once the engine got there. A row the engine refused is gone, and the
+   prompt can no longer be jumped to; a call that failed proves nothing and
+   changes nothing. */
+async function jumpTo($: EngineInterface, requestId: string): Promise<void> {
   let result: { deny?: string } | undefined
   try {
     result = await $.ui.scroll({ to: { requestId } })
@@ -6319,35 +6219,6 @@ function entryLine(entry: Extract<TimelineItem, { kind: 'prompt' }>): string {
   return entry.text.replace(/\r\n?|\n/g, ' ↵ ')
 }
 
-/* A disabled interval is drawn as an explicit break, never as continuous
-   history: the stop marker says the prompts after it were not recorded and the
-   resume marker says nothing from that interval is reconstructed. */
-function boundaryLine(kind: BoundaryKind | 'run-unclosed', splitFrom?: string): string {
-  if (kind === 'clear') {
-    return '—— /clear：新的 Conversation Segment ——'
-  }
-  if (kind === 'run-started') {
-    /* A Run that began inside a session another Run already holds: a second
-       process resumed that session while the first was still in it. */
-    return splitFrom ? `—— Run 开始（从 Run ${splitFrom.slice(0, 8)} 分出）——` : '—— Run 开始 ——'
-  }
-  if (kind === 'run-attached') return '—— Run 续接 ——'
-  /* The first event of a generation a quarantine started: what came before
-     is kept, unchanged, outside this timeline. */
-  if (kind === 'archive-quarantined') return '—— 此前的记录已隔离（原样保留，不在本时间线中）——'
-  if (kind === 'run-detached') return '—— Run 离开 ——'
-  /* Drawn, never archived: the archive cannot tell a process that crashed from
-     one still running elsewhere, and this claims only what it knows. */
-  if (kind === 'run-unclosed') return '—— Run 未记录离开 ——'
-  if (kind === 'integrity-gap') return '—— Integrity gap：此前的记录无法证明与对话一致 ——'
-  if (kind === 'integrity-recovery') return '—— 已恢复可验证采集（此前的缺口不会补齐）——'
-  if (kind === 'collection-started') return '—— 采集已开始 ——'
-  if (kind === 'collection-stopped') {
-    return '—— 采集已停止（其后的 prompt 未记录）——'
-  }
-  return '—— 采集已恢复（新根分支；停用期间的 prompt 不补录）——'
-}
-
 function boundarySummary(mode: RunModeState | undefined): string {
   if (mode?.stopBoundaryMissing) return 'collection-stopped · 未能写入档案'
   if (!mode?.boundary) return 'none'
@@ -7034,195 +6905,36 @@ async function saveExpanded($: EngineInterface): Promise<void> {
   }
 }
 
-/* One row of the expanded band, a line each: a Prompt Entry (a stop for the
-   focus ring), a fold, or a line of text. */
+/* One row of the expanded band, a line each: a prompt of the current
+   session's transcript, a stop for the focus ring. */
 type BandRow = {
   key: string
   text: string
   dim: boolean
-  /* A row that says the history around it cannot be proven complete. */
-  warn?: true
-  fold?: string
   entry?: true
-  eventId?: string
+  requestId?: string
 }
 
-function isIntegrityRow(item: TimelineItem): boolean {
-  return item.kind === 'boundary'
-    && (item.boundary === 'integrity-gap' || item.boundary === 'integrity-recovery')
+function promptLine(text: string): string {
+  return text === '' ? '（无文本）' : text.replace(/\r\n?|\n/g, ' ↵ ')
 }
 
-/* Every row the band's window holds, in order; the view shows a stretch of
-   them under the title. */
+/* Every row the band holds, in order: the prompts the current session's
+   transcript holds, and nothing else. The view shows a stretch of them under
+   the title. A prompt no drawn row is tied to yet is dimmed, and cannot be
+   jumped to. */
 function bandRows(): BandRow[] {
-  const ordered = timeline
-  const attachment = lifecycle?.key.endsWith(`:${startup.runId}`)
-    ? lifecycle.value.attachment
-    : undefined
-  const unclosed = unrecordedLeavings(
-    ordered,
-    attachment !== undefined && !attachment.closed && attachment.host === startup.hostGeneration,
-  )
-  const origins = splitOrigins(ordered)
-  const forks = forkSources(ordered, parentRuns)
-  const starts = branchStarts(ordered, parentRuns, leadingRows)
-  const currentKey = project && startup.runId && startup.sessionId
-    ? branchKey(project.id, startup.runId, startup.sessionId)
-    : undefined
-  const tip = activeBranch && activeBranch.key === currentKey ? activeBranch.value.parentEventId : null
-  const folds = foldTimeline(
-    ordered,
-    startup.runId ?? '',
-    tip,
-    activePath && activePath.tip === tip ? activePath : undefined,
-    runFacts,
-  )
-  /* Each fold is drawn at its first member the window holds, whether or not
-     that is its first member of all. */
-  const drawnFolds = new Set<string>()
-  const rows = ordered.flatMap((item): BandRow[] => {
-    const before: BandRow[] = []
-    /* Another Run's fold holds its boundaries too, so it may begin at one. */
-    const fold = folds.folded.get(item.eventId)
-    if (fold !== undefined && !drawnFolds.has(fold)) {
-      drawnFolds.add(fold)
-      const open = openFolds.has(fold)
-      before.push({
-        key: `prompt-history:fold:${fold}`,
-        text: `${open ? '▾' : '▸'} ${folds.runs.has(fold) ? '另一 Run' : '另一分支'} · ${folds.counts.get(fold) ?? 0} 条`,
-        dim: true,
-        fold,
-      })
-    }
-    if (fold !== undefined && !openFolds.has(fold)) {
-      /* Neither a Run left unrecorded nor an Integrity gap is ever hidden
-         inside a fold. */
-      if (isIntegrityRow(item) && item.kind === 'boundary') {
-        before.push({
-          key: `prompt-history:boundary:${item.eventId}`,
-          text: boundaryLine(item.boundary),
-          dim: false,
-          warn: true,
-        })
-      }
-      return unclosed.has(item.eventId)
-        ? [...before, { key: `prompt-history:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
-        : before
-    }
-    if (item.kind === 'prompt') {
-      const start = starts.get(item.eventId)
-      if (item.parentEventId === null && item.branchId && ambiguousRoots.has(item.branchId)) {
-        before.push({
-          key: `prompt-history:unlinked:${item.eventId}`,
-          text: '—— 共享前缀无法唯一确定，未接续 ——',
-          dim: true,
-        })
-      } else if (start !== undefined) {
-        before.push({
-          key: `prompt-history:branch-start:${item.eventId}`,
-          text: start === 'root' ? '—— 新根分支 ——' : '—— 新分支 ——',
-          dim: true,
-        })
-      }
-    }
-    const drawn: BandRow = item.kind === 'boundary'
-      ? {
-          key: `prompt-history:boundary:${item.eventId}`,
-          text: boundaryLine(
-            item.boundary,
-            item.boundary === 'run-started'
-              ? forks.get(item.runId) ?? segmentOrigins.get(item.eventId) ?? origins.get(item.eventId)
-              : origins.get(item.eventId),
-          ),
-          ...(isIntegrityRow(item) ? { dim: false, warn: true as const } : { dim: true }),
-        }
-      : jumpTable.has(item.eventId)
-        ? {
-            key: `prompt-history:prompt:${item.eventId}`,
-            text: `${item.ordinal}. ${entryLine(item)}`,
-            dim: false,
-            entry: true,
-            eventId: item.eventId,
-          }
-        /* No row of the current transcript is this entry's: it stays, marked
-           as one that cannot be jumped to. */
-        : {
-            key: `prompt-history:prompt:${item.eventId}`,
-            text: `× ${item.ordinal}. ${entryLine(item)}`,
-            dim: true,
-            entry: true,
-            eventId: item.eventId,
-          }
-    const runId = unclosed.get(item.eventId)
-    return runId === undefined
-      ? [...before, drawn]
-      : [...before, drawn, { key: `prompt-history:unclosed:${item.eventId}`, text: boundaryLine('run-unclosed'), dim: true }]
-  })
-  /* A window holding nothing the arrows can stop on still needs a way past
-     its ends. */
-  const focusable = rows.filter(row => row.entry || row.fold !== undefined)
-  if (focusable.length === 0 && timelineEdges.earlier) {
-    rows.unshift({ key: 'prompt-history:earlier', text: '↑ 更早的事件', dim: true, entry: true })
-  }
-  if (focusable.length === 0 && timelineEdges.later) {
-    rows.push({ key: 'prompt-history:later', text: '↓ 更晚的事件', dim: true, entry: true })
-  }
-  return rows
+  return shownPrompts.map((prompt, index): BandRow => ({
+    key: `prompt-history:prompt:${index}`,
+    text: `${index + 1}. ${promptLine(prompt.text)}`,
+    dim: prompt.requestId === undefined,
+    entry: true,
+    ...(prompt.requestId === undefined ? {} : { requestId: prompt.requestId }),
+  }))
 }
 
 function stopKeys(rows: readonly BandRow[]): string[] {
-  return rows.filter(row => row.entry || row.fold !== undefined).map(row => row.key)
-}
-
-/* Where the band marks a stretch of a Run whose leaving was never recorded:
-   after that Run's last row before it was taken up again, and after the last
-   row of any other Run still open at the end of the view. The current Run's
-   open stretch, once this process has opened it, is this process, which has
-   not left. Without an opening in view there is nothing to say the Run was
-   ever open. */
-function unrecordedLeavings(
-  items: readonly TimelineItem[],
-  ownStretchOpen: boolean,
-): Map<string, string> {
-  const open = new Map<string, boolean>()
-  const last = new Map<string, string>()
-  const markers = new Map<string, string>()
-  for (const item of items) {
-    if (item.kind === 'boundary'
-        && (item.boundary === 'run-started' || item.boundary === 'run-attached')) {
-      const previous = last.get(item.runId)
-      if (open.get(item.runId) && previous) markers.set(previous, item.runId)
-      open.set(item.runId, true)
-    }
-    if (item.kind === 'boundary' && item.boundary === 'run-detached') open.set(item.runId, false)
-    last.set(item.runId, item.eventId)
-  }
-  for (const [runId, isOpen] of open) {
-    const eventId = last.get(runId)
-    /* The current Run left open by an earlier process — a crash this process
-       resumed — is marked too, until this process opens its own stretch. */
-    if (isOpen && eventId && (runId !== startup.runId || !ownStretchOpen)) {
-      markers.set(eventId, runId)
-    }
-  }
-  return markers
-}
-
-/* Which Run each Run start split off from: the Run that already held the
-   session the start was written in, as far as the view reaches back. */
-function splitOrigins(items: readonly TimelineItem[]): Map<string, string> {
-  const holder = new Map<string, string>()
-  const origins = new Map<string, string>()
-  for (const item of items) {
-    if (!item.segmentId) continue
-    const held = holder.get(item.segmentId)
-    if (item.kind === 'boundary' && item.boundary === 'run-started'
-        && held !== undefined && held !== item.runId) {
-      origins.set(item.eventId, held)
-    }
-    if (held === undefined) holder.set(item.segmentId, item.runId)
-  }
-  return origins
+  return rows.filter(row => row.entry).map(row => row.key)
 }
 
 /* Clearing the current Run (Issue 29). The helper deletes the Run's rows from
@@ -7692,8 +7404,9 @@ export const register: Register = on => {
         })()
       })
     }
-    /* A reload or a resume replays the transcript's rows before this. */
-    queueAlignment($)
+    /* A reload or a resume replays the transcript's rows before this: the
+       band draws them at once. */
+    await alignJumpTargets($)
     return next(e)
   })
 
@@ -7739,7 +7452,7 @@ export const register: Register = on => {
      events it ignores. Whatever its source, it ends the old transcript's
      drawing on its way out. */
   on('classic.SessionStart', async ($, e, next) => {
-    startDrawnRows()
+    startDrawnRows($)
     if (e.source === 'clear') {
       await applyLifecycle($, {
         event: 'session-start',
@@ -7780,14 +7493,13 @@ export const register: Register = on => {
         return { text: 'prompt-history 已折叠。' }
       }
       await refreshStartup($)
-      const loaded = project !== undefined && timelineLoaded === project.id
       await ensureTimeline($)
       expanded = true
       $.ui.invalidate('ui.render')
       await saveExpanded($)
-      queueAlignment($)
-      /* Opening always shows the latest events. */
-      await returnToLatest($, loaded)
+      await alignJumpTargets($)
+      /* Opening always shows the latest prompts. */
+      returnToLatest($)
       return { text: 'prompt-history 已展开。' }
     }
     if (args === 'status') {
@@ -7881,7 +7593,11 @@ export const register: Register = on => {
 
   on('prompt.submit', async ($, e, next) => {
     if (e.origin.kind !== 'composer') return next(e)
-    if (!runtimeTarget) return next(e)
+    if (!runtimeTarget) {
+      const result = await next(e)
+      await alignJumpTargets($)
+      return result
+    }
     await awaitStartup($)
 
     /* This call's in-flight marker is cleared only when it finishes. One that
@@ -7899,6 +7615,9 @@ export const register: Register = on => {
     }
     await removeMarker($, markers.get(call))
     liveCalls.delete(call)
+    /* What the submission stored is in the transcript now, and the band
+       draws it at once. */
+    await alignJumpTargets($)
     return result
   })
 
@@ -7988,37 +7707,17 @@ export const register: Register = on => {
   })
 
   /* While every row shows (the tree fits), the engine walks the ring itself
-     and wraps it at both ends. The band refuses the wraps, except toward a
-     batch beyond the window: up off the first row, or from the title round
-     to the last row, fetches the earlier batch; down from the last row round
-     to the title, the later one. A click or Tab can still land the ring on
-     the window's end row, which fetches ahead. */
+     and wraps it at both ends. The band refuses the wraps. */
   on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (dialogs > 0 || surveyHeld) return next(e)
     if (e.origin.kind === 'person' && expanded && bandView.whole && ringKey !== undefined) {
       const { stops } = bandView
-      if (timelineEdges.earlier && e.element === TITLE_KEY && ringKey === stops[0]) {
-        await stepRing($, -1)
-        return {}
-      }
-      if (ringKey === TITLE_KEY && e.element === stops.at(-1)) {
-        if (!timelineEdges.earlier) return { deny: 'the band does not wrap' }
-        await scrollView($, -1)
-        return {}
-      }
-      if (ringKey === stops.at(-1) && e.element === TITLE_KEY) {
-        if (!timelineEdges.later) return { deny: 'the band does not wrap' }
-        await stepRing($, 1)
-        return {}
-      }
+      if (ringKey === TITLE_KEY && e.element === stops.at(-1)) return { deny: 'the band does not wrap' }
+      if (ringKey === stops.at(-1) && e.element === TITLE_KEY) return { deny: 'the band does not wrap' }
     }
     const result = await next(e)
     if (result.deny) return result
     ringKey = e.element
-    if (e.origin.kind === 'person' && e.element !== undefined) {
-      if (e.element === bandView.stops[0] && timelineEdges.earlier) await extendWindow($, 'earlier')
-      else if (e.element === bandView.stops.at(-1) && timelineEdges.later) await extendWindow($, 'later')
-    }
     return result
   })
 
@@ -8046,16 +7745,15 @@ export const register: Register = on => {
       $.ui.invalidate('ui.render')
       await saveExpanded($)
       if (!expanded) return
-      /* Whatever was rewound or cleared while it was folded is marked as the
-         band opens. */
-      queueAlignment($)
-      const loaded = project !== undefined && timelineLoaded === project.id
+      /* Whatever was submitted, rewound or cleared while it was folded is
+         read as the band opens. */
+      await alignJumpTargets($)
       if (startup.support !== 'supported' || timelineLoaded === undefined) {
         await refreshStartup($)
         await ensureTimeline($)
       }
-      /* Opening always shows the latest events. */
-      await returnToLatest($, loaded)
+      /* Opening always shows the latest prompts. */
+      returnToLatest($)
     }
     const unavailableShown = archiveFailure !== undefined
       && project?.consent === 'enabled'
@@ -8110,7 +7808,7 @@ export const register: Register = on => {
     const layout = (hint: boolean) => {
       const capacity = Math.max(1, e.props.maxRows - 2 - (hint ? 1 : 0))
       if (rows.length <= capacity + 1) {
-        return { capacity, top: 0, size: rows.length, whole: true, bottom: !timelineEdges.later }
+        return { capacity, top: 0, size: rows.length, whole: true, bottom: true }
       }
       const last = rows.length - capacity
       const anchored = bandAnchor === undefined ? -1 : rows.findIndex(row => row.key === bandAnchor)
@@ -8118,7 +7816,7 @@ export const register: Register = on => {
       const heading = pendingFocus === undefined ? -1 : rows.findIndex(row => row.key === pendingFocus)
       if (heading >= 0 && heading < top) top = heading
       if (heading >= top + capacity) top = heading - capacity + 1
-      return { capacity, top, size: capacity, whole: false, bottom: !timelineEdges.later && top === last }
+      return { capacity, top, size: capacity, whole: false, bottom: top === last }
     }
     let view = layout(unread > 0)
     if (view.bottom && unread > 0) {
@@ -8200,23 +7898,10 @@ export const register: Register = on => {
           <Button key="prompt-history:toggle" plain label={title} onPress={toggle} />
         )}
         {rows.length === 0 ? (
-          <Text dimColor>尚无 Prompt Entry</Text>
-        ) : shown.map(row => row.fold !== undefined ? (
-          <Button
-            key={row.key}
-            plain
-            label={clipCells(row.text, width)}
-            onPress={() => {
-              const fold = row.fold as string
-              if (openFolds.has(fold)) openFolds.delete(fold)
-              else openFolds.add(fold)
-              $.ui.invalidate('ui.render')
-            }}
-          />
-        ) : row.entry ? (
-          /* A Prompt Entry is a stop for the ring, activated to jump back to
-             its row. Taking the band's keyboard starts on the latest one
-             shown. */
+          <Text dimColor>当前会话尚无 prompt</Text>
+        ) : shown.map(row => (
+          /* A prompt is a stop for the ring, activated to jump back to its
+             row. Taking the band's keyboard starts on the latest one shown. */
           <Button
             key={row.key}
             plain
@@ -8224,20 +7909,9 @@ export const register: Register = on => {
             {...(row.dim ? { dimColor: true } : {})}
             {...(row.key === lastShownStop ? { autoFocus: true as const } : {})}
             onPress={() => {
-              if (row.eventId !== undefined) void jumpTo($, row.eventId)
-              if (row.key === 'prompt-history:earlier') void extendWindow($, 'earlier')
-              if (row.key === 'prompt-history:later') void extendWindow($, 'later')
+              if (row.requestId !== undefined) void jumpTo($, row.requestId)
             }}
           />
-        ) : (
-          <Text
-            key={row.key}
-            wrap="truncate-end"
-            {...(row.dim ? { dimColor: true } : {})}
-            {...(row.warn ? { color: 'yellow' } : {})}
-          >
-            {row.text}
-          </Text>
         ))}
         {unread > 0 ? (
           <Button

@@ -16,7 +16,6 @@ import type { ArchiveRow, ProcessCall } from './support'
 import {
   HELPER_STAMP_FORMAT,
   SECRET,
-  TIMELINE_READ_LIMIT,
   captureCalls,
   composerPrompt,
   consentedStore,
@@ -379,7 +378,9 @@ test('a reload of the same Run keeps its start, its entries and its expanded ban
     row('run-started', 1, runId, { segmentId: sessionId, occurredAt: hostStartedAt }),
     row('prompt', 2, runId, { segmentId: sessionId, text: 'PH-SECRET-BEFORE-RELOAD' }),
   ]
-  const calls = installSupportedTarget(on, { store, archive })
+  /* The session's transcript holds what it held before the reload. */
+  const transcript = [{ role: 'user' as const, text: 'PH-SECRET-BEFORE-RELOAD' }]
+  const calls = installSupportedTarget(on, { store, archive, transcript })
   await $.session.start(session)
 
   const reloaded = JSON.stringify(await renderBand($))
@@ -391,7 +392,7 @@ test('a reload of the same Run keeps its start, its entries and its expanded ban
   expect(reloaded).not.toContain('未记录离开')
   expect(archive.map(event => event.kind)).toEqual(['run-started', 'prompt', 'prompt'])
   expect(captureCalls(calls, 'boundary-append')).toHaveLength(0)
-  /* One row per event however often the band is drawn, numbered in order. */
+  /* One row per prompt however often the band is drawn, numbered in order. */
   expect(after.split('PH-SECRET-BEFORE-RELOAD')).toHaveLength(2)
   expect(after).toContain('1. PH-SECRET-BEFORE-RELOAD')
   expect(after).toContain('2. PH-SECRET-CONSENT-CAPTURE')
@@ -454,18 +455,13 @@ test('a restart continues the Project Timeline under a new Run', async ($, on) =
     ['run-started', runId, 4],
     ['prompt', runId, 5],
   ])
-  const rows = [
-    band.indexOf('PH-SECRET-EARLIER-2'),
-    band.indexOf('Run 离开'),
-    band.lastIndexOf('Run 开始'),
-    band.indexOf('PH-SECRET-CONSENT-CAPTURE'),
-  ]
-  expect(rows.every(index => index >= 0)).toBe(true)
-  expect([...rows].sort((left, right) => left - right)).toEqual(rows)
-  expect(band).not.toContain('未记录离开')
+  /* The band is this session's: the earlier Run stays in the archive. */
+  expect(band).toContain('1. PH-SECRET-CONSENT-CAPTURE')
+  expect(band).not.toContain('PH-SECRET-EARLIER')
+  expect(band).not.toContain('Run 离开')
 })
 
-test('a Run whose process left no detach reads as unrecorded, never as left', async ($, on) => {
+test('a Run whose process left no detach is never recorded as left', async ($, on) => {
   const archive = earlierRun(false)
   installSupportedTarget(on, { store: consentedStore(), archive })
   await $.session.start(session)
@@ -474,37 +470,12 @@ test('a Run whose process left no detach reads as unrecorded, never as left', as
   await promptHistory($)
   const band = JSON.stringify(await renderBand($))
 
-  const rows = [
-    band.indexOf('PH-SECRET-EARLIER-2'),
-    band.indexOf('Run 未记录离开'),
-    band.indexOf('PH-SECRET-CONSENT-CAPTURE'),
-  ]
-  expect(rows.every(index => index >= 0)).toBe(true)
-  expect([...rows].sort((left, right) => left - right)).toEqual(rows)
-  /* No detach is fabricated for the earlier Run, and the current Run, which
-     this process has not left either, is not marked. */
+  /* No detach is fabricated for the earlier Run, and the band draws only
+     this session's transcript. */
   expect(archive.filter(event => event.kind === 'run-detached')).toEqual([])
-  expect(band.split('未记录离开')).toHaveLength(2)
-})
-
-test('the read is bounded to the latest fixed batch', async ($, on) => {
-  const archive: ArchiveRow[] = Array.from(
-    { length: TIMELINE_READ_LIMIT + 5 },
-    (_, index) => row('prompt', index + 1, earlierRunId),
-  )
-  installSupportedTarget(on, { store: consentedStore(), archive })
-  await $.session.start(session)
-
-  await promptHistory($)
-  /* A band tall enough to show the whole window. */
-  const band = JSON.stringify(await renderBand($, { maxRows: 400 }))
-
-  /* The batch and one earlier entry above it; the four before that stay in
-     the archive. Each keeps its place among the project's Prompt Entries. */
-  /* An earlier Run's entries, none drawn by this transcript: marked ×. */
-  expect(band).toContain('"× 5. PH-SECRET-EARLIER-5"')
-  expect(band).toContain(`"× ${TIMELINE_READ_LIMIT + 5}. PH-SECRET-EARLIER-${TIMELINE_READ_LIMIT + 5}"`)
-  expect(band).not.toContain('PH-SECRET-EARLIER-4"')
+  expect(band).toContain('1. PH-SECRET-CONSENT-CAPTURE')
+  expect(band).not.toContain('PH-SECRET-EARLIER')
+  expect(band).not.toContain('未记录离开')
 })
 
 test('a timeline that cannot be read still lets the Run collect', async ($, on) => {
@@ -752,9 +723,9 @@ test('a stop that is a new Run\'s first write lands after the detach another Run
   ])
 })
 
-test('granting consent reads back what the archive already holds', async ($, on) => {
+test('granting consent draws this session’s transcript, not what the archive already holds', async ($, on) => {
   /* The archive predates a consent that no longer holds, as a new collection
-     policy version leaves it: nothing is read until consent is granted again. */
+     policy version leaves it. */
   const archive = earlierRun(true)
   const calls = installSupportedTarget(on, { ask: '启用', store: {}, archive })
   await $.session.start(session)
@@ -764,12 +735,8 @@ test('granting consent reads back what the archive already holds', async ($, on)
   await promptHistory($)
   const band = JSON.stringify(await renderBand($))
 
-  const rows = [
-    band.indexOf('PH-SECRET-EARLIER-2'),
-    band.indexOf('PH-SECRET-CONSENT-CAPTURE'),
-  ]
-  expect(rows.every(index => index >= 0)).toBe(true)
-  expect([...rows].sort((left, right) => left - right)).toEqual(rows)
+  expect(band).toContain('1. PH-SECRET-CONSENT-CAPTURE')
+  expect(band).not.toContain('PH-SECRET-EARLIER')
 })
 
 /* A Run across processes. */
@@ -795,18 +762,12 @@ test('a resume in a new process continues the Run it left', async ($, on) => {
     ['prompt', earlierRunId],
   ])
   expect(archive[3]).toMatchObject({ segmentId: sessionId, occurredAt: 1_795_000_000_000 })
-  const rows = [
-    band.indexOf('PH-SECRET-EARLIER-2'),
-    band.indexOf('Run 离开'),
-    band.indexOf('Run 续接'),
-    band.indexOf('PH-SECRET-CONSENT-CAPTURE'),
-  ]
-  expect(rows.every(index => index >= 0)).toBe(true)
-  expect([...rows].sort((left, right) => left - right)).toEqual(rows)
-  expect(band).not.toContain('未记录离开')
+  /* What the band draws is the transcript's, not the Run's lifecycle. */
+  expect(band).toContain('1. PH-SECRET-CONSENT-CAPTURE')
+  expect(band).not.toContain('Run 续接')
 })
 
-test('a resume after a crash continues the Run and marks the stretch left unrecorded', async ($, on) => {
+test('a resume after a crash continues the Run', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
     [lifecycleKey(earlierRunId)]: heldBy(laterHost, false),
@@ -820,14 +781,8 @@ test('a resume after a crash continues the Run and marks the stretch left unreco
   const band = JSON.stringify(await renderBand($))
 
   expect(archive.map(event => event.kind)).toEqual(['run-started', 'prompt', 'run-attached', 'prompt'])
-  const rows = [
-    band.indexOf('PH-SECRET-EARLIER-2'),
-    band.indexOf('Run 未记录离开'),
-    band.indexOf('Run 续接'),
-    band.indexOf('PH-SECRET-CONSENT-CAPTURE'),
-  ]
-  expect(rows.every(index => index >= 0)).toBe(true)
-  expect([...rows].sort((left, right) => left - right)).toEqual(rows)
+  expect(band).toContain('1. PH-SECRET-CONSENT-CAPTURE')
+  expect(band).not.toContain('未记录离开')
 })
 
 test('an in-process resume into another Run leaves the one the process was in', async ($, on) => {
@@ -879,22 +834,6 @@ test('an in-process resume into another Run leaves the one the process was in', 
   ])
 })
 
-test('a Run begun by a second process in an open session names the Run it split from', async ($, on) => {
-  const archive: ArchiveRow[] = [
-    row('run-started', 1, earlierRunId, { segmentId: sessionId }),
-    row('prompt', 2, earlierRunId, { segmentId: sessionId }),
-  ]
-  installSupportedTarget(on, { store: consentedStore(), archive })
-  await $.session.start(session)
-
-  await composerPrompt($)
-  await promptHistory($)
-  const band = JSON.stringify(await renderBand($))
-
-  expect(band).toContain(`Run 开始（从 Run ${earlierRunId.slice(0, 8)} 分出）`)
-  expect(band.split('分出')).toHaveLength(2)
-})
-
 test('a Run switched off stays off when a later process resumes it', async ($, on) => {
   const store: Record<string, unknown> = {
     ...consentedStore(),
@@ -910,22 +849,6 @@ test('a Run switched off stays off when a later process resumes it', async ($, o
   expect(result).toMatchObject({ text: SECRET })
   expect(captureCalls(calls, 'capture-begin')).toHaveLength(0)
   expect(archive).toHaveLength(3)
-})
-
-test('an archive written before Runs were lineages reads its ends as leavings', async ($, on) => {
-  const archive = [
-    row('run-started', 1, earlierRunId),
-    row('prompt', 2, earlierRunId),
-    row('run-ended', 3, earlierRunId),
-  ]
-  installSupportedTarget(on, { store: consentedStore(), archive })
-  await $.session.start(session)
-
-  await promptHistory($)
-  const band = JSON.stringify(await renderBand($))
-
-  expect(band).toContain('Run 离开')
-  expect(band).not.toContain('未记录离开')
 })
 
 test('an in-process resume out of a disabled Run collects in the Run it moved to', async ($, on) => {
@@ -1061,16 +984,3 @@ test('a detach an older build still owed under its old name is recorded as that 
   expect(store[lifecycleKey(earlierRunId)]).not.toHaveProperty('damaged')
 })
 
-test('a Run resumed after a crash shows the stretch left unrecorded before anything is written', async ($, on) => {
-  const store: Record<string, unknown> = {
-    ...consentedStore(),
-    [lifecycleKey(earlierRunId)]: heldBy(laterHost, false),
-  }
-  installSupportedTarget(on, { store, archive: earlierRun(false), run: { runId: earlierRunId } })
-  await $.session.start(session)
-
-  await promptHistory($)
-  const band = JSON.stringify(await renderBand($))
-
-  expect(band).toContain('Run 未记录离开')
-})

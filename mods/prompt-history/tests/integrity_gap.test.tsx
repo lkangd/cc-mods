@@ -10,7 +10,6 @@ import {
   parentPane,
   projectId,
   promptHistory,
-  renderBand,
   runId,
   runModeKeyFor,
   session,
@@ -115,50 +114,6 @@ test('a gap the archive will not take holds the submission and stays owed', asyn
   const owed = (store[lifecycleKey()] as { gap?: { eventId: string; reasons: string[] } }).gap
   expect(owed?.reasons).toEqual(['queue-overflow'])
 })
-
-test('a gap and its recovery are drawn in a warning colour, even inside another Run’s fold', async ($, on) => {
-  const otherRun = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff'
-  const own = { runId, segmentId: sessionId, branchId: 'b1b1b1b1-c2c2-4d3d-8e4e-f5f5f5f5f5f5' }
-  const other = { runId: otherRun, segmentId: otherRun, branchId: otherRun }
-  const archive: ArchiveRow[] = [
-    { kind: 'run-started', eventId: 'e1', sequence: 1, ...own },
-    { kind: 'prompt', eventId: 'e2', sequence: 2, ...own, parentEventId: null, text: 'PH-SECRET-OWN' },
-    { kind: 'run-started', eventId: 'e3', sequence: 3, ...other },
-    { kind: 'prompt', eventId: 'e4', sequence: 4, ...other, parentEventId: null, text: 'PH-SECRET-OTHER' },
-    { kind: 'integrity-gap', eventId: 'e5', sequence: 5, ...other },
-    { kind: 'integrity-recovery', eventId: 'e6', sequence: 6, ...other },
-  ]
-  const store = storeWith({})
-  store[`prompt-history:branch:${projectId}:${runId}:${sessionId}`] = {
-    version: 1, branchId: own.branchId, parentEventId: 'e2',
-  }
-  installSupportedTarget(on, { store, archive })
-
-  await $.session.start(session)
-  await promptHistory($, '')
-  const band = await renderBand($)
-  const drawn = JSON.stringify(band)
-
-  expect(drawn).toContain('另一 Run')
-  expect(drawn).not.toContain('PH-SECRET-OTHER')
-  for (const line of ['Integrity gap：此前的记录无法证明与对话一致', '已恢复可验证采集']) {
-    const node = textNodes(band).find(candidate => candidate.text.includes(line))
-    expect(node?.props.color).toBe('yellow')
-    expect(node?.props.dimColor).toBeUndefined()
-  }
-})
-
-type TextNode = { text: string; props: Record<string, unknown> }
-
-function textNodes(tree: unknown): TextNode[] {
-  if (Array.isArray(tree)) return tree.flatMap(textNodes)
-  if (!tree || typeof tree !== 'object') return []
-  const node = tree as { type?: string; props?: Record<string, unknown>; children?: unknown }
-  const own = node.type === 'Text' && node.props
-    ? [{ text: JSON.stringify(node.children ?? node.props.children ?? ''), props: node.props }]
-    : []
-  return [...own, ...textNodes(node.children ?? node.props?.children)]
-}
 
 /* Issue 26 Q3: a write whose Archive generation cannot be recovered. */
 

@@ -2,7 +2,7 @@ import { expect } from 'claude-code/testing'
 import { test } from './support'
 import type { Engine } from 'claude-code/testing'
 import { clipCells, textCells } from '../hooks/cells'
-import type { ArchiveRow } from './support'
+import type { TranscriptRow } from './support'
 import {
   BAND_ID,
   composerPrompt,
@@ -42,24 +42,9 @@ test('a row is cut to its cells with an ellipsis, never inside a character', () 
   expect(clipCells('\u0628\u064eXY', 2)).toBe('\u0628\u064e…')
 })
 
-const otherRunId = '12121212-3434-4565-8787-909090909090'
-const otherSessionId = '31313131-4242-4353-8464-757575757575'
-const branchId = 'dddddddd-eeee-4fff-8000-111111111111'
-
-/* One lineage of `count` entries from another Run, one row each. */
-function archiveOf(count: number): ArchiveRow[] {
-  const id = (sequence: number) => `e${String(sequence).padStart(7, '0')}-0000-4000-8000-000000000000`
-  return Array.from({ length: count }, (_, index) => ({
-    kind: 'prompt',
-    eventId: id(index + 1),
-    sequence: index + 1,
-    runId: otherRunId,
-    segmentId: otherSessionId,
-    branchId,
-    text: `PH-SECRET-OLD-${index + 1}`,
-    attachmentCount: 0,
-    parentEventId: index === 0 ? null : id(index),
-  }))
+/* A transcript of `count` prompts the person sent, one row each. */
+function transcriptOf(count: number): TranscriptRow[] {
+  return Array.from({ length: count }, (_, index) => ({ role: 'user', text: `PH-SECRET-OLD-${index + 1}` }))
 }
 
 type Drawn = { labels: string[]; texts: string[]; rows: number }
@@ -98,7 +83,7 @@ function scrollBand($: Engine, by: number) {
 }
 
 test('too narrow or too short, the open band shows its title and that space is short', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
+  installSupportedTarget(on, { store: consentedStore(), transcript: transcriptOf(40) })
   await $.session.start(session)
   await promptHistory($)
 
@@ -117,7 +102,7 @@ test('too narrow or too short, the open band shows its title and that space is s
 })
 
 test('the title still folds and opens the band while space is short', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
+  installSupportedTarget(on, { store: consentedStore(), transcript: transcriptOf(40) })
   await $.session.start(session)
   await promptHistory($)
   await renderBand($, { bodyColumns: 20 })
@@ -130,7 +115,7 @@ test('the title still folds and opens the band while space is short', async ($, 
 })
 
 test('room again, the band shows the rows and new-entry count it had before', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
+  installSupportedTarget(on, { store: consentedStore(), transcript: transcriptOf(40) })
   await $.session.start(session)
   await promptHistory($)
   await renderBand($)
@@ -177,7 +162,7 @@ async function settleHooks(): Promise<void> {
 
 test('an AskUserQuestion dialog takes the band\'s place until it closes', async ($, on) => {
   let close = () => {}
-  const target = { store: consentedStore(), archive: archiveOf(40), askHold: new Promise<void>(resolve => { close = resolve }) }
+  const target = { store: consentedStore(), transcript: transcriptOf(40), askHold: new Promise<void>(resolve => { close = resolve }) }
   installSupportedTarget(on, target)
   engineBand(on)
   await $.session.start(session)
@@ -197,7 +182,7 @@ test('an AskUserQuestion dialog takes the band\'s place until it closes', async 
 
 test('a dialog that fails still gives the band back', async ($, on) => {
   let fail = (_error: Error) => {}
-  const target = { store: consentedStore(), archive: archiveOf(40), askHold: new Promise<void>((_, reject) => { fail = reject }) }
+  const target = { store: consentedStore(), transcript: transcriptOf(40), askHold: new Promise<void>((_, reject) => { fail = reject }) }
   installSupportedTarget(on, target)
   engineBand(on)
   await $.session.start(session)
@@ -213,7 +198,7 @@ test('a dialog that fails still gives the band back', async ($, on) => {
 })
 
 test('a survey holding the band takes its place', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
+  installSupportedTarget(on, { store: consentedStore(), transcript: transcriptOf(40) })
   engineBand(on)
   await $.session.start(session)
   await promptHistory($)
@@ -226,7 +211,7 @@ test('a survey holding the band takes its place', async ($, on) => {
 const FOCUS_HINT = 'ctrl+x tab 键盘选择'
 
 test('the title row says how to take the keyboard, whatever holds it', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(3) })
+  installSupportedTarget(on, { store: consentedStore(), transcript: transcriptOf(3) })
   await $.session.start(session)
   await promptHistory($)
 
@@ -236,7 +221,7 @@ test('the title row says how to take the keyboard, whatever holds it', async ($,
 })
 
 test('the title row offers no way up of its own: at the bottom or away from it the trackpad reaches the band', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
+  installSupportedTarget(on, { store: consentedStore(), transcript: transcriptOf(40) })
   await $.session.start(session)
   await promptHistory($)
 
@@ -254,7 +239,7 @@ test('the title row offers no way up of its own: at the bottom or away from it t
 })
 
 test('short of room, the title row drops the keyboard hint', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
+  installSupportedTarget(on, { store: consentedStore(), transcript: transcriptOf(40) })
   await $.session.start(session)
   await promptHistory($)
 
@@ -275,7 +260,7 @@ test('with nothing to select the title row gives no keyboard hint', async ($, on
 })
 
 test('with many new entries in a narrow band the title row keeps the count on screen', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
+  installSupportedTarget(on, { store: consentedStore(), transcript: transcriptOf(40) })
   await $.session.start(session)
   await promptHistory($)
   await renderBand($)
@@ -293,7 +278,7 @@ test('with many new entries in a narrow band the title row keeps the count on sc
 })
 
 test('scrolling a survey that holds the band leaves the band\'s view where it was', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore(), archive: archiveOf(40) })
+  installSupportedTarget(on, { store: consentedStore(), transcript: transcriptOf(40) })
   engineBand(on)
   await $.session.start(session)
   await promptHistory($)

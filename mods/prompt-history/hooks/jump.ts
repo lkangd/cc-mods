@@ -1,14 +1,12 @@
-/* Tying Prompt Entries to the transcript rows that draw them, so the band can
-   jump back to one, decided as pure functions over the rows drawn so far and
-   the helper's answer.
+/* What the band draws and how it jumps back, decided as pure functions over
+   the session's transcript and the rows the engine drew of it.
 
-   A Jump Target is a drawn row's `requestId`: it lives in this module
-   instance's memory only, and is good only while the transcript draws that
-   row. Which entry a row draws is never guessed from its text: the helper
-   aligns the rows with the Active Branch's lineage and names a row only where
-   every way the lineage fits them puts the same entry. */
+   The band draws the prompts the current session's transcript holds, and
+   nothing else: never the archive, never another session's. A Jump Target is
+   a drawn row's `requestId`: it lives in this module instance's memory only,
+   and is good only while the transcript draws that row. */
 
-import { matchInput } from './branch'
+import { COMPACTION_SUMMARY_OPENING, isPersonRow } from './branch'
 
 /* One person's row the transcript drew, in the order rows were first drawn. */
 export type DrawnRow = { requestId: string; text: string }
@@ -62,28 +60,38 @@ export function vanishedRows(rows: readonly DrawnRow[], held: readonly string[])
   return rows.slice(last + 1).map(row => row.requestId)
 }
 
-/* What `branch-match --rows` reads, and which drawn row each line of it is. */
-export function alignmentInput(
-  rows: readonly DrawnRow[],
-): { stdin: string; truncated: boolean; indices: number[] } {
-  return matchInput(rows.map(row => row.text))
+/* Engine markup a `user` row opens on when the person did not write it as a
+   prompt: a slash command and its output, a shell escape, an interruption,
+   a note the engine adds. */
+const ENGINE_ROW = /^(?:<(?:command-name|command-message|command-args|local-command-[a-z-]+|bash-input|bash-stdout|bash-stderr|system-reminder|task-notification)>|\[Request interrupted by user)/
+
+/* The person's prompts the session's transcript holds, oldest first: what the
+   band draws, read from `$.session.messages()` and nothing else. A tool
+   result, the compaction summary and engine markup are not prompts. */
+export function transcriptPrompts(
+  messages: readonly { role: string; text: string; toolResults?: readonly unknown[] }[],
+): string[] {
+  return messages
+    .filter(isPersonRow)
+    .map(message => message.text)
+    .filter(text => !text.startsWith(COMPACTION_SUMMARY_OPENING) && !ENGINE_ROW.test(text.trimStart()))
 }
 
-/* Each entry the helper placed, and the `requestId` of the row it took;
-   `indices` says which drawn row each line of the input was. A row gone
-   from the transcript since is no target, whatever the helper says. */
-export function jumpTargets(
+/* Which drawn row each prompt is, by its `requestId`: the drawn rows are
+   walked in order, each prompt taking the next one with its text. A prompt
+   no drawn row matches (the engine has not drawn it, or drew it unlike its
+   stored text) has none, and the walk stays where it was. */
+export function promptTargets(
+  prompts: readonly string[],
   rows: readonly DrawnRow[],
-  indices: readonly number[],
-  aligned: readonly { row: number; eventId: string }[],
-  gone: ReadonlySet<string> = new Set(),
-): Map<string, string> {
-  const targets = new Map<string, string>()
-  for (const { row, eventId } of aligned) {
-    const drawn = rows[indices[row] ?? -1]
-    if (drawn && !gone.has(drawn.requestId)) targets.set(eventId, drawn.requestId)
-  }
-  return targets
+): (string | undefined)[] {
+  let from = 0
+  return prompts.map(text => {
+    const at = rows.findIndex((row, index) => index >= from && row.text === text)
+    if (at < 0) return undefined
+    from = at + 1
+    return rows[at]!.requestId
+  })
 }
 
 /* What a jump leaves behind: the engine scrolled there, and the band folds

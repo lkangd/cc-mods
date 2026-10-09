@@ -7,7 +7,6 @@ import {
   installSupportedTarget,
   projectId,
   promptHistory,
-  renderBand,
   runId,
   runModeKeyFor,
   session,
@@ -168,7 +167,6 @@ test('a confirmed clear-run removes this Run and leaves every other Run as it wa
   const calls = installSupportedTarget(on, { store, archive, clearAnswers: ['清除当前 Run'] })
   await $.session.start(session)
   await promptHistory($, '')
-  expect(JSON.stringify(await renderBand($))).toContain('PH-SECRET-OWN-SECOND')
 
   const answer = await promptHistory($, 'clear-run')
 
@@ -178,7 +176,6 @@ test('a confirmed clear-run removes this Run and leaves every other Run as it wa
   expect(answer.text).toContain('下一次提交开始新的根')
   expect(answer.text).not.toContain('PH-SECRET')
   expect(archive.map(row => [row.text, row.parentEventId])).toEqual([['PH-SECRET-OTHER-FORK', null]])
-  expect(JSON.stringify(await renderBand($))).not.toContain('PH-SECRET-OWN')
   /* This Run's sessions start new roots; its consent and mode stay, and
      what it owed of the cleared history goes. */
   for (const key of [branchKey, earlierBranchKey]) {

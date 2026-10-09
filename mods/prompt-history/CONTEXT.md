@@ -1,11 +1,11 @@
 # Prompt Trail
 
-Prompt Trail provides an in-terminal timeline of prompts entered during the current Claude Code run so people can return to earlier conversation points.
+Prompt Trail provides an in-terminal timeline of the prompts the current session's transcript holds, so people can return to earlier conversation points. It also archives each prompt durably per project; the timeline draws the transcript, never the archive.
 
 ## Language
 
 **Prompt Trail**:
-The navigable timeline of human-entered prompts collected during the current run.
+The navigable timeline of the human-entered prompts the current session's transcript holds, in transcript order. It shows nothing of other sessions or other Runs, and nothing the transcript no longer holds.
 _Avoid_: Prompt history, input history
 
 **Run**:
