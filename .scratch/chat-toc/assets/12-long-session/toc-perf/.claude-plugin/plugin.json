@@ -1,0 +1,1 @@
+{ "name": "toc-perf", "version": "0.0.1", "description": "PROBE (throwaway): chat-toc long-session read and render costs, ticket 12", "types": "./types/index.d.ts" }
