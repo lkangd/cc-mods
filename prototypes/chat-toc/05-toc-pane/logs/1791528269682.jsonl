@@ -1,0 +1,6 @@
+{"t":1791528269748,"ev":"session.start"}
+{"t":1791528269790,"ev":"load","why":"start","ms":42,"size":1530367,"chain":1732,"groups":312}
+{"t":1791528269792,"ev":"autoopen?","closed":false,"panes":[{"id":"chat-toc","title":"目录","isShown":true,"isFocused":false,"isPlaced":true}]}
+{"t":1791528270103,"ev":"load","why":"append","ms":10,"size":1531041,"chain":1733,"groups":312}
+{"t":1791528273057,"ev":"load","why":"append","ms":29,"size":1532343,"chain":1735,"groups":313}
+{"t":1791528274364,"ev":"jump","key":"u267","how":"press","rid":"6f77de2e-5ed7-4dc9-812d-2bf25884674c","block":"center","drawn":false,"fallback":true,"res":{}}

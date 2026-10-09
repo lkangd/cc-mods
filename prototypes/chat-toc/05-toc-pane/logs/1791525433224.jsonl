@@ -1,0 +1,25 @@
+{"t":1791525433252,"ev":"session.start"}
+{"t":1791525433290,"ev":"load","why":"start","ms":38,"size":1797837,"chain":296,"groups":8}
+{"t":1791525433291,"ev":"autoopen?","closed":false,"panes":[{"id":"chat-toc","title":"目录","isShown":true,"isFocused":false,"isPlaced":true}]}
+{"t":1791525433611,"ev":"load","why":"append","ms":27,"size":1798430,"chain":297,"groups":8}
+{"t":1791525508011,"ev":"jump","key":"u0","how":"press","rid":"d7aba4cf-a5f6-42e9-a643-aa7a2bb586f2","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791525509461,"ev":"jump","key":"a7","how":"press","rid":"c0910608-e4f1-43f1-8eb1-d85d70891c89","block":"start","drawn":false,"fallback":false,"res":{}}
+{"t":1791525544990,"ev":"jump","key":"a7","how":"press","rid":"c0910608-e4f1-43f1-8eb1-d85d70891c89","block":"start","drawn":false,"fallback":false,"res":{}}
+{"t":1791525545675,"ev":"jump","key":"u7","how":"press","rid":"1b3ecb6c-0fc6-46e0-9a6f-89938918341a","block":"start","drawn":false,"fallback":false,"res":{}}
+{"t":1791525547678,"ev":"jump","key":"u5","how":"press","rid":"abca37de-a024-468a-a6d4-d65bfc3d38a0","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791525548200,"ev":"jump","key":"a4","how":"press","rid":"9a77766c-ddb5-40e1-a115-e7f3d2269add","block":"start","drawn":false,"fallback":false,"res":{}}
+{"t":1791525548713,"ev":"jump","key":"u4","how":"press","rid":"1f6a04b5-9715-48cd-a858-596d5e52dc9b","block":"start","drawn":false,"fallback":false,"res":{}}
+{"t":1791525549163,"ev":"jump","key":"u3","how":"press","rid":"f7f27506-f28a-4065-aa13-514dff21da80","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791525549704,"ev":"jump","key":"a1","how":"press","rid":"31962e00-47ad-4c35-ba21-6bfffc128faa","block":"start","drawn":true,"fallback":false,"res":{}}
+{"t":1791525550278,"ev":"jump","key":"u1","how":"press","rid":"831f5899-59c6-4dd7-8dad-8e66a7a40d73","block":"center","drawn":true,"fallback":true,"res":{"deny":"nothing drawn under that requestId"}}
+{"t":1791525550278,"ev":"jump","key":"u1","how":"press","rid":"d7aba4cf-a5f6-42e9-a643-aa7a2bb586f2","block":"center","drawn":true,"fallback":true,"res":{"deny":"not person-initiated"}}
+{"t":1791525550279,"ev":"jump","key":"u1","how":"press","rid":"02a8fe66-c506-4e0d-a652-e450b5f68337","block":"center","drawn":true,"fallback":true,"res":{"deny":"not person-initiated"}}
+{"t":1791525551030,"ev":"jump","key":"u2","how":"press","rid":"0a7e51df-6089-4d0c-a139-c297e231e55a","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791525552010,"ev":"jump","key":"u4","how":"press","rid":"1f6a04b5-9715-48cd-a858-596d5e52dc9b","block":"start","drawn":false,"fallback":false,"res":{}}
+{"t":1791525552630,"ev":"jump","key":"a7","how":"press","rid":"c0910608-e4f1-43f1-8eb1-d85d70891c89","block":"start","drawn":false,"fallback":false,"res":{}}
+{"t":1791525564374,"ev":"jump","key":"u0","how":"press","rid":"66506504-47f9-40b0-8555-bceb5bbeb999","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791525637921,"ev":"load","why":"append","ms":42,"size":1799108,"chain":298,"groups":8}
+{"t":1791525891190,"ev":"load","why":"append","ms":22,"size":1801826,"chain":299,"groups":9}
+{"t":1791525944363,"ev":"load","why":"append","ms":16,"size":1825908,"chain":305,"groups":9}
+{"t":1791525965805,"ev":"load","why":"append","ms":27,"size":1846759,"chain":311,"groups":9}
+{"t":1791525975688,"ev":"load","why":"append","ms":422,"size":1855201,"chain":316,"groups":9}

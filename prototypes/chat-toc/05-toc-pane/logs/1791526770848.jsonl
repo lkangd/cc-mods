@@ -1,0 +1,14 @@
+{"t":1791526770876,"ev":"session.start"}
+{"t":1791526770948,"ev":"load","why":"start","ms":71,"size":2070866,"chain":400,"groups":12}
+{"t":1791526770954,"ev":"autoopen?","closed":false,"panes":[{"id":"chat-toc","title":"目录","isShown":true,"isFocused":false,"isPlaced":true}]}
+{"t":1791526771251,"ev":"load","why":"append","ms":18,"size":2072162,"chain":401,"groups":12}
+{"t":1791526776154,"ev":"jump","key":"u9","how":"press","rid":"8c8add58-ad72-42a2-b10e-801d4fbb93a0","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791526778073,"ev":"jump","key":"a8","how":"press","rid":"7b7ebb7a-03c5-45cb-ab78-1bf671c9b52a","block":"start","drawn":true,"fallback":false,"res":{}}
+{"t":1791526778866,"ev":"jump","key":"a7","how":"press","rid":"c0910608-e4f1-43f1-8eb1-d85d70891c89","block":"start","drawn":true,"fallback":false,"res":{}}
+{"t":1791526780791,"ev":"jump","key":"u6","how":"press","rid":"016e649c-4fe9-4f1f-a807-3be6e353e666","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791526783614,"ev":"jump","key":"u3","how":"press","rid":"f7f27506-f28a-4065-aa13-514dff21da80","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791526822162,"ev":"load","why":"append","ms":22,"size":2184587,"chain":405,"groups":13}
+{"t":1791526849438,"ev":"load","why":"append","ms":26,"size":2197477,"chain":408,"groups":13}
+{"t":1791526849827,"ev":"load","why":"append","ms":17,"size":2208361,"chain":409,"groups":13}
+{"t":1791526866683,"ev":"load","why":"append","ms":16,"size":2226576,"chain":415,"groups":13}
+{"t":1791526882513,"ev":"load","why":"append","ms":29,"size":2232064,"chain":419,"groups":13}

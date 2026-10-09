@@ -1,0 +1,9 @@
+{"t":1791527305388,"ev":"session.start"}
+{"t":1791527305389,"ev":"SessionStart","src":"resume","path":"/Users/liangkangda/.claude/projects/-private-tmp-claude-501--Users-liangkangda-Fe-project-cc-mods-e6ece91f-32d1-4d89-8cc9-574fb52eb5ad-scratchpad-p05-proj/a96f2c4d-1b28-487c-a14b-90dd93262e10.jsonl"}
+{"t":1791527305817,"ev":"load","why":"start","ms":428,"size":1499985,"chain":1704,"groups":300}
+{"t":1791527305850,"ev":"autoopen?","closed":false,"panes":[]}
+{"t":1791527305856,"ev":"open","asked":false,"r":{"isPlaced":true}}
+{"t":1791527459583,"ev":"dump","resolveStats":{"ToolGroup:exact":25,"AssistantMessage:exact":25,"UserMessage:exact":24},"ridSamples":[],"stats":{"hook:UserMessage":117,"hook:ToolGroup":116,"hook:AssistantMessage":123,"pane":3,"pane-ms":107},"chain":1704,"groups":300,"drawnEver":74,"drawnInChain":74,"cpSrc":"noToolUse","live":["ToolGroup:collapsed-a7f#1673g295 0-1/2 140s","AssistantMessage:4a07dc22-d846#1677g295 0-5/6 140s","UserMessage:4caa48ab-a322#1678g296 0-2/3 140s","ToolGroup:collapsed-c9f#1679g296 0-1/2 140s","AssistantMessage:9d6bf231-1d17#1685g296 0-5/6 140s","UserMessage:8d300646-0941#1686g297 0-2/3 140s","ToolGroup:collapsed-e75#1687g297 0-1/2 140s","AssistantMessage:90059d60-57da#1689g297 0-5/6 140s","UserMessage:d5681b03-9188#1690g298 0-2/3 140s","ToolGroup:collapsed-4b5#1691g298 0-1/2 140s","AssistantMessage:cd1eeba8-878a#1695g298 0-5/6 140s","UserMessage:ef6ad385-2f3e#1696g299 0-2/3 140s","ToolGroup:collapsed-6d4#1697g299 0-1/2 140s","AssistantMessage:ee70972b-f29e#1703g299 0-5/6 140s"],"cp":299,"top":557,"paused":false,"truncated":false,"loadError":""}
+{"t":1791527459931,"ev":"load","why":"append","ms":10,"size":1505234,"chain":1707,"groups":301}
+{"t":1791527533450,"ev":"jump","key":"u272","how":"press","rid":"0ab7eef7-aa49-4b78-a254-ce18729f22ea","block":"start","drawn":true,"fallback":false,"res":{}}
+{"t":1791527552754,"ev":"unlock"}
