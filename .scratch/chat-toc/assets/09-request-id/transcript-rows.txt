@@ -1,0 +1,62 @@
+4 system informational uuid=39ce1fcf-999b-4956-8bbc-0b8d71f0d81b parent=a1ae4103-e216-4776-a095-c6ef736eef27   'rid-probe: ui.render hook skipped: threw rid-probe: state.set: denied:'
+6 user  uuid=3eba715c-386e-4e01-acbc-3c50fd8e001b parent=39ce1fcf-999b-4956-8bbc-0b8d71f0d81b   'First say ONE-A in one short sentence. Then run the Bash command `echo'
+27 assistant  uuid=967286fd-9021-48bb-be72-56cf604fa464 parent=e2de5850-907e-4016-a12a-c5fc0c6e34ec   "[('thinking', '')]"
+28 assistant  uuid=818e6774-da56-48a2-91ef-dea6455924c2 parent=967286fd-9021-48bb-be72-56cf604fa464   "[('text', 'ONE-A')]"
+29 assistant  uuid=8e07d775-6439-4a33-9938-5fd2b510e6ed parent=818e6774-da56-48a2-91ef-dea6455924c2   "[('tool_use', 'Bash')]"
+31 user  uuid=23fddf47-cc03-4a23-90f3-e2a514f3aa6c parent=8e07d775-6439-4a33-9938-5fd2b510e6ed   "[('tool_result', '')]"
+41 assistant  uuid=e030474b-3301-4575-a0de-62b741c75202 parent=f9aa2608-1b11-4d78-94a5-3ffc2e7582ce   "[('text', 'ONE-B')]"
+42 assistant  uuid=cc58eb3e-2ac5-4ec6-8c4d-b2caf36a40bc parent=e030474b-3301-4575-a0de-62b741c75202   "[('tool_use', 'Bash')]"
+44 user  uuid=9dacf150-2fc9-4a37-bf68-3401357d903d parent=cc58eb3e-2ac5-4ec6-8c4d-b2caf36a40bc   "[('tool_result', '')]"
+48 assistant  uuid=171dc871-693e-4894-9f1a-1f326911fa1e parent=47da0222-1678-4d29-96a6-62a00e2bb5db   "[('text', 'ONE-DONE')]"
+51 system stop_hook_summary uuid=53f83c83-b227-4521-921c-d808e654c189 parent=5777cde8-34ed-458e-8176-b9ad9436bb1d   'None'
+52 system turn_duration uuid=d7e45bff-7f51-4607-84da-140f881e966a parent=53f83c83-b227-4521-921c-d808e654c189   'None'
+53 system informational uuid=3e9cae73-35a0-432f-8541-061312efc89e parent=d7e45bff-7f51-4607-84da-140f881e966a   'rid-probe: reloaded (8 hooks: classic.SessionStart, session.start, ses'
+54 system local_command uuid=135215b7-c5fb-401e-8972-a4e1106613d2 parent=3e9cae73-35a0-432f-8541-061312efc89e   '<command-name>/tui</command-name>\n            <command-message>tui</co'
+55 system local_command uuid=7a7ddec6-8a8f-4c3e-95df-137982cbc6ec parent=135215b7-c5fb-401e-8972-a4e1106613d2   '<local-command-stdout>Current renderer: fullscreen. Usage: /tui <defau'
+57 user  uuid=bb5d366a-159e-41b0-a4a6-7e98f9c91c50 parent=7a7ddec6-8a8f-4c3e-95df-137982cbc6ec   '<bash-input>echo BANG-OUT</bash-input>'
+58 user  uuid=81086f7b-e587-4224-920b-a94f40b957dc parent=bb5d366a-159e-41b0-a4a6-7e98f9c91c50   '<bash-stdout>BANG-OUT</bash-stdout><bash-stderr></bash-stderr>'
+59 assistant  uuid=b1766d30-9487-4076-80b1-a5461c20a095 parent=81086f7b-e587-4224-920b-a94f40b957dc   "[('thinking', '')]"
+60 assistant  uuid=81fa5cee-485c-473c-b7d3-af4248e25595 parent=b1766d30-9487-4076-80b1-a5461c20a095   "[('text', 'The renderer is currently **fu')]"
+63 system stop_hook_summary uuid=bcbb7d80-4c9c-4531-8114-c17392ab0511 parent=d2d842b9-039c-4342-a983-8f53688915de   'None'
+64 system turn_duration uuid=a232a739-df78-45e2-a303-310a59c2a292 parent=bcbb7d80-4c9c-4531-8114-c17392ab0511   'None'
+71 user  uuid=c69717ab-7006-43bc-a7c2-808bb20c8265 parent=a232a739-df78-45e2-a303-310a59c2a292   'Without tools, write the numbers 1 to 25 each on its own line prefixed'
+74 assistant  uuid=6d2f9840-7c86-483e-bc0d-bc2e122ac5ee parent=f3a0df77-d594-4bb2-9829-226d1e34069d   "[('text', 'TWO-1\\nTWO-2\\nTWO-3\\nTWO-4\\nTWO-5\\n')]"
+77 system stop_hook_summary uuid=dfbbd1ba-3dc8-47b9-99ae-80c2f2578f7a parent=4d5d8291-3b58-4c89-8d88-1600ae0a20a8   'None'
+78 system turn_duration uuid=011926cd-f6e8-4b40-9fc9-eef2752a2390 parent=dfbbd1ba-3dc8-47b9-99ae-80c2f2578f7a   'None'
+80 user  uuid=7c869c3d-6194-448f-9ef8-d204fd32ee3a parent=011926cd-f6e8-4b40-9fc9-eef2752a2390   'Without tools, write the numbers 1 to 25 each on its own line prefixed'
+83 assistant  uuid=a9e1e9a7-f25b-414c-81c8-db16f8aa79e9 parent=9c2fb62c-3489-428d-94ad-70bb7158f7b0   "[('text', 'THREE-1\\nTHREE-2\\nTHREE-3\\nTHREE-')]"
+86 system stop_hook_summary uuid=26a189f2-d7d3-4d06-ba5e-d5b15cfe1c4e parent=487f23a2-e904-4ccd-a018-805ace8a1d63   'None'
+87 system turn_duration uuid=b0fedec9-75f2-47f9-a601-bacc8a9c273c parent=26a189f2-d7d3-4d06-ba5e-d5b15cfe1c4e   'None'
+88 system local_command uuid=c6bf709f-79a2-479e-b510-9bf344102f6c parent=b0fedec9-75f2-47f9-a601-bacc8a9c273c   '<command-name>/probe</command-name>\n            <command-message>probe'
+89 system local_command uuid=d51a6e75-a5b2-4242-82ca-ac62bb98428d parent=c6bf709f-79a2-479e-b510-9bf344102f6c   '<local-command-stdout>rid-probe: probe {"isPlaced":true}</local-comman'
+90 system informational uuid=f4239d0a-ea32-4522-a14e-ce796c1ae883 parent=d51a6e75-a5b2-4242-82ca-ac62bb98428d   'rid-probe: reloaded (8 hooks: classic.SessionStart, session.start, ses'
+92 user  uuid=327eeb51-134c-42c3-a015-01cd279e6020 parent=011926cd-f6e8-4b40-9fc9-eef2752a2390   'Without tools reply with exactly FIVE-DONE.'
+97 assistant  uuid=6c9fe52c-99f1-447c-a281-811083958ca1 parent=e4cf59d0-c139-4c77-af9c-33e76a2a9562   "[('text', 'FIVE-DONE')]"
+105 system stop_hook_summary uuid=bd538a02-79db-44c6-89a1-8dc29b149cbd parent=cf68b162-a695-42bd-a4ef-41543ebd9fd6   'None'
+106 system turn_duration uuid=7baf0dca-a76b-4784-ad1f-a165ef4ab501 parent=bd538a02-79db-44c6-89a1-8dc29b149cbd   'None'
+108 user  uuid=604c6a6f-2c1e-459d-af6f-9e78efbc2b82 parent=7baf0dca-a76b-4784-ad1f-a165ef4ab501   '/compact'
+114 system compact_boundary uuid=613ffb41-f542-4fc2-b099-4754b125c618 parent=   'Conversation compacted'
+115 user  uuid=1629646b-4085-4a75-821e-6559597308c0 parent=613ffb41-f542-4fc2-b099-4754b125c618  compactSummary 'This session is being continued from a previous conversation that ran '
+116 user  uuid=a872db94-fd3e-4c7c-a1ac-02a1aec0a43b parent=1629646b-4085-4a75-821e-6559597308c0 meta  '<local-command-caveat>The command below was run directly in Claude Cod'
+117 user  uuid=2aefb012-1c3e-42f2-ac96-f5a62b7bd10d parent=a872db94-fd3e-4c7c-a1ac-02a1aec0a43b   '<command-name>/compact</command-name>\n            <command-message>com'
+118 user  uuid=19f73232-36d9-460b-87c7-c40b123b1a37 parent=2aefb012-1c3e-42f2-ac96-f5a62b7bd10d   '<local-command-stdout>\x1b[2mCompacted (ctrl+o to see full summary)\x1b[22m\n'
+135 system informational uuid=e969400f-3bd9-4340-a459-a52c0d77c8eb parent=8a13851f-1cdd-421e-8a88-5bae19fc18af   'Prompt dropped by a hook: prompt-history 无法唯一确定下一条 prompt 的父节点，请在「确认父节'
+136 system informational uuid=9494f692-9143-4236-ba36-41c7a39e9380 parent=e969400f-3bd9-4340-a459-a52c0d77c8eb   'Prompt dropped by a hook: prompt-history 无法唯一确定下一条 prompt 的父节点，请在「确认父节'
+142 user  uuid=ef865ad3-cdcf-48b2-92d3-b0fcb5285aa6 parent=b219f390-ae15-4e00-b18d-2bc0946398e4   '<command-message>hi</command-message>\n<command-name>/hi</command-name>'
+143 user  uuid=2af88ea5-af95-45c8-b8c4-bc6718e5dd87 parent=ef865ad3-cdcf-48b2-92d3-b0fcb5285aa6 meta  "[('text', 'Reply with exactly HI-DONE and')]"
+158 assistant  uuid=ada88de5-3ee1-4899-9a38-2380a0e3e7ff parent=54a38f18-7f7f-4d2b-b368-a69357bed7c3   "[('thinking', '')]"
+159 assistant  uuid=92f33c73-faec-4132-9215-d9be636a8474 parent=ada88de5-3ee1-4899-9a38-2380a0e3e7ff   "[('text', 'HI-DONE')]"
+168 system stop_hook_summary uuid=abf7ac70-09cc-4183-9f0d-57d3466329a0 parent=319c75c1-69d0-48d0-bb1d-4448a3ba09c4   'None'
+169 system turn_duration uuid=b8c01c51-4880-4d3a-b072-4d2df792732c parent=abf7ac70-09cc-4183-9f0d-57d3466329a0   'None'
+171 user  uuid=a86ce737-c68c-4b87-a264-972cf03b1988 parent=b8c01c51-4880-4d3a-b072-4d2df792732c   'Without tools reply with exactly SIX-DONE.'
+174 assistant  uuid=c334ea64-7a2f-4774-a01b-8ce6bb222f6b parent=cf961a05-a60c-4595-a5e2-a0258007968f   "[('text', 'SIX-DONE')]"
+177 system stop_hook_summary uuid=dd520ba5-d284-4b2b-a8ca-b3cab30c589c parent=5a72ec2f-3c1a-45d1-9946-22adeb4fe5e3   'None'
+178 system turn_duration uuid=8946a6b7-a49b-4cf3-bb4b-c311a723c4b8 parent=dd520ba5-d284-4b2b-a8ca-b3cab30c589c   'None'
+179 system local_command uuid=dddfc54d-6b9b-4253-99b7-ad4bf9f719f1 parent=8946a6b7-a49b-4cf3-bb4b-c311a723c4b8   '<command-name>/probe</command-name>\n            <command-message>probe'
+180 system local_command uuid=a6fa7d52-93ad-4eff-b783-2ab1c97df5e5 parent=dddfc54d-6b9b-4253-99b7-ad4bf9f719f1   '<local-command-stdout>rid-probe: probe {"isPlaced":true}</local-comman'
+182 user  uuid=8bf030f5-612e-422f-9135-b1b9f6f43143 parent=a6fa7d52-93ad-4eff-b783-2ab1c97df5e5   '/compact'
+188 system compact_boundary uuid=a8f8869a-fe58-4fd2-93bf-282e7b3af0e5 parent=   'Conversation compacted'
+189 user  uuid=2aa012bf-b590-4c7d-be5a-1ad2fa56fc78 parent=a8f8869a-fe58-4fd2-93bf-282e7b3af0e5  compactSummary 'This session is being continued from a previous conversation that ran '
+190 user  uuid=db55bdc8-cc21-475a-9df9-991d5401e468 parent=2aa012bf-b590-4c7d-be5a-1ad2fa56fc78 meta  '<local-command-caveat>The command below was run directly in Claude Cod'
+191 user  uuid=e635fb00-4df2-44ed-abaa-7dad4b0504ba parent=db55bdc8-cc21-475a-9df9-991d5401e468   '<command-name>/compact</command-name>\n            <command-message>com'
+192 user  uuid=38faac21-1d1a-40f6-9864-d11b1ed61c71 parent=e635fb00-4df2-44ed-abaa-7dad4b0504ba   '<local-command-stdout>\x1b[2mCompacted (ctrl+o to see full summary)\x1b[22m\n'

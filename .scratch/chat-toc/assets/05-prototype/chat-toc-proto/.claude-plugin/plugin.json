@@ -1,0 +1,1 @@
+{ "name": "chat-toc-proto", "version": "0.0.1", "description": "PROTOTYPE (throwaway): docked Chat TOC pane for ticket 05", "types": "./types/index.d.ts" }

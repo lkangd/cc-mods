@@ -1,0 +1,1 @@
+{ "name": "redraw-probe", "version": "0.1.0", "description": "Measures ways to redraw a docked pane when the transcript scroll position changes", "types": "./types/index.d.ts" }

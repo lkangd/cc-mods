@@ -1,0 +1,1 @@
+{ "name": "rid-probe", "version": "0.1.0", "description": "Logs transcript render sites' requestId and onScreen; jumps from a pane", "types": "./types/index.d.ts" }

@@ -1,0 +1,9 @@
+{"t":1791528189805,"ev":"session.start"}
+{"t":1791528189884,"ev":"load","why":"start","ms":78,"size":1525813,"chain":1725,"groups":309}
+{"t":1791528189887,"ev":"autoopen?","closed":false,"panes":[{"id":"chat-toc","title":"目录","isShown":true,"isFocused":false,"isPlaced":true}]}
+{"t":1791528190197,"ev":"load","why":"append","ms":11,"size":1526487,"chain":1726,"groups":309}
+{"t":1791528206395,"ev":"load","why":"append","ms":17,"size":1527779,"chain":1728,"groups":310}
+{"t":1791528208401,"ev":"load","why":"append","ms":31,"size":1529078,"chain":1730,"groups":311}
+{"t":1791528216654,"ev":"jump","key":"u295","how":"press","rid":"eff20eff-7f1e-4265-b948-e129851a9217","block":"start","drawn":true,"fallback":false,"res":{}}
+{"t":1791528218413,"ev":"jump","key":"u296","how":"press","rid":"47096512-dcf9-42aa-af1b-ae261cfbee4b","block":"start","drawn":true,"fallback":false,"res":{}}
+{"t":1791528238591,"ev":"load","why":"append","ms":17,"size":1530367,"chain":1732,"groups":312}

@@ -1,0 +1,20 @@
+{"t":1791523875987,"ev":"session.start"}
+{"t":1791523876024,"ev":"load","why":"start","ms":37,"size":1010697,"chain":201,"groups":2}
+{"t":1791523876025,"ev":"autoopen?","closed":false,"panes":[]}
+{"t":1791523876026,"ev":"open","asked":false,"r":{"isPlaced":false,"reason":"unasked below 144 columns (96 now): placed when the person opens it, or when the terminal is widened to 144 columns"}}
+{"t":1791523876367,"ev":"load","why":"append","ms":26,"size":1011605,"chain":202,"groups":2}
+{"t":1791523884280,"ev":"load","why":"append","ms":25,"size":1012147,"chain":203,"groups":2}
+{"t":1791523930389,"ev":"load","why":"force","ms":19,"size":1012147,"chain":203,"groups":2}
+{"t":1791523930390,"ev":"open","asked":true,"r":{"isPlaced":true}}
+{"t":1791523930727,"ev":"load","why":"append","ms":33,"size":1013301,"chain":205,"groups":2}
+{"t":1791523967867,"ev":"open","asked":true,"r":{"isPlaced":true}}
+{"t":1791523968202,"ev":"load","why":"append","ms":20,"size":1014482,"chain":207,"groups":2}
+{"t":1791523981601,"ev":"load","why":"append","ms":14,"size":1559179,"chain":212,"groups":3}
+{"t":1791524003560,"ev":"load","why":"append","ms":19,"size":1559280,"chain":212,"groups":3}
+{"t":1791524009063,"ev":"load","why":"append","ms":15,"size":1577795,"chain":217,"groups":3}
+{"t":1791524017810,"ev":"load","why":"append","ms":13,"size":1593168,"chain":223,"groups":3}
+{"t":1791524026834,"ev":"load","why":"append","ms":20,"size":1609148,"chain":228,"groups":3}
+{"t":1791524034692,"ev":"load","why":"append","ms":16,"size":1623035,"chain":235,"groups":3}
+{"t":1791524045543,"ev":"load","why":"append","ms":19,"size":1640063,"chain":241,"groups":3}
+{"t":1791524057553,"ev":"load","why":"append","ms":43,"size":1645098,"chain":246,"groups":3}
+{"t":1791524058085,"ev":"load","why":"append","ms":19,"size":1647911,"chain":246,"groups":3}

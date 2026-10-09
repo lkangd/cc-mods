@@ -1,0 +1,12 @@
+{"t":1791528362720,"ev":"session.start"}
+{"t":1791528362767,"ev":"load","why":"start","ms":47,"size":3275135,"chain":763,"groups":15}
+{"t":1791528362771,"ev":"autoopen?","closed":false,"panes":[{"id":"chat-toc","title":"目录","isShown":true,"isFocused":false,"isPlaced":true}]}
+{"t":1791528363130,"ev":"load","why":"append","ms":77,"size":3275728,"chain":764,"groups":15}
+{"t":1791528985648,"ev":"load","why":"append","ms":35,"size":3278449,"chain":765,"groups":16}
+{"t":1791528990116,"ev":"jump","key":"u10","how":"press","rid":"9a6c7523-dc21-427b-a815-9dacece20e49","block":"start","drawn":true,"fallback":false,"res":{}}
+{"t":1791528992539,"ev":"jump","key":"u8","how":"press","rid":"2e6ed877-e998-41bb-8326-dba53f3a627b","block":"start","drawn":true,"fallback":false,"res":{}}
+{"t":1791528996562,"ev":"unlock"}
+{"t":1791528996586,"ev":"jump","key":"u1","how":"press","rid":"831f5899-59c6-4dd7-8dad-8e66a7a40d73","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791528998643,"ev":"unlock"}
+{"t":1791528998650,"ev":"jump","key":"u15","how":"press","rid":"d98fc8c3-6478-4fc6-aa81-379cdab1fa6a","block":"start","drawn":true,"fallback":false,"res":{}}
+{"t":1791528999497,"ev":"unlock"}

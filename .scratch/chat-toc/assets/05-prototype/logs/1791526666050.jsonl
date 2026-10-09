@@ -1,0 +1,11 @@
+{"t":1791526666081,"ev":"session.start"}
+{"t":1791526666116,"ev":"load","why":"start","ms":34,"size":2038462,"chain":384,"groups":11}
+{"t":1791526666117,"ev":"autoopen?","closed":false,"panes":[{"id":"chat-toc","title":"目录","isShown":true,"isFocused":false,"isPlaced":true}]}
+{"t":1791526666437,"ev":"load","why":"append","ms":20,"size":2039055,"chain":385,"groups":11}
+{"t":1791526674204,"ev":"jump","key":"u6","how":"press","rid":"016e649c-4fe9-4f1f-a807-3be6e353e666","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791526675846,"ev":"jump","key":"u5","how":"press","rid":"abca37de-a024-468a-a6d4-d65bfc3d38a0","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791526679615,"ev":"jump","key":"u5","how":"press","rid":"abca37de-a024-468a-a6d4-d65bfc3d38a0","block":"center","drawn":true,"fallback":true,"res":{}}
+{"t":1791526724271,"ev":"load","why":"append","ms":29,"size":2041648,"chain":386,"groups":12}
+{"t":1791526745971,"ev":"load","why":"append","ms":19,"size":2052594,"chain":391,"groups":12}
+{"t":1791526747165,"ev":"load","why":"append","ms":23,"size":2061507,"chain":392,"groups":12}
+{"t":1791526754755,"ev":"load","why":"append","ms":17,"size":2066581,"chain":396,"groups":12}
