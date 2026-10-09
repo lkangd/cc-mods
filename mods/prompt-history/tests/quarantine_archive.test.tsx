@@ -900,28 +900,6 @@ test('a quarantine that fails keeps the Run held and asks again', async ($, on) 
   expect(result.drop).toContain('草稿已恢复')
 })
 
-test('the band shows where the quarantined records ended', async ($, on) => {
-  const store = consentedStore()
-  installSupportedTarget(on, {
-    store,
-    archive: [{
-      kind: 'archive-quarantined',
-      eventId: 'qqqqqqqq-0000-4000-8000-000000000001',
-      sequence: 1,
-      runId: otherRun,
-      segmentId: 'ssssssss-0000-4000-8000-000000000001',
-      branchId: 'bbbbbbbb-0000-4000-8000-000000000002',
-    }],
-    generation: { value: 'gen-2' },
-  })
-  await $.session.start(session)
-  await promptHistory($)
-
-  const band = JSON.stringify(await renderBand($))
-
-  expect(band).toContain('此前的记录已隔离')
-})
-
 test('status names the generation, each quarantined archive and the choices', async ($, on) => {
   installSupportedTarget(on, {
     store: consentedStore(),
@@ -946,38 +924,6 @@ test('status names the generation, each quarantined archive and the choices', as
   expect(status).toContain(`archives/quarantine/${projectId}/20260928T000000Z-1（8192 bytes）`)
   expect(status).toContain('重新检查完整性 / 隔离并开始新档案 / 清除全部档案 / 禁用当前 Run 后继续')
   expect(status).not.toContain('PH-SECRET')
-})
-
-test('a view of a replaced generation gives way to the new one', async ($, on) => {
-  const archive: ArchiveRow[] = [1, 2, 3].map(sequence => ({
-    ...earlierEntry(),
-    eventId: `eeeeeeee-0000-4000-8000-00000000000${sequence}`,
-    sequence,
-    text: `PH-SECRET-OLD-${sequence}`,
-  }))
-  const generation = { value: 'gen-1' }
-  installSupportedTarget(on, { store: consentedStore(), archive, generation })
-  await $.session.start(session)
-  await promptHistory($)
-  expect(JSON.stringify(await renderBand($))).toContain('PH-SECRET-OLD-3')
-  /* Another Run quarantines the archive meanwhile. */
-  archive.splice(0, archive.length, {
-    kind: 'archive-quarantined',
-    eventId: 'qqqqqqqq-0000-4000-8000-000000000001',
-    sequence: 1,
-    runId: otherRun,
-    segmentId: 'ssssssss-0000-4000-8000-000000000001',
-    branchId: 'bbbbbbbb-0000-4000-8000-000000000002',
-  })
-  generation.value = 'gen-2'
-
-  /* Folded and opened again, the band reads the archive anew. */
-  await promptHistory($)
-  await promptHistory($)
-
-  const band = JSON.stringify(await renderBand($))
-  expect(band).toContain('此前的记录已隔离')
-  expect(band).not.toContain('PH-SECRET-OLD')
 })
 
 test('enable that meets damage names the choices the next submission offers', async ($, on) => {

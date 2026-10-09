@@ -380,7 +380,7 @@ test('a forked Run that rewinds onto its source again starts a branch there', ()
   expect([...starts]).toEqual([['f3', 'cross-run']])
 })
 
-test('the timeline shows where a rewind started a root branch, with the old one still in view', async ($, on) => {
+test('after a rewind the band draws only what the transcript still holds', async ($, on) => {
   const transcript: TranscriptRow[] = []
   installSupportedTarget(on, { store: consentedStore(), transcript })
   await $.session.start(session)
@@ -391,8 +391,7 @@ test('the timeline shows where a rewind started a root branch, with the old one 
   await promptHistory($)
 
   const band = JSON.stringify(await renderBand($))
-  const order = ['PH-SECRET-A', 'PH-SECRET-C', '—— 新根分支 ——', 'PH-SECRET-A2'].map(text => band.indexOf(text))
-  expect(order.every(at => at >= 0)).toBe(true)
-  expect([...order].sort((left, right) => left - right)).toEqual(order)
-  expect(band.split('—— 新根分支 ——')).toHaveLength(2)
+  expect(band).toContain('1. PH-SECRET-A2')
+  expect(band).not.toContain('PH-SECRET-C')
+  expect(band).not.toContain('新根分支')
 })

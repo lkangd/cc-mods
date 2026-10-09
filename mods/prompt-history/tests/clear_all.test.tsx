@@ -10,7 +10,6 @@ import {
   projectId,
   projectRoot,
   promptHistory,
-  renderBand,
   runId,
   runModeKeyFor,
   session,
@@ -189,11 +188,9 @@ test('after a clear the Run goes on collecting in an empty timeline', async ($, 
   const calls = installSupportedTarget(on, { store, archive, clearAnswers: [PHRASE] })
   await $.session.start(session)
   await promptHistory($, '')
-  expect(JSON.stringify(await renderBand($))).toContain('PH-SECRET-BEFORE-2')
 
   await promptHistory($, 'clear-all')
 
-  expect(JSON.stringify(await renderBand($))).not.toContain('PH-SECRET-BEFORE')
   expect(store[reconcileKey]).toBeUndefined()
   expect(store[`${reconcileKey}:${otherRun}`]).toBeUndefined()
   expect((store[lifecycleKey(otherRun)] as { queue: unknown[] }).queue).toEqual([])
@@ -382,24 +379,6 @@ test('a first clear of a damaged archive says it was damaged', async ($, on) => 
   const cleared = (await promptHistory($, 'clear-all')).text ?? ''
 
   expect(cleared).toContain('损坏的活动档案（条数无法读取）')
-})
-
-test('opening the timeline after another Run cleared it shows nothing cleared', async ($, on) => {
-  const archive = archivedBefore()
-  const generation = { value: 'gen-1' }
-  installSupportedTarget(on, { store: collectingStore(), archive, generation })
-  await $.session.start(session)
-  await promptHistory($, '')
-  expect(JSON.stringify(await renderBand($))).toContain('PH-SECRET-BEFORE-2')
-
-  /* Another Run clears the project; this one drew the old rows. */
-  archive.splice(0)
-  generation.value = 'gen-2'
-  /* Folded and opened again, the band reads the archive anew. */
-  await promptHistory($, '')
-  await promptHistory($, '')
-
-  expect(JSON.stringify(await renderBand($))).not.toContain('PH-SECRET-BEFORE')
 })
 
 test('after a clear status names no boundary of the cleared history', async ($, on) => {

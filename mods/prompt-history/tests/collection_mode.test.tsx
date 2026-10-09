@@ -75,26 +75,27 @@ test('a disabled Run passes submissions through and archives nothing', async ($,
   expect(JSON.stringify(await renderBand($))).not.toContain('PH-SECRET')
 })
 
-test('the disabled interval is drawn as an explicit break, not as history', async ($, on) => {
-  installSupportedTarget(on, { store: consentedStore() })
+test('the band draws every prompt the transcript holds, while the archive marks the disabled interval', async ($, on) => {
+  const archive: ArchiveRow[] = []
+  installSupportedTarget(on, { store: consentedStore(), archive })
   await $.session.start(session)
-  await composerPrompt($)
+  await composerPrompt($, { text: 'PH-SECRET-ONE' })
   await promptHistory($)
   await promptHistory($, 'disable')
-  await composerPrompt($)
+  await composerPrompt($, { text: 'PH-SECRET-TWO' })
   await promptHistory($, 'enable')
-  await composerPrompt($)
+  await composerPrompt($, { text: 'PH-SECRET-THREE' })
 
   const rendered = JSON.stringify(await renderBand($))
 
-  expect(rendered).toContain('采集已停止')
-  expect(rendered).toContain('采集已恢复')
-  expect(rendered).toContain('不补录')
-  // Two collected prompts around one uncollected one: numbering counts only
-  // the Prompt Entries and never claims the gap was recorded.
-  expect(rendered).toContain('1. ')
-  expect(rendered).toContain('2. ')
-  expect(rendered).not.toContain('3. ')
+  /* The band is the transcript's, collected or not. */
+  expect(rendered).toContain('1. PH-SECRET-ONE')
+  expect(rendered).toContain('2. PH-SECRET-TWO')
+  expect(rendered).toContain('3. PH-SECRET-THREE')
+  expect(rendered).not.toContain('采集已停止')
+  /* The archive never claims the gap was recorded. */
+  expect(archive.flatMap(row => row.kind === 'prompt' ? [row.text] : row.kind.startsWith('collection-') ? [row.kind] : []))
+    .toEqual(['PH-SECRET-ONE', 'collection-stopped', 'collection-resumed', 'PH-SECRET-THREE'])
 })
 
 test('re-enabling starts a new root Conversation Branch and back-fills nothing', async ($, on) => {
