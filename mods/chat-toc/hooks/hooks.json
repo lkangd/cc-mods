@@ -1,0 +1,4 @@
+{
+  "description": "chat-toc function hooks",
+  "modules": ["./register.tsx"]
+}
