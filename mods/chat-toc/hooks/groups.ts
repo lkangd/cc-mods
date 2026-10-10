@@ -98,7 +98,7 @@ export function plainText(text: string): string {
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/^[ \t]*(#{1,6}|>+|[-*+])[ \t]+/gm, '')
     .replace(/(\*\*|__|~~)(\S(?:[\s\S]*?\S)?)\1/g, '$2')
-    .replace(/(^|[^\w*])[*_](\S(?:[^\n]*?\S)?)[*_](?!\w)/g, '$1$2')
+    .replace(/(^|[^\p{L}\p{N}*_])([*_])([\p{L}\p{N}](?:[^\n*_]*?[\p{L}\p{N}])?)\2(?![\p{L}\p{N}])/gu, '$1$3')
     .replace(/`([^`\n]*)`/g, '$1')
   const shown = collapse(plain)
   if (shown) return shown

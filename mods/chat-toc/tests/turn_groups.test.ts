@@ -151,6 +151,13 @@ test('pasted-content tags, code blocks, images and Markdown marks are left out',
   ])
 })
 
+test('stars that do not wrap words, as in file patterns, are kept', () => {
+  const t = transcript()
+  t.prompt('match *.md、*.txt and *.json, not *emphasis*')
+
+  expect(tocModel(t.jsonl()).groups[0]?.userText).toBe('match *.md、*.txt and *.json, not emphasis')
+})
+
 test('a prompt of only images says so', () => {
   const t = transcript()
   const image = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: '' } }
