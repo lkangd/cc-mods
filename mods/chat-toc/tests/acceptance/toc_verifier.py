@@ -288,10 +288,24 @@ def _right_of(row: str, column: int) -> str | None:
 _FILTERS = {"●全部": "all", "●用户": "user", "●Agent": "agent"}
 
 
+_EMPTY = "本会话还没有对话"
+
+
+def _is_filter_row(text: str | None) -> bool:
+    return bool(text) and any(mark in text for mark in _FILTERS) and "用户" in text and "Agent" in text
+
+
+def _is_entry_head(text: str | None) -> bool:
+    body = (text or "")[2:]
+    return (text or "")[:2] in ("  ", "▌ ") and (body == "你" or body.startswith("你 · ") or body.startswith("↳"))
+
+
 def find_pane(rows: list[str]) -> tuple[int, int] | None:
-    """(first content cell column, filter row) of the chat-toc Pane: the docked
-    column whose border `│` runs down the screen and whose content holds the
-    View filter row; None when no such Pane is drawn."""
+    """(first content cell column, row just above the entries) of the chat-toc
+    Pane: the docked column whose border `│` runs down the screen and whose
+    content holds the View filter row, an entry header or the empty-state
+    line. The row above the entries is the filter row when there is one, else
+    the row above the Pane's first row. None when no such Pane is drawn."""
     counts: dict[int, int] = {}
     for row in rows:
         for x, char in _cells(row):
@@ -300,10 +314,13 @@ def find_pane(rows: list[str]) -> tuple[int, int] | None:
     for border in sorted(counts, key=lambda x: -counts[x]):
         if counts[border] < 5:
             break
-        for y, row in enumerate(rows):
-            text = _right_of(row, border + 1)
-            if text and any(mark in text for mark in _FILTERS) and "用户" in text and "Agent" in text:
+        texts = [_right_of(row, border + 1) for row in rows]
+        for y, text in enumerate(texts):
+            if _is_filter_row(text):
                 return border + 1, y
+        if any(_is_entry_head(t) or (t and _EMPTY in t) for t in texts):
+            first = next(y for y, t in enumerate(texts) if t is not None)
+            return border + 1, first - 1
     return None
 
 
@@ -344,7 +361,7 @@ def parse_pane(rows: list[str]) -> Pane | None:
     if found is None:
         return None
     left, filter_row = found
-    head = _right_of(rows[filter_row], left) or ""
+    head = (_right_of(rows[filter_row], left) or "") if filter_row >= 0 else ""
     chosen = next((name for mark, name in _FILTERS.items() if mark in head), "all")
     entries: list[PaneEntry] = []
     notes: list[str] = []
