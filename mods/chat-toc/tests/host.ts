@@ -38,10 +38,43 @@ export type Host = {
   scrolls: unknown[]
   /* While set, a read of the file waits for it before answering. */
   hold?: Promise<void>
+  /* Where the session's transcript is; TRANSCRIPT unless set. */
+  path: string
+  /* The commands run, as chat-toc ran them. */
+  runs: { argv: readonly string[]; env?: Record<string, string> }[]
+  /* While set, the file exists but reading it is refused this way. */
+  refuse?: 'denied' | 'error'
 }
 
-export function host(on: On, file?: string): Host {
-  const world: Host = { clock: mock.clock(on, { now: NOW }), file, panes: [], opens: [], reads: [], scrolls: [] }
+/* What the shell and Windows PowerShell commands of a chunked read write:
+   `bytes` bytes of the file at `offset`, as is or in base64. */
+function runChunk(world: Host, argv: readonly string[], env: Record<string, string> | undefined) {
+  const isPowerShell = argv[0] === 'powershell.exe'
+  const path = isPowerShell ? env?.CHAT_TOC_PATH : argv[5]
+  const offset = Number(isPowerShell ? env?.CHAT_TOC_OFFSET : argv[4])
+  const bytes = Number(isPowerShell ? env?.CHAT_TOC_BYTES : argv[6])
+  const fail = (stderr: string) => ({ exitCode: 1, stdout: '', stderr, isStdoutTruncated: false, isStderrTruncated: false })
+  if (path !== world.path || world.file === undefined) return fail('No such file or directory')
+  if (world.refuse === 'denied') return fail(isPowerShell ? 'UnauthorizedAccessException' : 'Permission denied')
+  if (world.refuse === 'error') return fail('I/O error')
+  const chunk = new TextEncoder().encode(world.file).slice(offset, offset + bytes)
+  let stdout: string
+  if (isPowerShell) {
+    let binary = ''
+    for (const b of chunk) binary += String.fromCharCode(b)
+    stdout = btoa(binary)
+  } else stdout = new TextDecoder().decode(chunk)
+  return { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false }
+}
+
+/* The engine resolves a path that is not absolute here, as a Windows path is
+   on macOS and Linux, against the working directory. */
+function isTranscript(world: Host, path: string): boolean {
+  return path === world.path || path.endsWith('/' + world.path)
+}
+
+export function host(on: On, file?: string, path = TRANSCRIPT): Host {
+  const world: Host = { clock: mock.clock(on, { now: NOW }), file, panes: [], opens: [], reads: [], scrolls: [], path, runs: [] }
   mock.store(on)
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('classic.SessionStart', () => ({}))
@@ -54,13 +87,19 @@ export function host(on: On, file?: string): Host {
   on('ui.status', () => ({ value: undefined }))
   on('turn.start', (_$, e) => ({ turnId: e.turnId }))
   on('turn.complete', (_$, e) => ({ text: e.answer }))
-  on('fs.exists', (_$, e) => ({ value: e.path === TRANSCRIPT && world.file !== undefined }))
+  on('fs.exists', (_$, e) => ({ value: isTranscript(world, e.path) && world.file !== undefined }))
   on('fs.stat', (_$, e) => {
-    if (e.path !== TRANSCRIPT || world.file === undefined) throw new Error('ENOENT')
+    if (!isTranscript(world, e.path) || world.file === undefined) throw new Error('ENOENT')
     return { value: { kind: 'file' as const, size: new TextEncoder().encode(world.file).length, mtimeMs: 0, isLink: false } }
   })
+  on('process.run', (_$, e) => {
+    world.runs.push({ argv: e.argv, ...(e.init?.env === undefined ? {} : { env: e.init.env }) })
+    return { value: runChunk(world, e.argv, e.init?.env) }
+  })
   on('fs.read', async (_$, e) => {
-    if (e.path !== TRANSCRIPT || world.file === undefined) throw new Error('ENOENT')
+    if (!isTranscript(world, e.path) || world.file === undefined) throw new Error('ENOENT')
+    if (world.refuse === 'denied') throw new Error("EACCES: permission denied, open '" + e.path + "'")
+    if (world.refuse === 'error') throw new Error('EIO: i/o error')
     world.reads.push(e.path)
     const text = world.file
     if (world.hold) await world.hold
@@ -73,10 +112,15 @@ export function host(on: On, file?: string): Host {
   return world
 }
 
+/* How many times the file was read, whole or a chunk at a time. */
+export function readsOf(world: Host): number {
+  return world.reads.length + world.runs.length
+}
+
 /* The session starting in a fullscreen terminal, its transcript at
    TRANSCRIPT, and chat-toc's first read settled. */
 export async function start($: Engine, world: Host): Promise<void> {
-  await $.classic.SessionStart({ source: 'startup', transcript_path: TRANSCRIPT })
+  await $.classic.SessionStart({ source: 'startup', transcript_path: world.path })
   await $.session.start({ cwd: '/home/synthetic/project', surface: 'terminal', isInteractive: true })
   await world.clock.settle()
 }
