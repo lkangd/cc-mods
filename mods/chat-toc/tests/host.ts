@@ -1,0 +1,154 @@
+/* A stand-in for Claude Code beneath chat-toc: the transcript file, the
+   clock, the panes, and a record of what chat-toc asked of them. */
+
+import { mock } from 'claude-code/testing'
+import type { Engine, MockClock } from 'claude-code/testing'
+import type { On, PaneOpenArgs, UiPane } from 'claude-code'
+
+export const PANE = 'chat-toc'
+export const TRANSCRIPT = '/home/synthetic/.claude/projects/p/synthetic-session.jsonl'
+export const NOW = new Date(2026, 9, 10, 18, 0).getTime()
+
+export type DrawnButton = { key: unknown; label: unknown; plain: unknown; dimColor: unknown; hover: unknown }
+
+/* The Buttons of a drawn tree in order, with what the surface draws them
+   by; hover styles sit beside an element's props, not in them. */
+export function drawnButtons(tree: unknown): DrawnButton[] {
+  const out: DrawnButton[] = []
+  const walk = (node: unknown) => {
+    if (typeof node !== 'object' || node === null) return
+    const el = node as { type?: string; props?: Record<string, unknown>; hover?: unknown; children?: unknown[] }
+    if (el.type === 'Button') {
+      const p = el.props ?? {}
+      out.push({ key: p.key, label: p.label, plain: p.plain, dimColor: p.dimColor, hover: el.hover })
+    }
+    for (const child of el.children ?? []) walk(child)
+  }
+  walk(tree)
+  return out
+}
+
+export type Host = {
+  clock: MockClock
+  /* The transcript file's text; undefined while the file does not exist. */
+  file: string | undefined
+  panes: UiPane[]
+  opens: PaneOpenArgs[]
+  reads: string[]
+  scrolls: unknown[]
+  /* While set, a read of the file waits for it before answering. */
+  hold?: Promise<void>
+  /* Where the session's transcript is; TRANSCRIPT unless set. */
+  path: string
+  /* The commands run, as chat-toc ran them. */
+  runs: { argv: readonly string[]; env?: Record<string, string> }[]
+  /* While set, the file exists but reading it is refused this way. */
+  refuse?: 'denied' | 'error'
+}
+
+/* What the shell and Windows PowerShell commands of a chunked read write:
+   `bytes` bytes of the file at `offset`, as is or in base64. */
+function runChunk(world: Host, argv: readonly string[], env: Record<string, string> | undefined) {
+  const isPowerShell = argv[0] === 'powershell.exe'
+  const path = isPowerShell ? env?.CHAT_TOC_PATH : argv[5]
+  const offset = Number(isPowerShell ? env?.CHAT_TOC_OFFSET : argv[4])
+  const bytes = Number(isPowerShell ? env?.CHAT_TOC_BYTES : argv[6])
+  const fail = (stderr: string) => ({ exitCode: 1, stdout: '', stderr, isStdoutTruncated: false, isStderrTruncated: false })
+  if (path !== world.path || world.file === undefined) return fail('No such file or directory')
+  if (world.refuse === 'denied') return fail(isPowerShell ? 'UnauthorizedAccessException' : 'Permission denied')
+  if (world.refuse === 'error') return fail('I/O error')
+  const chunk = new TextEncoder().encode(world.file).slice(offset, offset + bytes)
+  let stdout: string
+  if (isPowerShell) {
+    let binary = ''
+    for (const b of chunk) binary += String.fromCharCode(b)
+    stdout = btoa(binary)
+  } else stdout = new TextDecoder().decode(chunk)
+  return { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false }
+}
+
+/* The engine resolves a path that is not absolute here, as a Windows path is
+   on macOS and Linux, against the working directory. */
+function isTranscript(world: Host, path: string): boolean {
+  return path === world.path || path.endsWith('/' + world.path)
+}
+
+export function host(on: On, file?: string, path = TRANSCRIPT): Host {
+  const world: Host = { clock: mock.clock(on, { now: NOW }), file, panes: [], opens: [], reads: [], scrolls: [], path, runs: [] }
+  mock.store(on)
+  on('session.start', (_$, e) => ({ cwd: e.cwd }))
+  on('classic.SessionStart', () => ({}))
+  on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('ui.open', (_$, e) => {
+    world.opens.push({ ...e })
+    return { value: { isPlaced: true as const } }
+  })
+  on('ui.panes', () => ({ value: world.panes }))
+  on('ui.status', () => ({ value: undefined }))
+  on('turn.complete', (_$, e) => ({ text: e.answer }))
+  on('fs.exists', (_$, e) => ({ value: isTranscript(world, e.path) && world.file !== undefined }))
+  on('fs.stat', (_$, e) => {
+    if (!isTranscript(world, e.path) || world.file === undefined) throw new Error('ENOENT')
+    return { value: { kind: 'file' as const, size: new TextEncoder().encode(world.file).length, mtimeMs: 0, isLink: false } }
+  })
+  on('process.run', (_$, e) => {
+    world.runs.push({ argv: e.argv, ...(e.init?.env === undefined ? {} : { env: e.init.env }) })
+    return { value: runChunk(world, e.argv, e.init?.env) }
+  })
+  on('fs.read', async (_$, e) => {
+    if (!isTranscript(world, e.path) || world.file === undefined) throw new Error('ENOENT')
+    if (world.refuse === 'denied') throw new Error("EACCES: permission denied, open '" + e.path + "'")
+    if (world.refuse === 'error') throw new Error('EIO: i/o error')
+    world.reads.push(e.path)
+    const text = world.file
+    if (world.hold) await world.hold
+    return { value: text }
+  })
+  on('ui.scroll', (_$, e) => {
+    world.scrolls.push({ ...e })
+    return {}
+  })
+  return world
+}
+
+/* How many times the file was read, whole or a chunk at a time. */
+export function readsOf(world: Host): number {
+  return world.reads.length + world.runs.length
+}
+
+/* The session starting in a fullscreen terminal, its transcript at
+   TRANSCRIPT, and chat-toc's first read settled. */
+export async function start($: Engine, world: Host): Promise<void> {
+  await $.classic.SessionStart({ source: 'startup', transcript_path: world.path })
+  await $.session.start({ cwd: '/home/synthetic/project', surface: 'terminal', isInteractive: true })
+  await world.clock.settle()
+}
+
+export function mountPane($: Engine, bodyRows = 30) {
+  return $.ui.mount({
+    plugin: 'chat-toc',
+    surface: 'terminal',
+    component: 'Pane',
+    requestId: PANE,
+    viewport: { columns: 160, rows: 40, isFullscreen: true },
+    props: {
+      title: '目录',
+      isFocused: false,
+      bodyColumns: 44,
+      placement: 'dock',
+      scroll: { offset: 0, bodyRows },
+      view: {},
+    },
+  })
+}
+
+/* The main loop keeping a row, as the engine raises it. */
+export function appendRow($: Engine, uuid: string, agentId?: string) {
+  return $.session.append({
+    message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text: 'row' }] },
+    door: 'response',
+    origin: { kind: 'model', model: 'synthetic' },
+    uuid,
+    ...(agentId === undefined ? {} : { agentId }),
+  })
+}
