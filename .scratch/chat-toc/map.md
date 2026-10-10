@@ -9,7 +9,7 @@ chat-toc MVP 的功能、交互、兼容与验收决策全部落定，足以直�
 - 后续交互与产物使用中文；提交说明用英文。
 - 独立插件根是 `mods/chat-toc/`；与 prompt-history 完全独立：不互相依赖、不共享代码与数据，可同时启用。可借鉴 prompt-history 的做法（如 `$.ui.scroll({ to: { requestId } })` 跳转），但不抽公共库。
 - 只用公开的 Claude Code mods API，不依赖宿主未公开行为；唯一例外是读当前会话的 transcript 文件（格式未公开），它是 TOC 的数据来源。分块读大文件时 macOS/Linux 用系统 `dd` 定位加 `head`（`tail -c +N` 在 macOS 上太慢），Windows 用自带的 Windows PowerShell 5.1。最低版本 Claude Code `>=2.1.287`（mods 在终端正式默认开启的版本，`CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` 自此被忽略）；本机版本（当前 2.1.295，会随时升级）只是实测样本，不是版本锁。
-- 目标表面：交互式终端的全屏布局，Pane 停靠在 transcript 右侧（`placement: 'dock'`）。不能停靠时不接受 inline 放置，而是在状态栏常驻说明原因与满足条件的方法。
+- 目标表面：交互式终端的全屏布局，Pane 停靠在 transcript 右侧（`placement: 'dock'`）。自动弹出不接受 inline 放置，不能停靠时在状态栏常驻说明原因与满足条件的方法；唯一例外是使用者用 `/chat-toc` 主动打开时，宿主放成 inline 就照放（inline 形态不承诺，见规格）。
 - 数据范围：一切以当前会话的 transcript 文件为准（当前分支的对话链），`$.session.messages()` 只作补充；不落盘、不建档案、无采集同意流程。只收主对话循环，子 agent 不进 TOC；`/clear` 后随新会话重建目录、不画分隔线；compact 前的条目照常显示；rewind 被弃的分支不显示。
 - 条目单位是 Turn group（User input + Agent reply）。User input 是使用者在输入框敲入并回车上屏的任何内容，含斜杠命令。Agent reply 显示「N 步」加本轮最后一段文字的前 2 行；进行中显示「进行中 · N 步」，无文字回复显示「N 步 · 无文字回复」。用户侧显示「你 · 时间」加最多 2 行截断原文；时间取 transcript 行的时间戳，读不到就不显示，不伪造。
 - 顶部三态 View filter「全部 / 用户 / Agent」，默认全部，选择跨会话全局记住（`$.store`）。三种 Layout（卡片 / 紧凑 / 时间轴）由使用者切换，同样跨会话记住。
@@ -21,6 +21,7 @@ chat-toc MVP 的功能、交互、兼容与验收决策全部落定，足以直�
 
 ## Decisions so far
 
+- [决定首个版本的发布形态与文档](issues/16-grill-release-and-docs.md)：首版 `0.1.0`，证据按版本分目录、每次改版本号都重跑全部 MUST；根 README 写唯一一份用户文档（十节大纲，用界面用语，含不承诺清单），`mods/chat-toc/README.md` 只写开发与发布清单；marketplace 条目不加分类，独立性只在 README 里说明；条目、README 那一节和证据报告在 MUST 全部通过后放进同一个发布提交，不打 tag；发布前用本地目录 marketplace 冒烟，发布后从 GitHub 做安装级检查，失败就撤回。
 - [决定 Layout 的切换入口与默认值](issues/13-grill-layout-switch-entry.md)：默认卡片；唯一入口是过滤行右端的「布局:<当前 Layout>」按钮，点击或聚焦时按 `l` 循环，不用 `v`、不设命令参数；底栏不常驻；切换时以选中组或 Current position 所在组为锚、跟随状态不变；`/chat-toc` 无参数，只打开、提前、聚焦，从不关闭。
 - [用只收 label 的 Button 画三种 Layout](issues/15-prototype-label-only-button-layouts.md)：三种 Layout 都用「每行一个 Button」——每行一个 `plain` Button、同侧共用一个跳转，卡片头行 `dimColor`，悬停用 hover scope 整侧连亮；高亮竖条与时间列放在 Button 左边单独的 `Text` 里，两版都对齐；↑↓ 落在条目第一行；Button 无 `bold`，高亮不再加粗，只靠青色标记；换行截断由 mod 自己算。2.1.287 与 2.1.295 上九种组合都能画、能点。
 - [决定与其他停靠 Pane 共存的行为](issues/14-prototype-dock-coexistence.md)：照宿主标签规则走——新开的 Pane 总在前台，chat-toc 自动弹出时也一样，不抢回、不提示；对方关掉后宿主自动把它提回前台并画最新状态；关闭标记只认自己 id 的 person 关闭；后台不画，Current position 在后台变了就撤销跟随暂停，回前台即跟随。另发现 `session.start` 在 `/clear` 时不触发，`CT-LIFE-002` 的再次弹出要靠 `classic.SessionStart`（source `clear`/`resume`）。
@@ -39,12 +40,12 @@ chat-toc MVP 的功能、交互、兼容与验收决策全部落定，足以直�
 
 ## Not yet specified
 
-（暂无：最后一片迷雾已升格为「决定首个版本的发布形态与文档」。）
+（暂无：所有票都已解决，已到达目的地，可以汇总成规格与验收方案交给实现者。）
 
 ## Out of scope
 
 - 持久档案、跨会话历史、采集同意（prompt-history 的职责）。
-- inline 放置（输入框上方）作为降级形态。
+- inline 放置（输入框上方）作为自动弹出的降级形态（`/chat-toc` 主动打开时宿主放成 inline 除外）。
 - Desktop、VS Code、JetBrains、移动端等非终端表面。
 - 子 agent（sidechain）内容进 TOC。
 - cc-switch 顶部的搜索、导出、「改动」视图。
