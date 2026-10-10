@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { cardEntries } from '../hooks/entries'
 import { jumpTargetOf } from '../hooks/jump'
 import { tocModel } from '../hooks/model'
-import { NOW, PANE, TRANSCRIPT, appendRow, drawnButtons, host, mountPane, start } from './host'
+import { NOW, PANE, appendRow, drawnButtons, host, mountPane, readsOf, start } from './host'
 import { transcript } from './fixture'
 
 /* The tracer: a fullscreen session opens the docked Chat TOC, which lists
@@ -99,6 +99,7 @@ test('appends are read together 300 ms after the first, and not before', async (
   const world = host(on, t.jsonl())
   await start($, world)
   world.reads.length = 0
+  world.runs.length = 0
 
   t.prompt('CT-SYN two')
   world.file = t.jsonl()
@@ -106,12 +107,12 @@ test('appends are read together 300 ms after the first, and not before', async (
   await world.clock.advance(100)
   await appendRow($, 'b')
   await world.clock.advance(199)
-  expect(world.reads).toEqual([])
+  expect(readsOf(world)).toBe(0)
 
   await world.clock.advance(1)
-  expect(world.reads).toEqual([TRANSCRIPT])
+  expect(readsOf(world)).toBe(1)
   await world.clock.advance(1000)
-  expect(world.reads).toEqual([TRANSCRIPT])
+  expect(readsOf(world)).toBe(1)
 })
 
 test("a subagent's rows do not make the pane read", async ($, on) => {
@@ -120,12 +121,13 @@ test("a subagent's rows do not make the pane read", async ($, on) => {
   const world = host(on, t.jsonl())
   await start($, world)
   world.reads.length = 0
+  world.runs.length = 0
 
   world.file = t.jsonl() + '\n'
   await appendRow($, 'sub', 'agent-1')
   await world.clock.advance(1000)
 
-  expect(world.reads).toEqual([])
+  expect(readsOf(world)).toBe(0)
 })
 
 test('a file the same size as last read is not read again', async ($, on) => {
@@ -134,11 +136,12 @@ test('a file the same size as last read is not read again', async ($, on) => {
   const world = host(on, t.jsonl())
   await start($, world)
   world.reads.length = 0
+  world.runs.length = 0
 
   await appendRow($, 'same-size')
   await world.clock.advance(300)
 
-  expect(world.reads).toEqual([])
+  expect(readsOf(world)).toBe(0)
 })
 
 test('a finished turn reads at 300 ms and looks again 1.5 s later for rows written late', async ($, on) => {
@@ -147,15 +150,16 @@ test('a finished turn reads at 300 ms and looks again 1.5 s later for rows writt
   const world = host(on, t.jsonl())
   await start($, world)
   world.reads.length = 0
+  world.runs.length = 0
 
   await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
   await world.clock.advance(300)
-  expect(world.reads).toEqual([])
+  expect(readsOf(world)).toBe(0)
 
   t.prompt('CT-SYN late row')
   world.file = t.jsonl()
   await world.clock.advance(1200)
-  expect(world.reads).toEqual([TRANSCRIPT])
+  expect(readsOf(world)).toBe(1)
   const pane = await mountPane($)
   expect((await pane.findAll({ type: 'Button' })).map(b => b.text)).toContain('CT-SYN late row')
 })
