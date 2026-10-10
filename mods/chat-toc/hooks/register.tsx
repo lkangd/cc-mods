@@ -44,6 +44,12 @@ let source: SourceState = 'unknown'
 let failure: FailReason = 'error'
 /* The file's size at the last read; undefined reads it from the start. */
 let lastSize: number | undefined
+/* Whether the main agent's turn is under way: from `turn.start` until the
+   read after its `turn.complete`, so the last group shows in progress until
+   the file's account of the turn is read. A hot reload in mid-turn forgets
+   it until the next turn starts. */
+let isTurnRunning = false
+let isTurnEnding = false
 const gate = readGate()
 /* The window's top entry while the person has scrolled the pane; undefined
    follows the newest entry. */
@@ -131,7 +137,14 @@ function readNow($: EngineInterface): void {
     .catch(() => undefined)
     .finally(() => {
       if (gateFinish(gate)) readNow($)
+      else if (isTurnEnding) endTurn($)
     })
+}
+
+function endTurn($: EngineInterface): void {
+  isTurnRunning = false
+  isTurnEnding = false
+  void update($, rev, n => n + 1)
 }
 
 function requestRead($: EngineInterface): void {
@@ -183,8 +196,18 @@ export const register: Register = on => {
     return next(e)
   })
 
+  /* The redraw waits for the read the turn's first rows ask for, so the
+     group the turn belongs to is listed before it shows in progress. */
+  on('turn.start', ($, e, next) => {
+    isTurnRunning = true
+    isTurnEnding = false
+    requestRead($)
+    return next(e)
+  })
+
   on('turn.complete', ($, e, next) => {
     if (e.agentId === undefined) {
+      isTurnEnding = isTurnRunning
       requestRead($)
       $.clock.after(LATE_CHECK_MS, () => readNow($))
     }
@@ -201,7 +224,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: 'chat-toc' }, async ($, e) => {
     await read($, rev)
     const isOk = source === 'ok'
-    const entries = isOk ? cardEntries(reading.groups, e.props.bodyColumns, await $.clock.now()) : []
+    const entries = isOk ? cardEntries(reading.groups, e.props.bodyColumns, await $.clock.now(), isTurnRunning) : []
     const notice = (isOk && entries.length === 0) || source === 'missing' ? EMPTY_TEXT : undefined
     const footer = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
     const heights = entries.map((_, i) => entryHeight(entries, i))
