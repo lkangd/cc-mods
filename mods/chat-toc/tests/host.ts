@@ -85,6 +85,7 @@ export function host(on: On, file?: string, path = TRANSCRIPT): Host {
   })
   on('ui.panes', () => ({ value: world.panes }))
   on('ui.status', () => ({ value: undefined }))
+  on('turn.start', (_$, e) => ({ turnId: e.turnId }))
   on('turn.complete', (_$, e) => ({ text: e.answer }))
   on('fs.exists', (_$, e) => ({ value: isTranscript(world, e.path) && world.file !== undefined }))
   on('fs.stat', (_$, e) => {

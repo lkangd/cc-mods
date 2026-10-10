@@ -47,9 +47,98 @@ test('the pane lists each prompt as a dim header and its first lines', async ($,
   expect(drawnButtons(await pane.drawn())).toEqual([
     { key: 'g0.u', label: '你 · 10月10日 09:05', plain: true, dimColor: true, hover: { scope: 'e-g0.u', inverse: true } },
     { key: 'g0.u.1', label: 'CT-SYN first prompt', plain: true, dimColor: false, hover: { scope: 'e-g0.u', inverse: true } },
+    { key: 'g0.a', label: '↳', plain: true, dimColor: true, hover: { scope: 'e-g0.a', inverse: true } },
+    { key: 'g0.a.1', label: '  answer', plain: true, dimColor: false, hover: { scope: 'e-g0.a', inverse: true } },
     { key: 'g1.u', label: '你 · 10月10日 09:07', plain: true, dimColor: true, hover: { scope: 'e-g1.u', inverse: true } },
     { key: 'g1.u.1', label: 'CT-SYN second prompt', plain: true, dimColor: false, hover: { scope: 'e-g1.u', inverse: true } },
   ])
+})
+
+test('a blank line parts one turn group from the next, not the two sides of one', async ($, on) => {
+  const t = transcript()
+  t.prompt('CT-SYN first prompt')
+  t.reply([{ type: 'text', text: 'CT-SYN first answer' }])
+  t.prompt('CT-SYN second prompt')
+  t.reply([{ type: 'text', text: 'CT-SYN second answer' }])
+  const world = host(on, t.jsonl())
+  await start($, world)
+
+  /* Two groups of two 2-line sides and one blank line between: 9 rows. */
+  const pane = await mountPane($, 9)
+
+  expect((await pane.findAll({ type: 'Button' })).map(b => b.text).filter(s => s.includes('CT-SYN'))).toEqual([
+    'CT-SYN first prompt',
+    '  CT-SYN first answer',
+    'CT-SYN second prompt',
+    '  CT-SYN second answer',
+  ])
+})
+
+/* CT-TURN-004: between the host's turn.start and turn.complete the last
+   group is in progress, its steps growing as the file records them. */
+
+test('a running turn shows in progress with its steps so far, and its count once it completes', async ($, on) => {
+  const t = transcript()
+  t.prompt('CT-SYN earlier')
+  t.reply([{ type: 'text', text: 'CT-SYN earlier answer' }])
+  const world = host(on, t.jsonl())
+  await start($, world)
+  const pane = await mountPane($)
+  const heads = async () => (await pane.findAll({ type: 'Button' })).map(b => b.text).filter(s => s.startsWith('↳'))
+
+  await $.turn.start({ text: 'CT-SYN working', turnId: 'turn-1' })
+  const asked = t.prompt('CT-SYN working')
+  world.file = t.jsonl()
+  await appendRow($, asked)
+  await world.clock.advance(300)
+  expect(await heads()).toEqual(['↳', '↳ 进行中'])
+
+  const call = t.reply([{ type: 'tool_use', id: 't1', name: 'Bash', input: {} }])
+  world.file = t.jsonl()
+  await appendRow($, call)
+  await world.clock.advance(300)
+  expect(await heads()).toEqual(['↳', '↳ 进行中 · 1 步'])
+
+  t.toolResult('t1')
+  const answer = t.reply([{ type: 'text', text: 'CT-SYN all done' }])
+  world.file = t.jsonl()
+  await appendRow($, answer)
+  await $.turn.complete({ answer: 'CT-SYN all done', durationMs: 1, isAborted: false, turnId: 'turn-1', reason: 'answer' })
+  /* Until the reply's row is read, the group does not claim it has none. */
+  expect(await heads()).toEqual(['↳', '↳ 进行中 · 1 步'])
+  await world.clock.advance(300)
+  expect(await heads()).toEqual(['↳', '↳ 1 步'])
+})
+
+test('a turn that completes with every row already read stops showing in progress', async ($, on) => {
+  const t = transcript()
+  t.prompt('CT-SYN asked')
+  t.reply([{ type: 'text', text: 'CT-SYN answered' }])
+  const world = host(on, t.jsonl())
+  await start($, world)
+  const pane = await mountPane($)
+
+  await $.turn.start({ text: '', turnId: 'turn-1' })
+  await world.clock.advance(300)
+  await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 'turn-1', reason: 'answer' })
+  await world.clock.advance(300)
+
+  expect((await pane.findAll({ type: 'Button' })).map(b => b.text)).toContain('↳')
+  expect((await pane.findAll({ type: 'Button' })).map(b => b.text).some(s => s.includes('进行中'))).toBe(false)
+})
+
+test("a subagent's turn does not end the main agent's", async ($, on) => {
+  const t = transcript()
+  t.prompt('CT-SYN delegate')
+  t.reply([{ type: 'tool_use', id: 't1', name: 'Agent', input: {} }])
+  const world = host(on, t.jsonl())
+  await start($, world)
+  await $.turn.start({ text: 'CT-SYN delegate', turnId: 'turn-1' })
+  await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 'sub-1', reason: 'answer', agentId: 'agent-1' })
+  await world.clock.advance(2000)
+
+  const pane = await mountPane($)
+  expect((await pane.findAll({ type: 'Button' })).map(b => b.text)).toContain('↳ 进行中 · 1 步')
 })
 
 test('every line of a prompt jumps to that prompt, its top at the top of the view', async ($, on) => {
@@ -65,7 +154,7 @@ test('every line of a prompt jumps to that prompt, its top at the top of the vie
      the entry's target is the prompt's own row. */
   await pane.press({ key: 'g1.u' })
   await pane.press({ key: 'g1.u.1' })
-  const entries = cardEntries(tocModel(t.jsonl()).groups, 44, NOW)
+  const entries = cardEntries(tocModel(t.jsonl()).groups, 44, NOW, false)
   expect(entries[1] && jumpTargetOf(entries[1])).toEqual({ requestId: second, block: 'start' })
 })
 
