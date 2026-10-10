@@ -348,6 +348,12 @@ class PaneScreen(unittest.TestCase):
         self.assertEqual(pane.entries[0].user_text, "T0030 用户问题：请检查第 30 个模块的状态， 并说明下一步该做什么。")
         self.assertEqual(pane.entries[-1].user_text[:5], "T0039")
 
+    def test_the_close_glyph_2_1_287_draws_on_the_first_row_is_not_text(self):
+        rows = screen("tracer-2.1.295.txt")[1:]                       # no title row on 2.1.287
+        rows[0] = rows[0] + " " * 23 + "✕"
+        pane = toc_verifier.parse_pane(rows)
+        self.assertEqual(pane.entries[0].user_head, "你 · 10月9日 09:20")
+
     def test_no_pane_on_screen(self):
         self.assertIsNone(toc_verifier.find_pane(["❯ hello", "", "──────"]))
 
