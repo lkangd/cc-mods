@@ -327,6 +327,15 @@ class PaneScreen(unittest.TestCase):
         self.assertEqual(pane.entries[0].user_text, "F12 会被打断的 prompt")
         self.assertEqual(len(pane.entries), 7)
 
+    def test_reads_a_pane_without_a_filter_row(self):
+        # the ticket-17 tracer: entries straight under the 2.1.295 title row
+        pane = toc_verifier.parse_pane(screen("tracer-2.1.295.txt"))
+        self.assertIsNotNone(pane)
+        self.assertEqual(pane.filter, "all")
+        self.assertEqual(pane.entries[0].user_head, "你 · 10月9日 09:20")
+        self.assertEqual(pane.entries[0].user_text, "T0030 用户问题：请检查第 30 个模块的状态， 并说明下一步该做什么。")
+        self.assertEqual(pane.entries[-1].user_text[:5], "T0039")
+
     def test_no_pane_on_screen(self):
         self.assertIsNone(toc_verifier.find_pane(["❯ hello", "", "──────"]))
 

@@ -23,5 +23,6 @@
 - `transcript_fixture.py`：`forms`（规格点名的全部行形态）、`turns N`、`many`（20 MiB 约 4500 轮）、`heavy`（20 MiB 约 108 轮）；种子固定，逐字节可复现。
 - `pty_harness.py`：隔离的 HOME/CLAUDE_CONFIG_DIR（不登录、不加载本机插件、全屏），`Host("2.1.287")` 走 npx 缓存；pyte 与 cmux 两种终端；`Run` 写 `run.jsonl`（场景 ID、版本、OS、架构、fixture、预期、实际、结果、证据）与每屏截图到 `mods/chat-toc/build/pty-runs/`（gitignore）。
 - 单元测试 40 个（`python3 -m unittest`）。端到端用 05 号原型改成只收 label 的替身（只在 scratchpad，不提交）证明：pyte 下 2.1.287 与 2.1.295 的 `smoke`（40 轮，整列表 18 个窗口逐条一致，点击 T0000 跳转成功）都通过；cmux 下 2.1.287 通过。`forms` fixture 下 verifier 正确指出替身把 ✨ 算成 1 格导致的折行错位，其余形态全部一致。
+- 合入 17 号 tracer 后对真插件跑 `smoke`（pyte，2.1.287 与 2.1.295）：Pane 识别、整列表读取、点击 T0000 跳转都正常；verifier 报出 tracer 尚未做的部分（没有 Agent 侧；`system/local_command` 的 `/tui` 与 `!cmd` 没有开组，导致其后条目错位），留给 19 号票，判据现成。
 - 已知限制：cmux 下用 `cmux send` 发出的滚轮让替身 Pane 窗口来回跳，所以 cmux 默认不读整列表（`--whole-list` 可开）；整列表比对以 pyte 为准。cmux 分屏宽度不受控，不够 144 列时 smoke 用 `/chat-toc` 请求停靠。命令速查见共享笔记 `pty-harness.md`。
 
