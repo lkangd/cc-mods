@@ -158,6 +158,17 @@ class TurnGroups(unittest.TestCase):
         self.assertEqual(texts, ["标题 看看 这里 和 x 贴的 结尾", "（只有图片）", "图 在此"])
 
 
+class UserTextEdgeCases(unittest.TestCase):
+    # ticket 19's reading of 「去掉代码块、图片与 Markdown 记号」
+    def test_image_placeholders_go_and_a_code_only_prompt_shows_its_code(self):
+        t = Rows()
+        t.prompt("看 [Image #1] 这张图")
+        t.text("好")
+        t.prompt("```\nnpm run build\n```")
+        t.text("好")
+        self.assertEqual([g.user_text for g in expect(t).groups], ["看 这张图", "npm run build"])
+
+
 class AgentSide(unittest.TestCase):
     def test_last_text_is_after_the_last_tool_and_joins_blocks_of_one_message(self):
         t = Rows()
@@ -235,7 +246,8 @@ class AgentSide(unittest.TestCase):
             ("打断在任何输出之前", "已中断"),
             ("!pwd", None),
             ("/model", None),
-            ("没有回复", "无文字回复"),
+            # ticket 19: no assistant row and no interruption yet draws no Agent side
+            ("没有回复", None),
         ])
 
     def test_an_api_error_text_is_the_last_text_of_its_group(self):
