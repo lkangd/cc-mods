@@ -158,12 +158,20 @@ def _tag(text: str, name: str) -> str:
 
 
 def clean_prompt(text: str) -> str:
-    """Spec §4 用户侧文字: no code blocks, images, Markdown marks or pasted_content tags; one space between words."""
-    text = re.sub(r"```[\s\S]*?```", " ", text)
-    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", " ", text)
-    text = re.sub(r"</?pasted_content[^>]*>", " ", text)
-    text = re.sub(r"[#*_`>]+", "", text)
-    return re.sub(r"\s+", " ", text).strip()
+    """Spec §4 用户侧文字: no code blocks, images, Markdown marks or pasted_content tags; one space between words.
+    As ticket 19 reads it, `[Image #n]` placeholders are images too, and a prompt
+    that is only code blocks shows the code. (Which single * or _ count as marks
+    does not matter here: the diff ignores them.)"""
+    def tidy(value: str) -> str:
+        value = re.sub(r"!\[[^\]]*\]\([^)]*\)|\[Image #\d+\]", " ", value)
+        value = re.sub(r"</?pasted_content[^>]*>", " ", value)
+        value = re.sub(r"[#*_`>]+", "", value)
+        return re.sub(r"\s+", " ", value).strip()
+
+    cleaned = tidy(re.sub(r"```[\s\S]*?```", " ", text))
+    if cleaned:
+        return cleaned
+    return tidy(" ".join(re.findall(r"```[^\n]*\n?([\s\S]*?)```", text)))
 
 
 def user_text(kind: str, row: dict) -> str:
@@ -218,7 +226,7 @@ def turn_groups(chain: list[dict], tz=None, now: datetime.datetime | None = None
             tail = []
             group = Group(key=row["uuid"], kind=kind, user_text=user_text(kind, row),
                           time=format_time(row.get("timestamp"), tz, now), steps=0, last_text=None,
-                          status="done", has_agent=kind == "prompt")
+                          status="done", has_agent=False)   # an assistant row or an interruption gives it one
             groups.append(group)
         if group is None:
             continue
