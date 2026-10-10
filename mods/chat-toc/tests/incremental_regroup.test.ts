@@ -113,8 +113,14 @@ test('any growth, read in any slices, equals regrouping the whole file', () => {
     let tails = 0
     const uuids: string[] = []
     for (let step = 0; step < 60; step++) {
-      const kind = rand(10)
-      if (kind < 2) uuids.push(t.prompt(`CT-SYN p${run}.${step}`))
+      const kind = rand(15)
+      /* Commands, shell commands, interruptions and API errors too. */
+      if (kind === 10) uuids.push(rand(2) === 0 ? t.localCommand('tui', '') : t.localOutput('out'))
+      else if (kind === 11) uuids.push(rand(2) === 0 ? t.bash('ls') : t.bashOutput('out'))
+      else if (kind === 12) uuids.push(t.command(rand(2) === 0 ? 'review' : 'model', 'x', rand(2) === 0 ? 'prompt' : 'local'))
+      else if (kind === 13) uuids.push(t.interrupt(rand(2) === 0))
+      else if (kind === 14) uuids.push(t.reply([{ type: 'text', text: 'API Error' }], { isApiErrorMessage: true }))
+      else if (kind < 2) uuids.push(t.prompt(`CT-SYN p${run}.${step}`))
       else if (kind < 4) uuids.push(t.reply([{ type: 'text', text: `a${step}` }]))
       else if (kind === 4) uuids.push(t.reply([{ type: 'tool_use', id: `toolu_${step}`, name: 'Bash', input: {} }]))
       else if (kind === 5) uuids.push(t.toolResult(`toolu_${step}`))
