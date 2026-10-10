@@ -1,0 +1,392 @@
+"""The verifier's expectations, from hand-written transcript rows.
+
+Every expected value here is written out from the spec's rules (§3 对话链,
+§4 Turn group), not computed the way the verifier computes it."""
+import datetime
+import json
+import pathlib
+import tempfile
+import unittest
+
+import toc_verifier
+
+CST = datetime.timezone(datetime.timedelta(hours=8))
+NOW = datetime.datetime(2026, 10, 10, 12, 0, tzinfo=CST)
+
+
+class Rows:
+    """A chain of rows, each parented on the one before unless told otherwise."""
+
+    def __init__(self) -> None:
+        self.rows: list[dict] = []
+        self.parent: str | None = None
+        self.n = 0
+
+    def _row(self, kind: str, parent="chain", **fields) -> dict:
+        self.n += 1
+        row = {
+            "parentUuid": self.parent if parent == "chain" else parent,
+            "isSidechain": False,
+            "type": kind,
+            "uuid": f"u{self.n:03d}",
+            "timestamp": f"2026-10-09T01:{self.n:02d}:00.000Z",
+            "sessionId": "s",
+        }
+        row.update(fields)
+        self.rows.append(row)
+        self.parent = row["uuid"]
+        return row
+
+    def prompt(self, text, **fields) -> dict:
+        fields.setdefault("origin", {"kind": "human"})
+        fields.setdefault("promptSource", "typed")
+        return self._row("user", message={"role": "user", "content": text}, **fields)
+
+    def user(self, content, **fields) -> dict:
+        return self._row("user", message={"role": "user", "content": content}, **fields)
+
+    def tool(self, name="Bash", mid=None) -> dict:
+        self.n += 0
+        tid = f"toolu_{self.n + 1:03d}"
+        row = self._row("assistant", message={"id": mid or f"msg_{self.n + 1}", "role": "assistant",
+                                              "content": [{"type": "tool_use", "id": tid, "name": name, "input": {}}]})
+        self.user([{"type": "tool_result", "tool_use_id": tid, "content": "ok"}])
+        return row
+
+    def text(self, text, mid=None, **fields) -> dict:
+        return self._row("assistant", message={"id": mid or f"msg_{self.n + 1}", "role": "assistant",
+                                               "content": [{"type": "text", "text": text}]}, **fields)
+
+    def system(self, subtype, content="", parent="chain", **fields) -> dict:
+        return self._row("system", parent=parent, subtype=subtype, content=content, **fields)
+
+    def write(self, extra_lines=()) -> pathlib.Path:
+        folder = pathlib.Path(tempfile.mkdtemp())
+        path = folder / "t.jsonl"
+        lines = [json.dumps(r, ensure_ascii=False) for r in self.rows] + list(extra_lines)
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return path
+
+
+def expect(rows: Rows, extra_lines=()):
+    return toc_verifier.expected_toc(rows.write(extra_lines), tz=CST, now=NOW)
+
+
+class TurnGroups(unittest.TestCase):
+    def test_a_prompt_with_tools_and_a_reply_is_one_group(self):
+        t = Rows()
+        t.prompt("检查模块")
+        t.tool()
+        t.tool()
+        t.text("模块正常。")
+        toc = expect(t)
+        self.assertEqual(len(toc.groups), 1)
+        g = toc.groups[0]
+        self.assertEqual(g.key, "u001")
+        self.assertEqual(g.user_text, "检查模块")
+        self.assertEqual(g.time, "10月9日 09:01")
+        self.assertEqual(g.steps, 2)
+        self.assertEqual(g.last_text, "模块正常。")
+        self.assertEqual(g.agent_head, "2 步")
+        self.assertTrue(g.has_agent)
+
+    def test_time_from_another_year_carries_the_year_and_a_missing_one_is_none(self):
+        t = Rows()
+        t.prompt("旧的", timestamp="2025-03-01T00:05:00.000Z")
+        t.text("好")
+        t.prompt("没有时间")
+        del t.rows[-1]["timestamp"]
+        t.text("好")
+        groups = expect(t).groups
+        self.assertEqual(groups[0].time, "2025年3月1日 08:05")
+        self.assertIsNone(groups[1].time)
+
+    def test_rows_that_open_a_group(self):
+        t = Rows()
+        t.prompt("普通")
+        t.text("a")
+        t.prompt("排队的", promptSource="queued")
+        t.prompt("建议的", promptSource="suggestion_accepted")
+        # prompt-type slash command: a user row with origin human
+        t.user("<command-message>review</command-message>\n<command-name>/review</command-name>\n"
+               "<command-args>main</command-args>", origin={"kind": "human"})
+        t.text("b")
+        # local command written as a user row, origin null, with its output
+        t.user("<command-name>/clear</command-name>\n<command-message>clear</command-message>\n<command-args></command-args>")
+        t.user("<local-command-stdout></local-command-stdout>")
+        # local command written as system/local_command rows
+        t.system("local_command", "<command-name>/tui</command-name>\n<command-message>tui</command-message>\n<command-args>fullscreen</command-args>")
+        t.system("local_command", "<local-command-stdout>ok</local-command-stdout>")
+        t.user("<bash-input>ls -la</bash-input>")
+        t.user("<bash-stdout>a</bash-stdout><bash-stderr></bash-stderr>")
+        texts = [g.user_text for g in expect(t).groups]
+        self.assertEqual(texts, ["普通", "排队的", "建议的", "/review main", "/clear", "/tui fullscreen", "!ls -la"])
+
+    def test_rows_that_do_not_open_a_group(self):
+        t = Rows()
+        t.prompt("唯一")
+        t.user("<task-notification>done</task-notification>")
+        t.user("<local-command-caveat>Caveat</local-command-caveat>", isMeta=True)
+        t.user("<local-command-stdout>x</local-command-stdout>")
+        t.user("<bash-stdout>x</bash-stdout>")
+        t.user("提醒", isMeta=True, origin={"kind": "human"})
+        t.user("摘要", isCompactSummary=True, origin={"kind": "human"})
+        t.user("来自子 agent", isMeta=True, origin={"kind": "peer"})
+        t.user("sdk", promptSource="sdk")
+        t.user([{"type": "tool_result", "tool_use_id": "x", "content": "r"}], origin={"kind": "human"})
+        t.user([{"type": "text", "text": "[Request interrupted by user]"}])
+        t.system("local_command", "<local-command-stdout>no name</local-command-stdout>")
+        t.system("stop_hook_summary")
+        self.assertEqual([g.user_text for g in expect(t).groups], ["唯一"])
+
+    def test_identical_prompts_are_separate_groups(self):
+        t = Rows()
+        for _ in range(3):
+            t.prompt("同一句话")
+            t.text("好")
+        self.assertEqual([g.user_text for g in expect(t).groups], ["同一句话"] * 3)
+
+    def test_user_text_is_cleaned(self):
+        t = Rows()
+        t.prompt("# 标题\n\n看看 **这里** 和 `x`\n```py\nprint(1)\n```\n<pasted_content id=1>贴的</pasted_content>  结尾")
+        t.text("好")
+        t.prompt([{"type": "image", "source": {}}])
+        t.text("好")
+        t.prompt([{"type": "text", "text": "图 ![a](b.png) 在此"}, {"type": "image", "source": {}}])
+        t.text("好")
+        texts = [g.user_text for g in expect(t).groups]
+        self.assertEqual(texts, ["标题 看看 这里 和 x 贴的 结尾", "（只有图片）", "图 在此"])
+
+
+class UserTextEdgeCases(unittest.TestCase):
+    # ticket 19's reading of 「去掉代码块、图片与 Markdown 记号」
+    def test_image_placeholders_go_and_a_code_only_prompt_shows_its_code(self):
+        t = Rows()
+        t.prompt("看 [Image #1] 这张图")
+        t.text("好")
+        t.prompt("```\nnpm run build\n```")
+        t.text("好")
+        self.assertEqual([g.user_text for g in expect(t).groups], ["看 这张图", "npm run build"])
+
+
+class AgentSide(unittest.TestCase):
+    def test_last_text_is_after_the_last_tool_and_joins_blocks_of_one_message(self):
+        t = Rows()
+        t.prompt("p")
+        t.text("先说一句")
+        t.tool()
+        t.text("第一段", mid="m9")
+        t.text("第二段", mid="m9")
+        g = expect(t).groups[0]
+        self.assertEqual(g.steps, 1)
+        self.assertEqual(g.last_text, "第一段 第二段")
+
+    def test_last_text_is_only_the_last_message_after_the_last_tool(self):
+        t = Rows()
+        t.prompt("p")
+        t.tool()
+        t.text("早的", mid="m1")
+        t.text("晚的", mid="m2")
+        self.assertEqual(expect(t).groups[0].last_text, "晚的")
+
+    def test_no_text_after_the_last_tool(self):
+        t = Rows()
+        t.prompt("p")
+        t.text("开始前说的")
+        t.tool()
+        t.tool()
+        g = expect(t).groups[0]
+        self.assertIsNone(g.last_text)
+        self.assertEqual(g.agent_head, "2 步 · 无文字回复")
+
+    def test_parallel_tools_count_each_and_an_agent_call_counts_one(self):
+        t = Rows()
+        t.prompt("p")
+        t._row("assistant", message={"id": "m", "role": "assistant", "content": [
+            {"type": "thinking", "thinking": "..."},
+            {"type": "tool_use", "id": "a", "name": "Read", "input": {}},
+            {"type": "tool_use", "id": "b", "name": "Read", "input": {}},
+            {"type": "tool_use", "id": "c", "name": "Agent", "input": {}},
+        ]})
+        t.text("完")
+        self.assertEqual(expect(t).groups[0].steps, 3)
+
+    def test_sidechain_rows_never_count(self):
+        t = Rows()
+        t.prompt("p")
+        t.tool(name="Agent")
+        side = t.text("子 agent 的话", isSidechain=True)
+        t.parent = side["parentUuid"]
+        t.text("完")
+        g = expect(t).groups[0]
+        self.assertEqual((g.steps, g.last_text), (1, "完"))
+
+    def test_interrupted_and_error_and_user_only(self):
+        t = Rows()
+        t.prompt("被打断")
+        t.tool()
+        t.user([{"type": "text", "text": "[Request interrupted by user for tool use]"}])
+        t.prompt("出错")
+        t.tool()
+        t.text("API Error: overloaded", isApiErrorMessage=True)
+        t.prompt("错后恢复")
+        t.text("API Error", isApiErrorMessage=True)
+        t.text("恢复了")
+        t.prompt("打断在任何输出之前")
+        t.user([{"type": "text", "text": "[Request interrupted by user]"}])
+        t.user("<bash-input>pwd</bash-input>")
+        t.user("<bash-stdout>/</bash-stdout><bash-stderr></bash-stderr>")
+        t.system("local_command", "<command-name>/model</command-name>\n<command-args></command-args>")
+        t.prompt("没有回复")
+        heads = [(g.user_text, g.agent_head if g.has_agent else None) for g in expect(t).groups]
+        self.assertEqual(heads, [
+            ("被打断", "已中断 · 1 步"),
+            ("出错", "出错 · 1 步"),
+            ("错后恢复", ""),
+            ("打断在任何输出之前", "已中断"),
+            ("!pwd", None),
+            ("/model", None),
+            # ticket 19: no assistant row and no interruption yet draws no Agent side
+            ("没有回复", None),
+        ])
+
+    def test_an_api_error_text_is_the_last_text_of_its_group(self):
+        # spec §4: 末段文字 is the text after the last tool_use; the error row's text is one
+        t = Rows()
+        t.prompt("出错")
+        t.tool()
+        t.text("API Error: overloaded", isApiErrorMessage=True)
+        g = expect(t).groups[0]
+        self.assertEqual((g.agent_head, g.last_text), ("出错 · 1 步", "API Error: overloaded"))
+
+
+class ConversationChain(unittest.TestCase):
+    def test_rewind_drops_the_abandoned_branch(self):
+        t = Rows()
+        t.prompt("一")
+        a = t.text("一的回复")
+        t.prompt("被弃")
+        t.text("被弃的回复")
+        t.parent = a["uuid"]
+        t.prompt("新分支")
+        t.text("新的回复")
+        self.assertEqual([g.user_text for g in expect(t).groups], ["一", "新分支"])
+
+    def test_compact_boundary_follows_the_logical_parent(self):
+        t = Rows()
+        t.prompt("压缩前")
+        before = t.text("前")
+        t.system("compact_boundary", "Conversation compacted", parent=None, logicalParentUuid=before["uuid"])
+        t.user("摘要", isCompactSummary=True, isVisibleInTranscriptOnly=True)
+        t.prompt("压缩后")
+        t.text("后")
+        self.assertEqual([g.user_text for g in expect(t).groups], ["压缩前", "压缩后"])
+
+    def test_leaf_is_the_last_row_and_metadata_rows_are_ignored(self):
+        t = Rows()
+        t.prompt("一")
+        t.text("好")
+        extra = [json.dumps({"type": "last-prompt", "lastPrompt": "x"}),
+                 json.dumps({"type": "file-history-snapshot", "messageId": "m"})]
+        self.assertEqual([g.user_text for g in expect(t, extra).groups], ["一"])
+
+    def test_unreadable_lines_are_counted_and_skipped(self):
+        t = Rows()
+        t.prompt("一")
+        t.text("好")
+        toc = expect(t, ["{not json", "[1, 2]"])
+        self.assertEqual(toc.unreadable, 2)
+        self.assertEqual(len(toc.groups), 1)
+
+    def test_a_missing_file_is_an_empty_toc(self):
+        toc = toc_verifier.expected_toc(pathlib.Path(tempfile.mkdtemp()) / "none.jsonl", tz=CST, now=NOW)
+        self.assertEqual((toc.exists, toc.groups), (False, []))
+
+
+TESTDATA = pathlib.Path(__file__).parent / "testdata"
+
+
+def screen(name: str) -> list[str]:
+    return (TESTDATA / name).read_text(encoding="utf-8").rstrip("\n").split("\n")
+
+
+def forms_groups():
+    import transcript_fixture
+    out = transcript_fixture.generate("forms", pathlib.Path(tempfile.mkdtemp()), "/tmp/proj", "00000000-0000-4000-8000-0000000000f0")
+    return toc_verifier.expected_toc(pathlib.Path(out["path"]), tz=CST, now=NOW).groups
+
+
+class PaneScreen(unittest.TestCase):
+    """Screens of the ticket-05 prototype (card layout) resuming the forms fixture."""
+
+    def test_reads_the_listed_entries_of_a_window(self):
+        pane = toc_verifier.parse_pane(screen("standin-card-2.1.295.txt"))
+        self.assertEqual(pane.left, 126)
+        self.assertEqual(pane.filter, "all")
+        self.assertEqual([e.user_text for e in pane.entries], [
+            "F12 会被打断的 prompt", "F13 会出错的 prompt", "F14 只有工具没有文字回复", "F15 排队提交的 prompt",
+            "F16 压缩之前的最后一轮", "F17 压缩之后的第一轮", "F19 rewind 之后的新分支"])
+        f13 = pane.entries[1]
+        self.assertEqual((f13.user_head, f13.agent_head), ("你 · 10月9日 09:04", "出错 · 1 步"))
+        self.assertEqual(f13.agent_lines, ["API Error: Repeated 529 Overloaded error", "s"])
+        self.assertEqual(pane.entries[3].agent_head, "")
+        self.assertEqual([e.highlighted for e in pane.entries], [False] * 6 + [True])
+        self.assertEqual(pane.entries[0].row, 2)
+
+    def test_drops_an_entry_cut_off_at_the_top(self):
+        pane = toc_verifier.parse_pane(screen("standin-card-2.1.287.txt"))
+        self.assertTrue(pane.partial_top)
+        self.assertEqual(pane.entries[0].user_text, "F12 会被打断的 prompt")
+        self.assertEqual(len(pane.entries), 7)
+
+    def test_reads_a_pane_without_a_filter_row(self):
+        # the ticket-17 tracer: entries straight under the 2.1.295 title row
+        pane = toc_verifier.parse_pane(screen("tracer-2.1.295.txt"))
+        self.assertIsNotNone(pane)
+        self.assertEqual(pane.filter, "all")
+        self.assertEqual(pane.entries[0].user_head, "你 · 10月9日 09:20")
+        self.assertEqual(pane.entries[0].user_text, "T0030 用户问题：请检查第 30 个模块的状态， 并说明下一步该做什么。")
+        self.assertEqual(pane.entries[-1].user_text[:5], "T0039")
+
+    def test_the_close_glyph_2_1_287_draws_on_the_first_row_is_not_text(self):
+        rows = screen("tracer-2.1.295.txt")[1:]                       # no title row on 2.1.287
+        rows[0] = rows[0] + " " * 23 + "✕"
+        pane = toc_verifier.parse_pane(rows)
+        self.assertEqual(pane.entries[0].user_head, "你 · 10月9日 09:20")
+
+    def test_no_pane_on_screen(self):
+        self.assertIsNone(toc_verifier.find_pane(["❯ hello", "", "──────"]))
+
+    def test_a_window_that_matches_the_transcript(self):
+        for name in ("standin-card-2.1.295.txt", "standin-card-2.1.287.txt"):
+            with self.subTest(name):
+                diff = toc_verifier.compare_window(forms_groups(), toc_verifier.parse_pane(screen(name)))
+                self.assertTrue(diff["ok"], json.dumps(diff, ensure_ascii=False, indent=1))
+                self.assertEqual(diff["start"], 13)
+
+    def test_a_wrong_agent_side_is_named_entry_by_entry(self):
+        rows = [r.replace("↳ 已中断 · 1 步", "↳ 1 步") for r in screen("standin-card-2.1.295.txt")]
+        diff = toc_verifier.compare_window(forms_groups(), toc_verifier.parse_pane(rows))
+        self.assertFalse(diff["ok"])
+        bad = [e for e in diff["entries"] if e["problems"]]
+        self.assertEqual(len(bad), 1)
+        self.assertEqual(bad[0]["expected"]["userText"], "F12 会被打断的 prompt")
+        self.assertIn("agentHead", bad[0]["problems"][0])
+
+    def test_a_missing_entry_breaks_the_order(self):
+        rows = screen("standin-card-2.1.295.txt")
+        rows = [r for i, r in enumerate(rows) if not 12 <= i <= 15]   # F14's four lines
+        diff = toc_verifier.compare_window(forms_groups(), toc_verifier.parse_pane(rows))
+        self.assertFalse(diff["ok"])
+
+    def test_a_truncated_body_is_a_prefix_and_a_wrong_time_is_named(self):
+        rows = [r.replace("F16 压缩之前的最后一轮", "F16 压缩之…").replace("你 · 10月9日 09:07", "你 · 10月9日 09:08")
+                for r in screen("standin-card-2.1.295.txt")]
+        diff = toc_verifier.compare_window(forms_groups(), toc_verifier.parse_pane(rows))
+        problems = [p for e in diff["entries"] for p in e["problems"]]
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("userHead", problems[0])
+
+
+if __name__ == "__main__":
+    unittest.main()

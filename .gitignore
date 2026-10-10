@@ -6,6 +6,7 @@
 
 # Test evidence
 mods/*/build/evidence/
+mods/*/build/pty-runs/
 
 # Python test caches
 __pycache__/
