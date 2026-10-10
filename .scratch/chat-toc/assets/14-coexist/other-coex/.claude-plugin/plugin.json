@@ -1,0 +1,1 @@
+{ "name": "other-coex", "version": "0.1.0", "description": "PROTOTYPE: another docked pane that opens unasked", "types": "./types/index.d.ts" }

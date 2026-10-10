@@ -21,6 +21,9 @@ chat-toc MVP 的功能、交互、兼容与验收决策全部落定，足以直�
 
 ## Decisions so far
 
+- [决定 Layout 的切换入口与默认值](issues/13-grill-layout-switch-entry.md)：默认卡片；唯一入口是过滤行右端的「布局:<当前 Layout>」按钮，点击或聚焦时按 `l` 循环，不用 `v`、不设命令参数；底栏不常驻；切换时以选中组或 Current position 所在组为锚、跟随状态不变；`/chat-toc` 无参数，只打开、提前、聚焦，从不关闭。
+- [用只收 label 的 Button 画三种 Layout](issues/15-prototype-label-only-button-layouts.md)：三种 Layout 都用「每行一个 Button」——每行一个 `plain` Button、同侧共用一个跳转，卡片头行 `dimColor`，悬停用 hover scope 整侧连亮；高亮竖条与时间列放在 Button 左边单独的 `Text` 里，两版都对齐；↑↓ 落在条目第一行；Button 无 `bold`，高亮不再加粗，只靠青色标记；换行截断由 mod 自己算。2.1.287 与 2.1.295 上九种组合都能画、能点。
+- [决定与其他停靠 Pane 共存的行为](issues/14-prototype-dock-coexistence.md)：照宿主标签规则走——新开的 Pane 总在前台，chat-toc 自动弹出时也一样，不抢回、不提示；对方关掉后宿主自动把它提回前台并画最新状态；关闭标记只认自己 id 的 person 关闭；后台不画，Current position 在后台变了就撤销跟随暂停，回前台即跟随。另发现 `session.start` 在 `/clear` 时不触发，`CT-LIFE-002` 的再次弹出要靠 `classic.SessionStart`（source `clear`/`resume`）。
 - [实测长会话的读取与渲染开销](issues/12-task-measure-long-session.md)：20 MB 在两个版本上都够快，条件是分块读取改用 `dd`+`head`、只增长时只重组末组、条目按组缓存只画窗口、Current position 用二分查找；重读由 `session.append`/`turn.complete` 尾随 300 ms 触发、不轮询；`CT-PERF-001` 阈值定为首次出目录晚于 transcript ≤4 s、整份读取 ≤1 s、增量单次 ≤150 ms、Pane 自身 ≤16 ms（含宿主 ≤100 ms）、Current position ≤2 ms；另发现 2.1.287 的 `Button` 只收 `label`，升格为新票。
 - [定稿兼容与验收契约](issues/06-grill-acceptance-contract.md)：三级规范（MUST / 明确降级 / 不承诺），所有 MUST 零缺失零跳过才发布；承诺 `>=2.1.287` 全屏、OS 不限、`--plugin-dir` 与 marketplace，门禁只在本机 macOS 跑最低与当前两个版本；证据分 `claude plugin test` 自动化、cmux PTY、人工目检（非 MUST）三层，一致性由独立 verifier 比对 transcript 对话链；定了 `CT-*` MUST 清单与不承诺清单，报告放 `mods/chat-toc/tests/evidence/<版本>/`；性能阈值、Layout 入口、Pane 共存引用新升格的三张票。
 - [原型验证停靠 TOC Pane 的外观与交互](issues/05-prototype-toc-pane.md)：三种 Layout 都保留，由使用者切换；过滤、跳转、高亮与光标、跟随暂停、生命周期（含 `/clear` 后再次弹出）都试过并通过，跳转后高亮锁在目标组。实测得知：本地命令记成 `system/local_command` 行；`ToolGroup` id 要按前 24 位匹配；全屏 transcript 虚拟化，残留的在屏值要按连续段过滤；跳转能到达没画出过的行。据此取消事先淡化，改为被拒才淡化。
@@ -36,7 +39,7 @@ chat-toc MVP 的功能、交互、兼容与验收决策全部落定，足以直�
 
 ## Not yet specified
 
-- **发布与文档**：marketplace 条目、根 README 一节（含「定稿兼容与验收契约」的不承诺清单）、首个版本号；报告格式与位置已定。
+（暂无：最后一片迷雾已升格为「决定首个版本的发布形态与文档」。）
 
 ## Out of scope
 

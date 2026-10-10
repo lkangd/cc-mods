@@ -1,0 +1,1 @@
+{ "name": "toc-coex", "version": "0.1.0", "description": "PROTOTYPE: chat-toc stand-in for dock pane coexistence", "types": "./types/index.d.ts" }

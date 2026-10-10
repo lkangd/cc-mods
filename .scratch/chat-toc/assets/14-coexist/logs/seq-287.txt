@@ -1,0 +1,43 @@
+== start
+   TOCPANE r=55 tick=53                       ✕
+   focused=false dock
+== other unasked open
+    对话目录   Other                                ✕
+   OTHERPANE r=1 focused=false
+== 3s later (toc in back)
+    对话目录   Other                                ✕
+   OTHERPANE r=1 focused=false
+== toc asked open, no focus
+    对话目录   Other                                ✕
+   OTHERPANE r=1 focused=false
+== toc asked open, focus
+    对话目录   Other                          ✕
+   TOCPANE r=64 tick=80
+== other asked focus
+    对话目录   Other                                ✕
+   OTHERPANE r=2 focused=true
+== other closed by plugin
+   TOCPANE r=74 tick=95                       ✕
+   focused=false dock
+== other unasked again
+    对话目录   Other                                ✕
+   OTHERPANE r=3 focused=false
+== other closed by person ✕
+   TOCPANE r=82 tick=108                      ✕
+   focused=false dock
+== toc closed by person ✕ (other behind)
+   OTHERPANE r=4 focused=false                      ✕
+   
+L   ⎿  toc-coex: {"isPlaced":true}
+L   ⎿  toc-coex: {"isPlaced":true}
+L   ⎿  toc-coex: {"isPlaced":true}
+L   ⎿  toc-coex: [] closed=true
+== diff after toc
+    对话目录   Diff                                                          ✕
+   
+== diff toggled off
+   TOCPANE r=109 tick=165                     ✕
+   focused=false dock
+== after /clear (diff open, toc was closed by plugin)
+    Diff   对话目录                           ✕
+   TOCPANE r=120 tick=190
