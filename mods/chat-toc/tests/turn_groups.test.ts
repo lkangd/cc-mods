@@ -82,3 +82,87 @@ test('a prompt split over lines is listed with its whitespace collapsed', () => 
 
   expect(tocModel(t.jsonl()).groups[0]?.userText).toBe('CT-SYN first line second line')
 })
+
+/* CT-TURN-001: every User input opens a group, whatever its form; what the
+   person did not type joins the group before it. */
+
+test('slash commands, local commands and ! shell commands each open a group, shown as typed', () => {
+  const t = transcript()
+  const prompt = t.prompt('CT-SYN plain')
+  const promptCommand = t.command('review', 'src/a.ts  --quick')
+  const localUser = t.command('model', '', 'local')
+  const localSystem = t.localCommand('tui', '')
+  const bang = t.bash('echo CT-SYN')
+
+  const { groups } = tocModel(t.jsonl())
+
+  expect(groups.map(g => [g.openerUuid, g.userText])).toEqual([
+    [prompt, 'CT-SYN plain'],
+    [promptCommand, '/review src/a.ts --quick'],
+    [localUser, '/model'],
+    [localSystem, '/tui'],
+    [bang, '!echo CT-SYN'],
+  ])
+})
+
+test('command output, shell output, interruptions, notifications, summaries and hook rows join the group before them', () => {
+  const t = transcript()
+  const local = t.localCommand('tui', '')
+  const localOut = t.localOutput('CT-SYN renderer: fullscreen')
+  const caveat = t.row({ type: 'user', isMeta: true, message: { role: 'user', content: '<local-command-caveat>Caveat: CT-SYN</local-command-caveat>' } })
+  const userOut = t.row({ type: 'user', message: { role: 'user', content: '<local-command-stdout>CT-SYN</local-command-stdout>' } })
+  const bang = t.bash('ls')
+  const bangOut = t.bashOutput('CT-SYN listing')
+  const prompt = t.prompt('CT-SYN work')
+  const stopped = t.interrupt()
+  const note = t.row({ type: 'user', origin: { kind: 'task-notification' }, promptSource: 'system', message: { role: 'user', content: '<task-notification>CT-SYN</task-notification>' } })
+  const summary = t.row({ type: 'user', isCompactSummary: true, message: { role: 'user', content: 'CT-SYN summary <command-name>/x</command-name>' } })
+  const hook = t.row({ type: 'user', isMeta: true, origin: { kind: 'human' }, message: { role: 'user', content: [{ type: 'text', text: 'CT-SYN hook' }] } })
+  const peer = t.row({ type: 'user', isMeta: true, origin: { kind: 'peer' }, message: { role: 'user', content: 'CT-SYN peer' } })
+
+  const { groups } = tocModel(t.jsonl())
+
+  expect(groups.map(g => g.rowUuids)).toEqual([
+    [local, localOut, caveat, userOut],
+    [bang, bangOut],
+    [prompt, stopped, note, summary, hook, peer],
+  ])
+})
+
+test('a queued prompt and a prompt from an accepted suggestion each open a group', () => {
+  const t = transcript()
+  t.prompt('CT-SYN typed')
+  t.prompt('CT-SYN queued', { promptSource: 'queued' })
+  t.prompt('CT-SYN suggested', { promptSource: 'suggestion_accepted' })
+
+  expect(tocModel(t.jsonl()).groups.map(g => g.userText)).toEqual(['CT-SYN typed', 'CT-SYN queued', 'CT-SYN suggested'])
+})
+
+/* What the TOC shows of a User input. */
+
+test('pasted-content tags, code blocks, images and Markdown marks are left out', () => {
+  const t = transcript()
+  t.prompt('# CT-SYN title\n> quoted **bold** and _em_ `code` [link](http://x.test)\n- item one\n```ts\nconst x = 1\n```\n![shot](a.png) [Image #2] snake_case a*b')
+  t.prompt('before <pasted_content id="ab12">CT-SYN pasted</pasted_content id="ab12"> after')
+
+  expect(tocModel(t.jsonl()).groups.map(g => g.userText)).toEqual([
+    'CT-SYN title quoted bold and em code link item one snake_case a*b',
+    'before CT-SYN pasted after',
+  ])
+})
+
+test('a prompt of only images says so', () => {
+  const t = transcript()
+  const image = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: '' } }
+  t.prompt('', { message: { role: 'user', content: [image] } })
+  t.prompt('', { message: { role: 'user', content: [{ type: 'text', text: '[Image #1] ' }, image] } })
+
+  expect(tocModel(t.jsonl()).groups.map(g => g.userText)).toEqual(['（只有图片）', '（只有图片）'])
+})
+
+test('a prompt that is nothing but a code block still shows its code', () => {
+  const t = transcript()
+  t.prompt('```\nCT-SYN only code\n```')
+
+  expect(tocModel(t.jsonl()).groups[0]?.userText).toBe('CT-SYN only code')
+})

@@ -14,9 +14,16 @@ export const PANE_COLUMNS = 44
 
 export const EMPTY_TEXT = '本会话还没有对话'
 
+/* Whether a blank line follows entry i: one parts each Turn group from the
+   next, none parts the two sides of one group. */
+function partsAfter(entries: readonly Entry[], i: number): boolean {
+  const next = entries[i + 1]
+  return next !== undefined && next.groupIndex !== entries[i]?.groupIndex
+}
+
 /* The rows an entry takes, the blank line after it included. */
 export function entryHeight(entries: readonly Entry[], i: number): number {
-  return (entries[i]?.lines.length ?? 0) + (i < entries.length - 1 ? 1 : 0)
+  return (entries[i]?.lines.length ?? 0) + (partsAfter(entries, i) ? 1 : 0)
 }
 
 export type PaneView = {
@@ -47,7 +54,7 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
         </Box>
       </Box>,
     )
-    if (i < view.entries.length - 1 && i < view.window.end - 1) rows.push(<Text> </Text>)
+    if (partsAfter(view.entries, i) && i < view.window.end - 1) rows.push(<Text> </Text>)
   }
   return (
     <Box flexDirection="column">

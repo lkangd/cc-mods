@@ -1,54 +1,199 @@
 /* Turn groups: a User input and what the main agent did from it until the
    next User input. This file holds the rule for which chain rows open a
-   group and what the group shows of its User input. */
+   group, what the group shows of its User input, and what it counts of its
+   Agent reply. */
 
 import type { TranscriptRow } from './transcript'
+
+/* How the User input was given: a prompt (text or images), a slash command
+   (a prompt-type one or a local one), or a `!` shell command. */
+export type InputKind = 'prompt' | 'command' | 'shell'
 
 export type TurnGroup = {
   /* The uuid of the row that opened the group: the User input's row. */
   openerUuid: string
+  kind: InputKind
   /* The User input's text as the TOC shows it. */
   userText: string
   /* The User input row's timestamp (UTC ISO), when the row has one. */
   timestamp: string | undefined
   /* Every chain row in the group, opener first. */
   rowUuids: string[]
+  /* Whether the file holds an Agent reply for the group: the agent wrote in
+     it, or the person interrupted it. A local command, or a shell command
+     the agent did no work on, has none; neither has a prompt the file holds
+     nothing after yet (a running turn shows one regardless). */
+  hasAgentReply: boolean
+  /* The main agent's tool calls in the group; a subagent is one. */
+  steps: number
+  /* The last text the agent wrote after its last tool call, the parts of
+     one message joined, and the row its first part is on. */
+  reply: { text: string; uuid: string } | undefined
+  /* The group's last row the agent wrote. */
+  lastAgentUuid: string | undefined
+  /* How the group's turn ended as the file has it: an interruption marker
+     in the group, or the agent's last row an API error. */
+  ending: 'done' | 'interrupted' | 'error'
+}
+
+type Block = { type?: unknown; text?: unknown }
+
+function blocksOf(content: unknown): Block[] {
+  return Array.isArray(content) ? content.filter((b): b is Block => typeof b === 'object' && b !== null) : []
 }
 
 function textOf(content: unknown): string {
   if (typeof content === 'string') return content
-  if (!Array.isArray(content)) return ''
-  return content
-    .filter((b): b is { type: 'text'; text: string } => typeof b === 'object' && b !== null && b.type === 'text' && typeof b.text === 'string')
-    .map(b => b.text)
+  return blocksOf(content)
+    .filter(b => b.type === 'text' && typeof b.text === 'string')
+    .map(b => b.text as string)
     .join('\n')
 }
 
-function hasToolResult(content: unknown): boolean {
-  return Array.isArray(content) && content.some(b => typeof b === 'object' && b !== null && b.type === 'tool_result')
+const hasBlock = (content: unknown, type: string) => blocksOf(content).some(b => b.type === type)
+
+/* The text a row carries: a user row's message, a system row's own. */
+function rowText(row: TranscriptRow): string {
+  return row.type === 'system' ? (typeof row.content === 'string' ? row.content : '') : textOf(row.message?.content)
+}
+
+const isCommandText = (text: string) => /^\s*<command-(name|message)>/.test(text) && text.includes('<command-name>')
+const isShellText = (text: string) => /^\s*<bash-input>/.test(text)
+
+/* The kind of User input a chain row is, or undefined when the row does not
+   open a Turn group: tool results, injected reminders and hook rows
+   (`isMeta`), compact summaries, command and shell output, interruptions,
+   notifications and anything else nobody typed. */
+export function inputKindOf(row: TranscriptRow): InputKind | undefined {
+  if (row.type === 'system') return row.subtype === 'local_command' && isCommandText(rowText(row)) ? 'command' : undefined
+  if (row.type !== 'user' || row.isMeta || row.isCompactSummary) return undefined
+  const content = row.message?.content
+  if (hasBlock(content, 'tool_result')) return undefined
+  const text = rowText(row)
+  if (isShellText(text)) return 'shell'
+  if (isCommandText(text)) return 'command'
+  if (row.origin?.kind !== 'human') return undefined
+  return text.trim() || hasBlock(content, 'image') ? 'prompt' : undefined
 }
 
 /* Whether a chain row is a User input that opens a Turn group. */
 export function opensGroup(row: TranscriptRow): boolean {
-  if (row.type !== 'user' || row.isMeta || row.isCompactSummary) return false
-  if (hasToolResult(row.message?.content)) return false
-  return row.origin?.kind === 'human'
+  return inputKindOf(row) !== undefined
 }
 
-/* The User input as the TOC lists it: its text with whitespace collapsed. */
-export function userTextOf(row: TranscriptRow): string {
-  return textOf(row.message?.content).replace(/\s+/g, ' ').trim()
+const tagged = (text: string, tag: string) => new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`).exec(text)?.[1] ?? ''
+const collapse = (text: string) => text.replace(/\s+/g, ' ').trim()
+
+/* Text with what does not read as prose taken out: fenced code, images and
+   their `[Image #n]` placeholders, Markdown marks, the tags around pasted
+   content; then whitespace collapsed. A text that was nothing but code keeps
+   its code. */
+export function plainText(text: string): string {
+  const prose = text
+    .replace(/<\/?pasted_content\b[^>]*>/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[Image #\d+\]/g, ' ')
+  const plain = prose
+    .replace(/```[^\n]*\n?[\s\S]*?(```|$)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^[ \t]*(#{1,6}|>+|[-*+])[ \t]+/gm, '')
+    .replace(/(\*\*|__|~~)(\S(?:[\s\S]*?\S)?)\1/g, '$2')
+    .replace(/(^|[^\w*])[*_](\S(?:[^\n]*?\S)?)[*_](?!\w)/g, '$1$2')
+    .replace(/`([^`\n]*)`/g, '$1')
+  const shown = collapse(plain)
+  if (shown) return shown
+  return collapse(prose.replace(/```[^\n]*/g, ' '))
 }
 
+/* The User input as the TOC lists it: a slash command as `/name args`, a
+   shell command as `!cmd`, a prompt as plain text, or a note that it held
+   only images. */
+export function userTextOf(row: TranscriptRow, kind: InputKind): string {
+  const text = rowText(row)
+  if (kind === 'command') {
+    const name = tagged(text, 'command-name').trim()
+    const args = collapse(tagged(text, 'command-args'))
+    return `${name.startsWith('/') ? name : `/${name}`}${args ? ` ${args}` : ''}`
+  }
+  if (kind === 'shell') return `!${collapse(tagged(text, 'bash-input'))}`
+  const shown = plainText(text)
+  if (shown) return shown
+  return hasBlock(row.message?.content, 'image') ? '（只有图片）' : ''
+}
+
+const isInterruption = (row: TranscriptRow) => row.type === 'user' && /^\s*\[Request interrupted by user/.test(rowText(row))
+const isApiError = (row: TranscriptRow) => (row as { isApiErrorMessage?: unknown }).isApiErrorMessage === true
+
+/* A text block the agent wrote after its latest tool call. */
+type Part = { uuid: string; messageId: string; text: string }
+
+/* The group being read: the group, the tool calls counted so far, and the
+   text since the latest one. */
+type Open = { group: TurnGroup; toolIds: Set<string>; tail: Part[] }
+
+function openGroup(row: TranscriptRow, kind: InputKind): Open {
+  const group: TurnGroup = {
+    openerUuid: row.uuid,
+    kind,
+    userText: userTextOf(row, kind),
+    timestamp: row.timestamp,
+    rowUuids: [],
+    hasAgentReply: false,
+    steps: 0,
+    reply: undefined,
+    lastAgentUuid: undefined,
+    ending: 'done',
+  }
+  return { group, toolIds: new Set(), tail: [] }
+}
+
+function addRow(open: Open, row: TranscriptRow): void {
+  const { group } = open
+  group.rowUuids.push(row.uuid)
+  if (isInterruption(row)) {
+    group.ending = 'interrupted'
+    group.hasAgentReply = true
+    return
+  }
+  if (row.type !== 'assistant') return
+  group.hasAgentReply = true
+  group.lastAgentUuid = row.uuid
+  if (group.ending !== 'interrupted') group.ending = isApiError(row) ? 'error' : 'done'
+  const messageId = row.message?.id ?? row.uuid
+  blocksOf(row.message?.content).forEach((block, n) => {
+    if (block.type === 'tool_use') {
+      const id = (block as { id?: unknown }).id
+      open.toolIds.add(typeof id === 'string' ? id : `${row.uuid}#${n}`)
+      open.tail = []
+    } else if (block.type === 'text' && typeof block.text === 'string' && block.text.trim()) {
+      open.tail.push({ uuid: row.uuid, messageId, text: block.text })
+    }
+  })
+}
+
+function closeGroup(open: Open): void {
+  const { group, tail } = open
+  group.steps = open.toolIds.size
+  const last = tail[tail.length - 1]
+  if (!last) return
+  const parts = tail.filter(p => p.messageId === last.messageId)
+  group.reply = { text: plainText(parts.map(p => p.text).join('\n')), uuid: parts[0]?.uuid ?? last.uuid }
+}
+
+/* The chain's Turn groups, in order. Rows before the first User input
+   belong to no group. */
 export function groupTurns(chain: readonly TranscriptRow[]): TurnGroup[] {
   const groups: TurnGroup[] = []
-  let current: TurnGroup | undefined
+  let open: Open | undefined
   for (const row of chain) {
-    if (opensGroup(row)) {
-      current = { openerUuid: row.uuid, userText: userTextOf(row), timestamp: row.timestamp, rowUuids: [] }
-      groups.push(current)
+    const kind = inputKindOf(row)
+    if (kind !== undefined) {
+      if (open) closeGroup(open)
+      open = openGroup(row, kind)
+      groups.push(open.group)
     }
-    current?.rowUuids.push(row.uuid)
+    if (open) addRow(open, row)
   }
+  if (open) closeGroup(open)
   return groups
 }

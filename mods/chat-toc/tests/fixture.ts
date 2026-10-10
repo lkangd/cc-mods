@@ -10,6 +10,18 @@ export type Builder = {
   reply: (blocks: Row[], extra?: Row) => string
   /* A tool's result, fed back as a user-role row. */
   toolResult: (toolUseId: string) => string
+  /* A slash command as a user row: a prompt-type command (`human`, the
+     agent works on it) or a local one recorded as a user row (no origin). */
+  command: (name: string, args: string, kind?: 'prompt' | 'local') => string
+  /* A local slash command as Claude Code 2.1.295 records it: a
+     `system/local_command` row, its output another such row. */
+  localCommand: (name: string, args: string) => string
+  localOutput: (text: string) => string
+  /* A `!cmd` shell command and its output. */
+  bash: (cmd: string) => string
+  bashOutput: (stdout: string) => string
+  /* The marker an interrupted turn leaves. */
+  interrupt: (forToolUse?: boolean) => string
   /* Any other row, on the chain. */
   row: (row: Row) => string
   /* Moves the chain's tip, as a rewind does, to a row already written. */
@@ -51,6 +63,36 @@ export function transcript(start = Date.UTC(2026, 9, 10, 1, 0, 0)): Builder {
       push({ ...base('assistant'), message: { id: `msg_${n}`, role: 'assistant', content: blocks }, ...extra }),
     toolResult: toolUseId =>
       push({ ...base('user'), message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: toolUseId, content: 'ok' }] } }),
+    command: (name, args, kind = 'prompt') =>
+      push({
+        ...base('user'),
+        message: {
+          role: 'user',
+          content:
+            kind === 'prompt'
+              ? `<command-message>${name}</command-message>\n<command-name>/${name}</command-name>\n<command-args>${args}</command-args>`
+              : `<command-name>/${name}</command-name>\n            <command-message>${name}</command-message>\n            <command-args>${args}</command-args>`,
+        },
+        ...(kind === 'prompt' ? { origin: { kind: 'human' } } : {}),
+      }),
+    localCommand: (name, args) =>
+      push({
+        ...base('system'),
+        subtype: 'local_command',
+        level: 'info',
+        isMeta: false,
+        content: `<command-name>/${name}</command-name>\n            <command-message>${name}</command-message>\n            <command-args>${args}</command-args>`,
+      }),
+    localOutput: text =>
+      push({ ...base('system'), subtype: 'local_command', level: 'info', isMeta: false, content: `<local-command-stdout>${text}</local-command-stdout>` }),
+    bash: cmd => push({ ...base('user'), message: { role: 'user', content: `<bash-input>${cmd}</bash-input>` } }),
+    bashOutput: stdout =>
+      push({ ...base('user'), message: { role: 'user', content: `<bash-stdout>${stdout}</bash-stdout><bash-stderr></bash-stderr>` } }),
+    interrupt: forToolUse =>
+      push({
+        ...base('user'),
+        message: { role: 'user', content: [{ type: 'text', text: forToolUse ? '[Request interrupted by user for tool use]' : '[Request interrupted by user]' }] },
+      }),
     row: row => push({ ...base(String(row.type ?? 'user')), ...row }),
     rewindTo: id => {
       parent = id
