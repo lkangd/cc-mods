@@ -387,6 +387,8 @@ def parse_pane(rows: list[str]) -> Pane | None:
             notes.append("<row off the border column: " + rows[y].rsplit("│", 1)[-1].strip() + ">")
             current, side, skipping = None, None, False
             continue
+        # 2.1.287 draws the Pane's ✕ at the right end of its first content row
+        text = re.sub(r"\s+✕$", "", text)
         if not text.strip():
             current, side, skipping = None, None, False
             continue
