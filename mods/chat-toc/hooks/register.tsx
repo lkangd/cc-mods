@@ -1,9 +1,9 @@
 /* chat-toc: a docked table of contents of the current session's
    conversation. This module wires the host's events to the parts:
-     transcript.ts / chain.ts / groups.ts / model.ts  the file to Turn groups
-     source.ts / reader.ts                            how and when it is read
-     entries.ts / cells.ts / window.ts / pane.tsx     what the pane draws
-     jump.ts                                          where a press scrolls
+     transcript.ts / chain.ts / groups.ts / regroup.ts  the file to Turn groups
+     source.ts / reader.ts                              how and when it is read
+     entries.ts / cells.ts / window.ts / pane.tsx       what the pane draws
+     jump.ts                                            where a press scrolls
    The host's `$` may only be handed to functions declared at the top of
    this file, so every call on `$` is made here or in one of them. */
 
@@ -12,31 +12,37 @@ import type { EngineInterface, Register } from 'claude-code'
 import { cardEntries } from './entries'
 import type { Entry } from './entries'
 import { jumpTargetOf } from './jump'
-import { EMPTY_MODEL, tocModel } from './model'
-import type { TocModel } from './model'
 import { EMPTY_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, entryHeight } from './pane'
 import { LATE_CHECK_MS, TRAILING_MS, gateFinish, gateFired, gateRequest, gateStart, readGate } from './reader'
-import { WHOLE_READ_LIMIT } from './source'
-import type { SourceRead } from './source'
+import { countUnreadable, newReading, readLines } from './regroup'
+import type { Reading } from './regroup'
+import { WHOLE_READ_LIMIT, chunkBytesFor, chunkCommand, chunkText, failReasonOf, readChunks, readCursor, takeWhole } from './source'
+import type { Chunks, FailReason, ReadCursor, SourceRead } from './source'
 import { scrolledTop, windowOf } from './window'
 import type { TocWindow } from './window'
 
 const transcriptPath = atom({ plugin: 'chat-toc', key: 'transcriptPath' } as const, '')
 const rev = atom({ plugin: 'chat-toc', key: 'rev' } as const, 0)
 
-type SourceState = 'unknown' | 'missing' | 'ok' | 'too-large' | 'failed'
+type SourceState = 'unknown' | 'missing' | 'ok' | 'failed'
 
-const NOTICES: Record<Exclude<SourceState, 'ok'>, string | undefined> = {
-  unknown: undefined,
-  missing: EMPTY_TEXT,
-  'too-large': 'transcript 超过 4 MiB，目录暂时读不了',
-  failed: '读不到本会话的 transcript',
+/* Why nothing is listed, kept at the bottom of the pane while it holds. */
+const FAILURES: Record<FailReason, string> = {
+  denied: '没有权限读本会话的 transcript，目录无法显示',
+  error: '读不到本会话的 transcript，目录无法显示',
 }
 
-/* What the last read made of the file. Module state: a hot reload starts it
-   over, and `session.start` then reads again. */
-let model: TocModel = EMPTY_MODEL
+function unreadableText(lines: number): string {
+  return `有 ${lines} 行无法识别，目录可能不完整`
+}
+
+/* What the reads so far made of the file. Module state: a hot reload starts
+   it over, and `session.start` then reads again. */
+let reading: Reading = newReading()
+let cursor: ReadCursor = readCursor()
 let source: SourceState = 'unknown'
+let failure: FailReason = 'error'
+/* The file's size at the last read; undefined reads it from the start. */
 let lastSize: number | undefined
 /* Whether the main agent's turn is under way: from `turn.start` until the
    read after its `turn.complete`, so the last group shows in progress until
@@ -50,46 +56,77 @@ const gate = readGate()
 let top: number | undefined
 let lastWindow: TocWindow = { start: 0, end: 0, maxStart: 0 }
 
-function forget(): void {
-  model = EMPTY_MODEL
-  source = 'unknown'
+function startOver(): void {
+  reading = newReading()
+  cursor = readCursor()
   lastSize = undefined
+}
+
+function forget(): void {
+  startOver()
+  source = 'unknown'
   top = undefined
 }
 
-async function readSource($: EngineInterface, path: string): Promise<SourceRead> {
+/* One chunk of the file at `offset`, as text. */
+async function runChunk($: EngineInterface, path: string, offset: number): Promise<string> {
+  const command = chunkCommand(path, offset)
+  const ran = await $.process.run(command.argv, command.env === undefined ? undefined : { env: command.env })
+  if (ran.exitCode !== 0) throw new Error(ran.stderr)
+  return chunkText(path, ran.stdout)
+}
+
+/* Reads what is new in the file since the last read, onto `at`: the whole
+   file whole when it is read from the start and fits one `$.fs.read`, else
+   chunks from the offset. */
+async function readSource($: EngineInterface, path: string, at: ReadCursor): Promise<SourceRead> {
   let size: number
   try {
     size = (await $.fs.stat(path)).size
-  } catch {
+  } catch (error) {
     try {
-      return (await $.fs.exists(path)) ? { kind: 'failed' } : { kind: 'missing' }
+      return (await $.fs.exists(path)) ? { kind: 'failed', reason: failReasonOf(error) } : { kind: 'missing' }
     } catch {
-      return { kind: 'failed' }
+      return { kind: 'failed', reason: 'error' }
     }
   }
   if (size === lastSize) return { kind: 'unchanged' }
-  if (size > WHOLE_READ_LIMIT) return { kind: 'too-large', size }
+  const isFromStart = lastSize === undefined || size < lastSize || size < at.offset
+  if (isFromStart) Object.assign(at, readCursor())
   try {
-    return { kind: 'text', text: await $.fs.read(path), size }
-  } catch {
-    return { kind: 'failed' }
+    let chunks: Chunks | undefined
+    if (isFromStart && size <= WHOLE_READ_LIMIT) {
+      try {
+        chunks = takeWhole(at, await $.fs.read(path))
+      } catch {
+        /* Grown past what `$.fs.read` takes since the stat, or refused:
+           the chunks say which. */
+      }
+    }
+    chunks ??= await readChunks(at, size, chunkBytesFor(path), offset => runChunk($, path, offset))
+    return { kind: 'lines', chunks, isFromStart, size }
+  } catch (error) {
+    return { kind: 'failed', reason: failReasonOf(error) }
   }
 }
 
 async function load($: EngineInterface): Promise<void> {
   const path = await read($, transcriptPath)
   if (!path) return
-  const got = await readSource($, path)
+  const at = { ...cursor }
+  const got = await readSource($, path, at)
   if (got.kind === 'unchanged') return
-  if (got.kind === 'text') {
-    model = tocModel(got.text)
+  if (got.kind === 'lines') {
+    if (got.isFromStart) reading = newReading()
+    for (const lines of got.chunks.lines) readLines(reading, lines)
+    countUnreadable(reading, got.chunks.overlong)
+    cursor = at
     lastSize = got.size
     source = 'ok'
   } else {
-    model = EMPTY_MODEL
-    lastSize = undefined
+    startOver()
     source = got.kind
+    if (got.kind === 'failed') failure = got.reason
   }
   await update($, rev, n => n + 1)
 }
@@ -186,10 +223,13 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: 'chat-toc' }, async ($, e) => {
     await read($, rev)
-    const entries = cardEntries(model.groups, e.props.bodyColumns, await $.clock.now(), isTurnRunning)
-    const notice = source === 'ok' ? (entries.length === 0 ? EMPTY_TEXT : undefined) : NOTICES[source]
+    const isOk = source === 'ok'
+    const entries = isOk ? cardEntries(reading.groups, e.props.bodyColumns, await $.clock.now(), isTurnRunning) : []
+    const notice = (isOk && entries.length === 0) || source === 'missing' ? EMPTY_TEXT : undefined
+    const footer = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
     const heights = entries.map((_, i) => entryHeight(entries, i))
-    lastWindow = windowOf(heights, e.props.scroll.bodyRows - (notice === undefined ? 0 : 1), top)
-    return drawPane($.ui.resolve(e), { entries, window: lastWindow, notice, onPress: entry => jump($, entry) })
+    const lines = (notice === undefined ? 0 : 1) + (footer === undefined ? 0 : 1)
+    lastWindow = windowOf(heights, e.props.scroll.bodyRows - lines, top)
+    return drawPane($.ui.resolve(e), { entries, window: lastWindow, notice, footer, onPress: entry => jump($, entry) })
   })
 }

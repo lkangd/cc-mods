@@ -31,6 +31,8 @@ export type PaneView = {
   window: TocWindow
   /* One line instead of entries, when there are none to show. */
   notice: string | undefined
+  /* One line kept below the entries: why the list is empty or incomplete. */
+  footer: string | undefined
   onPress: (entry: Entry) => Promise<void>
 }
 
@@ -60,6 +62,7 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
     <Box flexDirection="column">
       {view.notice === undefined ? null : <Text dimColor>{view.notice}</Text>}
       {rows}
+      {view.footer === undefined ? null : <Text dimColor>{view.footer}</Text>}
     </Box>
   )
 }
