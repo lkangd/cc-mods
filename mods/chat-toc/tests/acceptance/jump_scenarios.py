@@ -242,6 +242,9 @@ def jump003(run):
         t._write("\x1b[<35;6;6M")   # the pointer off the entry: hover draws it inverse
         t.settle(quiet=0.6)
         ev.append(t.snap("pointer moved off"))
+        # the pane's window may have moved with the click: read it again
+        p = pane_of(t)
+        e = next(o for o in p.entries if "T0011" in o.user_text)
         other = next(o for o in p.entries if "T0010" in o.user_text)
         actual["dim"] = side_dim(t, p, e.row + 1), side_dim(t, p, other.row + 1)
         actual["refusalShown"] = said
@@ -250,6 +253,8 @@ def jump003(run):
         rows = t.settle(quiet=1.0)
         ev.append(t.snap("6 s later"))
         actual["refusalGoneAfter6s"] = REFUSED not in "\n".join(rows)
+        p = pane_of(t)
+        e = next(o for o in p.entries if "T0011" in o.user_text)
         actual["dimAfter6s"] = side_dim(t, p, e.row + 1)
         ok = (said and actual["transcriptUnmoved"] and actual["refusalGoneAfter6s"]
               and actual["dim"] == (True, False) and actual["dimAfter6s"])
