@@ -36,6 +36,9 @@ const reading = many()
 
 type Timing = { p50: number; p95: number; max: number }
 
+/* One `CT-PERF` line in the test output; the hooks environment types no console. */
+const print = (line: string) => (globalThis as unknown as { console: { log: (s: string) => void } }).console.log(line)
+
 function batch(runs: number, work: () => void): Timing {
   const xs: number[] = []
   for (let r = 0; r < runs; r++) {
@@ -108,8 +111,8 @@ test('the Current position stays within 2 ms, and within 5 ms under 3000 stale o
     positionOf({ live: liveRows(sites, rows), drawable: withStale, openers, lastDrawn: lastStale, groups: reading.groups.length, locked: undefined })
   expect(placeStale()).toBe(expected)
   const residue = timings(200, placeStale)
-  console.log(`CT-PERF position groups=${TURNS} chain=${reading.chain.length} live=${live.length} p50/p95/max=${clean.p50}/${clean.p95}/${clean.max} ms`)
-  console.log(`CT-PERF position-residue records=${sites.onScreen.size} p50/p95/max=${residue.p50}/${residue.p95}/${residue.max} ms`)
+  print(`CT-PERF position groups=${TURNS} chain=${reading.chain.length} live=${live.length} p50/p95/max=${clean.p50}/${clean.p95}/${clean.max} ms`)
+  print(`CT-PERF position-residue records=${sites.onScreen.size} p50/p95/max=${residue.p50}/${residue.p95}/${residue.max} ms`)
   expect(clean.p95).toBeLessThanOrEqual(2)
   expect(residue.p95).toBeLessThanOrEqual(5)
 })
@@ -127,7 +130,7 @@ test('the entry table: a redraw reuses it, a read growing the last group rebuild
     entryTable(cache, groups, options)
   })
   const table = entryTable(cache, reading.groups, options)
-  console.log(
+  print(
     `CT-PERF entry-table entries=${table.entries.length} first=${miss.max} ms; redraw p95=${hit.p95} ms; last group grown p50/p95/max=${grown.p50}/${grown.p95}/${grown.max} ms`,
   )
   expect(hit.p95).toBeLessThanOrEqual(16)

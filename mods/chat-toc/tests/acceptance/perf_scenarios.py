@@ -2,7 +2,7 @@
 
 usage:
   $PY perf_scenarios.py run <host-version|current> <many|heavy> [--runs 3] [--out DIR]
-  python3 perf_scenarios.py table <run-dir>...      # the release report's table
+  $PY perf_scenarios.py table <run-dir>...          # the release report's table
 
 Each run resumes a fresh 20 MiB fixture (ticket 18's transcript_fixture.py:
 `many` about 4400 turns, `heavy` about 110 turns with large tool results) in
@@ -229,7 +229,7 @@ def summary_of(samples: dict) -> dict:
     return {
         "startWholeMs": first_whole,
         "idleWholeMs": max(idle_whole) if idle_whole else None,
-        "groups": (phases[0].get("read.whole") or [[None, None, None]])[0][2],
+        "groups": (phases[0].get("read.whole") or [[None] * 4])[0][3],
         "tailReadMs": [len(every.get("read.tail", [])), pct([s[0] for s in every.get("read.tail", [])], 0.5),
                        pct([s[0] for s in every.get("read.tail", [])])],
         "appendModelMs": [len(every.get("append.model", [])), pct([s[0] for s in every.get("append.model", [])], 0.5),

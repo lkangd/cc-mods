@@ -14,8 +14,10 @@ export const PERF_FLUSH_MS = 1000
 export const PERF_LINE_MAX = 4000
 
 export type PerfMetric =
-  /* A read from the start of the file to the Turn groups, in ms; then the
-     chunks read, the groups, the chain rows and the file's bytes. */
+  /* A read from the start of the file to the Turn groups, in ms; the ms of
+     it spent getting the file's text; then the chunks read, the groups, the
+     chain rows, the file's bytes, and 1 when the whole chain was grouped
+     again (0 when only from the last group's opener). */
   | 'read.whole'
   /* A read of what the file grew by, the same way. */
   | 'read.tail'

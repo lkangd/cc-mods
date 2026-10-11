@@ -329,6 +329,7 @@ async function load($: EngineInterface): Promise<void> {
   appendedAt = undefined
   const at = { ...cursor }
   const got = await readSource($, path, at)
+  const sourced = perfNow()
   if (got.kind === 'unchanged') {
     appendedAt ??= asked
     return
@@ -354,7 +355,8 @@ async function load($: EngineInterface): Promise<void> {
   place($)
   if (perf.isOn && got.kind === 'lines') {
     const ended = perfNow()
-    timed($, got.isFromStart ? 'read.whole' : 'read.tail', [ended - began, got.chunks.lines.length, reading.groups.length, reading.chain.length, got.size])
+    const full = reading.lastRegroup === 'full' ? 1 : 0
+    timed($, got.isFromStart ? 'read.whole' : 'read.tail', [ended - began, sourced - began, got.chunks.lines.length, reading.groups.length, reading.chain.length, got.size, full])
     if (asked !== undefined) timed($, 'append.model', [ended - asked])
   }
   await update($, rev, n => n + 1)
