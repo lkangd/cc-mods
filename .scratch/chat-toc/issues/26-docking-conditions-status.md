@@ -28,8 +28,8 @@
   - `/chat-toc` 在全屏但不能停靠时放成 inline：「终端太窄，目录暂时放在输入框上方；把终端拉宽后会停靠到右侧」
   - `/chat-toc` 在非全屏时放成 inline：「非全屏布局里目录放在输入框上方；运行 /tui fullscreen 切换后会停靠到右侧」
   - `/tui fullscreen` 在 2.1.287 已存在（其二进制里的提示也让人用它切换），2.1.295 文档同。
-- 测试：`tests/docking.test.ts`（10 个）；`tests/host.ts` 加了 `statuses`、`unplaced`（open 返回 `isPlaced:false`）、`drawHint($, isFullscreen)`（画一次提示行），`start()` 先画提示行，`mountPane` 可指定 `placement` 与全屏与否。`claude plugin test` 111 个全过，两版 `validate`、两版 `tsc` 干净。test kit 的 `$` 触发不了使用者关闭，✕ 清状态栏没有单测，也没在 PTY 单独验。
-- PTY：`tests/acceptance/ct_compat.py`（pyte，无模型调用），CT-COMPAT-003 五个场景 `waiting / narrowed / asked / main / reload` 在 2.1.287 与 2.1.295 上全部通过，run 目录 `mods/chat-toc/build/pty-runs/20261011-084040-ct-compat-2.1.287`、`20261011-084114-ct-compat-2.1.295`（gitignore）。`waiting` 从宿主 debug 行 `waits unplaced (unasked below N columns …)` 读出阈值（两版都是 144），只在 N-1（仍等待、状态栏在）与 N（停靠、状态栏清除）取样。CT-LIFE 001/002/fork 两版重跑通过（`20261011-084154-ct-life-2.1.287`、`20261011-084221-ct-life-2.1.295`）。
+- 测试：`tests/docking.test.ts`（10 个）；`tests/host.ts` 加了 `statuses`、`unplaced`（open 返回 `isPlaced:false`）、`drawHint($, isFullscreen)`（画一次提示行），`start()` 先画提示行，`mountPane` 可指定 `placement` 与全屏与否。`claude plugin test` 本票时 111 个全过，合入 `chat-toc/mvp`（含 23、25 号票）后 142 个全过，两版 `validate`、两版 `tsc` 干净。test kit 的 `$` 触发不了使用者关闭，✕ 清状态栏没有单测，也没在 PTY 单独验。
+- PTY：`tests/acceptance/ct_compat.py`（pyte，无模型调用），CT-COMPAT-003 五个场景 `waiting / narrowed / asked / main / reload` 在 2.1.287 与 2.1.295 上全部通过，合入 mvp 后的 run 目录 `mods/chat-toc/build/pty-runs/20261011-084459-ct-compat-2.1.287`、`20261011-084532-ct-compat-2.1.295`（gitignore）。`waiting` 从宿主 debug 行 `waits unplaced (unasked below N columns …)` 读出阈值（两版都是 144），只在 N-1（仍等待、状态栏在）与 N（停靠、状态栏清除）取样。CT-LIFE 001/002/fork 两版重跑通过（`20261011-084606-ct-life-2.1.287`、`20261011-084633-ct-life-2.1.295`）。
 - 实测宿主在停靠后变窄时的行为（用本票之前的插件取样，`scratchpad/p26/probe.py`，run `20261011-082945-p26-probe-current`、`20261011-083014-p26-probe-2.1.287`、`20261011-083042-p26-probe-current`；两版一致）：
   - 自动停靠（未请求）的 Pane 在 170→130 列时**仍停靠**：已落座的 Pane 不再受 144 的未请求门槛约束。
   - 再窄到 100 列：宿主**不关、不撤回落座**，把同一个 Pane 改成 inline（输入框上方、整宽边框），`$.ui.panes()` 仍列着它；拉回 170 列时宿主又自动把它改回停靠。
