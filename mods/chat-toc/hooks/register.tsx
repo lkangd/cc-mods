@@ -12,6 +12,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import { cardEntries } from './entries'
 import type { Entry } from './entries'
 import { jumpTargetOf } from './jump'
+import { isClosedByPerson, isPaneOpen, reopensOn } from './lifecycle'
 import { EMPTY_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, entryHeight } from './pane'
 import { LATE_CHECK_MS, TRAILING_MS, gateFinish, gateFired, gateRequest, gateStart, readGate } from './reader'
 import { countUnreadable, newReading, readLines } from './regroup'
@@ -23,6 +24,7 @@ import type { TocWindow } from './window'
 
 const transcriptPath = atom({ plugin: 'chat-toc', key: 'transcriptPath' } as const, '')
 const rev = atom({ plugin: 'chat-toc', key: 'rev' } as const, 0)
+const isClosed = atom({ plugin: 'chat-toc', key: 'isClosed' } as const, false)
 
 type SourceState = 'unknown' | 'missing' | 'ok' | 'failed'
 
@@ -55,6 +57,10 @@ const gate = readGate()
    follows the newest entry. */
 let top: number | undefined
 let lastWindow: TocWindow = { start: 0, end: 0, maxStart: 0 }
+/* The opens chat-toc makes on its own, one after another, so two start
+   events at once (a process started with --resume raises both) find the
+   first one's pane and open one. */
+let opening: Promise<void> = Promise.resolve()
 
 function startOver(): void {
   reading = newReading()
@@ -155,8 +161,29 @@ function requestRead($: EngineInterface): void {
   })
 }
 
-function openPane($: EngineInterface) {
-  return $.ui.open({ id: PANE_ID, title: PANE_TITLE, columns: PANE_COLUMNS })
+function openPane($: EngineInterface, focus?: true) {
+  return $.ui.open({ id: PANE_ID, title: PANE_TITLE, columns: PANE_COLUMNS, ...(focus === undefined ? {} : { focus }) })
+}
+
+/* Opens the pane unasked unless the person closed it in this session or it
+   is open already, as it stays across a hot reload. */
+async function openUnasked($: EngineInterface): Promise<void> {
+  if (await read($, isClosed)) return
+  if (isPaneOpen(await $.ui.panes())) return
+  await openPane($)
+}
+
+function autoOpen($: EngineInterface): Promise<void> {
+  opening = opening.then(() => openUnasked($)).catch(() => undefined)
+  return opening
+}
+
+/* /chat-toc: opens the pane, or raises the open one, shown or a tab behind
+   another, and asks for the keyboard. It never closes it. */
+async function openAsked($: EngineInterface): Promise<void> {
+  await update($, isClosed, () => false)
+  const isOpen = isPaneOpen(await $.ui.panes())
+  await openPane($, isOpen ? true : undefined)
 }
 
 /* Only ever called from a press: the host moves the transcript only for
@@ -174,20 +201,33 @@ export const register: Register = on => {
       forget()
     }
     readNow($)
+    /* /clear and /resume start another conversation; the host resets
+       `$.state` with it, and the pane opens for it as at a start. */
+    if (reopensOn(e.source)) {
+      await update($, isClosed, () => false)
+      void autoOpen($)
+    }
     return next(e)
   })
 
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'chat-toc', description: '打开对话目录', immediate: true })
     readNow($)
-    const panes = await $.ui.panes()
-    if (!panes.some(pane => pane.id === PANE_ID)) void openPane($)
+    void autoOpen($)
     return next(e)
   })
 
   on('command.run', { command: 'chat-toc' }, async $ => {
-    await openPane($)
+    await openAsked($)
     return {}
+  })
+
+  /* Every pane's close passes here, other plugins' too; only the person's
+     close of this one is kept, once no hook beneath refused it. */
+  on('ui.close', async ($, e, next) => {
+    const closed = await next(e)
+    if (isClosedByPerson(e)) await update($, isClosed, () => true).catch(() => undefined)
+    return closed
   })
 
   /* Rows the main loop keeps; a subagent's go to a file of its own. */
