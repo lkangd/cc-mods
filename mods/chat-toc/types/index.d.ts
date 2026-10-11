@@ -17,6 +17,9 @@ declare module 'claude-code' {
       /* Whether the person closed the pane in this session, so it does not
          open on its own again until /clear or /resume (which reset it). */
       isClosed: boolean
+      /* Whether the session began by resuming or forking another, so the
+         transcript can show history before its own file is written. */
+      isCarriedOver: boolean
     }
   }
 }

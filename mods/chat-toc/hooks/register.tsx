@@ -12,8 +12,8 @@ import type { EngineInterface, Register } from 'claude-code'
 import { cardEntries } from './entries'
 import type { Entry } from './entries'
 import { jumpTargetOf } from './jump'
-import { isClosedByPerson, isPaneOpen, reopensOn } from './lifecycle'
-import { EMPTY_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, entryHeight } from './pane'
+import { carriesHistory, isClosedByPerson, isPaneOpen, reopensOn } from './lifecycle'
+import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, entryHeight } from './pane'
 import { LATE_CHECK_MS, TRAILING_MS, gateFinish, gateFired, gateRequest, gateStart, readGate } from './reader'
 import { countUnreadable, newReading, readLines } from './regroup'
 import type { Reading } from './regroup'
@@ -25,6 +25,7 @@ import type { TocWindow } from './window'
 const transcriptPath = atom({ plugin: 'chat-toc', key: 'transcriptPath' } as const, '')
 const rev = atom({ plugin: 'chat-toc', key: 'rev' } as const, 0)
 const isClosed = atom({ plugin: 'chat-toc', key: 'isClosed' } as const, false)
+const isCarriedOver = atom({ plugin: 'chat-toc', key: 'isCarriedOver' } as const, false)
 
 type SourceState = 'unknown' | 'missing' | 'ok' | 'failed'
 
@@ -198,6 +199,7 @@ export const register: Register = on => {
     const path = e.transcript_path ?? ''
     if (path !== (await read($, transcriptPath))) {
       await update($, transcriptPath, () => path)
+      await update($, isCarriedOver, () => carriesHistory(e.source))
       forget()
     }
     readNow($)
@@ -265,7 +267,10 @@ export const register: Register = on => {
     await read($, rev)
     const isOk = source === 'ok'
     const entries = isOk ? cardEntries(reading.groups, e.props.bodyColumns, await $.clock.now(), isTurnRunning) : []
-    const notice = (isOk && entries.length === 0) || source === 'missing' ? EMPTY_TEXT : undefined
+    /* A resumed or forked session shows its history in the transcript
+       before its own file is written; it is not without a conversation. */
+    const missing = (await read($, isCarriedOver)) ? NOT_WRITTEN_TEXT : EMPTY_TEXT
+    const notice = source === 'missing' ? missing : isOk && entries.length === 0 ? EMPTY_TEXT : undefined
     const footer = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
     const heights = entries.map((_, i) => entryHeight(entries, i))
     const lines = (notice === undefined ? 0 : 1) + (footer === undefined ? 0 : 1)
