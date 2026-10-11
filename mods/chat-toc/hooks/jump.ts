@@ -34,7 +34,7 @@ export const REFUSED_MS = 5000
 type Block = { type?: unknown; text?: unknown }
 
 const blocksOf = (content: unknown): Block[] => (Array.isArray(content) ? (content as Block[]) : [])
-const hasText = (row: TranscriptRow) => blocksOf(row.message?.content).some(b => b?.type === 'text' && typeof b.text === 'string' && b.text.trim() !== '')
+export const hasText = (row: TranscriptRow) => blocksOf(row.message?.content).some(b => b?.type === 'text' && typeof b.text === 'string' && b.text.trim() !== '')
 const hasCall = (row: TranscriptRow) => blocksOf(row.message?.content).some(b => b?.type === 'tool_use')
 
 /* A local command's output with something in it, as a system row or the

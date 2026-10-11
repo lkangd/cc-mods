@@ -52,6 +52,18 @@ export function topRevealing(heights: readonly number[], bodyRows: number, curre
   return top >= current.maxStart ? undefined : top
 }
 
+/* Where the window's top goes to follow the lit group, whose first entry is
+   `index`: the newest when the last group is lit or none is; unmoved while
+   the entry shows; else the entry one below the top, the one before it
+   still in view above it. */
+export function topFollowing(heights: readonly number[], bodyRows: number, top: number | undefined, index: number | undefined, isLast: boolean): number | undefined {
+  if (index === undefined || isLast) return undefined
+  const current = windowOf(heights, bodyRows, top)
+  if (index >= current.start && index < current.end) return top
+  const next = Math.max(0, index - 1)
+  return next >= current.maxStart ? undefined : next
+}
+
 /* Where the window's top goes after the person scrolls `by` entries from
    `current`; undefined once it reaches the end, which follows again. */
 export function scrolledTop(current: TocWindow, by: number): number | undefined {
