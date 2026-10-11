@@ -1,7 +1,7 @@
 /* When the pane opens and stays closed (spec §2), as plain decisions;
    register.tsx makes the calls on `$`. */
 
-import type { PaneCloseInput, UiPane } from 'claude-code'
+import type { PaneCloseInput } from 'claude-code'
 import { PANE_ID } from './pane'
 
 /* The one close that keeps the pane closed for the rest of the session:
@@ -23,10 +23,6 @@ export function reopensOn(source: string): boolean {
    written at its first submit). */
 export function carriesHistory(source: string): boolean {
   return source === 'resume' || source === 'fork'
-}
-
-export function isPaneOpen(panes: readonly UiPane[]): boolean {
-  return panes.some(pane => pane.id === PANE_ID)
 }
 
 /* The status line while the pane cannot dock (spec §2): why, and what gets

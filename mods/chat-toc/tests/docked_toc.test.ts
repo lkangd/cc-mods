@@ -28,7 +28,7 @@ test('the /chat-toc command is registered and opens the pane', async ($, on) => 
 
   const ran = await $.command.run({ command: 'chat-toc', args: '' } as never)
 
-  expect(world.opens).toEqual([{ id: PANE, title: '目录', columns: 44 }])
+  expect(world.opens).toEqual([{ id: PANE, title: '目录', columns: 44, focus: true }])
   expect(ran).toBeDefined()
 })
 

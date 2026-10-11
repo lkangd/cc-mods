@@ -14,7 +14,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { Entry } from './entries'
 import { REFUSED_MS, REFUSED_TEXT, dimRefused, jumpTargetsOf, relisted, sideKeyOf } from './jump'
 import type { Refused } from './jump'
-import { DOCK_STATUS, carriesHistory, isClosedByPerson, isPaneOpen, placementFate, reopensOn } from './lifecycle'
+import { DOCK_STATUS, carriesHistory, isClosedByPerson, placementFate, reopensOn } from './lifecycle'
 import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, filterRows } from './pane'
 import { entryAt, ringMove } from './ring'
 import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
@@ -418,12 +418,12 @@ function autoOpen($: EngineInterface): Promise<void> {
 }
 
 /* /chat-toc: opens the pane, or raises the open one, shown or a tab behind
-   another, and asks for the keyboard. It never closes it. */
+   another, and asks for the keyboard either way: the person asked for it,
+   unlike an open of chat-toc's own. It never closes it. */
 async function openAsked($: EngineInterface): Promise<void> {
   await update($, isClosed, () => false)
   await update($, isInlineAsked, () => true)
-  const isOpen = isPaneOpen(await $.ui.panes())
-  await openPane($, isOpen ? true : undefined)
+  await openPane($, true)
 }
 
 /* Docked: nothing to explain, and a later inline is the terminal narrowing. */

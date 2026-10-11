@@ -42,7 +42,7 @@ test('a session start with the pane gone, closed but not by the person, opens it
   expect(world.opens).toEqual([OPEN])
 })
 
-test('/chat-toc opens the pane when it is not open', async ($, on) => {
+test('/chat-toc opens the pane when it is not open, and asks for the keyboard', async ($, on) => {
   const world = host(on)
   await start($, world)
   world.panes = []
@@ -50,7 +50,9 @@ test('/chat-toc opens the pane when it is not open', async ($, on) => {
 
   await $.command.run({ command: 'chat-toc', args: '' } as never)
 
-  expect(world.opens).toEqual([OPEN])
+  /* The person asked for it: unlike an open of chat-toc's own, it takes
+     the keyboard (user story 3). */
+  expect(world.opens).toEqual([{ ...OPEN, focus: true }])
   expect(world.panes.map(p => p.id)).toEqual([PANE])
 })
 

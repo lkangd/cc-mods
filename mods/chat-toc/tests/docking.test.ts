@@ -104,7 +104,7 @@ test('/chat-toc on the main screen is placed inline and kept, the status line sa
   await mountPane($, 12, 'inline', false)
   await world.clock.settle()
 
-  expect(world.opens).toEqual([OPEN])
+  expect(world.opens).toEqual([{ ...OPEN, focus: true }])
   expect(world.closes).toEqual([])
   expect(last(world.statuses)).toBe(DOCK_STATUS.askedMainScreen)
 })
