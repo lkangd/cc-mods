@@ -10,7 +10,7 @@
    this file, so every call on `$` is made here or in one of them. */
 
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, RenderViewport } from 'claude-code'
 import type { Entry } from './entries'
 import { REFUSED_MS, REFUSED_TEXT, dimRefused, jumpTargetsOf, relisted, sideKeyOf } from './jump'
 import type { Refused } from './jump'
@@ -26,7 +26,7 @@ import { countUnreadable, newReading, readLines } from './regroup'
 import type { Reading } from './regroup'
 import { WHOLE_READ_LIMIT, chunkBytesFor, chunkCommand, chunkText, failReasonOf, readChunks, readCursor, takeWhole } from './source'
 import type { Chunks, FailReason, ReadCursor, SourceRead } from './source'
-import { newSites, noteSite, resolveSites, rowIndex, syncRows } from './sites'
+import { SITE_COMPONENTS, newSites, noteSite, resolveSites, rowIndex, syncRows } from './sites'
 import type { OnScreen, RowIndex, SiteComponent, Sites } from './sites'
 import {
   LOCK_QUIET_MS,
@@ -277,6 +277,15 @@ function sawSite($: EngineInterface, component: SiteComponent, requestId: string
   }
   if (lock !== undefined && isViewChange(was, onScreen)) viewMovedUnderLock($, lock)
   if (onScreen !== undefined) place($)
+}
+
+/* The terminal's layout, as a drawing on it says; the first word of it
+   lets an open that waited for it go ahead. */
+function sawViewport($: EngineInterface, viewport: RenderViewport | undefined): void {
+  const said = viewport?.isFullscreen
+  if (said === undefined || said === isFullscreen) return
+  isFullscreen = said
+  if (isOpenWanted) $.clock.after(0, () => void autoOpen($))
 }
 
 /* One chunk of the file at `offset`, as text. */
@@ -611,7 +620,7 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('ui.scroll', { component: 'Pane', requestId: 'chat-toc' }, async ($, e, next) => {
+  on('ui.scroll', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     if (e.origin.kind !== 'person') return next(e)
     top = scrolledTop(lastWindow, e.by)
     isPaused = true
@@ -622,17 +631,13 @@ export const register: Register = on => {
   /* The hint line is drawn from the start and again after every change of
      width: where chat-toc learns the layout, which the start events lack. */
   on('ui.render', { component: 'PromptHint', surface: 'terminal' }, ($, e, next) => {
-    const said = e.viewport?.isFullscreen
-    if (said !== undefined && said !== isFullscreen) {
-      isFullscreen = said
-      if (isOpenWanted) $.clock.after(0, () => void autoOpen($))
-    }
+    sawViewport($, e.viewport)
     return next(e)
   })
 
   /* The arrows walk the host's focus ring Button by Button; this keeps it
      on entries' first lines and scrolls the window at its ends (ring.ts). */
-  on('ui.focus', { component: 'Pane', requestId: 'chat-toc' }, async ($, e, next) => {
+  on('ui.focus', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     const move = e.origin.kind === 'person' ? ringMove(lastKeys, lastIndexOf, lastWindow, ring, e.element) : { kind: 'accept' as const }
     if (move.kind === 'reveal') {
       const key = lastKeys[move.index]
@@ -651,25 +656,17 @@ export const register: Register = on => {
   })
 
   /* The transcript's rows, read and never redrawn: which requestId each is
-     drawn under, and where it is on screen. */
-  on('ui.render', { component: 'UserMessage' }, ($, e, next) => {
-    sawSite($, 'UserMessage', e.requestId, e.props.onScreen)
-    return next(e)
-  })
-  on('ui.render', { component: 'AssistantMessage' }, ($, e, next) => {
-    sawSite($, 'AssistantMessage', e.requestId, e.props.onScreen)
-    return next(e)
-  })
-  on('ui.render', { component: 'CommandOutput' }, ($, e, next) => {
-    sawSite($, 'CommandOutput', e.requestId, e.props.onScreen)
-    return next(e)
-  })
-  on('ui.render', { component: 'ToolGroup' }, ($, e, next) => {
-    sawSite($, 'ToolGroup', e.requestId, e.props.onScreen)
-    return next(e)
-  })
+     drawn under, and where it is on screen. The terminal's say its layout
+     too, should they come before the hint line. */
+  for (const component of SITE_COMPONENTS) {
+    on('ui.render', { component }, ($, e, next) => {
+      if (e.surface === 'terminal') sawViewport($, e.viewport)
+      sawSite($, component, e.requestId, e.props.onScreen)
+      return next(e)
+    })
+  }
 
-  on('ui.render', { component: 'Pane', requestId: 'chat-toc' }, async ($, e) => {
+  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
     const began = perfNow()
     /* What the drawing needs of the host first; the rest is its own work. */
     await read($, rev)

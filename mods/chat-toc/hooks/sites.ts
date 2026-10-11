@@ -14,7 +14,8 @@
 
 import type { TranscriptRow } from './transcript'
 
-export type SiteComponent = 'UserMessage' | 'AssistantMessage' | 'CommandOutput' | 'ToolGroup'
+export const SITE_COMPONENTS = ['UserMessage', 'AssistantMessage', 'CommandOutput', 'ToolGroup'] as const
+export type SiteComponent = (typeof SITE_COMPONENTS)[number]
 
 /* A site's rows inside the viewport, `null` while drawn outside it,
    undefined before the host laid it out. */
