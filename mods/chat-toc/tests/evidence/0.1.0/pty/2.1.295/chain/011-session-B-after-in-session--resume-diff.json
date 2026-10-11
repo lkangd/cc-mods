@@ -1,0 +1,125 @@
+[
+ {
+  "ok": true,
+  "start": 0,
+  "entries": [
+   {
+    "index": 0,
+    "key": "5c6e4337-15ba-4bdd-9772-19d30e7a269f",
+    "expected": {
+     "key": "5c6e4337-15ba-4bdd-9772-19d30e7a269f",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:00",
+     "userText": "B00 合成问题 0",
+     "agentHead": "",
+     "lastText": "B00 合成回复 0",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 2,
+     "userHead": "你 · 10月9日 09:00",
+     "userLines": [
+      "B00 合成问题 0"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "B00 合成回复 0"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 1,
+    "key": "a372db8f-6e40-4d93-bfed-9235288bc781",
+    "expected": {
+     "key": "a372db8f-6e40-4d93-bfed-9235288bc781",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:00",
+     "userText": "B01 合成问题 1",
+     "agentHead": "1 步",
+     "lastText": "B01 合成回复 1",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 7,
+     "userHead": "你 · 10月9日 09:00",
+     "userLines": [
+      "B01 合成问题 1"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "B01 合成回复 1"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 2,
+    "key": "533c9135-2d3d-454e-861b-90303b08c6e3",
+    "expected": {
+     "key": "533c9135-2d3d-454e-861b-90303b08c6e3",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:00",
+     "userText": "B02 合成问题 2",
+     "agentHead": "",
+     "lastText": "B02 合成回复 2",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 12,
+     "userHead": "你 · 10月9日 09:00",
+     "userLines": [
+      "B02 合成问题 2"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "B02 合成回复 2"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 3,
+    "key": "761ebfd2-bd14-4fa9-b714-210c665d7435",
+    "expected": {
+     "key": "761ebfd2-bd14-4fa9-b714-210c665d7435",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "BYY rewind 之后的一轮",
+     "agentHead": "",
+     "lastText": "BYY 新分支的回复",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 17,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "BYY rewind 之后的一轮"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "BYY 新分支的回复"
+     ],
+     "highlighted": true
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 4,
+   "windowEntries": 4,
+   "start": 0,
+   "problems": 0,
+   "partialTop": false,
+   "notes": []
+  }
+ }
+]

@@ -1,0 +1,45 @@
+==== heavy-2 after the submits (44 rows)
+                                                                                                                             │                                          ✕
+  ⎿  Loaded                                                                                                                  │1: ●全部 2: ○用户 3: ○Agent  l: 布局:卡片
+  ⎿  Loaded                                                                                                                  │  ↳ 14 步
+  ⎿  Loaded                                                                                                                  │    T0105 回复： 第 1 行说明：模块 105 的检
+  ⎿  Loaded                                                                                                                  │    查结果正常，没有发现需要处理的问题。 第…
+                                                                                                                             │
+⏺ T0106 回复：                                                                                                               │  你 · 10月9日 23:50
+  第 1 行说明：模块 106 的检查结果正常，没有发现需要处理的问题。                                                             │  T0106 用户问题：请检查第 106 个模块的状态
+  第 2 行说明：模块 106 的检查结果正常，没有发现需要处理的问题。                                                             │  ， 并说明下一步该做什么。
+  第 3 行说明：模块 106 的检查结果正常，没有发现需要处理的问题。                                                             │  ↳ 14 步
+  第 4 行说明：模块 106 的检查结果正常，没有发现需要处理的问题。                                                             │    T0106 回复： 第 1 行说明：模块 106 的检
+                                                                                                                             │    查结果正常，没有发现需要处理的问题。 第…
+⏺ chat-toc: reloaded (10 hooks: classic.SessionStart, session.start, command.run, ui.close, session.append,                  │
+  turn.start, turn.complete, ui.scroll, ui.render, ui.focus)                                                                 │  你 · 10月11日 20:03
+                                                                                                                             │  CT-PERF 追加的合成 prompt 0
+❯ CT-PERF 追加的合成 prompt 0                                                                                                │  ↳ 出错
+  ⎿  Not logged in · Please run /login                                                                                       │    Not logged in · Please run /login
+                                                                                                                             │
+✻ Sautéed for 0s · done 8:03 PM                                                                                              │  你 · 10月11日 20:03
+                                                                                                                             │  CT-PERF 追加的合成 prompt 1
+❯ CT-PERF 追加的合成 prompt 1                                                                                                │  ↳ 出错
+  ⎿  Not logged in · Please run /login                                                                                       │    Not logged in · Please run /login
+                                                                                                                             │
+✻ Brewed for 0s · done 8:03 PM                                                                                               │  你 · 10月11日 20:03
+                                                                                                                             │  CT-PERF 追加的合成 prompt 2
+❯ CT-PERF 追加的合成 prompt 2                                                                                                │  ↳ 出错
+  ⎿  Not logged in · Please run /login                                                                                       │    Not logged in · Please run /login
+                                                                                                                             │
+✻ Crunched for 0s · done 8:03 PM                                                                                             │  你 · 10月11日 20:04
+                                                                                                                             │  CT-PERF 追加的合成 prompt 3
+❯ CT-PERF 追加的合成 prompt 3                                                                                                │  ↳ 出错
+  ⎿  Not logged in · Please run /login                                                                                       │    Not logged in · Please run /login
+                                                                                                                             │
+✻ Sautéed for 0s · done 8:04 PM                                                                                              │▌ 你 · 10月11日 20:04
+                                                                                                                             │▌ CT-PERF 追加的合成 prompt 4
+❯ CT-PERF 追加的合成 prompt 4                                                                                                │▌ ↳ 出错
+  ⎿  Not logged in · Please run /login                                                                                       │▌   Not logged in · Please run /login
+                                                                                                                             │
+✻ Worked for 0s · done 8:04 PM                                                                                               │
+                                                                                                 Not logged in · Run /login  │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
