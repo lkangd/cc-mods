@@ -1,0 +1,69 @@
+/* The selection cursor: the host's focus ring over the pane's Buttons, kept
+   on entries' first lines. While the pane's tree fits (chat-toc draws only
+   its window) the host moves the ring Button by Button with the arrows, and
+   wraps from the last Button to the first and back. Every line of an entry
+   is a Button, so a step would land on a body line; this turns each step
+   into a step from entry to entry, and past either end of the window into a
+   scroll of it, so the arrows reach every entry. */
+
+import type { TocWindow } from './window'
+
+/* The filter row's Buttons, as drawn left to right. */
+export const FIRST_CONTROL = 'f-all'
+export const LAST_CONTROL = 'layout'
+
+export type RingMove =
+  /* Let the ring land where the host moves it. */
+  | { kind: 'accept' }
+  /* Land on this drawn key instead. */
+  | { kind: 'land'; key: string }
+  /* Bring entry `index` into the window, then land on its first line. */
+  | { kind: 'reveal'; index: number }
+
+type At = { index: number; line: number }
+
+/* Where a Button key is among the entries: `g3.u` is entry g3.u's first
+   line, `g3.u.2` its third. Undefined for a key that is no entry's. */
+export function entryAt(key: string | undefined, indexOf: ReadonlyMap<string, number>): At | undefined {
+  if (key === undefined) return undefined
+  const whole = indexOf.get(key)
+  if (whole !== undefined) return { index: whole, line: 0 }
+  const cut = key.lastIndexOf('.')
+  const index = cut > 0 ? indexOf.get(key.slice(0, cut)) : undefined
+  const line = Number(key.slice(cut + 1))
+  return index === undefined || !Number.isInteger(line) ? undefined : { index, line }
+}
+
+/* The host moving the ring from `from` (where it was; undefined when the
+   pane just took the keyboard) to `to` (undefined for one of the host's own
+   stops). `keys[i]` is entry i's key, `indexOf` the table back. */
+export function ringMove(
+  keys: readonly string[],
+  indexOf: ReadonlyMap<string, number>,
+  window: TocWindow,
+  from: string | undefined,
+  to: string | undefined,
+): RingMove {
+  const was = entryAt(from, indexOf)
+  const next = entryAt(to, indexOf)
+  if (next === undefined) {
+    /* Down from the window's last entry wraps to the first Button: show
+       the entry after it instead, while there is one. */
+    if (to === FIRST_CONTROL && was?.index === window.end - 1 && window.end < keys.length) return { kind: 'reveal', index: window.end }
+    /* Up from the window's first entry goes on to the filter row: show the
+       entry before it instead, while there is one. */
+    if (to === LAST_CONTROL && was?.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
+    return { kind: 'accept' }
+  }
+  if (next.line === 0) return { kind: 'accept' }
+  /* Down off an entry's first line onto its second: the next entry. */
+  if (was?.index === next.index) {
+    const after = next.index + 1
+    if (after < window.end) return { kind: 'land', key: keys[after] ?? FIRST_CONTROL }
+    if (after < keys.length) return { kind: 'reveal', index: after }
+    return { kind: 'land', key: FIRST_CONTROL }
+  }
+  /* Up onto an entry's last line, or anything else onto a later line: that
+     entry's first line. */
+  return { kind: 'land', key: keys[next.index] ?? FIRST_CONTROL }
+}

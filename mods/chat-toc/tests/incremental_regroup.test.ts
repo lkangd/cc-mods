@@ -64,6 +64,25 @@ test('a new branch after a rewind regroups the whole chain, and the abandoned gr
   expect(reading.groups.map(g => g.userText)).toEqual(['CT-SYN keep', 'CT-SYN new branch'])
 })
 
+test('a compaction read after the turns it compacted keeps them, regrouping from the last group only', () => {
+  const t = transcript()
+  t.prompt('CT-SYN before compact')
+  t.reply([{ type: 'text', text: 'early answer' }])
+  const reading = newReading()
+  let at = feed(reading, t, 0)
+
+  t.command('compact', '', 'local')
+  t.compact()
+  at = feed(reading, t, at)
+  expect(reading.lastRegroup).toBe('tail')
+  t.prompt('CT-SYN after compact')
+  at = feed(reading, t, at)
+
+  expect(reading.lastRegroup).toBe('tail')
+  expectSameAsWhole(reading, t.jsonl())
+  expect(reading.groups.map(g => g.userText)).toEqual(['CT-SYN before compact', '/compact', 'CT-SYN after compact'])
+})
+
 test('rows that do not reach the chain, and lines that are not rows, keep the groups the whole file gives', () => {
   const t = transcript()
   const one = t.prompt('CT-SYN one')
@@ -126,6 +145,7 @@ test('any growth, read in any slices, equals regrouping the whole file', () => {
       else if (kind === 5) uuids.push(t.toolResult(`toolu_${step}`))
       else if (kind === 6) uuids.push(t.row({ type: 'user', isMeta: true, message: { role: 'user', content: 'meta' } }))
       else if (kind === 7 && uuids.length > 0 && rand(3) === 0) t.rewindTo(uuids[rand(uuids.length)] ?? null)
+      else if (kind === 8 && rand(4) === 0) uuids.push(t.compact())
       else if (kind === 8) t.row({ type: 'assistant', isSidechain: true, message: { role: 'assistant', content: [] } })
       else uuids.push(t.row({ type: 'system', subtype: 'informational', content: 'note' }))
       if (rand(4) === 0) {
