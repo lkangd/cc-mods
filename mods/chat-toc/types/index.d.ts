@@ -23,10 +23,10 @@ declare module 'claude-code' {
       /* Whether /chat-toc opened the pane and it has not docked since: the
          one inline placement kept rather than withdrawn. */
       isInlineAsked: boolean
-      /* The Current position: the group the transcript's view is on, -1 for
-         none. Derived in this process from what the transcript draws; the
-         pane reads it to redraw the highlight. */
-      currentGroup: number
+      /* The Current position: the group the transcript's view is on, null
+         for none. Derived in this process from what the transcript draws;
+         the pane reads it to redraw the highlight. */
+      currentPosition: number | null
     }
   }
 }

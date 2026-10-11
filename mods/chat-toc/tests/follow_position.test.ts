@@ -209,3 +209,18 @@ test('a Layout switch with no selection keeps the lit group in the window', asyn
   expect(texts.some(s => s.includes('CT-SYN prompt 10'))).toBe(true)
   expect(await saysPaused(pane)).toBe(true)
 })
+
+test('a switch with the focus ring on the filter row, where a hotkey finds it, keeps the lit group in the window', async ($, on) => {
+  const { pane, view } = await session($, on)
+  await view(10)
+  const props = { title: '目录', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 12 }, view: {} }
+  await pane.redraw({ ...props, isFocused: true })
+  await $.ui.focus({ component: 'Pane', requestId: PANE, element: 'f-user', origin: { kind: 'person' } } as never)
+  await scrollPane($, -30)
+  expect(await prompts(pane)).not.toContain('CT-SYN prompt 10')
+
+  await pane.press({ key: 'layout' })
+
+  const texts = await entryTexts(pane)
+  expect(texts.some(s => s.includes('CT-SYN prompt 10'))).toBe(true)
+})

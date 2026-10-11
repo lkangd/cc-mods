@@ -16,7 +16,7 @@ import { REFUSED_MS, REFUSED_TEXT, dimRefused, jumpTargetsOf, relisted, sideKeyO
 import type { Refused } from './jump'
 import { DOCK_STATUS, carriesHistory, isClosedByPerson, placementFate, reopensOn } from './lifecycle'
 import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, filterRows } from './pane'
-import { entryAt, ringMove } from './ring'
+import { entryAt, pendingShown, ringMove } from './ring'
 import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
 import type { Layout, ViewFilter } from './view'
 import { PERF_FLUSH_MS, newPerf, note, perfNow, takeLines } from './perf'
@@ -43,15 +43,15 @@ import {
 import type { JumpLock } from './position'
 import { entryOfGroup, entryTable, newEntryCache } from './table'
 import type { EntryTable } from './table'
-import { scrolledTop, topFollowing, topRevealing, windowOf } from './window'
-import type { TocWindow } from './window'
+import { scrolledTop, topOfDrawing, topRevealing, windowOf } from './window'
+import type { SwitchAnchor, TocWindow } from './window'
 
 const transcriptPath = atom({ plugin: 'chat-toc', key: 'transcriptPath' } as const, '')
 const rev = atom({ plugin: 'chat-toc', key: 'rev' } as const, 0)
 const isClosed = atom({ plugin: 'chat-toc', key: 'isClosed' } as const, false)
 const isCarriedOver = atom({ plugin: 'chat-toc', key: 'isCarriedOver' } as const, false)
 const isInlineAsked = atom({ plugin: 'chat-toc', key: 'isInlineAsked' } as const, false)
-const currentGroup = atom({ plugin: 'chat-toc', key: 'currentGroup' } as const, -1)
+const currentPosition = atom({ plugin: 'chat-toc', key: 'currentPosition' } as const, null as number | null)
 
 type SourceState = 'unknown' | 'missing' | 'ok' | 'failed'
 
@@ -87,9 +87,8 @@ let top: number | undefined
    keyboard, and starts again when the Current position next moves. */
 let isPaused = false
 /* The Current position the window last followed, and the one drawn last. */
-let followed: number | undefined
-let litShown: number | undefined
-let lastWindow: TocWindow = { start: 0, end: 0, maxStart: 0 }
+let positionFollowed: number | undefined
+let positionDrawn: number | undefined
 /* The opens chat-toc makes on its own, one after another, so two start
    events at once (a process started with --resume raises both) find the
    first one's pane and open one. */
@@ -117,20 +116,37 @@ let layout: Layout = 'card'
 
 /* What the pane drew last, for the keyboard and the next switch: the
    entries, their keys and the table back, their heights, the rows the
-   window had. */
-let lastEntries: readonly Entry[] = []
-let lastKeys: readonly string[] = []
-let lastIndexOf: ReadonlyMap<string, number> = new Map()
-let lastHeights: readonly number[] = []
-let lastRows = 1
-/* The Button the host's focus ring is on while the pane has the keyboard. */
+   window had, and the window. */
+type Drawing = {
+  entries: readonly Entry[]
+  keys: readonly string[]
+  indexOf: ReadonlyMap<string, number>
+  heights: readonly number[]
+  rows: number
+  window: TocWindow
+}
+let lastDrawing: Drawing = { entries: [], keys: [], indexOf: new Map(), heights: [], rows: 1, window: { start: 0, end: 0, maxStart: 0 } }
+/* The Button the host's focus ring is on while the pane has the keyboard,
+   as its moves and chat-toc's own sends left it. */
 let ring: string | undefined
 let isPaneFocused = false
+/* An entry the ring goes to once a drawing shows it: after a switch, or
+   after the window moved to bring the next entry in. That drawing sends
+   it, and sends it again a few times while the host refuses it (its new
+   frame not yet in), unless the ring moved on meanwhile. */
+let pendingRing: string | undefined
+const RING_RETRIES = 3
+const RING_RETRY_MS = 50
+/* A sent move is sent once more from a later drawing: across a redraw
+   that changes its Buttons the host puts the ring back on the same place
+   in its order once the new frame is in, at times after the send landed
+   (2.1.287, a switch to the timeline Layout). With no drawing within this
+   long, the pane asks for one. */
+let ringOwed: string | undefined
+const RING_CONFIRM_MS = 150
 /* The group a switch of filter or Layout keeps in view, resolved by the
-   next drawing, and whether the window followed the newest before it. */
-let anchor: { group: number; by: 'ring' | 'lit' | 'top'; wasFollowing: boolean; ring: string | undefined } | undefined
-/* How long after a switch's redraw the ring is put back on its entry. */
-const REFOCUS_MS = 60
+   next drawing. */
+let anchor: SwitchAnchor | undefined
 /* Said at the bottom while the window does not follow the Current position. */
 const PAUSED_TEXT = '暂停'
 
@@ -149,11 +165,15 @@ let isRedrawQueued = false
 /* For the Current position (position.ts): the drawable rows' and the group
    openers' places on the chain, the last row drawn, the group a jump
    locked it on, and the position as last worked out. */
-let drawable: number[] = []
-let openers: number[] = []
-let lastDrawn: number | undefined
-let lock: JumpLock | undefined
-let position: number | undefined
+type Positioning = {
+  drawable: number[]
+  openers: number[]
+  lastDrawn: number | undefined
+  lock: JumpLock | undefined
+  position: number | undefined
+}
+const newPositioning = (): Positioning => ({ drawable: [], openers: [], lastDrawn: undefined, lock: undefined, position: undefined })
+let placing: Positioning = newPositioning()
 let isPositionQueued = false
 
 /* The entries kept between drawings (table.ts). */
@@ -184,11 +204,7 @@ function forget(): void {
   sites = newSites()
   refused = new Map()
   refusal = undefined
-  drawable = []
-  openers = []
-  lastDrawn = undefined
-  lock = undefined
-  position = undefined
+  placing = newPositioning()
   entryCache = newEntryCache()
 }
 
@@ -216,7 +232,7 @@ function redrawSoon($: EngineInterface): void {
   isRedrawQueued = true
   $.clock.after(0, () => {
     isRedrawQueued = false
-    void update($, rev, n => n + 1)
+    void update($, rev, n => n + 1).catch(() => undefined)
   })
 }
 
@@ -225,15 +241,22 @@ function redrawSoon($: EngineInterface): void {
    `$.state`). */
 function place($: EngineInterface): void {
   const began = perf.isOn ? perfNow() : 0
-  const at = positionOf({ live: liveRows(sites, chainRows), drawable, openers, lastDrawn, groups: reading.groups.length, locked: lock?.group })
-  if (perf.isOn) timed($, 'position', [perfNow() - began, sites.onScreen.size, drawable.length])
-  if (at === position) return
-  position = at
+  const position = positionOf({
+    live: liveRows(sites, chainRows),
+    drawable: placing.drawable,
+    openers: placing.openers,
+    lastDrawn: placing.lastDrawn,
+    groups: reading.groups.length,
+    locked: placing.lock?.group,
+  })
+  if (perf.isOn) timed($, 'position', [perfNow() - began, sites.onScreen.size, placing.drawable.length])
+  if (position === placing.position) return
+  placing.position = position
   if (isPositionQueued) return
   isPositionQueued = true
   $.clock.after(0, () => {
     isPositionQueued = false
-    void showPosition($)
+    void showPosition($).catch(() => undefined)
   })
 }
 
@@ -241,9 +264,9 @@ function place($: EngineInterface): void {
    not drawn: a move while it is there ends the pause, so the first frame
    back follows. */
 async function showPosition($: EngineInterface): Promise<void> {
-  const value = position ?? -1
-  if (value === (await read($, currentGroup))) return
-  await update($, currentGroup, () => value)
+  const value = placing.position ?? null
+  if (value === (await read($, currentPosition))) return
+  await update($, currentPosition, () => value)
   if (!isPaused) return
   const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
   if (pane !== undefined && !pane.isShown) isPaused = false
@@ -253,7 +276,7 @@ async function showPosition($: EngineInterface): Promise<void> {
    after the jump's own redraws. */
 function lockAfterJump($: EngineInterface, group: number): void {
   const held = lockOn(group)
-  lock = held
+  placing.lock = held
   $.clock.after(LOCK_QUIET_MS, () => quietAfter(held, 0))
   place($)
 }
@@ -266,14 +289,14 @@ function sawSite($: EngineInterface, component: SiteComponent, requestId: string
   const drawnBefore = sites.idOf.size
   const uuid = noteSite(sites, chainRows, component, requestId, onScreen)
   if (uuid !== undefined && refused.size > 0 && relisted(refused, uuid, reading.groups, chainRows, sites)) redrawSoon($)
-  const at = uuid === undefined ? undefined : chainRows.order.get(uuid)
-  if (at !== undefined && sites.idOf.size !== drawnBefore) {
-    addDrawable(drawable, at)
-    if (lastDrawn === undefined || at > lastDrawn) lastDrawn = at
+  const order = uuid === undefined ? undefined : chainRows.order.get(uuid)
+  if (order !== undefined && sites.idOf.size !== drawnBefore) {
+    addDrawable(placing.drawable, order)
+    if (placing.lastDrawn === undefined || order > placing.lastDrawn) placing.lastDrawn = order
   }
-  const held = lock
+  const held = placing.lock
   const report = siteReport(held, was, onScreen)
-  lock = report.lock
+  placing.lock = report.lock
   const change = report.quietAfter
   if (held !== undefined && change !== undefined) $.clock.after(LOCK_QUIET_MS, () => quietAfter(held, change))
   if (report.isPlaced) place($)
@@ -367,9 +390,9 @@ async function load($: EngineInterface): Promise<void> {
   }
   /* The rows a read brings, and a hot reload's sites drawn before it, only
      place the view once the rows are known. */
-  openers = openerRows(reading.groups, chainRows)
-  drawable = drawableRows(chainRows, sites)
-  lastDrawn = lastDrawnRow(chainRows, sites)
+  placing.openers = openerRows(reading.groups, chainRows)
+  placing.drawable = drawableRows(chainRows, sites)
+  placing.lastDrawn = lastDrawnRow(chainRows, sites)
   place($)
   if (perf.isOn && got.kind === 'lines') {
     const ended = perfNow()
@@ -388,12 +411,14 @@ function readNow($: EngineInterface): void {
       if (gateFinish(gate)) readNow($)
       else if (isTurnEnding) endTurn($)
     })
+    /* Nothing of a failure is said here: its text may quote the file. */
+    .catch(() => undefined)
 }
 
 function endTurn($: EngineInterface): void {
   isTurnRunning = false
   isTurnEnding = false
-  void update($, rev, n => n + 1)
+  void update($, rev, n => n + 1).catch(() => undefined)
 }
 
 function requestRead($: EngineInterface): void {
@@ -498,7 +523,7 @@ async function jump($: EngineInterface, entry: Entry): Promise<void> {
   $.clock.after(REFUSED_MS, () => {
     if (refusal?.n !== n) return
     refusal = undefined
-    void update($, rev, x => x + 1)
+    void update($, rev, x => x + 1).catch(() => undefined)
   })
   await update($, rev, x => x + 1)
 }
@@ -527,14 +552,14 @@ async function loadChoices($: EngineInterface): Promise<void> {
    in view itself, or follows the newest. */
 function anchorForSwitch(): void {
   const wasFollowing = top === undefined
-  const at = isPaneFocused ? entryAt(ring, lastIndexOf) : undefined
-  const selected = at === undefined ? undefined : lastEntries[at.index]
-  if (selected !== undefined) anchor = { group: selected.groupIndex, by: 'ring', wasFollowing, ring }
+  const selectedAt = isPaneFocused ? entryAt(ring, lastDrawing.indexOf) : undefined
+  const selected = selectedAt === undefined ? undefined : lastDrawing.entries[selectedAt.index]
+  if (selected !== undefined && ring !== undefined) anchor = { by: 'ring', ring, group: selected.groupIndex, wasFollowing }
   else if (!isPaused && !isPaneFocused) anchor = undefined
-  else if (litShown !== undefined) anchor = { group: litShown, by: 'lit', wasFollowing, ring: undefined }
+  else if (positionDrawn !== undefined) anchor = { by: 'lit', group: positionDrawn, wasFollowing }
   else {
-    const entry = top !== undefined ? lastEntries[lastWindow.start] : undefined
-    anchor = entry === undefined ? undefined : { group: entry.groupIndex, by: 'top', wasFollowing, ring: undefined }
+    const entry = top !== undefined ? lastDrawing.entries[lastDrawing.window.start] : undefined
+    anchor = entry === undefined ? undefined : { by: 'top', group: entry.groupIndex, wasFollowing }
   }
 }
 
@@ -555,12 +580,21 @@ async function chooseLayout($: EngineInterface): Promise<void> {
   await $.store.set(LAYOUT_KEY, layout).catch(() => undefined)
 }
 
-/* Lands the focus ring on a Button the next drawing brings. The host does
-   not raise this plugin's own move to its `ui.focus` hook, so the ring is
-   noted here. */
-async function focusKey($: EngineInterface, key: string): Promise<void> {
-  const moved = await $.ui.focus({ requestId: PANE_ID, key }).catch(() => ({ deny: 'failed' }))
-  if (moved.deny === undefined) ring = key
+/* Moves the focus ring onto an entry a drawing now shows (the drawing
+   noted it in `ring` already: the host does not raise this plugin's own
+   move to its `ui.focus` hook). Refused while the new frame is not in, it
+   is sent again a few times, as long as the ring is still headed there. */
+function sendRing($: EngineInterface, key: string, left = RING_RETRIES): void {
+  if (ring !== key) return
+  const again = () => {
+    if (left > 0) $.clock.after(RING_RETRY_MS, () => sendRing($, key, left - 1))
+  }
+  void $.ui.focus({ requestId: PANE_ID, key }).then(
+    moved => {
+      if (moved.deny !== undefined) again()
+    },
+    () => again(),
+  )
 }
 
 export const register: Register = on => {
@@ -636,7 +670,7 @@ export const register: Register = on => {
 
   on('ui.scroll', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     if (e.origin.kind !== 'person') return next(e)
-    top = scrolledTop(lastWindow, e.by)
+    top = scrolledTop(lastDrawing.window, e.by)
     isPaused = true
     await update($, rev, n => n + 1)
     return {}
@@ -652,20 +686,24 @@ export const register: Register = on => {
   /* The arrows walk the host's focus ring Button by Button; this keeps it
      on entries' first lines and scrolls the window at its ends (ring.ts). */
   on('ui.focus', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
-    const move = e.origin.kind === 'person' ? ringMove(lastKeys, lastIndexOf, lastWindow, ring, e.element) : { kind: 'accept' as const }
+    const drawn = lastDrawing
+    const move = e.origin.kind === 'person' ? ringMove(drawn.keys, drawn.indexOf, drawn.window, ring, e.element) : { kind: 'accept' as const }
     if (move.kind === 'reveal') {
-      const key = lastKeys[move.index]
+      const key = drawn.keys[move.index]
       if (key === undefined) return next(e)
-      top = topRevealing(lastHeights, lastRows, lastWindow, move.index)
+      top = topRevealing(drawn.heights, drawn.rows, drawn.window, move.index)
+      pendingRing = key
       selectionMoved($, key)
       await update($, rev, n => n + 1)
-      $.clock.after(0, () => void focusKey($, key))
       return { deny: 'chat-toc moves its window to the next entry first' }
     }
     const element = move.kind === 'land' ? move.key : e.element
     const result = await next(move.kind === 'land' ? { ...e, element: move.key } : e)
-    if (result.deny === undefined) ring = element
-    if (result.deny === undefined) selectionMoved($, element)
+    if (result.deny === undefined) {
+      ring = element
+      pendingRing = undefined
+      selectionMoved($, element)
+    }
     return result
   })
 
@@ -673,7 +711,9 @@ export const register: Register = on => {
      drawn under, and where it is on screen. The terminal's say its layout
      too, should they come before the hint line. */
   for (const component of SITE_COMPONENTS) {
-    on('ui.render', { component }, ($, e, next) => {
+    /* The matcher wants one component's type; every site's props carry
+       `onScreen` alike, so the first stands for all four. */
+    on('ui.render', { component: component as 'UserMessage' }, ($, e, next) => {
       if (e.surface === 'terminal') sawViewport($, e.viewport)
       sawSite($, component, e.requestId, e.props.onScreen)
       return next(e)
@@ -684,28 +724,30 @@ export const register: Register = on => {
     const began = perfNow()
     /* What the drawing needs of the host first; the rest is its own work. */
     await read($, rev)
-    const lit = await read($, currentGroup)
+    const position = (await read($, currentPosition)) ?? undefined
     const isAsked = await read($, isInlineAsked)
     const isCarried = await read($, isCarriedOver)
     const nowMs = await $.clock.now()
     const awaited = perfNow()
     const wasFocused = isPaneFocused
     isPaneFocused = e.props.isFocused
-    if (!isPaneFocused) ring = undefined
+    if (!isPaneFocused) {
+      ring = undefined
+      pendingRing = undefined
+    }
     /* The keyboard pauses following; once it is given back, a position
        that moved meanwhile, or moves next, is followed again. */
     if (isPaneFocused && !wasFocused) isPaused = true
-    if (!isPaneFocused && lit !== followed) {
-      followed = lit
+    if (!isPaneFocused && position !== positionFollowed) {
+      positionFollowed = position
       isPaused = false
     }
     const isHeld = isPaused || isPaneFocused
-    const litGroup = lit >= 0 ? lit : undefined
-    litShown = litGroup
+    positionDrawn = position
     /* A drawing writes nothing, so what its placement asks is done after. */
     const fate = placementFate(e.props.placement, isAsked)
-    if (fate === 'docked' && (statusShown !== undefined || isAsked || withdrawals > 0)) $.clock.after(0, () => void settleDocked($))
-    if (fate === 'withdraw' && !isWithdrawing) $.clock.after(0, () => void withdraw($))
+    if (fate === 'docked' && (statusShown !== undefined || isAsked || withdrawals > 0)) $.clock.after(0, () => void settleDocked($).catch(() => undefined))
+    if (fate === 'withdraw' && !isWithdrawing) $.clock.after(0, () => void withdraw($).catch(() => undefined))
     if (fate === 'asked-inline') {
       const text = e.viewport?.isFullscreen === false ? DOCK_STATUS.askedMainScreen : DOCK_STATUS.askedNarrow
       if (text !== statusShown) $.clock.after(0, () => showStatus($, text))
@@ -724,41 +766,43 @@ export const register: Register = on => {
       (s): s is string => s !== undefined,
     )
     const footer = footerLines.length > 0 ? footerLines.join('\n') : undefined
-    const heights = table.heights
     const headRows = filterRows(width, filter, layout)
     const rows = e.props.scroll.bodyRows - headRows - (notice === undefined ? 0 : 1) - footerLines.length
-    if (!isHeld) {
-      const index = litGroup === undefined ? undefined : entryOfGroup(table, litGroup)
-      top = topFollowing(heights, rows, top, index, litGroup === reading.groups.length - 1)
+    const drawnEntries = { heights: table.heights, rows, keys: table.keys, indexOf: table.indexOf }
+    const kept = anchor
+    anchor = undefined
+    const anchorIndex = kept === undefined ? undefined : entryOfGroup(table, kept.group)
+    const placed = topOfDrawing(drawnEntries, {
+      top,
+      follow: isHeld ? undefined : { index: position === undefined ? undefined : entryOfGroup(table, position), isLast: position === reading.groups.length - 1 },
+      anchor: kept === undefined || anchorIndex === undefined ? undefined : { ...kept, index: anchorIndex },
+    })
+    top = placed.top
+    if (placed.refocusKey !== undefined) pendingRing = placed.refocusKey
+    const window = windowOf(table.heights, rows, top)
+    lastDrawing = { ...drawnEntries, entries, window }
+    /* The ring move owed to an entry goes once this drawing shows it, and
+       once more from the drawing after, which the confirm timer asks for. */
+    const ringTo = pendingShown(pendingRing, table.indexOf, window)
+    const owed = ringOwed
+    ringOwed = undefined
+    if (ringTo !== undefined) {
+      pendingRing = undefined
+      ring = ringTo
+      ringOwed = ringTo
+      $.clock.after(0, () => sendRing($, ringTo))
+      $.clock.after(RING_CONFIRM_MS, () => {
+        if (ringOwed === ringTo && ring === ringTo && isPaneFocused) redrawSoon($)
+      })
+    } else if (owed !== undefined && owed === ring && table.indexOf.has(owed)) {
+      $.clock.after(0, () => sendRing($, owed))
     }
-    if (anchor !== undefined) {
-      const kept = anchor
-      anchor = undefined
-      const index = entryOfGroup(table, kept.group)
-      if (index !== undefined) {
-        const shown = windowOf(heights, rows, kept.by === 'lit' ? top : undefined)
-        const isOut = index < shown.start || index >= shown.end
-        if (kept.by === 'top' || (kept.by === 'ring' && (!kept.wasFollowing || isOut))) top = index
-        else if (kept.by === 'lit' && isOut) top = topRevealing(heights, rows, shown, index)
-        /* The host keeps the ring on the same place in its order across
-           the redraw, a body line now; put it back on the selected entry
-           once the new drawing is laid out. */
-        const key = kept.ring !== undefined && table.indexOf.has(kept.ring) ? kept.ring : entries[index]?.key
-        if (kept.ring !== undefined && key !== undefined) $.clock.after(REFOCUS_MS, () => void focusKey($, key))
-      }
-    }
-    lastWindow = windowOf(heights, rows, top)
-    lastEntries = entries
-    lastKeys = table.keys
-    lastIndexOf = table.indexOf
-    lastHeights = heights
-    lastRows = rows
     const drawn = drawPane($.ui.resolve(e), {
       entries,
-      window: lastWindow,
+      window,
       layout,
       filter,
-      litGroup,
+      litGroup: position,
       headRows,
       notice,
       footer,

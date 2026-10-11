@@ -70,3 +70,45 @@ export function scrolledTop(current: TocWindow, by: number): number | undefined 
   const top = Math.max(0, current.start + by)
   return top >= current.maxStart ? undefined : top
 }
+
+/* The group a switch of filter or Layout keeps in view, by what chose it:
+   the entry the focus ring is on (`ring`, its key then), the lit group, or
+   the window's top group; and whether the window followed the newest
+   before the switch. */
+export type SwitchAnchor = { group: number; wasFollowing: boolean } & ({ by: 'ring'; ring: string } | { by: 'lit' } | { by: 'top' })
+
+/* What a drawing knows of its entries: their heights, its window's rows,
+   their keys and the table back. */
+export type DrawnEntries = {
+  heights: readonly number[]
+  rows: number
+  keys: readonly string[]
+  indexOf: ReadonlyMap<string, number>
+}
+
+/* Where a drawing puts the window's top: following the lit group, whose
+   first entry is `follow.index`, unless held (`follow` undefined); then,
+   after a switch, keeping its anchor (resolved to the anchor group's first
+   entry, `index`) in view. With a ring anchor, also the Button the focus
+   ring goes back to: the host keeps the ring on the same place in its order
+   across the redraw, a body line by then. */
+export function topOfDrawing(
+  drawn: DrawnEntries,
+  input: {
+    top: number | undefined
+    follow: { index: number | undefined; isLast: boolean } | undefined
+    anchor: (SwitchAnchor & { index: number }) | undefined
+  },
+): { top: number | undefined; refocusKey: string | undefined } {
+  const { heights, rows } = drawn
+  let top = input.follow === undefined ? input.top : topFollowing(heights, rows, input.top, input.follow.index, input.follow.isLast)
+  const anchor = input.anchor
+  if (anchor === undefined) return { top, refocusKey: undefined }
+  const index = anchor.index
+  const shown = windowOf(heights, rows, anchor.by === 'lit' ? top : undefined)
+  const isOut = index < shown.start || index >= shown.end
+  if (anchor.by === 'top' || (anchor.by === 'ring' && (!anchor.wasFollowing || isOut))) top = index
+  else if (anchor.by === 'lit' && isOut) top = topRevealing(heights, rows, shown, index)
+  if (anchor.by !== 'ring') return { top, refocusKey: undefined }
+  return { top, refocusKey: drawn.indexOf.has(anchor.ring) ? anchor.ring : drawn.keys[index] }
+}
