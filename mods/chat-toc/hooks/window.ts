@@ -34,6 +34,24 @@ export function windowOf(heights: readonly number[], bodyRows: number, top: numb
   return { start, end, maxStart }
 }
 
+/* Where the window's top goes for entry `index` to show: unmoved when it
+   shows, else as little as moves it in, at the bottom coming from above
+   and at the top coming from below; undefined at the end, which follows. */
+export function topRevealing(heights: readonly number[], bodyRows: number, current: TocWindow, index: number): number | undefined {
+  let top = current.start
+  if (index < current.start) top = index
+  else if (index >= current.end) {
+    const rows = Math.max(1, bodyRows)
+    top = index
+    let used = heights[index] ?? 0
+    while (top > 0 && used + (heights[top - 1] ?? 0) <= rows) {
+      top -= 1
+      used += heights[top] ?? 0
+    }
+  }
+  return top >= current.maxStart ? undefined : top
+}
+
 /* Where the window's top goes after the person scrolls `by` entries from
    `current`; undefined once it reaches the end, which follows again. */
 export function scrolledTop(current: TocWindow, by: number): number | undefined {
