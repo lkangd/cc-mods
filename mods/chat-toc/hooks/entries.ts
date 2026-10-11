@@ -123,35 +123,43 @@ export type EntryOptions = {
   isRunning: boolean
 }
 
-/* The entries the pane lists, in order: each group's User input side, then
-   its Agent reply side when it has one, as the filter lets them through. A
-   group with no side the filter lets through is not listed. */
-export function entriesOf(groups: readonly TurnGroup[], options: EntryOptions): Entry[] {
-  const { layout, filter, width, nowMs, isRunning } = options
+/* One group's entries, in order: its User input side, then its Agent reply
+   side when it has one, as the filter lets them through; none when it lets
+   neither through. The group's last entry has a gap after it in the card
+   and timeline Layouts; the list's very last entry drops it. */
+export function groupEntries(group: TurnGroup, i: number, isGroupRunning: boolean, options: EntryOptions): Entry[] {
+  const { layout, filter, width, nowMs } = options
   const room = width - GUTTER[layout]
+  const sides: ('user' | 'agent')[] = []
+  if (filter !== 'agent') sides.push('user')
+  if (filter !== 'user' && (group.hasAgentReply || isGroupRunning)) sides.push('agent')
+  return sides.map((side, n) => {
+    const drawn =
+      layout === 'card'
+        ? cardSide(group, i, side, room, nowMs, isGroupRunning)
+        : layout === 'compact'
+          ? compactSide(group, i, side, room, isGroupRunning)
+          : timelineSide(group, i, side, room, isGroupRunning)
+    const time = layout === 'timeline' && side === 'user' ? clockTime(group.timestamp) : ''
+    return { ...drawn, time, gapAfter: layout !== 'compact' && n === sides.length - 1 }
+  })
+}
+
+/* The list's last entry, which has nothing after it to part from. */
+export function withoutTrailingGap(entries: Entry[]): Entry[] {
+  const last = entries[entries.length - 1]
+  if (last?.gapAfter) entries[entries.length - 1] = { ...last, gapAfter: false }
+  return entries
+}
+
+/* The entries the pane lists, in order: each group's, as `groupEntries`
+   gives them. A group with no side the filter lets through is not listed. */
+export function entriesOf(groups: readonly TurnGroup[], options: EntryOptions): Entry[] {
   const entries: Entry[] = []
   groups.forEach((group, i) => {
-    const isGroupRunning = isRunning && i === groups.length - 1
-    const sides: ('user' | 'agent')[] = []
-    if (filter !== 'agent') sides.push('user')
-    if (filter !== 'user' && (group.hasAgentReply || isGroupRunning)) sides.push('agent')
-    for (const side of sides) {
-      const drawn =
-        layout === 'card'
-          ? cardSide(group, i, side, room, nowMs, isGroupRunning)
-          : layout === 'compact'
-            ? compactSide(group, i, side, room, isGroupRunning)
-            : timelineSide(group, i, side, room, isGroupRunning)
-      entries.push({ ...drawn, time: layout === 'timeline' && side === 'user' ? clockTime(group.timestamp) : '', gapAfter: false })
-    }
+    for (const entry of groupEntries(group, i, options.isRunning && i === groups.length - 1, options)) entries.push(entry)
   })
-  if (layout !== 'compact') {
-    entries.forEach((entry, i) => {
-      const next = entries[i + 1]
-      entry.gapAfter = next !== undefined && next.groupIndex !== entry.groupIndex
-    })
-  }
-  return entries
+  return withoutTrailingGap(entries)
 }
 
 /* The first entry of group `group` or, when it shows none, of the first
