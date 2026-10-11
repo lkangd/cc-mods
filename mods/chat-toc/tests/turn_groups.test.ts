@@ -58,6 +58,32 @@ test('a branch the conversation was rewound away from is not listed', () => {
   expect(groups[0]?.openerUuid).toBe(kept)
 })
 
+test('turn groups from before a compaction are still listed, the summary joins no new group', () => {
+  const t = transcript()
+  t.prompt('CT-SYN before compact')
+  t.reply([{ type: 'text', text: 'early answer' }])
+  t.command('compact', '', 'local')
+  t.compact()
+  t.prompt('CT-SYN after compact')
+  t.reply([{ type: 'text', text: 'late answer' }])
+
+  expect(tocModel(t.jsonl()).groups.map(g => g.userText)).toEqual(['CT-SYN before compact', '/compact', 'CT-SYN after compact'])
+})
+
+test('a compaction after a rewind keeps only the branch it was compacted on', () => {
+  const t = transcript()
+  t.prompt('CT-SYN kept')
+  const kept = t.reply([{ type: 'text', text: 'kept answer' }])
+  t.prompt('CT-SYN abandoned')
+  t.rewindTo(kept)
+  t.prompt('CT-SYN new branch')
+  t.compact()
+  t.compact()
+  t.prompt('CT-SYN after two compactions')
+
+  expect(tocModel(t.jsonl()).groups.map(g => g.userText)).toEqual(['CT-SYN kept', 'CT-SYN new branch', 'CT-SYN after two compactions'])
+})
+
 test('a subagent sidechain is not part of the transcript', () => {
   const t = transcript()
   t.prompt('CT-SYN main')
