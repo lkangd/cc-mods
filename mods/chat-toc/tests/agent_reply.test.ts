@@ -128,7 +128,7 @@ test('a local command, and a shell command the agent did no work on, have no Age
   ])
 })
 
-test('a prompt the file holds nothing after yet has no Agent reply to show', () => {
+test('a User input the file holds nothing after yet has no Agent reply to show', () => {
   const t = transcript()
   t.prompt('CT-SYN just sent')
 
