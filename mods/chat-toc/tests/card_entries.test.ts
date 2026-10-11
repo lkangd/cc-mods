@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { cardEntries, formatTime } from '../hooks/entries'
 import type { Entry } from '../hooks/entries'
-import { wrapCells } from '../hooks/cells'
+import { textCells, wrapCells } from '../hooks/cells'
 import { tocModel } from '../hooks/model'
 import { transcript } from './fixture'
 import type { Builder, Row } from './fixture'
@@ -169,4 +169,14 @@ test('a short prompt is not given an ellipsis', () => {
 test('wide characters take two cells', () => {
   expect(wrapCells('一二三四五六七八九十', 8, 2)).toEqual(['一二三四', '五六七…'])
   expect(wrapCells('ab一二三', 5, 2)).toEqual(['ab一', '二三'])
+})
+
+/* CT-TURN-003: the host draws an emoji-presentation character two cells
+   wide even below the astral planes (✨ U+2728, ✅, ⭐, ⚡), so a line of
+   them folds where the terminal does. */
+test('emoji drawn as emoji by default take two cells, as the host draws them', () => {
+  expect(textCells('✨✅⭐⚡⌛')).toBe(10)
+  expect(wrapCells('✨✨✨✨✨✨', 8, 2)).toEqual(['✨✨✨✨', '✨✨'])
+  /* Text-presentation symbols stay one cell. */
+  expect(textCells('↳·•✓★')).toBe(5)
 })

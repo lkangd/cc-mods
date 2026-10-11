@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import { cardEntries } from '../hooks/entries'
 import { jumpTargetOf } from '../hooks/jump'
 import { tocModel } from '../hooks/model'
-import { NOW, PANE, appendRow, drawnButtons, host, mountPane, readsOf, start } from './host'
+import { NOW, PANE, appendRow, drawnButtons, entryTexts, host, isEntryKey, mountPane, readsOf, start } from './host'
 import { transcript } from './fixture'
 
 /* The tracer: a fullscreen session opens the docked Chat TOC, which lists
@@ -45,7 +45,7 @@ test('the pane lists each prompt as a dim header and its first lines', async ($,
 
   const pane = await mountPane($)
 
-  expect(drawnButtons(await pane.drawn())).toEqual([
+  expect(drawnButtons(await pane.drawn()).filter(b => isEntryKey(b.key))).toEqual([
     { key: 'g0.u', label: '你 · 10月10日 09:05', plain: true, dimColor: true, hover: { scope: 'e-g0.u', inverse: true } },
     { key: 'g0.u.1', label: 'CT-SYN first prompt', plain: true, dimColor: false, hover: { scope: 'e-g0.u', inverse: true } },
     { key: 'g0.a', label: '↳', plain: true, dimColor: true, hover: { scope: 'e-g0.a', inverse: true } },
@@ -64,10 +64,10 @@ test('a blank line parts one turn group from the next, not the two sides of one'
   const world = host(on, t.jsonl())
   await start($, world)
 
-  /* Two groups of two 2-line sides and one blank line between: 9 rows. */
-  const pane = await mountPane($, 9)
+  /* The filter row, then two groups of two 2-line sides and one blank line between: 10 rows. */
+  const pane = await mountPane($, 10)
 
-  expect((await pane.findAll({ type: 'Button' })).map(b => b.text).filter(s => s.includes('CT-SYN'))).toEqual([
+  expect((await entryTexts(pane)).filter(s => s.includes('CT-SYN'))).toEqual([
     'CT-SYN first prompt',
     '  CT-SYN first answer',
     'CT-SYN second prompt',
@@ -85,7 +85,7 @@ test('a running turn shows in progress with its steps so far, and its count once
   const world = host(on, t.jsonl())
   await start($, world)
   const pane = await mountPane($)
-  const heads = async () => (await pane.findAll({ type: 'Button' })).map(b => b.text).filter(s => s.startsWith('↳'))
+  const heads = async () => (await entryTexts(pane)).filter(s => s.startsWith('↳'))
 
   await $.turn.start({ text: 'CT-SYN working', turnId: 'turn-1' })
   const asked = t.prompt('CT-SYN working')
@@ -124,8 +124,8 @@ test('a turn that completes with every row already read stops showing in progres
   await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 'turn-1', reason: 'answer' })
   await world.clock.advance(300)
 
-  expect((await pane.findAll({ type: 'Button' })).map(b => b.text)).toContain('↳')
-  expect((await pane.findAll({ type: 'Button' })).map(b => b.text).some(s => s.includes('进行中'))).toBe(false)
+  expect((await entryTexts(pane))).toContain('↳')
+  expect((await entryTexts(pane)).some(s => s.includes('进行中'))).toBe(false)
 })
 
 test("a subagent's turn does not end the main agent's", async ($, on) => {
@@ -139,7 +139,7 @@ test("a subagent's turn does not end the main agent's", async ($, on) => {
   await world.clock.advance(2000)
 
   const pane = await mountPane($)
-  expect((await pane.findAll({ type: 'Button' })).map(b => b.text)).toContain('↳ 进行中 · 1 步')
+  expect((await entryTexts(pane))).toContain('↳ 进行中 · 1 步')
 })
 
 test('every line of a prompt jumps to that prompt, its top at the top of the view', async ($, on) => {
@@ -164,7 +164,7 @@ test('before the first message the file does not exist and the pane says so', as
   await start($, world)
   const pane = await mountPane($)
 
-  expect(await pane.findAll({ type: 'Button' })).toEqual([])
+  expect(await entryTexts(pane)).toEqual([])
   expect((await pane.find({ type: 'Text', text: '本会话还没有对话' }))?.text).toBe('本会话还没有对话')
 })
 
@@ -179,7 +179,7 @@ test('the first prompt written to the file appears once its row is appended', as
   await appendRow($, first)
   await world.clock.advance(300)
 
-  expect((await pane.findAll({ type: 'Button' })).map(b => b.text)).toContain('CT-SYN arrives')
+  expect((await entryTexts(pane))).toContain('CT-SYN arrives')
   expect(await pane.find({ text: '本会话还没有对话' })).toBeUndefined()
 })
 
@@ -251,7 +251,7 @@ test('a finished turn reads at 300 ms and looks again 1.5 s later for rows writt
   await world.clock.advance(1200)
   expect(readsOf(world)).toBe(1)
   const pane = await mountPane($)
-  expect((await pane.findAll({ type: 'Button' })).map(b => b.text)).toContain('CT-SYN late row')
+  expect((await entryTexts(pane))).toContain('CT-SYN late row')
 })
 
 test('a read that lands while another runs is not lost', async ($, on) => {
@@ -277,5 +277,5 @@ test('a read that lands while another runs is not lost', async ($, on) => {
   await world.clock.settle()
 
   const pane = await mountPane($)
-  expect((await pane.findAll({ type: 'Button' })).map(b => b.text)).toContain('CT-SYN three')
+  expect((await entryTexts(pane))).toContain('CT-SYN three')
 })
