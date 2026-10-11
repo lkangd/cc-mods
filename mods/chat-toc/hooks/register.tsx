@@ -77,7 +77,9 @@ let ring: string | undefined
 let isPaneFocused = false
 /* The group a switch of filter or Layout keeps in view, resolved by the
    next drawing, and whether the window followed the newest before it. */
-let anchor: { group: number; wasFollowing: boolean; refocus: boolean } | undefined
+let anchor: { group: number; wasFollowing: boolean; ring: string | undefined } | undefined
+/* How long after a switch's redraw the ring is put back on its entry. */
+const REFOCUS_MS = 60
 
 function startOver(): void {
   reading = newReading()
@@ -203,7 +205,7 @@ async function loadChoices($: EngineInterface): Promise<void> {
 function anchorForSwitch(): void {
   const at = isPaneFocused ? entryAt(ring, lastIndexOf) : undefined
   const entry = at !== undefined ? lastEntries[at.index] : top !== undefined ? lastEntries[lastWindow.start] : undefined
-  anchor = entry === undefined ? undefined : { group: entry.groupIndex, wasFollowing: top === undefined, refocus: at !== undefined }
+  anchor = entry === undefined ? undefined : { group: entry.groupIndex, wasFollowing: top === undefined, ring: at === undefined ? undefined : ring }
 }
 
 /* The choice applies at once; a store that refuses it only means it is
@@ -223,9 +225,12 @@ async function chooseLayout($: EngineInterface): Promise<void> {
   await $.store.set(LAYOUT_KEY, layout).catch(() => undefined)
 }
 
-/* Lands the focus ring on a Button the next drawing brings. */
+/* Lands the focus ring on a Button the next drawing brings. The host does
+   not raise this plugin's own move to its `ui.focus` hook, so the ring is
+   noted here. */
 async function focusKey($: EngineInterface, key: string): Promise<void> {
-  await $.ui.focus({ requestId: PANE_ID, key }).catch(() => undefined)
+  const moved = await $.ui.focus({ requestId: PANE_ID, key }).catch(() => ({ deny: 'failed' }))
+  if (moved.deny === undefined) ring = key
 }
 
 export const register: Register = on => {
@@ -321,8 +326,11 @@ export const register: Register = on => {
       if (index !== undefined) {
         const following = windowOf(heights, rows, undefined)
         if (!kept.wasFollowing || index < following.start || index >= following.end) top = index
-        const key = entries[index]?.key
-        if (kept.refocus && key !== undefined) $.clock.after(0, () => void focusKey($, key))
+        /* The host keeps the ring on the same place in its order across
+           the redraw, a body line now; put it back on the selected entry
+           once the new drawing is laid out. */
+        const key = kept.ring !== undefined && entries.some(entry => entry.key === kept.ring) ? kept.ring : entries[index]?.key
+        if (kept.ring !== undefined && key !== undefined) $.clock.after(REFOCUS_MS, () => void focusKey($, key))
       }
     }
     lastWindow = windowOf(heights, rows, top)
