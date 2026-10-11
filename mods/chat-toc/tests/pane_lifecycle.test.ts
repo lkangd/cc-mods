@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { isClosedByPerson, reopensOn } from '../hooks/lifecycle'
-import { PANE, TRANSCRIPT, host, mountPane, readsOf, start } from './host'
+import { PANE, TRANSCRIPT, appendRow, host, mountPane, readsOf, start } from './host'
 import { transcript } from './fixture'
 
 /* The pane's lifecycle (spec §2): it opens on its own when a session starts,
@@ -177,4 +177,58 @@ test('/resume reads the resumed session from its own file', async ($, on) => {
   expect(readsOf(world)).toBeGreaterThan(before)
   const texts = (await pane.findAll({ type: 'Button' })).map(b => b.text).filter(s => s.startsWith('CT-SYN'))
   expect(texts).toEqual(['CT-SYN resumed session'])
+})
+
+/* A resumed or forked session can show its history in the transcript while
+   its own file is not written yet (the host writes a fork's file at the
+   first submit): the pane says so, not that there is no conversation. */
+
+const NOT_WRITTEN = '本会话还没写进 transcript 文件，提交第一条消息后显示目录'
+
+for (const source of ['resume', 'fork'] as const) {
+  test(`a session started by ${source} whose file is not written yet says the list shows after the first submit`, async ($, on) => {
+    const world = host(on, undefined, OTHER_TRANSCRIPT)
+    await $.classic.SessionStart({ source, transcript_path: OTHER_TRANSCRIPT })
+    await world.clock.settle()
+    const pane = await mountPane($)
+
+    expect((await pane.find({ type: 'Text', text: NOT_WRITTEN }))?.text).toBe(NOT_WRITTEN)
+    expect(await pane.find({ type: 'Text', text: '本会话还没有对话' })).toBeUndefined()
+  })
+}
+
+test('a session started or cleared with no file yet still says it has no conversation', async ($, on) => {
+  const world = host(on, undefined, OTHER_TRANSCRIPT)
+  await $.classic.SessionStart({ source: 'clear', transcript_path: OTHER_TRANSCRIPT })
+  await world.clock.settle()
+  const pane = await mountPane($)
+
+  expect((await pane.find({ type: 'Text', text: '本会话还没有对话' }))?.text).toBe('本会话还没有对话')
+  expect(await pane.find({ type: 'Text', text: NOT_WRITTEN })).toBeUndefined()
+})
+
+test('a compaction in a resumed session that is written already does not change what an empty file says later', async ($, on) => {
+  const world = host(on, undefined, OTHER_TRANSCRIPT)
+  await $.classic.SessionStart({ source: 'startup', transcript_path: OTHER_TRANSCRIPT })
+  await $.classic.SessionStart({ source: 'compact', transcript_path: OTHER_TRANSCRIPT })
+  await world.clock.settle()
+  const pane = await mountPane($)
+
+  expect((await pane.find({ type: 'Text', text: '本会话还没有对话' }))?.text).toBe('本会话还没有对话')
+})
+
+test("once a resumed session's file is written its turns are listed", async ($, on) => {
+  const world = host(on, undefined, OTHER_TRANSCRIPT)
+  await $.classic.SessionStart({ source: 'resume', transcript_path: OTHER_TRANSCRIPT })
+  await world.clock.settle()
+  const pane = await mountPane($)
+
+  const t = transcript()
+  const first = t.prompt('CT-SYN first submit after fork')
+  world.file = t.jsonl()
+  await appendRow($, first)
+  await world.clock.advance(300)
+
+  expect((await pane.findAll({ type: 'Button' })).map(b => b.text)).toContain('CT-SYN first submit after fork')
+  expect(await pane.find({ type: 'Text', text: NOT_WRITTEN })).toBeUndefined()
 })

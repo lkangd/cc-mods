@@ -18,6 +18,13 @@ export function reopensOn(source: string): boolean {
   return source === 'clear' || source === 'resume'
 }
 
+/* Sources of a session that takes over another's history: it shows in the
+   transcript while the session's own file may not exist yet (a fork's is
+   written at its first submit). */
+export function carriesHistory(source: string): boolean {
+  return source === 'resume' || source === 'fork'
+}
+
 export function isPaneOpen(panes: readonly UiPane[]): boolean {
   return panes.some(pane => pane.id === PANE_ID)
 }
