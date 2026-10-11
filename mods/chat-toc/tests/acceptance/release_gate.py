@@ -135,9 +135,13 @@ def scenario_id(name: str) -> str:
 def copy_text(src: pathlib.Path, dst: pathlib.Path, redact) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
     if src.suffix == ".log" and src.stat().st_size > 400_000:
-        # a host debug log: chat-toc's own lines only
-        lines = [line for line in src.read_text(errors="replace").splitlines() if "chat-toc" in line]
-        dst.write_text(redact("\n".join(lines)) + "\n")
+        # a host debug log: chat-toc's own lines only, its timings left to
+        # the run's perf-samples-*.json (perf_scenarios.py extracts them)
+        chatter = re.compile(r"chat-toc-perf |(ui\.render|ui\.scroll) settled in|ui\.scroll Pane chat-toc \(person\)")
+        lines = [line for line in src.read_text(errors="replace").splitlines()
+                 if "chat-toc" in line and not chatter.search(line)]
+        dst.write_text("# chat-toc's lines of the host debug log, without the per-frame ui.render/ui.scroll timings and "
+                       "the chat-toc-perf lines (those are in perf-samples-*.json)\n" + redact("\n".join(lines)) + "\n")
         return
     try:
         dst.write_text(redact(src.read_text(encoding="utf-8")), encoding="utf-8")
