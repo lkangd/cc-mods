@@ -229,10 +229,10 @@ def jump003(run):
             t.key("backspace", pause=0.0)
         rows = t.settle(quiet=1.0)
         ev.append(t.snap("rewound"))
-        p = pane_of(t)
-        e = next((e for e in reversed(p.entries) if "T0011" in e.user_text), None)
-        if e is None:
-            raise h.ScenarioFailure("T0011 not listed after rewind")
+        # the pane follows the view the rewind left near the top: wheel it to
+        # the rewound-away entry (which pauses its following)
+        p, e = wheel_pane_until(t, lambda p: next((e for e in reversed(p.entries) if "T0011" in e.user_text), None))
+        rows = t.settle(quiet=1.0)
         before = h.transcript_text(rows, p.left)
         t.click(p.left + 4, e.row + 1)
         rows = t.settle(quiet=1.0)

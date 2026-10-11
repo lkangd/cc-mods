@@ -19,7 +19,7 @@
 
 import type { TurnGroup } from './groups'
 import { inputKindOf } from './groups'
-import { hasText, isCommandOutput } from './jump'
+import { hasText } from './jump'
 import type { RowIndex, Sites } from './sites'
 import type { TranscriptRow } from './transcript'
 
@@ -33,10 +33,13 @@ export type LiveRow = { order: number; onScreen: OnScreenRows; seq: number }
    each other. */
 export const LOCK_QUIET_MS = 300
 
-/* A row the host draws at one of the four sites. */
+/* A row the host always draws at one of the four sites: a prompt, or the
+   agent's text. A command's output is drawn at a site in the session that
+   ran it but not after a resume, and a tool row only grouped, so those
+   count once a site is seen drawing them; one counted and never reported
+   on screen would cut every run around it. */
 function isSiteRow(row: TranscriptRow): boolean {
-  if (row.type === 'user') return inputKindOf(row) === 'prompt' || isCommandOutput(row)
-  if (row.type === 'system') return isCommandOutput(row)
+  if (row.type === 'user') return inputKindOf(row) === 'prompt'
   return row.type === 'assistant' && hasText(row)
 }
 
