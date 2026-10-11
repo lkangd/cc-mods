@@ -1,0 +1,1543 @@
+[
+ {
+  "ok": true,
+  "start": 0,
+  "entries": [
+   {
+    "index": 0,
+    "key": "61b339ff-2481-44e5-998b-88dbaa99e079",
+    "expected": {
+     "key": "61b339ff-2481-44e5-998b-88dbaa99e079",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:00",
+     "userText": "F01 普通 prompt：请列出模块。",
+     "agentHead": "1 步",
+     "lastText": "F01 回复：共有三个模块。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 1,
+     "userHead": "你 · 10月9日 09:00",
+     "userLines": [
+      "F01 普通 prompt：请列出模块。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "F01 回复：共有三个模块。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 1,
+    "key": "6794cd2e-ae72-4aff-9645-9afed1ba5c0f",
+    "expected": {
+     "key": "6794cd2e-ae72-4aff-9645-9afed1ba5c0f",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:00",
+     "userText": "F02 多行与宽字符：第一行中文 第二行 emoji 🚀✨ 与全角，ＡＢＣ 第三行很长很长很长很长很长很长很长很长很长很长很长很长很长很长很长",
+     "agentHead": "",
+     "lastText": "F02 回复：收到多行输入。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 6,
+     "userHead": "你 · 10月9日 09:00",
+     "userLines": [
+      "F02 多行与宽字符：第一行中文 第二行 emoji",
+      "🚀✨ 与全角，ＡＢＣ 第三行很长很长很长很…"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F02 回复：收到多行输入。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 2,
+    "key": "1cce9c77-7199-4790-b25b-c8cf6c7ec515",
+    "expected": {
+     "key": "1cce9c77-7199-4790-b25b-c8cf6c7ec515",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:00",
+     "userText": "F03 粘贴： 贴进来的一段文字 结束",
+     "agentHead": "",
+     "lastText": "F03 回复：看到了粘贴的内容。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 12,
+     "userHead": "你 · 10月9日 09:00",
+     "userLines": [
+      "F03 粘贴： 贴进来的一段文字 结束"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F03 回复：看到了粘贴的内容。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 3,
+    "key": "d0d18fb0-81da-4bbb-abd4-afc18e1e5540",
+    "expected": {
+     "key": "d0d18fb0-81da-4bbb-abd4-afc18e1e5540",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "（只有图片）",
+     "agentHead": "",
+     "lastText": "F04 回复：这是一张图片。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 17,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "（只有图片）"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F04 回复：这是一张图片。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 4,
+    "key": "f9ef0b3c-311e-481c-b7ab-62a81529755d",
+    "expected": {
+     "key": "f9ef0b3c-311e-481c-b7ab-62a81529755d",
+     "kind": "prompt",
+     "userHead": "你",
+     "userText": "F05 没有时间戳的 prompt",
+     "agentHead": "",
+     "lastText": "F05 回复：好。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 22,
+     "userHead": "你",
+     "userLines": [
+      "F05 没有时间戳的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F05 回复：好。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 5,
+    "key": "82e7ddc9-5f0b-4a7f-9d02-b20055d1ce91",
+    "expected": {
+     "key": "82e7ddc9-5f0b-4a7f-9d02-b20055d1ce91",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F06 完全相同的 prompt",
+     "agentHead": "",
+     "lastText": "F06 回复：同一句话的又一次回答。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 27,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F06 完全相同的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F06 回复：同一句话的又一次回答。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 6,
+    "key": "63641911-0b21-4bba-ad5f-cd18acf7af15",
+    "expected": {
+     "key": "63641911-0b21-4bba-ad5f-cd18acf7af15",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F06 完全相同的 prompt",
+     "agentHead": "",
+     "lastText": "F06 回复：同一句话的又一次回答。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 32,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F06 完全相同的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F06 回复：同一句话的又一次回答。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 20,
+   "windowEntries": 7,
+   "start": 0,
+   "problems": 0,
+   "partialTop": false,
+   "notes": [
+    "暂停"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 2,
+  "entries": [
+   {
+    "index": 2,
+    "key": "1cce9c77-7199-4790-b25b-c8cf6c7ec515",
+    "expected": {
+     "key": "1cce9c77-7199-4790-b25b-c8cf6c7ec515",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:00",
+     "userText": "F03 粘贴： 贴进来的一段文字 结束",
+     "agentHead": "",
+     "lastText": "F03 回复：看到了粘贴的内容。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 4,
+     "userHead": "你 · 10月9日 09:00",
+     "userLines": [
+      "F03 粘贴： 贴进来的一段文字 结束"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F03 回复：看到了粘贴的内容。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 3,
+    "key": "d0d18fb0-81da-4bbb-abd4-afc18e1e5540",
+    "expected": {
+     "key": "d0d18fb0-81da-4bbb-abd4-afc18e1e5540",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "（只有图片）",
+     "agentHead": "",
+     "lastText": "F04 回复：这是一张图片。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "（只有图片）"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F04 回复：这是一张图片。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 4,
+    "key": "f9ef0b3c-311e-481c-b7ab-62a81529755d",
+    "expected": {
+     "key": "f9ef0b3c-311e-481c-b7ab-62a81529755d",
+     "kind": "prompt",
+     "userHead": "你",
+     "userText": "F05 没有时间戳的 prompt",
+     "agentHead": "",
+     "lastText": "F05 回复：好。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "userHead": "你",
+     "userLines": [
+      "F05 没有时间戳的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F05 回复：好。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 5,
+    "key": "82e7ddc9-5f0b-4a7f-9d02-b20055d1ce91",
+    "expected": {
+     "key": "82e7ddc9-5f0b-4a7f-9d02-b20055d1ce91",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F06 完全相同的 prompt",
+     "agentHead": "",
+     "lastText": "F06 回复：同一句话的又一次回答。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F06 完全相同的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F06 回复：同一句话的又一次回答。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 6,
+    "key": "63641911-0b21-4bba-ad5f-cd18acf7af15",
+    "expected": {
+     "key": "63641911-0b21-4bba-ad5f-cd18acf7af15",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F06 完全相同的 prompt",
+     "agentHead": "",
+     "lastText": "F06 回复：同一句话的又一次回答。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 24,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F06 完全相同的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F06 回复：同一句话的又一次回答。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 7,
+    "key": "a30dd21d-9a21-4dab-981c-14cf7f90925c",
+    "expected": {
+     "key": "a30dd21d-9a21-4dab-981c-14cf7f90925c",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F06 完全相同的 prompt",
+     "agentHead": "",
+     "lastText": "F06 回复：同一句话的又一次回答。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 29,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F06 完全相同的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F06 回复：同一句话的又一次回答。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 8,
+    "key": "7b246c17-db04-4838-b570-83efb26b2b30",
+    "expected": {
+     "key": "7b246c17-db04-4838-b570-83efb26b2b30",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:02",
+     "userText": "/review F07 main",
+     "agentHead": "1 步",
+     "lastText": "F07 回复：审查完成。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 34,
+     "userHead": "你 · 10月9日 09:02",
+     "userLines": [
+      "/review F07 main"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 20,
+   "windowEntries": 7,
+   "start": 2,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "暂停"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 4,
+  "entries": [
+   {
+    "index": 4,
+    "key": "f9ef0b3c-311e-481c-b7ab-62a81529755d",
+    "expected": {
+     "key": "f9ef0b3c-311e-481c-b7ab-62a81529755d",
+     "kind": "prompt",
+     "userHead": "你",
+     "userText": "F05 没有时间戳的 prompt",
+     "agentHead": "",
+     "lastText": "F05 回复：好。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 4,
+     "userHead": "你",
+     "userLines": [
+      "F05 没有时间戳的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F05 回复：好。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 5,
+    "key": "82e7ddc9-5f0b-4a7f-9d02-b20055d1ce91",
+    "expected": {
+     "key": "82e7ddc9-5f0b-4a7f-9d02-b20055d1ce91",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F06 完全相同的 prompt",
+     "agentHead": "",
+     "lastText": "F06 回复：同一句话的又一次回答。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F06 完全相同的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F06 回复：同一句话的又一次回答。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 6,
+    "key": "63641911-0b21-4bba-ad5f-cd18acf7af15",
+    "expected": {
+     "key": "63641911-0b21-4bba-ad5f-cd18acf7af15",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F06 完全相同的 prompt",
+     "agentHead": "",
+     "lastText": "F06 回复：同一句话的又一次回答。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F06 完全相同的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F06 回复：同一句话的又一次回答。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 7,
+    "key": "a30dd21d-9a21-4dab-981c-14cf7f90925c",
+    "expected": {
+     "key": "a30dd21d-9a21-4dab-981c-14cf7f90925c",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F06 完全相同的 prompt",
+     "agentHead": "",
+     "lastText": "F06 回复：同一句话的又一次回答。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F06 完全相同的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F06 回复：同一句话的又一次回答。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 8,
+    "key": "7b246c17-db04-4838-b570-83efb26b2b30",
+    "expected": {
+     "key": "7b246c17-db04-4838-b570-83efb26b2b30",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:02",
+     "userText": "/review F07 main",
+     "agentHead": "1 步",
+     "lastText": "F07 回复：审查完成。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 24,
+     "userHead": "你 · 10月9日 09:02",
+     "userLines": [
+      "/review F07 main"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "F07 回复：审查完成。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 9,
+    "key": "8beb81b1-ff9d-408a-9c67-5c72fbdb4de8",
+    "expected": {
+     "key": "8beb81b1-ff9d-408a-9c67-5c72fbdb4de8",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:02",
+     "userText": "/model F08",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 29,
+     "userHead": "你 · 10月9日 09:02",
+     "userLines": [
+      "/model F08"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 10,
+    "key": "ab288d38-c993-4fb6-a1c8-8247528c8100",
+    "expected": {
+     "key": "ab288d38-c993-4fb6-a1c8-8247528c8100",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "/tui F09",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 32,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "/tui F09"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 11,
+    "key": "80904b4c-86f9-4255-88bf-b0f03ac171b1",
+    "expected": {
+     "key": "80904b4c-86f9-4255-88bf-b0f03ac171b1",
+     "kind": "bang",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "!echo F10",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 35,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "!echo F10"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 20,
+   "windowEntries": 8,
+   "start": 4,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "暂停"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 6,
+  "entries": [
+   {
+    "index": 6,
+    "key": "63641911-0b21-4bba-ad5f-cd18acf7af15",
+    "expected": {
+     "key": "63641911-0b21-4bba-ad5f-cd18acf7af15",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F06 完全相同的 prompt",
+     "agentHead": "",
+     "lastText": "F06 回复：同一句话的又一次回答。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 4,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F06 完全相同的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F06 回复：同一句话的又一次回答。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 7,
+    "key": "a30dd21d-9a21-4dab-981c-14cf7f90925c",
+    "expected": {
+     "key": "a30dd21d-9a21-4dab-981c-14cf7f90925c",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F06 完全相同的 prompt",
+     "agentHead": "",
+     "lastText": "F06 回复：同一句话的又一次回答。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F06 完全相同的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F06 回复：同一句话的又一次回答。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 8,
+    "key": "7b246c17-db04-4838-b570-83efb26b2b30",
+    "expected": {
+     "key": "7b246c17-db04-4838-b570-83efb26b2b30",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:02",
+     "userText": "/review F07 main",
+     "agentHead": "1 步",
+     "lastText": "F07 回复：审查完成。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "userHead": "你 · 10月9日 09:02",
+     "userLines": [
+      "/review F07 main"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "F07 回复：审查完成。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 9,
+    "key": "8beb81b1-ff9d-408a-9c67-5c72fbdb4de8",
+    "expected": {
+     "key": "8beb81b1-ff9d-408a-9c67-5c72fbdb4de8",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:02",
+     "userText": "/model F08",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "userHead": "你 · 10月9日 09:02",
+     "userLines": [
+      "/model F08"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 10,
+    "key": "ab288d38-c993-4fb6-a1c8-8247528c8100",
+    "expected": {
+     "key": "ab288d38-c993-4fb6-a1c8-8247528c8100",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "/tui F09",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 22,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "/tui F09"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 11,
+    "key": "80904b4c-86f9-4255-88bf-b0f03ac171b1",
+    "expected": {
+     "key": "80904b4c-86f9-4255-88bf-b0f03ac171b1",
+     "kind": "bang",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "!echo F10",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 25,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "!echo F10"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 12,
+    "key": "72e45d1d-2982-4207-bd23-0058e4f20d34",
+    "expected": {
+     "key": "72e45d1d-2982-4207-bd23-0058e4f20d34",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "F11 派一个子 agent 去查",
+     "agentHead": "1 步",
+     "lastText": "F11 回复：子 agent 查完了。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 28,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "F11 派一个子 agent 去查"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "F11 回复：子 agent 查完了。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 13,
+    "key": "c2abd260-4206-4b4d-b644-d360efb8c545",
+    "expected": {
+     "key": "c2abd260-4206-4b4d-b644-d360efb8c545",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "F12 会被打断的 prompt",
+     "agentHead": "已中断 · 1 步",
+     "lastText": null,
+     "steps": 1,
+     "status": "interrupted"
+    },
+    "actual": {
+     "row": 33,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "F12 会被打断的 prompt"
+     ],
+     "agentHead": "已中断 · 1 步",
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 20,
+   "windowEntries": 8,
+   "start": 6,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "暂停"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 8,
+  "entries": [
+   {
+    "index": 8,
+    "key": "7b246c17-db04-4838-b570-83efb26b2b30",
+    "expected": {
+     "key": "7b246c17-db04-4838-b570-83efb26b2b30",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:02",
+     "userText": "/review F07 main",
+     "agentHead": "1 步",
+     "lastText": "F07 回复：审查完成。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 4,
+     "userHead": "你 · 10月9日 09:02",
+     "userLines": [
+      "/review F07 main"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "F07 回复：审查完成。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 9,
+    "key": "8beb81b1-ff9d-408a-9c67-5c72fbdb4de8",
+    "expected": {
+     "key": "8beb81b1-ff9d-408a-9c67-5c72fbdb4de8",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:02",
+     "userText": "/model F08",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "userHead": "你 · 10月9日 09:02",
+     "userLines": [
+      "/model F08"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 10,
+    "key": "ab288d38-c993-4fb6-a1c8-8247528c8100",
+    "expected": {
+     "key": "ab288d38-c993-4fb6-a1c8-8247528c8100",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "/tui F09",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 12,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "/tui F09"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 11,
+    "key": "80904b4c-86f9-4255-88bf-b0f03ac171b1",
+    "expected": {
+     "key": "80904b4c-86f9-4255-88bf-b0f03ac171b1",
+     "kind": "bang",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "!echo F10",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 15,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "!echo F10"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 12,
+    "key": "72e45d1d-2982-4207-bd23-0058e4f20d34",
+    "expected": {
+     "key": "72e45d1d-2982-4207-bd23-0058e4f20d34",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "F11 派一个子 agent 去查",
+     "agentHead": "1 步",
+     "lastText": "F11 回复：子 agent 查完了。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 18,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "F11 派一个子 agent 去查"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "F11 回复：子 agent 查完了。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 13,
+    "key": "c2abd260-4206-4b4d-b644-d360efb8c545",
+    "expected": {
+     "key": "c2abd260-4206-4b4d-b644-d360efb8c545",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "F12 会被打断的 prompt",
+     "agentHead": "已中断 · 1 步",
+     "lastText": null,
+     "steps": 1,
+     "status": "interrupted"
+    },
+    "actual": {
+     "row": 23,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "F12 会被打断的 prompt"
+     ],
+     "agentHead": "已中断 · 1 步",
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 14,
+    "key": "12af8f73-e5c1-46a2-89b5-d484cc381e10",
+    "expected": {
+     "key": "12af8f73-e5c1-46a2-89b5-d484cc381e10",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:04",
+     "userText": "F13 会出错的 prompt",
+     "agentHead": "出错 · 1 步",
+     "lastText": "API Error: Repeated 529 Overloaded errors",
+     "steps": 1,
+     "status": "error"
+    },
+    "actual": {
+     "row": 27,
+     "userHead": "你 · 10月9日 09:04",
+     "userLines": [
+      "F13 会出错的 prompt"
+     ],
+     "agentHead": "出错 · 1 步",
+     "agentLines": [
+      "API Error: Repeated 529 Overloaded error",
+      "s"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 15,
+    "key": "52d700ac-5b13-4474-a829-707e125d09a3",
+    "expected": {
+     "key": "52d700ac-5b13-4474-a829-707e125d09a3",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:04",
+     "userText": "F14 只有工具没有文字回复",
+     "agentHead": "2 步 · 无文字回复",
+     "lastText": null,
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 33,
+     "userHead": "你 · 10月9日 09:04",
+     "userLines": [
+      "F14 只有工具没有文字回复"
+     ],
+     "agentHead": "2 步 · 无文字回复",
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 20,
+   "windowEntries": 8,
+   "start": 8,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "暂停"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 10,
+  "entries": [
+   {
+    "index": 10,
+    "key": "ab288d38-c993-4fb6-a1c8-8247528c8100",
+    "expected": {
+     "key": "ab288d38-c993-4fb6-a1c8-8247528c8100",
+     "kind": "command",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "/tui F09",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 1,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "/tui F09"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 11,
+    "key": "80904b4c-86f9-4255-88bf-b0f03ac171b1",
+    "expected": {
+     "key": "80904b4c-86f9-4255-88bf-b0f03ac171b1",
+     "kind": "bang",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "!echo F10",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 4,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "!echo F10"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 12,
+    "key": "72e45d1d-2982-4207-bd23-0058e4f20d34",
+    "expected": {
+     "key": "72e45d1d-2982-4207-bd23-0058e4f20d34",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "F11 派一个子 agent 去查",
+     "agentHead": "1 步",
+     "lastText": "F11 回复：子 agent 查完了。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 7,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "F11 派一个子 agent 去查"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "F11 回复：子 agent 查完了。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 13,
+    "key": "c2abd260-4206-4b4d-b644-d360efb8c545",
+    "expected": {
+     "key": "c2abd260-4206-4b4d-b644-d360efb8c545",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "F12 会被打断的 prompt",
+     "agentHead": "已中断 · 1 步",
+     "lastText": null,
+     "steps": 1,
+     "status": "interrupted"
+    },
+    "actual": {
+     "row": 12,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "F12 会被打断的 prompt"
+     ],
+     "agentHead": "已中断 · 1 步",
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 14,
+    "key": "12af8f73-e5c1-46a2-89b5-d484cc381e10",
+    "expected": {
+     "key": "12af8f73-e5c1-46a2-89b5-d484cc381e10",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:04",
+     "userText": "F13 会出错的 prompt",
+     "agentHead": "出错 · 1 步",
+     "lastText": "API Error: Repeated 529 Overloaded errors",
+     "steps": 1,
+     "status": "error"
+    },
+    "actual": {
+     "row": 16,
+     "userHead": "你 · 10月9日 09:04",
+     "userLines": [
+      "F13 会出错的 prompt"
+     ],
+     "agentHead": "出错 · 1 步",
+     "agentLines": [
+      "API Error: Repeated 529 Overloaded error",
+      "s"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 15,
+    "key": "52d700ac-5b13-4474-a829-707e125d09a3",
+    "expected": {
+     "key": "52d700ac-5b13-4474-a829-707e125d09a3",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:04",
+     "userText": "F14 只有工具没有文字回复",
+     "agentHead": "2 步 · 无文字回复",
+     "lastText": null,
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 22,
+     "userHead": "你 · 10月9日 09:04",
+     "userLines": [
+      "F14 只有工具没有文字回复"
+     ],
+     "agentHead": "2 步 · 无文字回复",
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 16,
+    "key": "4799f50c-5dd1-4e29-9c3d-56e7f6c0c134",
+    "expected": {
+     "key": "4799f50c-5dd1-4e29-9c3d-56e7f6c0c134",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:05",
+     "userText": "F15 排队提交的 prompt",
+     "agentHead": "",
+     "lastText": "F15 回复：后台任务也完成了。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 26,
+     "userHead": "你 · 10月9日 09:05",
+     "userLines": [
+      "F15 排队提交的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F15 回复：后台任务也完成了。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 17,
+    "key": "857b1915-6531-4d02-8ab8-21fec2e469cc",
+    "expected": {
+     "key": "857b1915-6531-4d02-8ab8-21fec2e469cc",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:06",
+     "userText": "F16 压缩之前的最后一轮",
+     "agentHead": "",
+     "lastText": "F16 回复：压缩前。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 31,
+     "userHead": "你 · 10月9日 09:06",
+     "userLines": [
+      "F16 压缩之前的最后一轮"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F16 回复：压缩前。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 18,
+    "key": "cd07888b-39c5-49c5-ba21-4ab522cb2057",
+    "expected": {
+     "key": "cd07888b-39c5-49c5-ba21-4ab522cb2057",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:06",
+     "userText": "F17 压缩之后的第一轮",
+     "agentHead": "",
+     "lastText": "F17 回复：压缩后。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 36,
+     "userHead": "你 · 10月9日 09:06",
+     "userLines": [
+      "F17 压缩之后的第一轮"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 20,
+   "windowEntries": 9,
+   "start": 10,
+   "problems": 0,
+   "partialTop": false,
+   "notes": [
+    "暂停"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 13,
+  "entries": [
+   {
+    "index": 13,
+    "key": "c2abd260-4206-4b4d-b644-d360efb8c545",
+    "expected": {
+     "key": "c2abd260-4206-4b4d-b644-d360efb8c545",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:03",
+     "userText": "F12 会被打断的 prompt",
+     "agentHead": "已中断 · 1 步",
+     "lastText": null,
+     "steps": 1,
+     "status": "interrupted"
+    },
+    "actual": {
+     "row": 4,
+     "userHead": "你 · 10月9日 09:03",
+     "userLines": [
+      "F12 会被打断的 prompt"
+     ],
+     "agentHead": "已中断 · 1 步",
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 14,
+    "key": "12af8f73-e5c1-46a2-89b5-d484cc381e10",
+    "expected": {
+     "key": "12af8f73-e5c1-46a2-89b5-d484cc381e10",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:04",
+     "userText": "F13 会出错的 prompt",
+     "agentHead": "出错 · 1 步",
+     "lastText": "API Error: Repeated 529 Overloaded errors",
+     "steps": 1,
+     "status": "error"
+    },
+    "actual": {
+     "row": 8,
+     "userHead": "你 · 10月9日 09:04",
+     "userLines": [
+      "F13 会出错的 prompt"
+     ],
+     "agentHead": "出错 · 1 步",
+     "agentLines": [
+      "API Error: Repeated 529 Overloaded error",
+      "s"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 15,
+    "key": "52d700ac-5b13-4474-a829-707e125d09a3",
+    "expected": {
+     "key": "52d700ac-5b13-4474-a829-707e125d09a3",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:04",
+     "userText": "F14 只有工具没有文字回复",
+     "agentHead": "2 步 · 无文字回复",
+     "lastText": null,
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "userHead": "你 · 10月9日 09:04",
+     "userLines": [
+      "F14 只有工具没有文字回复"
+     ],
+     "agentHead": "2 步 · 无文字回复",
+     "agentLines": [],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 16,
+    "key": "4799f50c-5dd1-4e29-9c3d-56e7f6c0c134",
+    "expected": {
+     "key": "4799f50c-5dd1-4e29-9c3d-56e7f6c0c134",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:05",
+     "userText": "F15 排队提交的 prompt",
+     "agentHead": "",
+     "lastText": "F15 回复：后台任务也完成了。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 18,
+     "userHead": "你 · 10月9日 09:05",
+     "userLines": [
+      "F15 排队提交的 prompt"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F15 回复：后台任务也完成了。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 17,
+    "key": "857b1915-6531-4d02-8ab8-21fec2e469cc",
+    "expected": {
+     "key": "857b1915-6531-4d02-8ab8-21fec2e469cc",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:06",
+     "userText": "F16 压缩之前的最后一轮",
+     "agentHead": "",
+     "lastText": "F16 回复：压缩前。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 23,
+     "userHead": "你 · 10月9日 09:06",
+     "userLines": [
+      "F16 压缩之前的最后一轮"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F16 回复：压缩前。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 18,
+    "key": "cd07888b-39c5-49c5-ba21-4ab522cb2057",
+    "expected": {
+     "key": "cd07888b-39c5-49c5-ba21-4ab522cb2057",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:06",
+     "userText": "F17 压缩之后的第一轮",
+     "agentHead": "",
+     "lastText": "F17 回复：压缩后。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 28,
+     "userHead": "你 · 10月9日 09:06",
+     "userLines": [
+      "F17 压缩之后的第一轮"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F17 回复：压缩后。"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 19,
+    "key": "a8921644-9e28-4f7d-ac80-78da699492c9",
+    "expected": {
+     "key": "a8921644-9e28-4f7d-ac80-78da699492c9",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:07",
+     "userText": "F19 rewind 之后的新分支",
+     "agentHead": "",
+     "lastText": "F19 回复：新分支。",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 33,
+     "userHead": "你 · 10月9日 09:07",
+     "userLines": [
+      "F19 rewind 之后的新分支"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F19 回复：新分支。"
+     ],
+     "highlighted": true
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 20,
+   "windowEntries": 7,
+   "start": 13,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "暂停"
+   ]
+  }
+ }
+]
