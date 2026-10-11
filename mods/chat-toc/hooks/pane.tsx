@@ -18,6 +18,8 @@ export const PANE_TITLE = '目录'
 export const PANE_COLUMNS = 44
 
 export const EMPTY_TEXT = '本会话还没有对话'
+/* For a resumed or forked session whose file is not written yet. */
+export const NOT_WRITTEN_TEXT = '本会话还没写进 transcript 文件，提交第一条消息后显示目录'
 
 /* 2.1.287 draws the pane's ✕ at the right end of the body's first row: the
    filter row keeps these cells free for it. */

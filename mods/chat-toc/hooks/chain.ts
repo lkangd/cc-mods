@@ -1,6 +1,8 @@
 /* The conversation chain: the rows of the branch the conversation is on now,
-   found by walking back from the newest leaf along `parentUuid`. A rewound-
-   away branch is not on it; a subagent's sidechain is not either.
+   found by walking back from the newest leaf along `parentUuid`, and across
+   a compaction's boundary row (which has none) along `logicalParentUuid`, so
+   the turns from before a compaction stay on it. A rewound-away branch is
+   not on it; a subagent's sidechain is not either.
 
    The rows are kept in an index that grows as the file is read, so a read
    of new lines walks back only until it meets the chain it already had. */
@@ -35,9 +37,13 @@ export function indexRows(index: ChainIndex, rows: readonly TranscriptRow[]): bo
   return isRewrite
 }
 
-/* The row a chain row follows. */
+/* The row a chain row follows. A compaction's boundary row starts a fresh
+   `parentUuid` chain and names the row it came after in
+   `logicalParentUuid`. */
 function parentOf(row: TranscriptRow): string | undefined {
-  return row.parentUuid ?? undefined
+  if (row.parentUuid) return row.parentUuid
+  if (row.type === 'system' && row.subtype === 'compact_boundary') return row.logicalParentUuid ?? undefined
+  return undefined
 }
 
 export type Walk = {
