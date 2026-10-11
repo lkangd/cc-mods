@@ -1,0 +1,97 @@
+2026-10-11T12:22:40.855Z [DEBUG] Read hooks.json for plugin chat-toc (enabled=true): <tmp>/home/.claude/plugins/cache/cc-mods/chat-toc/0.1.0/hooks/hooks.json
+2026-10-11T12:22:40.864Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-11T12:22:40.911Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-11T12:22:41.035Z [DEBUG] Keeping <tmp>/home/.claude/plugins/cache/cc-mods/chat-toc: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-10-11T12:22:41.126Z [DEBUG] hooks module chat-toc@cc-mods loaded (worker, environment 1, tier user); events: classic.SessionStart,session.start,command.run,ui.close,session.append,turn.start,turn.complete,ui.scroll,ui.render,ui.focus
+2026-10-11T12:22:41.128Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for chat-toc,cc-plugin-agents-md,cc-plugin-diff
+2026-10-11T12:22:41.129Z [DEBUG] plugin.register: chat-toc (user, chat-toc@cc-mods), judged by core alone: admitted
+2026-10-11T12:22:41.153Z [DEBUG] $.command.register (chat-toc): /chat-toc listed
+2026-10-11T12:22:41.159Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 15.0ms (worker hop, next() included) key=61b339ff-2481-44e5-998b-88dbaa99e079
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 15.1ms (worker hop, next() included) key=collapsed-cf72f858-a4b6-4f8c-8628-04db7b87a9e2
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 15.0ms (worker hop, next() included) key=298a59f8-5e1e-4978-b0a7-6e49fa60dbd6
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 15.0ms (worker hop, next() included) key=6794cd2e-ae72-4aff-9645-9afed1ba5c0f
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 15.0ms (worker hop, next() included) key=collapsed-d1d4d2b3-0f8f-45ef-ab3d-787304c3405b
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 15.0ms (worker hop, next() included) key=668864bf-1566-4e20-90d1-8fb081dafbbb
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.9ms (worker hop, next() included) key=f7ab62a8-1529-455d-b9f0-9825a406bf0c
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.9ms (worker hop, next() included) key=collapsed-f0eb21aa-5b39-4037-82f5-d75ea9e16e27
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.9ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.8ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.8ms (worker hop, next() included) key=collapsed-ec9ba198-76f8-4037-aae5-68bafd1032e8
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.8ms (worker hop, next() included) key=c54acf4f-ea5b-4e10-84ac-4c11f29c5831
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.8ms (worker hop, next() included) key=ff9d608a-5c67-4c72-bbdb-4de81db6027c
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.7ms (worker hop, next() included) key=collapsed-e1c88247-528c-4100-ad71-1aba061eefe0
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.7ms (worker hop, next() included) key=83e2500b-dcb6-4e69-b1a3-ab9f547af48d
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.7ms (worker hop, next() included) key=b1b0d8fe-00f1-468e-aeec-6a9b074ce872
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.6ms (worker hop, next() included) key=collapsed-236cc43d-6b9a-4742-840d-8382e2ed8971
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.6ms (worker hop, next() included) key=333e46c7-88f1-4c36-aa5c-6b21e9173332
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.6ms (worker hop, next() included) key=afc371e1-b069-4dc0-8b00-67a7ef1c28a2
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.6ms (worker hop, next() included) key=collapsed-88c4ee07-3640-4788-9fed-adeb9c734d77
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.5ms (worker hop, next() included) key=244d9206-551c-40f0-af6e-905515153da4
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.5ms (worker hop, next() included) key=2deb27a1-7c41-408a-b195-9bfb9f7c62bb
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.5ms (worker hop, next() included) key=collapsed-e2609b84-3d04-4703-b4fb-05dc575d258e
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.4ms (worker hop, next() included) key=709e60f1-ac63-42ce-857b-19156531bd02
+2026-10-11T12:22:41.160Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.4ms (worker hop, next() included) key=c66ad56a-527f-4ea0-845a-be77bb75156a
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.4ms (worker hop, next() included) key=collapsed-22cb2057-2b9c-45b6-8ea4-788da1edc541
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.3ms (worker hop, next() included) key=efa67ac9-6894-493d-891f-1b5a5d62953f
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.3ms (worker hop, next() included) key=a414ee1d-4261-4a20-a037-010e25f013ba
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.3ms (worker hop, next() included) key=collapsed-60e011eb-c8ca-4123-8bcc-66719bc6d727
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.3ms (worker hop, next() included) key=df9fec11-a72b-420e-95dc-790ede4efcdd
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.2ms (worker hop, next() included) key=d541eaa0-4fa0-4557-9d82-ff35dbe4644b
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.2ms (worker hop, next() included) key=collapsed-8e3c70e3-064b-42fa-9c0b-005ee13b2a0a
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.2ms (worker hop, next() included) key=e48b4be6-6a34-4406-9a53-e66763735e07
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 14.0ms (worker hop, next() included) key=prompt-hint
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 11.8ms (worker hop, next() included) key=709e60f1-ac63-42ce-857b-19156531bd02
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 11.7ms (worker hop, next() included) key=c66ad56a-527f-4ea0-845a-be77bb75156a
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 11.6ms (worker hop, next() included) key=collapsed-22cb2057-2b9c-45b6-8ea4-788da1edc541
+2026-10-11T12:22:41.161Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 11.6ms (worker hop, next() included) key=efa67ac9-6894-493d-891f-1b5a5d62953f
+2026-10-11T12:22:41.202Z [DEBUG] hooks module chat-toc@cc-mods session.start settled in 68.7ms (worker hop, next() included)
+2026-10-11T12:22:41.202Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 6.0ms (worker hop, next() included) key=709e60f1-ac63-42ce-857b-19156531bd02
+2026-10-11T12:22:41.202Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.7ms (worker hop, next() included) key=c66ad56a-527f-4ea0-845a-be77bb75156a
+2026-10-11T12:22:41.202Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.6ms (worker hop, next() included) key=collapsed-22cb2057-2b9c-45b6-8ea4-788da1edc541
+2026-10-11T12:22:41.202Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.6ms (worker hop, next() included) key=efa67ac9-6894-493d-891f-1b5a5d62953f
+2026-10-11T12:22:41.208Z [DEBUG] hooks module chat-toc@cc-mods classic.SessionStart settled in 74.9ms (worker hop, next() included)
+2026-10-11T12:22:41.209Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 1.6ms (worker hop, next() included) key=61b339ff-2481-44e5-998b-88dbaa99e079
+2026-10-11T12:22:41.209Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 1.6ms (worker hop, next() included) key=collapsed-cf72f858-a4b6-4f8c-8628-04db7b87a9e2
+2026-10-11T12:22:41.209Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 1.5ms (worker hop, next() included) key=298a59f8-5e1e-4978-b0a7-6e49fa60dbd6
+2026-10-11T12:22:41.209Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 1.5ms (worker hop, next() included) key=6794cd2e-ae72-4aff-9645-9afed1ba5c0f
+2026-10-11T12:22:41.209Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 1.5ms (worker hop, next() included) key=collapsed-d1d4d2b3-0f8f-45ef-ab3d-787304c3405b
+2026-10-11T12:22:41.209Z [DEBUG] ui.open chat-toc chat-toc (unasked, 170 columns): placed
+2026-10-11T12:22:41.229Z [DEBUG] chat-toc (user) answered ui.render without next() in 11.7ms; nothing beneath it ran for this dispatch
+2026-10-11T12:22:41.229Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 12.1ms (worker hop, next() included) key=chat-toc
+2026-10-11T12:22:41.231Z [DEBUG] $.ui.status (chat-toc): (cleared)
+2026-10-11T12:22:41.241Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.8ms (worker hop, next() included) key=chat-toc
+2026-10-11T12:22:41.268Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 1.6ms (worker hop, next() included) key=chat-toc
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.8ms (worker hop, next() included) key=61b339ff-2481-44e5-998b-88dbaa99e079
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.7ms (worker hop, next() included) key=collapsed-cf72f858-a4b6-4f8c-8628-04db7b87a9e2
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.7ms (worker hop, next() included) key=298a59f8-5e1e-4978-b0a7-6e49fa60dbd6
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.7ms (worker hop, next() included) key=6794cd2e-ae72-4aff-9645-9afed1ba5c0f
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.7ms (worker hop, next() included) key=collapsed-d1d4d2b3-0f8f-45ef-ab3d-787304c3405b
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.6ms (worker hop, next() included) key=668864bf-1566-4e20-90d1-8fb081dafbbb
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.6ms (worker hop, next() included) key=f7ab62a8-1529-455d-b9f0-9825a406bf0c
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.6ms (worker hop, next() included) key=collapsed-f0eb21aa-5b39-4037-82f5-d75ea9e16e27
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.5ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.5ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.5ms (worker hop, next() included) key=collapsed-ec9ba198-76f8-4037-aae5-68bafd1032e8
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.4ms (worker hop, next() included) key=c54acf4f-ea5b-4e10-84ac-4c11f29c5831
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.4ms (worker hop, next() included) key=ff9d608a-5c67-4c72-bbdb-4de81db6027c
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.4ms (worker hop, next() included) key=collapsed-e1c88247-528c-4100-ad71-1aba061eefe0
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.3ms (worker hop, next() included) key=83e2500b-dcb6-4e69-b1a3-ab9f547af48d
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.3ms (worker hop, next() included) key=b1b0d8fe-00f1-468e-aeec-6a9b074ce872
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.2ms (worker hop, next() included) key=collapsed-236cc43d-6b9a-4742-840d-8382e2ed8971
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.1ms (worker hop, next() included) key=333e46c7-88f1-4c36-aa5c-6b21e9173332
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.1ms (worker hop, next() included) key=afc371e1-b069-4dc0-8b00-67a7ef1c28a2
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.0ms (worker hop, next() included) key=collapsed-88c4ee07-3640-4788-9fed-adeb9c734d77
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.0ms (worker hop, next() included) key=244d9206-551c-40f0-af6e-905515153da4
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.0ms (worker hop, next() included) key=2deb27a1-7c41-408a-b195-9bfb9f7c62bb
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.0ms (worker hop, next() included) key=collapsed-e2609b84-3d04-4703-b4fb-05dc575d258e
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 5.0ms (worker hop, next() included) key=709e60f1-ac63-42ce-857b-19156531bd02
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 4.9ms (worker hop, next() included) key=c66ad56a-527f-4ea0-845a-be77bb75156a
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 4.9ms (worker hop, next() included) key=collapsed-22cb2057-2b9c-45b6-8ea4-788da1edc541
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 4.9ms (worker hop, next() included) key=efa67ac9-6894-493d-891f-1b5a5d62953f
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 4.9ms (worker hop, next() included) key=a414ee1d-4261-4a20-a037-010e25f013ba
+2026-10-11T12:22:41.329Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 4.8ms (worker hop, next() included) key=collapsed-60e011eb-c8ca-4123-8bcc-66719bc6d727
+2026-10-11T12:22:41.330Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 4.8ms (worker hop, next() included) key=df9fec11-a72b-420e-95dc-790ede4efcdd
+2026-10-11T12:22:41.330Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 4.9ms (worker hop, next() included) key=d541eaa0-4fa0-4557-9d82-ff35dbe4644b
+2026-10-11T12:22:41.330Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 4.9ms (worker hop, next() included) key=collapsed-8e3c70e3-064b-42fa-9c0b-005ee13b2a0a
+2026-10-11T12:22:41.330Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 4.9ms (worker hop, next() included) key=e48b4be6-6a34-4406-9a53-e66763735e07
+2026-10-11T12:22:41.330Z [DEBUG] hooks module chat-toc@cc-mods ui.render settled in 4.9ms (worker hop, next() included) key=prompt-hint

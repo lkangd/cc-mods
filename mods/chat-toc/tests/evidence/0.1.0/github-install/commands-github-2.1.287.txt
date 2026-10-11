@@ -1,0 +1,21 @@
+$ claude plugin marketplace add lkangd/cc-mods
+(exit 0)
+Adding marketplace…SSH not configured, cloning via HTTPS: https://github.com/lkangd/cc-mods.git
+Refreshing marketplace cache (timeout: 120s)…
+Cloning repository (timeout: 120s): https://github.com/lkangd/cc-mods.git
+Clone complete, validating marketplace…
+Cleaning up old marketplace cache…
+✔ Successfully added marketplace: cc-mods (declared in user settings)
+
+$ claude plugin install chat-toc@cc-mods
+(exit 0)
+Installing plugin "chat-toc@cc-mods"...✔ Successfully installed plugin: chat-toc@cc-mods (scope: user)
+
+$ claude plugin list
+(exit 0)
+Installed plugins:
+
+  ❯ chat-toc@cc-mods
+    Version: 0.1.0
+    Scope: user
+    Status: ✔ enabled
