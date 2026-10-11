@@ -177,3 +177,22 @@ export function viewChanged(lock: JumpLock): { kind: 'held'; change: number } | 
 export function quietAfter(lock: JumpLock, change: number): void {
   if (lock.changes === change) lock.isQuiet = true
 }
+
+/* What one site report does under a jump lock (undefined: none), from
+   where the row was to where it says it is now: the lock as it stands
+   after it (released on the first change once the jump's redraws
+   stopped), the change whose quiet timer to start while they still come,
+   and whether the Current position is to be worked out again: after any
+   report that says where the row is, a release by a row leaving the view
+   included. */
+export function siteReport(
+  lock: JumpLock | undefined,
+  was: OnScreenRows | undefined,
+  now: OnScreenRows | null | undefined,
+): { lock: JumpLock | undefined; quietAfter: number | undefined; isPlaced: boolean } {
+  const isPlaced = now !== undefined
+  if (lock === undefined || !isViewChange(was, now)) return { lock, quietAfter: undefined, isPlaced }
+  const seen = viewChanged(lock)
+  if (seen.kind === 'released') return { lock: undefined, quietAfter: undefined, isPlaced: true }
+  return { lock, quietAfter: seen.change, isPlaced }
+}
