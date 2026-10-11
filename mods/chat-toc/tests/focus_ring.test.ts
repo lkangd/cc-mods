@@ -87,8 +87,8 @@ test('down past the window scrolls it one entry and puts the ring there', async 
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
-  /* The filter row and three 2-line prompts with their gaps. */
-  const pane = await mountPane($, 10)
+  /* The filter row, three 2-line prompts with their gaps, and 暂停 below. */
+  const pane = await mountPane($, 11)
   const prompts = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN'))
 
   await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
