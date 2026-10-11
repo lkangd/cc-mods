@@ -1,0 +1,17 @@
+#!/bin/sh
+# Runs each staged mod's fast gate, mods/<mod>/scripts/verify-startup.sh,
+# when the commit touches more than its Markdown (prompt-history's takes ~3 min).
+# Enable once per clone: git config core.hooksPath .githooks
+set -eu
+
+REPO=$(git rev-parse --show-toplevel)
+mods=$(git diff --cached --name-only --diff-filter=ACMRD | grep -v '\.md$' | sed -n 's|^mods/\([^/]*\)/.*|\1|p' | sort -u)
+for mod in $mods; do
+  gate="$REPO/mods/$mod/scripts/verify-startup.sh"
+  [ -x "$gate" ] || continue
+  printf 'pre-commit: %s\n' "$mod"
+  "$gate" || {
+    printf 'pre-commit: %s gate failed\n' "$mod" >&2
+    exit 1
+  }
+done

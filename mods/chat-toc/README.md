@@ -67,7 +67,9 @@ npx -y -p @anthropic-ai/claude-code@2.1.287 claude ...                     # PTY
 
 ## 自动化测试
 
-在仓库根目录：
+快速门禁 `mods/chat-toc/scripts/verify-startup.sh`（约 20 秒）把下面这些和验收工具的单元测试串起来跑，两个版本都走 `npx`，不用本机全局安装。仓库的 pre-commit 钩子（`.githooks/pre-commit`，每个 clone 执行一次 `git config core.hooksPath .githooks` 启用）在提交改到某个 mod 的非 Markdown 文件时跑那个 mod 的门禁。
+
+单独跑某一项，在仓库根目录：
 
 ```sh
 claude plugin test mods/chat-toc                 # 只要求当前版本通过
@@ -145,5 +147,5 @@ CT-TURN-004 的「进行中 · N 步」要一轮真正在跑：`gate_scenarios.p
 3. [ ] 用本地目录 marketplace 在两个版本上跑 CT-COMPAT-002 冒烟（安装、Pane 自动弹出、点击一次用户侧并跳转成功），写进 `marketplace.md`。
 4. [ ] 人工目检三种 Layout 的观感、青色高亮与反色选择光标能否分清，在 `report.md` 签字（不阻断发布）。
 5. [ ] 发布提交：在**同一个提交**里加入 marketplace 条目（`.claude-plugin/marketplace.json`，`name`/`source`/`description`/`version`/`author`，不加 `category`、`tags`）、根 README 一览表的一行与 chat-toc 一节（改版本时更新那一行和「开发」里的通过结果）、`tests/evidence/<版本>/`。不打 git tag。
-6. [ ] 推上去后，从 `lkangd/cc-mods` 做一次安装级检查：`claude plugin marketplace add lkangd/cc-mods`、`claude plugin install chat-toc@cc-mods`、`claude plugin list` 里版本号正确且 enabled、全屏会话启动时 Pane 自动弹出。结果补进 `marketplace.md`（这一步不算重新发布）。本地目录 marketplace 直接运行源码目录，只有 GitHub 远程 marketplace 才复制到缓存，所以这一步不能省。
+6. [ ] 推上去后，先确认 `gh repo view lkangd/cc-mods --json defaultBranchRef -q .defaultBranchRef.name` 输出 `main`（`marketplace add lkangd/cc-mods` 读的是默认分支；0.1.0 第一次发布就因默认分支不是 `main` 而撤回），再从 `lkangd/cc-mods` 做一次安装级检查：`claude plugin marketplace add lkangd/cc-mods`、`claude plugin install chat-toc@cc-mods`、`claude plugin list` 里版本号正确且 enabled、全屏会话启动时 Pane 自动弹出。结果补进 `marketplace.md`（这一步不算重新发布）。本地目录 marketplace 直接运行源码目录，只有 GitHub 远程 marketplace 才复制到缓存，所以这一步不能省。
 7. [ ] 第 6 步失败就撤回发布提交。

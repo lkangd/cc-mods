@@ -106,7 +106,7 @@ claude --plugin-dir /path/to/cc-mods/mods/prompt-history
 ### 开发
 
 - 本地加载（不经 marketplace）：`claude --plugin-dir /path/to/cc-mods/mods/prompt-history`
-- `mods/prompt-history/scripts/verify-startup.sh` 是快速门禁，`build-artifacts.sh` 重建 helper（需要 Xcode 命令行工具），`release-evidence.sh` 是发布门禁。
+- `mods/prompt-history/scripts/verify-startup.sh` 是快速门禁（`git config core.hooksPath .githooks` 后，改到本 mod 非 Markdown 文件的提交会自动跑它），`build-artifacts.sh` 重建 helper（需要 Xcode 命令行工具），`release-evidence.sh` 是发布门禁。
 - 发布证据：`mods/prompt-history/release/evidence/0.3.0/`。`--plugin-dir` 全量 56/56 通过；Marketplace 52/56 通过，4 个注入类场景未通过，见 `marketplace.md`。更详细的限制与数据说明见 [`mods/prompt-history/README.md`](mods/prompt-history/README.md)。
 
 ---
