@@ -37,7 +37,7 @@ test('nothing on screen has no run', () => {
   expect(trustedRun([], [1, 2])).toBeUndefined()
 })
 
-test('the drawable rows are the prompts, the agent text and every row a site drew, in chain order', () => {
+test('the drawable rows are the User inputs, the main agent text and every row a site drew, in chain order', () => {
   const t = transcript()
   const asked = t.prompt('CT-SYN one')
   const tools = t.reply([{ type: 'tool_use', id: 'toolu_01', name: 'Bash', input: {} }])

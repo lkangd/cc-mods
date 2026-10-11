@@ -32,7 +32,7 @@ test('the /chat-toc command is registered and opens the pane', async ($, on) => 
   expect(ran).toBeDefined()
 })
 
-test('the pane lists each prompt as a dim header and its first lines', async ($, on) => {
+test('the pane lists each User input as a dim header and its first lines', async ($, on) => {
   const t = transcript(new Date(2026, 9, 10, 9, 4).getTime())
   t.prompt('CT-SYN first prompt')
   t.reply([{ type: 'text', text: 'answer' }])
@@ -148,7 +148,7 @@ test('before the first message the file does not exist and the pane says so', as
   expect((await pane.find({ type: 'Text', text: '本会话还没有对话' }))?.text).toBe('本会话还没有对话')
 })
 
-test('the first prompt written to the file appears once its row is appended', async ($, on) => {
+test('the first User input written to the file appears once its row is appended', async ($, on) => {
   const world = host(on)
   await start($, world)
   const pane = await mountPane($)
