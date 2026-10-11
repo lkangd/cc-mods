@@ -34,6 +34,8 @@ export type Host = {
   file: string | undefined
   panes: UiPane[]
   opens: PaneOpenArgs[]
+  /* The panes closed, by id and whose close it was. */
+  closes: { id: string; origin: string }[]
   reads: string[]
   scrolls: unknown[]
   /* While set, a read of the file waits for it before answering. */
@@ -74,14 +76,23 @@ function isTranscript(world: Host, path: string): boolean {
 }
 
 export function host(on: On, file?: string, path = TRANSCRIPT): Host {
-  const world: Host = { clock: mock.clock(on, { now: NOW }), file, panes: [], opens: [], reads: [], scrolls: [], path, runs: [] }
+  const world: Host = { clock: mock.clock(on, { now: NOW }), file, panes: [], opens: [], closes: [], reads: [], scrolls: [], path, runs: [] }
   mock.store(on)
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('classic.SessionStart', () => ({}))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('ui.open', (_$, e) => {
     world.opens.push({ ...e })
+    const pane = { id: e.id, title: e.title ?? e.id, isShown: true, isFocused: e.focus === true, isPlaced: true }
+    const at = world.panes.findIndex(p => p.id === e.id)
+    if (at === -1) world.panes.push(pane)
+    else if (e.focus === true) world.panes[at] = pane
     return { value: { isPlaced: true as const } }
+  })
+  on('ui.close', (_$, e) => {
+    world.closes.push({ id: e.id, origin: e.origin.kind })
+    world.panes = world.panes.filter(p => p.id !== e.id)
+    return { value: undefined }
   })
   on('ui.panes', () => ({ value: world.panes }))
   on('ui.status', () => ({ value: undefined }))
