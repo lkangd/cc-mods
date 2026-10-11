@@ -28,12 +28,22 @@ export function drawnButtons(tree: unknown): DrawnButton[] {
   return out
 }
 
+/* Entry Buttons are keyed `g<group>.<side>[.<line>]`; the filter row's are not. */
+export const isEntryKey = (key: unknown) => typeof key === 'string' && /^g\d+\./.test(key)
+
+/* The text of every entry Button drawn, in order. */
+export async function entryTexts(pane: { findAll: (q: { type: string }) => Promise<{ key: string | undefined; text: string }[]> }) {
+  return (await pane.findAll({ type: 'Button' })).filter(b => isEntryKey(b.key)).map(b => b.text)
+}
+
 export type Host = {
   clock: MockClock
   /* The transcript file's text; undefined while the file does not exist. */
   file: string | undefined
   panes: UiPane[]
   opens: PaneOpenArgs[]
+  /* The panes closed, by id and whose close it was. */
+  closes: { id: string; origin: string }[]
   reads: string[]
   scrolls: unknown[]
   /* While set, a read of the file waits for it before answering. */
@@ -44,6 +54,12 @@ export type Host = {
   runs: { argv: readonly string[]; env?: Record<string, string> }[]
   /* While set, the file exists but reading it is refused this way. */
   refuse?: 'denied' | 'error'
+  /* chat-toc's `$.store`, as the host keeps it across sessions. */
+  store: Record<string, unknown>
+  /* While set, `$.store.set` is refused. */
+  refuseStore?: boolean
+  /* Where the pane's focus ring went, and who moved it. */
+  focuses: { element: string | undefined; origin: string }[]
 }
 
 /* What the shell and Windows PowerShell commands of a chunked read write:
@@ -73,15 +89,46 @@ function isTranscript(world: Host, path: string): boolean {
   return path === world.path || path.endsWith('/' + world.path)
 }
 
-export function host(on: On, file?: string, path = TRANSCRIPT): Host {
-  const world: Host = { clock: mock.clock(on, { now: NOW }), file, panes: [], opens: [], reads: [], scrolls: [], path, runs: [] }
-  mock.store(on)
+export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<string, unknown> = {}): Host {
+  const world: Host = {
+    clock: mock.clock(on, { now: NOW }),
+    file,
+    panes: [],
+    opens: [],
+    closes: [],
+    reads: [],
+    scrolls: [],
+    path,
+    runs: [],
+    store: { ...stored },
+    focuses: [],
+  }
+  on('store.get', (_$, e) => ({ value: world.store[e.key] }))
+  on('store.set', (_$, e) => {
+    if (world.refuseStore) throw new Error('CT-SYN store refused')
+    world.store[e.key] = JSON.parse(JSON.stringify(e.value))
+    return { value: undefined }
+  })
+  /* The ring moves where it is asked to; the test sees each move. */
+  on('ui.focus', (_$, e) => {
+    world.focuses.push({ element: e.element, origin: e.origin.kind })
+    return {}
+  })
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('classic.SessionStart', () => ({}))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('ui.open', (_$, e) => {
     world.opens.push({ ...e })
+    const pane = { id: e.id, title: e.title ?? e.id, isShown: true, isFocused: e.focus === true, isPlaced: true }
+    const at = world.panes.findIndex(p => p.id === e.id)
+    if (at === -1) world.panes.push(pane)
+    else if (e.focus === true) world.panes[at] = pane
     return { value: { isPlaced: true as const } }
+  })
+  on('ui.close', (_$, e) => {
+    world.closes.push({ id: e.id, origin: e.origin.kind })
+    world.panes = world.panes.filter(p => p.id !== e.id)
+    return { value: undefined }
   })
   on('ui.panes', () => ({ value: world.panes }))
   on('ui.status', () => ({ value: undefined }))

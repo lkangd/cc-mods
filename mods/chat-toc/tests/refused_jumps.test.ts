@@ -21,7 +21,6 @@ async function session($: Engine, on: Parameters<typeof host>[0]) {
   const world = host(on, t.jsonl())
   /* What Claude Code draws at a transcript site, beneath chat-toc's hooks. */
   on('ui.render', () => ({ type: 'Text', props: {}, children: ['drawn by Claude Code'] }))
-  on('ui.focus', () => ({}))
   await start($, world)
   const pane = await mountPane($)
   return { world, pane, asked }

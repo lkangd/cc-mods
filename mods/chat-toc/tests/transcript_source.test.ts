@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { TRANSCRIPT, appendRow, host, mountPane, start } from './host'
+import { TRANSCRIPT, appendRow, entryTexts, host, mountPane, start } from './host'
 import type { Host } from './host'
 import { transcript } from './fixture'
 
@@ -27,7 +27,7 @@ function bytesOf(text: string): Uint8Array {
 type Pane = Awaited<ReturnType<typeof mountPane>>
 
 async function buttonTexts(pane: Pane) {
-  return (await pane.findAll({ type: 'Button' })).map(b => b.text)
+  return entryTexts(pane)
 }
 
 /* The texts of the drawn tree's Text elements, in drawing order. */
