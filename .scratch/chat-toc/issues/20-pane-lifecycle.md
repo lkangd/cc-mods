@@ -25,3 +25,4 @@
 - `/clear` 后新会话的文件第一行就是 `/clear` 这条本地命令，所以新目录有一组「/clear」，不是「本会话还没有对话」；CT-LIFE-002 按 verifier 对新会话文件的读法比对。
 - 追加（21 号票转来）：`--fork-session` 后新会话的文件在第一次提交前不存在，transcript 却显示着原会话的历史，原来的「本会话还没有对话」会误导。`classic.SessionStart` 换路径时按 `source` 记 `$.state` 的 `isCarriedOver`（`resume` 或 `fork` 为真，`carriesHistory`），文件不存在时 Pane 改显示：「本会话还没写进 transcript 文件，提交第一条消息后显示目录」（`NOT_WRITTEN_TEXT`）。新开、`/clear` 的会话仍是「本会话还没有对话」。实测 2.1.287、2.1.295 的 `--fork-session` 都走到这句（`ct_life.py --scenario fork`，记为 CT-LIFE-005 的一部分）；在未登录的测试 world 里提交一条，宿主自己回「Not logged in」，文件写出后 Pane 与 verifier 对 fork 文件的读法一致，不调用模型。
 - 已知：toc_verifier 的 `find_pane` 只认条目或「本会话还没有对话」，认不出这句新提示；`ct_life.py` 里自己读边框右侧文字判断，没改 verifier。
+- 21 号票的 `chain_scenarios.py life-005-fork` 原来断言 fork 后显示「本会话还没有对话」，已改为断言新提示且不出现旧提示；两个版本重跑通过（`20261011-082047-chain-2.1.295`、`20261011-082052-chain-2.1.287`）。

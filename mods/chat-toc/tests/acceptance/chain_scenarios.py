@@ -167,22 +167,29 @@ def life_005_continue(world, host, run):
 
 def life_005_fork(world, host, run):
     """The fork's own file does not exist until its first submit, so until
-    then the session's chain is empty; after it, the Pane lists the fork
+    then the Pane says the session is not written yet (ticket 20), not that
+    there is no conversation; after it, the Pane lists the fork
     file's chain (the host copies the turns it holds, those after the last
     compaction), and the original file is left alone."""
     path = write_session(world, host, SESSION_A, "F", 4, compact_after=(1,), rewind=True)
     term = h.launch(world, host, [PLUGIN], ["--resume", SESSION_A, "--fork-session"], run=run)
     evidence, actual = [], {}
+    not_written = "".join("本会话还没写进 transcript 文件，提交第一条消息后显示目录".split())
+
+    def right_of_border(rows):
+        return "".join("".join(r.rsplit("│", 1)[1].replace("✕", "").split()) for r in rows if "│" in r)
     try:
-        term.wait_for(lambda t: v.parse_pane(t.rows()) is not None, "the Pane", timeout=30)
+        term.wait_for(lambda t: not_written in right_of_border(t.rows()), "the Pane", timeout=30)
         rows = term.settle(quiet=1.5)
         evidence.append(term.snap("after --fork-session, before a submit"))
-        pane = v.parse_pane(rows)
         fork_at_start = newest_other(world, SESSION_A)
+        right = right_of_border(rows)
         actual["atStart"] = {"forkFile": fork_at_start.name if fork_at_start else None,
-                             "entries": len(pane.entries) if pane else None,
-                             "emptyText": any("本会话还没有对话" in r for r in rows)}
-        start_ok = fork_at_start is None and pane is not None and not pane.entries and actual["atStart"]["emptyText"]
+                             "entries": right.count("你·"),
+                             "notWrittenText": not_written in right,
+                             "emptyText": "本会话还没有对话" in right}
+        start_ok = (fork_at_start is None and actual["atStart"]["entries"] == 0 and actual["atStart"]["notWrittenText"]
+                    and not actual["atStart"]["emptyText"])
         submit(term, "F 分叉之后的合成 prompt")
         forked = newest_other(world, SESSION_A)
         actual["forkFile"] = forked.name if forked else None
@@ -194,7 +201,7 @@ def life_005_fork(world, host, run):
     finally:
         term.close()
     ok = start_ok and after["ok"] and forked is not None and actual["originalUntouched"]
-    return ("before the first submit the fork has no file and the Pane lists nothing; after it the Pane equals "
+    return ("before the first submit the fork has no file and the Pane says it is not written yet; after it the Pane equals "
             "the fork file's chain; the original file keeps its own", actual, ok, evidence)
 
 
