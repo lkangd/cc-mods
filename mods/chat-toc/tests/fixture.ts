@@ -24,6 +24,10 @@ export type Builder = {
   interrupt: (forToolUse?: boolean) => string
   /* Any other row, on the chain. */
   row: (row: Row) => string
+  /* A compaction as Claude Code records it: a `system/compact_boundary` row
+     with no `parentUuid` that names the chain's old tip in
+     `logicalParentUuid`, then the summary row. Returns the boundary's uuid. */
+  compact: () => string
   /* Moves the chain's tip, as a rewind does, to a row already written. */
   rewindTo: (uuid: string | null) => void
   rows: Row[]
@@ -94,6 +98,26 @@ export function transcript(start = Date.UTC(2026, 9, 10, 1, 0, 0)): Builder {
         message: { role: 'user', content: [{ type: 'text', text: forToolUse ? '[Request interrupted by user for tool use]' : '[Request interrupted by user]' }] },
       }),
     row: row => push({ ...base(String(row.type ?? 'user')), ...row }),
+    compact: () => {
+      const tip = parent
+      parent = null
+      const boundary = push({
+        ...base('system'),
+        subtype: 'compact_boundary',
+        content: 'Conversation compacted',
+        level: 'info',
+        isMeta: false,
+        logicalParentUuid: tip,
+        compactMetadata: { trigger: 'manual', preTokens: 1000 },
+      })
+      push({
+        ...base('user'),
+        isCompactSummary: true,
+        isVisibleInTranscriptOnly: true,
+        message: { role: 'user', content: 'This session is being continued from a previous conversation. Summary: synthetic.' },
+      })
+      return boundary
+    },
     rewindTo: id => {
       parent = id
     },
