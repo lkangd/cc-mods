@@ -190,4 +190,17 @@ test('a pane withdrawn and seated inline again at once is not reopened over and 
   expect(world.closes.length).toBe(2)
   expect(world.opens.length).toBe(2)
   expect(last(world.statuses)).toBe(DOCK_STATUS.narrow)
+
+  /* The same width drawn again changes nothing. */
+  await drawHint($, true, 160)
+  await world.clock.settle()
+  expect(world.opens.length).toBe(2)
+
+  /* The status line says it comes back once the terminal is wider: a change
+     of width opens it again, unasked, to wait for the room. */
+  world.unplaced = true
+  await drawHint($, true, 170)
+  await world.clock.settle()
+  expect(world.opens.length).toBe(3)
+  expect(last(world.statuses)).toBe(DOCK_STATUS.narrow)
 })

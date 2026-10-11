@@ -103,9 +103,14 @@ let isOpenWanted = false
    is not known. */
 let statusShown: string | undefined | null = null
 /* Withdrawals since the pane last docked, so a pane the host keeps seating
-   inline is not withdrawn and reopened without end. */
+   inline is not withdrawn and reopened without end: the second one leaves
+   it closed until the terminal's width changes (`parkedAt`, the width it
+   was left at), when it opens again unasked. */
 let withdrawals = 0
 let isWithdrawing = false
+let parkedAt: number | undefined
+/* The terminal's width, as its drawings last said it. */
+let columns: number | undefined
 
 /* The person's choices, read from `$.store` at each `session.start`. */
 let filter: ViewFilter = 'all'
@@ -282,10 +287,19 @@ function sawSite($: EngineInterface, component: SiteComponent, requestId: string
 /* The terminal's layout, as a drawing on it says; the first word of it
    lets an open that waited for it go ahead. */
 function sawViewport($: EngineInterface, viewport: RenderViewport | undefined): void {
-  const said = viewport?.isFullscreen
-  if (said === undefined || said === isFullscreen) return
-  isFullscreen = said
-  if (isOpenWanted) $.clock.after(0, () => void autoOpen($))
+  if (viewport === undefined) return
+  columns = viewport.columns
+  const said = viewport.isFullscreen
+  if (said !== undefined && said !== isFullscreen) {
+    isFullscreen = said
+    if (isOpenWanted) $.clock.after(0, () => void autoOpen($))
+  }
+  /* A pane left closed after a second withdrawal: the width changed, so it
+     opens again by the auto-open rule, as the status line promised. */
+  if (parkedAt !== undefined && viewport.columns !== parkedAt) {
+    parkedAt = undefined
+    $.clock.after(0, () => void autoOpen($))
+  }
 }
 
 /* One chunk of the file at `offset`, as text. */
@@ -438,20 +452,25 @@ async function openAsked($: EngineInterface): Promise<void> {
 /* Docked: nothing to explain, and a later inline is the terminal narrowing. */
 async function settleDocked($: EngineInterface): Promise<void> {
   withdrawals = 0
+  parkedAt = undefined
   showStatus($, undefined)
   if (await read($, isInlineAsked)) await update($, isInlineAsked, () => false)
 }
 
 /* The host turned the docked pane inline: closed (not the person's close,
    so not kept closed) and opened again unasked, to wait undrawn for the
-   room to dock, the status line saying so meanwhile. */
+   room to dock, the status line saying so meanwhile. Seated inline again
+   before it docked, it stays closed until the width next changes. */
 async function withdraw($: EngineInterface): Promise<void> {
   if (isWithdrawing) return
   isWithdrawing = true
   try {
     withdrawals += 1
     await $.ui.close({ id: PANE_ID }).catch(() => undefined)
-    if (withdrawals > 1) return showStatus($, DOCK_STATUS.narrow)
+    if (withdrawals > 1) {
+      parkedAt = columns ?? -1
+      return showStatus($, DOCK_STATUS.narrow)
+    }
     await autoOpen($)
   } finally {
     isWithdrawing = false
