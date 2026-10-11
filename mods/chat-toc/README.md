@@ -26,12 +26,15 @@ mods/chat-toc/
 │   ├── source.ts                ≤4 MiB 整读与 4,000,000 B 分块读（sh dd+head / Windows PowerShell 5.1）
 │   ├── reader.ts                300 ms 尾随、读时合并的闸门
 │   ├── entries.ts               三种 Layout 与 View filter 的条目、时间格式、Agent 侧状态字
+│   ├── table.ts                 条目表：按组缓存条目，只在数据、宽度、过滤、Layout 变化时重建；组到条目查表
 │   ├── cells.ts                 终端单元宽度与折行
 │   ├── window.ts                Pane 自管的可见窗口
 │   ├── ring.ts                  宿主焦点环落在条目第一行、窗口两端的滚动
 │   ├── view.ts                  View filter / Layout 的 $.store 键、认不出时回默认
 │   ├── sites.ts                 transcript 站点记录与 requestId → 行的四级匹配
 │   ├── jump.ts                  每一侧的跳转候选、被拒说明与淡化
+│   ├── position.ts              Current position：在屏行分段、二分查找、跳转锁定
+│   ├── perf.ts                  CHAT_TOC_PERF 下的耗时采样（只有数字），写进宿主 debug 日志
 │   ├── lifecycle.ts             关闭标记、重开时机、放置结果、状态栏文字
 │   └── pane.tsx                 Pane 的绘制（过滤行、条目、底栏）
 └── tests/
@@ -52,6 +55,7 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 - 不需要 `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS`。全屏布局用 `/tui fullscreen` 打开（或设置里 `"tui": "fullscreen"`）。
 - 热重载：在 `--plugin-dir` 下改动（或 touch）`hooks/register.tsx`。`/reload-plugins` 对没改动的 hooks 模块不重载（debug 日志 `hooks modules unchanged, kept as loaded`）。
 - 看插件做了什么：启动时加 `--debug-file <路径>`，日志里有 `hooks module chat-toc@inline reloaded`、`ui.open chat-toc chat-toc (unasked|asked, N columns): …`、`ui.close …` 等行。
+- 量耗时：再加环境变量 `CHAT_TOC_PERF=1`，插件把读取、重组、Pane 重画、Current position 的耗时以 `chat-toc-perf {...}` 行写进 debug 日志，每秒最多一批。只有数字（毫秒与计数），没有 prompt、uuid、路径；不设这个变量时什么都不量、不写。
 - 与 marketplace 安装不要同时启用。
 
 最低兼容版本 2.1.287 不装到全局，二选一：
@@ -106,9 +110,10 @@ PY=<venv>/bin/python
 | CT-LIFE-003、004、005，CT-DATA-006 | `$PY mods/chat-toc/tests/acceptance/chain_scenarios.py --host 2.1.287 [--only life-003,...]` |
 | CT-JUMP-001～003 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003]` |
 | CT-POS-001～003、CT-COEX-001、CT-LIFE-006 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6]`（coex 在临时项目里 `git init` 一份有改动的仓库，`/diff` 才会打开） |
+| CT-PERF-001（20 MiB many/heavy，各跑 3 次） | `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py run 2.1.287 many --runs 3`（再换 `heavy`、`current`）；汇总成发布报告的表：`$PY mods/chat-toc/tests/acceptance/perf_scenarios.py table <运行目录>...`。3000 条残留在屏记录下的 Current position 与条目表在 `tests/long_session.test.ts` 里量（`claude plugin test` 输出 `CT-PERF` 行） |
 | CT-UI-001～003、三种 Layout 截屏 | `.scratch/chat-toc/assets/25-layouts/`（`capture.py`、`check_screens.py`、`probe.py`、`remember.py`） |
 
-还没有脚本的 MUST 场景（CT-PERF-001、CT-SEC-001、CT-COMPAT-001/002）随各自的票补进 `tests/acceptance/`。fixture 生成器 `transcript_fixture.py` 有 `forms`（规格点名的全部行形态）、`turns`、`many`（20 MiB 约 4500 轮）、`heavy`（20 MiB 约 108 轮、大工具结果）四种，种子固定。
+还没有脚本的 MUST 场景（CT-SEC-001、CT-COMPAT-001/002）随各自的票补进 `tests/acceptance/`。fixture 生成器 `transcript_fixture.py` 有 `forms`（规格点名的全部行形态）、`turns`、`many`（20 MiB 约 4500 轮）、`heavy`（20 MiB 约 108 轮、大工具结果）四种，种子固定。
 
 **cmux**。场景脚本默认用 pyte（无头、尺寸可控、能读颜色）。要在 cmux 里看着跑，`pty_harness.py smoke --terminal cmux` 会在当前 workspace 开一个 `--focus false` 的分屏，结束时关掉；只动自己开的分屏。注意：
 

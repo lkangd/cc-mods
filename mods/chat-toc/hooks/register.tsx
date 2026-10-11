@@ -11,15 +11,16 @@
 
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
-import { entriesOf, firstEntryFrom } from './entries'
 import type { Entry } from './entries'
 import { REFUSED_MS, REFUSED_TEXT, dimRefused, jumpTargetsOf, relisted, sideKeyOf } from './jump'
 import type { Refused } from './jump'
 import { DOCK_STATUS, carriesHistory, isClosedByPerson, isPaneOpen, placementFate, reopensOn } from './lifecycle'
-import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, entryHeight, filterRows } from './pane'
+import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, filterRows } from './pane'
 import { entryAt, ringMove } from './ring'
 import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
 import type { Layout, ViewFilter } from './view'
+import { PERF_FLUSH_MS, newPerf, note, perfNow, takeLines } from './perf'
+import type { PerfMetric } from './perf'
 import { LATE_CHECK_MS, TRAILING_MS, gateFinish, gateFired, gateRequest, gateStart, readGate } from './reader'
 import { countUnreadable, newReading, readLines } from './regroup'
 import type { Reading } from './regroup'
@@ -41,6 +42,8 @@ import {
   viewChanged,
 } from './position'
 import type { JumpLock } from './position'
+import { entryOfGroup, entryTable, newEntryCache } from './table'
+import type { EntryTable } from './table'
 import { scrolledTop, topFollowing, topRevealing, windowOf } from './window'
 import type { TocWindow } from './window'
 
@@ -149,6 +152,19 @@ let lock: JumpLock | undefined
 let position: number | undefined
 let isPositionQueued = false
 
+/* The entries kept between drawings (table.ts). */
+let entryCache = newEntryCache()
+const NO_ENTRIES: EntryTable = { entries: [], heights: [], keys: [], indexOf: new Map(), firstOfGroup: [] }
+
+/* The long-session timings (perf.ts): on when the host runs with
+   CHAT_TOC_PERF set, asked once per module load; the first main-loop row
+   appended since the last read; whether the first listing was timed. */
+const perf = newPerf()
+const loadedAt = perfNow()
+let isPerfAsked = false
+let appendedAt: number | undefined
+let isListedNoted = false
+
 function startOver(): void {
   reading = newReading()
   cursor = readCursor()
@@ -169,6 +185,24 @@ function forget(): void {
   lastDrawn = undefined
   lock = undefined
   position = undefined
+  entryCache = newEntryCache()
+}
+
+async function askPerf($: EngineInterface): Promise<void> {
+  if (isPerfAsked) return
+  isPerfAsked = true
+  perf.isOn = Boolean(await $.env.get('CHAT_TOC_PERF').catch(() => undefined))
+}
+
+/* Keeps a timing sample; a second later debug log lines take all the
+   samples gathered meanwhile. */
+function timed($: EngineInterface, metric: PerfMetric, values: readonly number[]): void {
+  if (!note(perf, metric, values) || perf.isFlushQueued) return
+  perf.isFlushQueued = true
+  $.clock.after(PERF_FLUSH_MS, () => {
+    perf.isFlushQueued = false
+    for (const line of takeLines(perf)) $.ui.log(line, { to: 'debug' })
+  })
 }
 
 /* Redraws the pane once the drawing under way is done: a render hook may
@@ -186,7 +220,9 @@ function redrawSoon($: EngineInterface): void {
    it once the drawing under way is done (a render hook may not write
    `$.state`). */
 function place($: EngineInterface): void {
+  const began = perf.isOn ? perfNow() : 0
   const at = positionOf({ live: liveRows(sites, chainRows), drawable, openers, lastDrawn, groups: reading.groups.length, locked: lock?.group })
+  if (perf.isOn) timed($, 'position', [perfNow() - began, sites.onScreen.size, drawable.length])
   if (at === position) return
   position = at
   if (isPositionQueued) return
@@ -288,9 +324,16 @@ async function readSource($: EngineInterface, path: string, at: ReadCursor): Pro
 async function load($: EngineInterface): Promise<void> {
   const path = await read($, transcriptPath)
   if (!path) return
+  const began = perfNow()
+  const asked = appendedAt
+  appendedAt = undefined
   const at = { ...cursor }
   const got = await readSource($, path, at)
-  if (got.kind === 'unchanged') return
+  const sourced = perfNow()
+  if (got.kind === 'unchanged') {
+    appendedAt ??= asked
+    return
+  }
   if (got.kind === 'lines') {
     if (got.isFromStart) reading = newReading()
     for (const lines of got.chunks.lines) readLines(reading, lines)
@@ -310,6 +353,12 @@ async function load($: EngineInterface): Promise<void> {
   drawable = drawableRows(chainRows, sites)
   lastDrawn = lastDrawnRow(chainRows, sites)
   place($)
+  if (perf.isOn && got.kind === 'lines') {
+    const ended = perfNow()
+    const full = reading.lastRegroup === 'full' ? 1 : 0
+    timed($, got.isFromStart ? 'read.whole' : 'read.tail', [ended - began, sourced - began, got.chunks.lines.length, reading.groups.length, reading.chain.length, got.size, full])
+    if (asked !== undefined) timed($, 'append.model', [ended - asked])
+  }
   await update($, rev, n => n + 1)
 }
 
@@ -499,6 +548,7 @@ export const register: Register = on => {
       await update($, isCarriedOver, () => carriesHistory(e.source))
       forget()
     }
+    await askPerf($)
     readNow($)
     /* /clear and /resume start another conversation; the host resets
        `$.state` with it, and the pane opens for it as at a start. */
@@ -512,6 +562,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'chat-toc', description: '打开对话目录', immediate: true })
     await loadChoices($)
+    await askPerf($)
     readNow($)
     void autoOpen($)
     return next(e)
@@ -535,7 +586,10 @@ export const register: Register = on => {
 
   /* Rows the main loop keeps; a subagent's go to a file of its own. */
   on('session.append', ($, e, next) => {
-    if (e.agentId === undefined) requestRead($)
+    if (e.agentId === undefined) {
+      if (perf.isOn) appendedAt ??= perfNow()
+      requestRead($)
+    }
     return next(e)
   })
 
@@ -616,8 +670,14 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'Pane', requestId: 'chat-toc' }, async ($, e) => {
+    const began = perfNow()
+    /* What the drawing needs of the host first; the rest is its own work. */
     await read($, rev)
     const lit = await read($, currentGroup)
+    const isAsked = await read($, isInlineAsked)
+    const isCarried = await read($, isCarriedOver)
+    const nowMs = await $.clock.now()
+    const awaited = perfNow()
     const wasFocused = isPaneFocused
     isPaneFocused = e.props.isFocused
     if (!isPaneFocused) ring = undefined
@@ -632,7 +692,6 @@ export const register: Register = on => {
     const litGroup = lit >= 0 ? lit : undefined
     litShown = litGroup
     /* A drawing writes nothing, so what its placement asks is done after. */
-    const isAsked = await read($, isInlineAsked)
     const fate = placementFate(e.props.placement, isAsked)
     if (fate === 'docked' && (statusShown !== undefined || isAsked || withdrawals > 0)) $.clock.after(0, () => void settleDocked($))
     if (fate === 'withdraw' && !isWithdrawing) $.clock.after(0, () => void withdraw($))
@@ -642,28 +701,29 @@ export const register: Register = on => {
     }
     const isOk = source === 'ok'
     const width = e.props.bodyColumns
-    const listed = isOk ? entriesOf(reading.groups, { layout, filter, width, nowMs: await $.clock.now(), isRunning: isTurnRunning }) : []
-    const entries = dimRefused(listed, reading.groups, refused)
+    const wasTable = entryCache.table
+    const table = isOk ? entryTable(entryCache, reading.groups, { layout, filter, width, nowMs, isRunning: isTurnRunning }) : NO_ENTRIES
+    const entries = dimRefused(table.entries, reading.groups, refused)
     /* A resumed or forked session shows its history in the transcript
        before its own file is written; it is not without a conversation. */
-    const missing = (await read($, isCarriedOver)) ? NOT_WRITTEN_TEXT : EMPTY_TEXT
+    const missing = isCarried ? NOT_WRITTEN_TEXT : EMPTY_TEXT
     const notice = source === 'missing' ? missing : isOk && entries.length === 0 ? EMPTY_TEXT : undefined
     const why = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
     const footerLines = [refusal === undefined ? undefined : REFUSED_TEXT, why, isHeld ? PAUSED_TEXT : undefined].filter(
       (s): s is string => s !== undefined,
     )
     const footer = footerLines.length > 0 ? footerLines.join('\n') : undefined
-    const heights = entries.map((_, i) => entryHeight(entries, i))
+    const heights = table.heights
     const headRows = filterRows(width, filter, layout)
     const rows = e.props.scroll.bodyRows - headRows - (notice === undefined ? 0 : 1) - footerLines.length
     if (!isHeld) {
-      const index = litGroup === undefined ? undefined : firstEntryFrom(entries, litGroup)
+      const index = litGroup === undefined ? undefined : entryOfGroup(table, litGroup)
       top = topFollowing(heights, rows, top, index, litGroup === reading.groups.length - 1)
     }
     if (anchor !== undefined) {
       const kept = anchor
       anchor = undefined
-      const index = firstEntryFrom(entries, kept.group)
+      const index = entryOfGroup(table, kept.group)
       if (index !== undefined) {
         const shown = windowOf(heights, rows, kept.by === 'lit' ? top : undefined)
         const isOut = index < shown.start || index >= shown.end
@@ -672,17 +732,17 @@ export const register: Register = on => {
         /* The host keeps the ring on the same place in its order across
            the redraw, a body line now; put it back on the selected entry
            once the new drawing is laid out. */
-        const key = kept.ring !== undefined && entries.some(entry => entry.key === kept.ring) ? kept.ring : entries[index]?.key
+        const key = kept.ring !== undefined && table.indexOf.has(kept.ring) ? kept.ring : entries[index]?.key
         if (kept.ring !== undefined && key !== undefined) $.clock.after(REFOCUS_MS, () => void focusKey($, key))
       }
     }
     lastWindow = windowOf(heights, rows, top)
     lastEntries = entries
-    lastKeys = entries.map(entry => entry.key)
-    lastIndexOf = new Map(lastKeys.map((key, i) => [key, i]))
+    lastKeys = table.keys
+    lastIndexOf = table.indexOf
     lastHeights = heights
     lastRows = rows
-    return drawPane($.ui.resolve(e), {
+    const drawn = drawPane($.ui.resolve(e), {
       entries,
       window: lastWindow,
       layout,
@@ -695,5 +755,14 @@ export const register: Register = on => {
       onFilter: chosen => chooseFilter($, chosen),
       onLayout: () => chooseLayout($),
     })
+    if (perf.isOn) {
+      const ended = perfNow()
+      timed($, 'pane', [ended - awaited, ended - began, entries.length, table === wasTable ? 0 : 1])
+      if (!isListedNoted && entries.length > 0) {
+        isListedNoted = true
+        timed($, 'listed', [ended - loadedAt])
+      }
+    }
+    return drawn
   })
 }
