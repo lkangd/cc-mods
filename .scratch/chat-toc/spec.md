@@ -78,7 +78,7 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-hist
 - **路径**：取自 classic 事件的 `transcript_path`。新会话在第一条消息之前文件还不存在，这是正常状态，不是读取失败。（在 2.1.287 上核对关键 API）
 - **读取方式**：第一次读且文件 ≤4 MiB 时用 `$.fs.read`。其余情况用 `$.process.run` 从字节偏移分块读 4,000,000 B：
   - macOS/Linux：`sh -c '{ dd bs=1 skip="$1" count=0 2>/dev/null; head -c "$3"; } < "$2"'`（`tail -c +N` 在 macOS 上太慢）；
-  - Windows：系统自带的 Windows PowerShell 5.1，用 `[IO.File]` 按偏移读，base64 输出。
+  - Windows：系统自带的 Windows PowerShell 5.1，用 `[IO.File]` 按偏移读，base64 输出；每块改读 3,000,000 B，因为 base64 使输出变为 4/3，4,000,000 B 编码后会超过 `$.process.run` 的 4 MiB stdout 上限被截断（实现 22 号票时发现，2026-10-11 使用者确认）。
   - 每块截到最后一个换行，偏移加上保留部分的 UTF-8 字节数；文件变小就整份重读。单行超过一块（块里没有换行）时，按「无法识别的行」计数并跳过。
   （实测长会话的读取与渲染开销；定义 Turn group 的划分与边界）
 - **触发与节流**：由 `session.append`（只看主循环，即没有 `agentId` 的行）和 `turn.complete` 触发；尾随 300 ms 读一次，正在读时合并成一次；`fs.stat` 大小没变就跳过；`turn.complete` 之后 +1.5 s 再查一次，兜住文件落后写入。不做周期轮询。（实测长会话的读取与渲染开销）
