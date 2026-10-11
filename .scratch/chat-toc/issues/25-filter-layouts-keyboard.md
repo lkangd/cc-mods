@@ -30,3 +30,11 @@
 - 紧凑的用户行：prompt 截成一行，右端 `HH:MM`（没有时间就不写，prompt 占满）；Agent 行 `↳ 状态 · 末段`。时间轴每侧最多 2 行，Agent 侧同样是 `↳ 状态 · 末段` 折行，左栏只在用户侧第一行写时间。卡片与时间轴组间空一行，紧凑不空。
 - 另修（协调者转来，CT-TURN-003）：`cells.ts` 把 Emoji_Presentation 的 BMP 字符（✨ U+2728、✅、⭐、⚡、⌛ 等）算 2 格，与宿主一致；另补了 1F004、1F0CF、1F18E、1F191–1F19A、1F200–1F2FF。测试在 `card_entries.test.ts`。
 - 验证：`claude plugin test mods/chat-toc` 132 通过；两个版本 `plugin validate` 通过；tsc 对 2.1.287、2.1.295 声明都无错。PTY（pyte，隔离配置、未登录，没有调用模型）：两个版本的 harness smoke 通过；`assets/25-layouts/` 下 `capture.py`（三种 Layout × 36/44/56 × 两版本，外加用户/Agent 过滤）、`check_screens.py`（核对每张截屏的 Layout、过滤、宽度，30 张全部 ok）、`probe.py`（按键序列，`keys-*.txt` 是两个版本 ↑↓ 走条目、窗口两端滚动、绕回过滤行的记录）、`remember.py`（选「Agent」与紧凑后退出再开仍记得；把 store 文件改成认不出的值后回到全部与卡片，`remember-*.txt`）。截屏在 `assets/25-layouts/screens/<版本>-<列宽>/`，供人工目检；青色高亮要等 24。
+
+**2026-10-11 代码审查修正（分支 `chat-toc/review-fixes`）**
+
+- 去掉固定的 `REFOCUS_MS = 60`，改成照 prompt-history 的做法：切换或窗口挪动后记下「欠着的」焦点环目标 `pendingRing`，由真正画出该条目的那一次绘制发出（`ring.ts` 的 `pendingShown`），`$.clock.after(0)` 发送；被拒最多重试 3 次、间隔 50 ms；发送前焦点环已经被人挪走（`ring !== key`）就不发。`ui.focus` 的窗口两端滚动（reveal）也走同一条路。
+- 实测 2.1.287 切到时间轴时，发送当时被接受，但宿主等新帧排好后又按「第几个 Button」把焦点环放回正文行（与 prompt-history 记的 2.1.290 现象相同）。所以加了一次确认：发出后 150 ms 内要一次重画（没有就自己要一次），那次绘制再发一遍。
+- 热键 1/2/3/l 不会把焦点环挪到过滤行（两个版本都用调试日志确认过）；焦点刚进入 Pane、焦点环停在过滤行按钮上时按热键，锚是 Current position 所在组（没有高亮时用窗口顶部那组），与规格一致，`follow_position.test.ts` 加了测试。
+- 窗口位置的纯计算移到 `window.ts` 的 `topOfDrawing`（返回 `{top, refocusKey}`），锚是可辨识联合 `SwitchAnchor`（`by: 'ring' | 'lit' | 'top'`）。
+- PTY：新脚本 `assets/25-layouts/ring_check.py`（三种 Layout 来回切换、过滤切换、窗口两端滚动后焦点环的落点），2.1.287 与 2.1.295 全部 ok；`capture.py` + `check_screens.py` 30 张截屏 ok。

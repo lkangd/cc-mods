@@ -36,3 +36,10 @@
   - `/chat-toc` 在 100 列时宿主放成 inline；拉宽到 170 列宿主自动改成停靠，再窄到 100 列又变 inline。
   - 所以「变窄 → inline」确实发生，插件按规格撤回：本票之后 100 列时 debug 日志是 `ui.close skipped: re-entry (… origin chat-toc)`（插件自己的 close 不再进自己的 hook）后跟 `ui.open … (unasked, 100 columns): waits unplaced`，屏幕上没有 inline 框，状态栏「终端太窄…」；拉回 170 列自动停靠、状态栏清除。
 - 已知限制：撤回后重开是未请求的 open，所以要拉到未请求的门槛（144，或使用者请求过时 110）才再停靠，不是 110 就停靠；这是宿主的规则，插件不改写。
+
+**2026-10-11 代码审查修正（分支 `chat-toc/review-fixes`）**
+
+- 全屏与否除了 `PromptHint`，也从四个 transcript 站点（`UserMessage`/`AssistantMessage`/`CommandOutput`/`ToolGroup`，只认 `surface: 'terminal'`）的 `e.viewport` 读，提示行没画出来时自动打开也能进行。
+- 第二次撤回后不再永远关着：记下当时的终端宽度，之后任一绘制报告的宽度变了，就按自动打开规则再开一次（未请求、等宿主落座），状态栏「把终端拉宽后会自动出现」因此属实；宿主仍立刻放成 inline 时会再次停住，等下一次宽度变化，不会来回开关。测试在 `docking.test.ts`。
+- `/chat-toc` 在 Pane 关着时也带 `focus: true` 打开（用户故事 3「重新打开并聚焦」）；CT-LIFE-001 的 PTY 脚本加了检查：重新打开后按 `l` 能切 Layout（热键只在聚焦时有效），两个版本通过。
+- PTY 重跑（pyte，未登录，无模型调用）：`ct_compat.py` 两版 10/10、`ct_life.py` 两版 6/6 通过。

@@ -123,6 +123,18 @@ def ct_life_001(host, run, plugin):
         evidence.append(t.snap("001 /chat-toc opened it"))
         actual["reopenedByCommand"] = True
 
+        # The reopened Pane has the keyboard: its hotkey `l` (live only while
+        # the Pane is focused) switches the Layout; `l` twice more goes back.
+        t.type("l")
+        rows = t.settle()
+        actual["reopenedFocused"] = any("布局:紧凑" in row for row in rows)
+        evidence.append(t.snap("001 l pressed after /chat-toc reopened it"))
+        t.type("l")
+        t.settle()
+        t.type("l")
+        t.key("esc")
+        t.settle()
+
         t.command("/chat-toc")
         rows = t.settle()
         actual["stillOpenAfterSecondCommand"] = v.parse_pane(rows) is not None
@@ -147,11 +159,11 @@ def ct_life_001(host, run, plugin):
         if t is not None:
             t.close()
         world.remove()
-    keys = ("openedByItself", "closedOnMark", "closedAfterReload", "reopenedByCommand",
+    keys = ("openedByItself", "closedOnMark", "closedAfterReload", "reopenedByCommand", "reopenedFocused",
             "stillOpenAfterSecondCommand", "oneOpenAfterReload", "newProcessOpens")
     ok = all(actual.get(k) is True for k in keys)
     run.record("CT-LIFE-001", host=host.version, plugin=str(plugin), fixture="turns 6", actual=actual,
-               expected="opens by itself; ✕ keeps it closed across a hot reload (no ui.open); /chat-toc reopens "
+               expected="opens by itself; ✕ keeps it closed across a hot reload (no ui.open); /chat-toc reopens it focused "
                         "and never closes; a hot reload with it open makes no ui.open; a new process opens it again",
                result="pass" if ok else "fail", evidence=evidence)
     return ok
