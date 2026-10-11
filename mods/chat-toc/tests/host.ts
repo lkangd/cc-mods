@@ -46,6 +46,11 @@ export type Host = {
   runs: { argv: readonly string[]; env?: Record<string, string> }[]
   /* While set, the file exists but reading it is refused this way. */
   refuse?: 'denied' | 'error'
+  /* The status line chat-toc set, each call in order; undefined clears. */
+  statuses: (string | undefined)[]
+  /* While set, an open leaves the pane waiting undrawn, as the host does
+     for an unasked open on a narrow terminal. */
+  unplaced?: boolean
 }
 
 /* What the shell and Windows PowerShell commands of a chunked read write:
@@ -76,18 +81,20 @@ function isTranscript(world: Host, path: string): boolean {
 }
 
 export function host(on: On, file?: string, path = TRANSCRIPT): Host {
-  const world: Host = { clock: mock.clock(on, { now: NOW }), file, panes: [], opens: [], closes: [], reads: [], scrolls: [], path, runs: [] }
+  const world: Host = { clock: mock.clock(on, { now: NOW }), file, panes: [], opens: [], closes: [], reads: [], scrolls: [], path, runs: [], statuses: [] }
   mock.store(on)
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('classic.SessionStart', () => ({}))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('ui.open', (_$, e) => {
     world.opens.push({ ...e })
-    const pane = { id: e.id, title: e.title ?? e.id, isShown: true, isFocused: e.focus === true, isPlaced: true }
+    const isPlaced = world.unplaced !== true
+    const pane = { id: e.id, title: e.title ?? e.id, isShown: true, isFocused: e.focus === true, isPlaced }
     const at = world.panes.findIndex(p => p.id === e.id)
     if (at === -1) world.panes.push(pane)
     else if (e.focus === true) world.panes[at] = pane
-    return { value: { isPlaced: true as const } }
+    else if (isPlaced) world.panes[at] = { ...world.panes[at]!, isPlaced }
+    return { value: isPlaced ? { isPlaced: true as const } : { isPlaced: false as const, reason: 'unasked below 144 columns (100 now)' } }
   })
   on('ui.close', (_$, e) => {
     world.closes.push({ id: e.id, origin: e.origin.kind })
@@ -95,7 +102,12 @@ export function host(on: On, file?: string, path = TRANSCRIPT): Host {
     return { value: undefined }
   })
   on('ui.panes', () => ({ value: world.panes }))
-  on('ui.status', () => ({ value: undefined }))
+  /* The engine's own hint line, beneath a plugin that passes it on. */
+  on('ui.render', { component: 'PromptHint' }, () => ({ type: 'Text' as const, props: {}, children: ['? for shortcuts'] }))
+  on('ui.status', (_$, e) => {
+    world.statuses.push(e.text)
+    return { value: undefined }
+  })
   on('turn.start', (_$, e) => ({ turnId: e.turnId }))
   on('turn.complete', (_$, e) => ({ text: e.answer }))
   on('fs.exists', (_$, e) => ({ value: isTranscript(world, e.path) && world.file !== undefined }))
@@ -128,26 +140,39 @@ export function readsOf(world: Host): number {
   return world.reads.length + world.runs.length
 }
 
-/* The session starting in a fullscreen terminal, its transcript at
-   TRANSCRIPT, and chat-toc's first read settled. */
-export async function start($: Engine, world: Host): Promise<void> {
+/* The terminal drawing the hint line under the prompt, as it does at
+   start and after every change of width: how chat-toc learns the layout. */
+export async function drawHint($: Engine, isFullscreen = true, columns = 160): Promise<void> {
+  await $.ui.render({
+    surface: 'terminal',
+    component: 'PromptHint',
+    requestId: 'prompt-hint',
+    viewport: { columns, rows: 40, isFullscreen },
+    props: { isDraft: false, isWorking: false, hint: '? for shortcuts' },
+  })
+}
+
+/* The session starting in a terminal, fullscreen unless said, its
+   transcript at TRANSCRIPT, and chat-toc's first read settled. */
+export async function start($: Engine, world: Host, isFullscreen = true): Promise<void> {
+  await drawHint($, isFullscreen)
   await $.classic.SessionStart({ source: 'startup', transcript_path: world.path })
   await $.session.start({ cwd: '/home/synthetic/project', surface: 'terminal', isInteractive: true })
   await world.clock.settle()
 }
 
-export function mountPane($: Engine, bodyRows = 30) {
+export function mountPane($: Engine, bodyRows = 30, placement: 'dock' | 'inline' = 'dock', isFullscreen = true) {
   return $.ui.mount({
     plugin: 'chat-toc',
     surface: 'terminal',
     component: 'Pane',
     requestId: PANE,
-    viewport: { columns: 160, rows: 40, isFullscreen: true },
+    viewport: { columns: 160, rows: 40, isFullscreen },
     props: {
       title: '目录',
       isFocused: false,
       bodyColumns: 44,
-      placement: 'dock',
+      placement,
       scroll: { offset: 0, bodyRows },
       view: {},
     },

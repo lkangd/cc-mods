@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { isClosedByPerson, reopensOn } from '../hooks/lifecycle'
-import { PANE, TRANSCRIPT, appendRow, host, mountPane, readsOf, start } from './host'
+import { PANE, TRANSCRIPT, appendRow, drawHint, host, mountPane, readsOf, start } from './host'
 import { transcript } from './fixture'
 
 /* The pane's lifecycle (spec §2): it opens on its own when a session starts,
@@ -130,6 +130,7 @@ test('a process resumed at start opens the pane once, from whichever start event
     $.classic.SessionStart({ source: 'resume', transcript_path: TRANSCRIPT }),
     $.session.start(SESSION),
   ])
+  await drawHint($)
   await world.clock.settle()
 
   expect(world.opens).toEqual([OPEN])
