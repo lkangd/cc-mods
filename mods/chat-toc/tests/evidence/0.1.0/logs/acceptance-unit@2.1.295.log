@@ -1,0 +1,7 @@
+$ <home>/.cache/prompt-history-release/venv/bin/python -m unittest test_toc_verifier test_transcript_fixture test_pty_harness
+# 2026-10-11T19:26:31, exit 0
+...........................................
+----------------------------------------------------------------------
+Ran 43 tests in 0.883s
+
+OK
