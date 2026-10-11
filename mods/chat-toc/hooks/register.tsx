@@ -4,7 +4,7 @@
      source.ts / reader.ts                              how and when it is read
      view.ts / entries.ts / cells.ts / window.ts        what the pane draws
      pane.tsx / ring.ts                                 how it draws, the keyboard
-     jump.ts                                            where a press scrolls
+     sites.ts / jump.ts                                 where a press scrolls
    The host's `$` may only be handed to functions declared at the top of
    this file, so every call on `$` is made here or in one of them. */
 
@@ -12,7 +12,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 import { entriesOf, firstEntryFrom } from './entries'
 import type { Entry } from './entries'
-import { jumpTargetOf } from './jump'
+import { REFUSED_MS, REFUSED_TEXT, dimRefused, jumpTargetsOf, relisted, sideKeyOf } from './jump'
+import type { Refused } from './jump'
 import { DOCK_STATUS, carriesHistory, isClosedByPerson, isPaneOpen, placementFate, reopensOn } from './lifecycle'
 import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, entryHeight, filterRows } from './pane'
 import { entryAt, ringMove } from './ring'
@@ -23,6 +24,8 @@ import { countUnreadable, newReading, readLines } from './regroup'
 import type { Reading } from './regroup'
 import { WHOLE_READ_LIMIT, chunkBytesFor, chunkCommand, chunkText, failReasonOf, readChunks, readCursor, takeWhole } from './source'
 import type { Chunks, FailReason, ReadCursor, SourceRead } from './source'
+import { newSites, noteSite, resolveSites, rowIndex, syncRows } from './sites'
+import type { OnScreen, RowIndex, SiteComponent, Sites } from './sites'
 import { scrolledTop, topRevealing, windowOf } from './window'
 import type { TocWindow } from './window'
 
@@ -100,6 +103,18 @@ let anchor: { group: number; wasFollowing: boolean; ring: string | undefined } |
 /* How long after a switch's redraw the ring is put back on its entry. */
 const REFOCUS_MS = 60
 
+/* The chain rows by what the host draws them under, and what it drew. */
+let chainRows: RowIndex = rowIndex([])
+let sites: Sites = newSites()
+/* Sides whose every jump target the host refused, drawn dim until it draws
+   one of them again. */
+let refused: Refused = new Map()
+/* The refusal said at the bottom: the entry pressed, and which saying it is
+   (its timer clears only its own). */
+let refusal: { key: string; n: number } | undefined
+let refusals = 0
+let isRedrawQueued = false
+
 function startOver(): void {
   reading = newReading()
   cursor = readCursor()
@@ -111,6 +126,28 @@ function forget(): void {
   source = 'unknown'
   top = undefined
   anchor = undefined
+  chainRows = rowIndex([])
+  sites = newSites()
+  refused = new Map()
+  refusal = undefined
+}
+
+/* Redraws the pane once the drawing under way is done: a render hook may
+   not write `$.state` itself. */
+function redrawSoon($: EngineInterface): void {
+  if (isRedrawQueued) return
+  isRedrawQueued = true
+  $.clock.after(0, () => {
+    isRedrawQueued = false
+    void update($, rev, n => n + 1)
+  })
+}
+
+/* The transcript drew a site: remembered with where it is on screen; a row
+   drawn again brings back the sides refused for want of it. */
+function sawSite($: EngineInterface, component: SiteComponent, requestId: string, onScreen: OnScreen): void {
+  const uuid = noteSite(sites, chainRows, component, requestId, onScreen)
+  if (uuid !== undefined && refused.size > 0 && relisted(refused, uuid, reading.groups, chainRows, sites)) redrawSoon($)
 }
 
 /* One chunk of the file at `offset`, as text. */
@@ -165,6 +202,7 @@ async function load($: EngineInterface): Promise<void> {
     if (got.isFromStart) reading = newReading()
     for (const lines of got.chunks.lines) readLines(reading, lines)
     countUnreadable(reading, got.chunks.overlong)
+    resolveSites(sites, chainRows, syncRows(chainRows, reading.chain))
     cursor = at
     lastSize = got.size
     source = 'ok'
@@ -264,10 +302,44 @@ async function withdraw($: EngineInterface): Promise<void> {
 }
 
 /* Only ever called from a press: the host moves the transcript only for
-   the person's own input. */
+   the person's own input. Tries the side's targets in order; when the host
+   refuses them all, says so at the bottom for a while and dims the side. */
 async function jump($: EngineInterface, entry: Entry): Promise<void> {
-  const target = jumpTargetOf(entry)
-  await $.ui.scroll({ to: { requestId: target.requestId }, block: target.block }).catch(() => undefined)
+  const group = reading.groups[entry.groupIndex]
+  if (!group) return
+  const key = sideKeyOf(group, entry.side)
+  const wasShown = refusal !== undefined || refused.has(key)
+  refusal = undefined
+  for (const target of jumpTargetsOf(group, entry.side, chainRows, sites)) {
+    const got = await $.ui
+      .scroll({ to: { requestId: target.requestId }, block: target.block })
+      .catch((error: unknown) => ({ deny: String(error) }))
+    if (got.deny === undefined) {
+      refused.delete(key)
+      if (wasShown) await update($, rev, n => n + 1)
+      return
+    }
+  }
+  refused.set(key, { side: entry.side, opener: group.openerUuid, groupIndex: entry.groupIndex })
+  const n = ++refusals
+  refusal = { key: entry.key, n }
+  $.clock.after(REFUSED_MS, () => {
+    if (refusal?.n !== n) return
+    refusal = undefined
+    void update($, rev, x => x + 1)
+  })
+  await update($, rev, x => x + 1)
+}
+
+/* Whether a Button key is one of an entry's lines. */
+const isLineOf = (element: string | undefined, key: string) => element === key || (element?.startsWith(`${key}.`) ?? false)
+
+/* The selection moving off the entry a refusal is about takes the refusal
+   away. */
+function selectionMoved($: EngineInterface, element: string | undefined): void {
+  if (refusal === undefined || isLineOf(element, refusal.key)) return
+  refusal = undefined
+  redrawSoon($)
 }
 
 /* The filter and Layout the person chose last; a store that cannot be
@@ -403,6 +475,7 @@ export const register: Register = on => {
       const key = lastKeys[move.index]
       if (key === undefined) return next(e)
       top = topRevealing(lastHeights, lastRows, lastWindow, move.index)
+      selectionMoved($, key)
       await update($, rev, n => n + 1)
       $.clock.after(0, () => void focusKey($, key))
       return { deny: 'chat-toc moves its window to the next entry first' }
@@ -410,7 +483,27 @@ export const register: Register = on => {
     const element = move.kind === 'land' ? move.key : e.element
     const result = await next(move.kind === 'land' ? { ...e, element: move.key } : e)
     if (result.deny === undefined) ring = element
+    if (result.deny === undefined) selectionMoved($, element)
     return result
+  })
+
+  /* The transcript's rows, read and never redrawn: which requestId each is
+     drawn under, and where it is on screen. */
+  on('ui.render', { component: 'UserMessage' }, ($, e, next) => {
+    sawSite($, 'UserMessage', e.requestId, e.props.onScreen)
+    return next(e)
+  })
+  on('ui.render', { component: 'AssistantMessage' }, ($, e, next) => {
+    sawSite($, 'AssistantMessage', e.requestId, e.props.onScreen)
+    return next(e)
+  })
+  on('ui.render', { component: 'CommandOutput' }, ($, e, next) => {
+    sawSite($, 'CommandOutput', e.requestId, e.props.onScreen)
+    return next(e)
+  })
+  on('ui.render', { component: 'ToolGroup' }, ($, e, next) => {
+    sawSite($, 'ToolGroup', e.requestId, e.props.onScreen)
+    return next(e)
   })
 
   on('ui.render', { component: 'Pane', requestId: 'chat-toc' }, async ($, e) => {
@@ -428,15 +521,18 @@ export const register: Register = on => {
     }
     const isOk = source === 'ok'
     const width = e.props.bodyColumns
-    const entries = isOk ? entriesOf(reading.groups, { layout, filter, width, nowMs: await $.clock.now(), isRunning: isTurnRunning }) : []
+    const listed = isOk ? entriesOf(reading.groups, { layout, filter, width, nowMs: await $.clock.now(), isRunning: isTurnRunning }) : []
+    const entries = dimRefused(listed, reading.groups, refused)
     /* A resumed or forked session shows its history in the transcript
        before its own file is written; it is not without a conversation. */
     const missing = (await read($, isCarriedOver)) ? NOT_WRITTEN_TEXT : EMPTY_TEXT
     const notice = source === 'missing' ? missing : isOk && entries.length === 0 ? EMPTY_TEXT : undefined
-    const footer = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
+    const why = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
+    const footerLines = [refusal === undefined ? undefined : REFUSED_TEXT, why].filter((s): s is string => s !== undefined)
+    const footer = footerLines.length > 0 ? footerLines.join('\n') : undefined
     const heights = entries.map((_, i) => entryHeight(entries, i))
     const headRows = filterRows(width, filter, layout)
-    const rows = e.props.scroll.bodyRows - headRows - (notice === undefined ? 0 : 1) - (footer === undefined ? 0 : 1)
+    const rows = e.props.scroll.bodyRows - headRows - (notice === undefined ? 0 : 1) - footerLines.length
     if (anchor !== undefined) {
       const kept = anchor
       anchor = undefined
