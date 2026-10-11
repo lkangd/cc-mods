@@ -794,7 +794,10 @@ def ui_003(host, run):
         actual["dimmedBeforeKeys"] = is_dim(t, p, dimmed.row + 1)
         ev.append(t.snap("ui-003 T0011 refused and dimmed"))
 
-        # the keyboard: from the filter row, ↑ wraps to the last side and walks up one side a time
+        # the keyboard: ↑ walks up one side a time. Where the ring starts
+        # after Ctrl+X Tab is the host's (2.1.295 wraps from the filter row
+        # to the last side; 2.1.287 may start a side lower); every later ↑
+        # must land on the side just above.
         focus_pane(t)
         walk = []
         for _ in range(8):
@@ -804,20 +807,20 @@ def ui_003(host, run):
             p = pane(t)
             where = side_at(p, got[0][0]) if len(got) == 1 else None
             entry = p.entries[where[0]] if where else None
-            walk.append({"ring": got, "turn": turn_of(entry.user_text) if entry else None,
-                         "side": where[1] if where else None,
+            turn = turn_of(entry.user_text) if entry else None
+            if entry is not None and turn is None and where[0] + 1 < len(p.entries):
+                nxt = turn_of(p.entries[where[0] + 1].user_text)   # /tui names no turn: the one before its neighbour
+                turn = nxt - 1 if nxt is not None else None
+            walk.append({"ring": got, "turn": turn, "side": where[1] if where else None,
                          "dim": is_dim(t, p, entry.row + 1) if entry and where[1] == "user" else None,
                          "lit": lit_rows(t, p)})
         ev.append(t.snap("ui-003 after the ↑ walk"))
         actual["walk"] = walk
+        # the sides above one another: each turn's agent side then its user side; turn 7 (/tui) has a user side only
+        order = [(n, s) for n in range(11, -1, -1) for s in (("user",) if n == 7 else ("agent", "user"))]
         steps = [(w["turn"], w["side"]) for w in walk]
-        expected_steps = []
-        turn, side = steps[0] if steps and steps[0][0] is not None else (None, None)
-        if turn is not None:
-            for i in range(len(steps)):
-                expected_steps.append((turn, side))
-                turn, side = (turn, "user") if side == "agent" else (turn - 1, "agent")
-        actual["oneSideAtATime"] = steps == expected_steps
+        actual["oneSideAtATime"] = (steps[0] in order and
+                                    steps == order[order.index(steps[0]):order.index(steps[0]) + len(steps)])
         actual["ringOnDimmed"] = any(w["turn"] == 11 and w["side"] == "user" and w["dim"] for w in walk)
 
         # Enter on the side the ring holds jumps like a click: walk on up to
