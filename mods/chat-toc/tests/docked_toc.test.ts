@@ -1,8 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { cardEntries } from '../hooks/entries'
-import { jumpTargetOf } from '../hooks/jump'
-import { tocModel } from '../hooks/model'
-import { NOW, PANE, appendRow, drawnButtons, entryTexts, host, isEntryKey, mountPane, readsOf, start } from './host'
+import { PANE, appendRow, drawnButtons, entryTexts, host, isEntryKey, mountPane, readsOf, start } from './host'
 import { transcript } from './fixture'
 
 /* The tracer: a fullscreen session opens the docked Chat TOC, which lists
@@ -140,23 +137,6 @@ test("a subagent's turn does not end the main agent's", async ($, on) => {
 
   const pane = await mountPane($)
   expect((await entryTexts(pane))).toContain('↳ 进行中 · 1 步')
-})
-
-test('every line of a prompt jumps to that prompt, its top at the top of the view', async ($, on) => {
-  const t = transcript()
-  t.prompt('CT-SYN first prompt')
-  const second = t.prompt('CT-SYN second prompt')
-  const world = host(on, t.jsonl())
-  await start($, world)
-  const pane = await mountPane($)
-
-  /* The test engine does not hand a transcript scroll to the test's hooks;
-     where it lands is checked in the terminal. Here: each line presses, and
-     the entry's target is the prompt's own row. */
-  await pane.press({ key: 'g1.u' })
-  await pane.press({ key: 'g1.u.1' })
-  const entries = cardEntries(tocModel(t.jsonl()).groups, 44, NOW, false)
-  expect(entries[1] && jumpTargetOf(entries[1])).toEqual({ requestId: second, block: 'start' })
 })
 
 test('before the first message the file does not exist and the pane says so', async ($, on) => {

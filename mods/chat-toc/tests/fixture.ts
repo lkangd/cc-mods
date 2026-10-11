@@ -40,7 +40,9 @@ export function transcript(start = Date.UTC(2026, 9, 10, 1, 0, 0)): Builder {
   let n = 0
   const uuid = () => {
     n += 1
-    return `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+    /* Numbered at both ends, as real uuids differ in their first 24
+       characters too. */
+    return `${String(n).padStart(8, '0')}-0000-4000-8000-${String(n).padStart(12, '0')}`
   }
   const base = (type: string): Row => {
     const id = uuid()
