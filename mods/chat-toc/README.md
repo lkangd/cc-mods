@@ -105,9 +105,10 @@ PY=<venv>/bin/python
 | CT-LIFE-001、002、005（fork） | `$PY mods/chat-toc/tests/acceptance/ct_life.py --host 2.1.287 --host current [--scenario 001\|002\|fork]` |
 | CT-LIFE-003、004、005，CT-DATA-006 | `$PY mods/chat-toc/tests/acceptance/chain_scenarios.py --host 2.1.287 [--only life-003,...]` |
 | CT-JUMP-001～003 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003]` |
+| CT-POS-001～003、CT-COEX-001、CT-LIFE-006 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6]`（coex 在临时项目里 `git init` 一份有改动的仓库，`/diff` 才会打开） |
 | CT-UI-001～003、三种 Layout 截屏 | `.scratch/chat-toc/assets/25-layouts/`（`capture.py`、`check_screens.py`、`probe.py`、`remember.py`） |
 
-还没有脚本的 MUST 场景（CT-POS、CT-COEX-001、CT-LIFE-006、CT-PERF-001、CT-SEC-001、CT-COMPAT-001/002）随各自的票补进 `tests/acceptance/`。fixture 生成器 `transcript_fixture.py` 有 `forms`（规格点名的全部行形态）、`turns`、`many`（20 MiB 约 4500 轮）、`heavy`（20 MiB 约 108 轮、大工具结果）四种，种子固定。
+还没有脚本的 MUST 场景（CT-PERF-001、CT-SEC-001、CT-COMPAT-001/002）随各自的票补进 `tests/acceptance/`。fixture 生成器 `transcript_fixture.py` 有 `forms`（规格点名的全部行形态）、`turns`、`many`（20 MiB 约 4500 轮）、`heavy`（20 MiB 约 108 轮、大工具结果）四种，种子固定。
 
 **cmux**。场景脚本默认用 pyte（无头、尺寸可控、能读颜色）。要在 cmux 里看着跑，`pty_harness.py smoke --terminal cmux` 会在当前 workspace 开一个 `--focus false` 的分屏，结束时关掉；只动自己开的分屏。注意：
 

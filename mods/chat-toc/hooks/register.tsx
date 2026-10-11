@@ -5,6 +5,7 @@
      view.ts / entries.ts / cells.ts / window.ts        what the pane draws
      pane.tsx / ring.ts                                 how it draws, the keyboard
      sites.ts / jump.ts                                 where a press scrolls
+     position.ts                                        what the view is on
    The host's `$` may only be handed to functions declared at the top of
    this file, so every call on `$` is made here or in one of them. */
 
@@ -26,7 +27,21 @@ import { WHOLE_READ_LIMIT, chunkBytesFor, chunkCommand, chunkText, failReasonOf,
 import type { Chunks, FailReason, ReadCursor, SourceRead } from './source'
 import { newSites, noteSite, resolveSites, rowIndex, syncRows } from './sites'
 import type { OnScreen, RowIndex, SiteComponent, Sites } from './sites'
-import { scrolledTop, topRevealing, windowOf } from './window'
+import {
+  LOCK_QUIET_MS,
+  addDrawable,
+  drawableRows,
+  isViewChange,
+  lastDrawnRow,
+  liveRows,
+  lockOn,
+  openerRows,
+  positionOf,
+  quietAfter,
+  viewChanged,
+} from './position'
+import type { JumpLock } from './position'
+import { scrolledTop, topFollowing, topRevealing, windowOf } from './window'
 import type { TocWindow } from './window'
 
 const transcriptPath = atom({ plugin: 'chat-toc', key: 'transcriptPath' } as const, '')
@@ -34,6 +49,7 @@ const rev = atom({ plugin: 'chat-toc', key: 'rev' } as const, 0)
 const isClosed = atom({ plugin: 'chat-toc', key: 'isClosed' } as const, false)
 const isCarriedOver = atom({ plugin: 'chat-toc', key: 'isCarriedOver' } as const, false)
 const isInlineAsked = atom({ plugin: 'chat-toc', key: 'isInlineAsked' } as const, false)
+const currentGroup = atom({ plugin: 'chat-toc', key: 'currentGroup' } as const, -1)
 
 type SourceState = 'unknown' | 'missing' | 'ok' | 'failed'
 
@@ -62,9 +78,15 @@ let lastSize: number | undefined
 let isTurnRunning = false
 let isTurnEnding = false
 const gate = readGate()
-/* The window's top entry while the person has scrolled the pane; undefined
-   follows the newest entry. */
+/* The window's top entry; undefined shows the newest. While following it
+   is wherever keeps the lit group in view. */
 let top: number | undefined
+/* Following stops while the person scrolls the pane or it has the
+   keyboard, and starts again when the Current position next moves. */
+let isPaused = false
+/* The Current position the window last followed, and the one drawn last. */
+let followed: number | undefined
+let litShown: number | undefined
 let lastWindow: TocWindow = { start: 0, end: 0, maxStart: 0 }
 /* The opens chat-toc makes on its own, one after another, so two start
    events at once (a process started with --resume raises both) find the
@@ -99,9 +121,11 @@ let ring: string | undefined
 let isPaneFocused = false
 /* The group a switch of filter or Layout keeps in view, resolved by the
    next drawing, and whether the window followed the newest before it. */
-let anchor: { group: number; wasFollowing: boolean; ring: string | undefined } | undefined
+let anchor: { group: number; by: 'ring' | 'lit' | 'top'; wasFollowing: boolean; ring: string | undefined } | undefined
 /* How long after a switch's redraw the ring is put back on its entry. */
 const REFOCUS_MS = 60
+/* Said at the bottom while the window does not follow the Current position. */
+const PAUSED_TEXT = '暂停'
 
 /* The chain rows by what the host draws them under, and what it drew. */
 let chainRows: RowIndex = rowIndex([])
@@ -114,6 +138,16 @@ let refused: Refused = new Map()
 let refusal: { key: string; n: number } | undefined
 let refusals = 0
 let isRedrawQueued = false
+
+/* For the Current position (position.ts): the drawable rows' and the group
+   openers' places on the chain, the last row drawn, the group a jump
+   locked it on, and the position as last worked out. */
+let drawable: number[] = []
+let openers: number[] = []
+let lastDrawn: number | undefined
+let lock: JumpLock | undefined
+let position: number | undefined
+let isPositionQueued = false
 
 function startOver(): void {
   reading = newReading()
@@ -130,6 +164,11 @@ function forget(): void {
   sites = newSites()
   refused = new Map()
   refusal = undefined
+  drawable = []
+  openers = []
+  lastDrawn = undefined
+  lock = undefined
+  position = undefined
 }
 
 /* Redraws the pane once the drawing under way is done: a render hook may
@@ -143,11 +182,65 @@ function redrawSoon($: EngineInterface): void {
   })
 }
 
+/* Works the Current position out again; when it moved, the pane hears of
+   it once the drawing under way is done (a render hook may not write
+   `$.state`). */
+function place($: EngineInterface): void {
+  const at = positionOf({ live: liveRows(sites, chainRows), drawable, openers, lastDrawn, groups: reading.groups.length, locked: lock?.group })
+  if (at === position) return
+  position = at
+  if (isPositionQueued) return
+  isPositionQueued = true
+  $.clock.after(0, () => {
+    isPositionQueued = false
+    void showPosition($)
+  })
+}
+
+/* The pane reads the position from `$.state`. A tab behind another pane is
+   not drawn: a move while it is there ends the pause, so the first frame
+   back follows. */
+async function showPosition($: EngineInterface): Promise<void> {
+  const value = position ?? -1
+  if (value === (await read($, currentGroup))) return
+  await update($, currentGroup, () => value)
+  if (!isPaused) return
+  const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
+  if (pane !== undefined && !pane.isShown) isPaused = false
+}
+
+/* A jump landed: the position holds its group until the view changes
+   after the jump's own redraws. */
+function lockAfterJump($: EngineInterface, group: number): void {
+  const held = lockOn(group)
+  lock = held
+  $.clock.after(LOCK_QUIET_MS, () => quietAfter(held, 0))
+  place($)
+}
+
+/* The view changed under a lock: a redraw of the jump's keeps it, the first
+   change after they stop lets it go. */
+function viewMovedUnderLock($: EngineInterface, held: JumpLock): void {
+  const seen = viewChanged(held)
+  if (seen.kind === 'released') lock = undefined
+  else $.clock.after(LOCK_QUIET_MS, () => quietAfter(held, seen.change))
+}
+
 /* The transcript drew a site: remembered with where it is on screen; a row
-   drawn again brings back the sides refused for want of it. */
+   drawn again brings back the sides refused for want of it; where the view
+   is is worked out again. */
 function sawSite($: EngineInterface, component: SiteComponent, requestId: string, onScreen: OnScreen): void {
+  const was = sites.onScreen.get(`${component}|${requestId}`)?.onScreen
+  const drawnBefore = sites.idOf.size
   const uuid = noteSite(sites, chainRows, component, requestId, onScreen)
   if (uuid !== undefined && refused.size > 0 && relisted(refused, uuid, reading.groups, chainRows, sites)) redrawSoon($)
+  const at = uuid === undefined ? undefined : chainRows.order.get(uuid)
+  if (at !== undefined && sites.idOf.size !== drawnBefore) {
+    addDrawable(drawable, at)
+    if (lastDrawn === undefined || at > lastDrawn) lastDrawn = at
+  }
+  if (lock !== undefined && isViewChange(was, onScreen)) viewMovedUnderLock($, lock)
+  if (onScreen !== undefined) place($)
 }
 
 /* One chunk of the file at `offset`, as text. */
@@ -211,6 +304,12 @@ async function load($: EngineInterface): Promise<void> {
     source = got.kind
     if (got.kind === 'failed') failure = got.reason
   }
+  /* The rows a read brings, and a hot reload's sites drawn before it, only
+     place the view once the rows are known. */
+  openers = openerRows(reading.groups, chainRows)
+  drawable = drawableRows(chainRows, sites)
+  lastDrawn = lastDrawnRow(chainRows, sites)
+  place($)
   await update($, rev, n => n + 1)
 }
 
@@ -316,6 +415,7 @@ async function jump($: EngineInterface, entry: Entry): Promise<void> {
       .catch((error: unknown) => ({ deny: String(error) }))
     if (got.deny === undefined) {
       refused.delete(key)
+      lockAfterJump($, entry.groupIndex)
       if (wasShown) await update($, rev, n => n + 1)
       return
     }
@@ -350,12 +450,20 @@ async function loadChoices($: EngineInterface): Promise<void> {
 }
 
 /* The group a switch keeps in view: the selected entry's while the pane
-   has the keyboard, else the window's top one while the person has
-   scrolled it; none while it follows the newest, which it goes on doing. */
+   has the keyboard, else the lit one, else the window's top one while the
+   person has scrolled it. None while following, which keeps the lit group
+   in view itself, or follows the newest. */
 function anchorForSwitch(): void {
+  const wasFollowing = top === undefined
   const at = isPaneFocused ? entryAt(ring, lastIndexOf) : undefined
-  const entry = at !== undefined ? lastEntries[at.index] : top !== undefined ? lastEntries[lastWindow.start] : undefined
-  anchor = entry === undefined ? undefined : { group: entry.groupIndex, wasFollowing: top === undefined, ring: at === undefined ? undefined : ring }
+  const selected = at === undefined ? undefined : lastEntries[at.index]
+  if (selected !== undefined) anchor = { group: selected.groupIndex, by: 'ring', wasFollowing, ring }
+  else if (!isPaused && !isPaneFocused) anchor = undefined
+  else if (litShown !== undefined) anchor = { group: litShown, by: 'lit', wasFollowing, ring: undefined }
+  else {
+    const entry = top !== undefined ? lastEntries[lastWindow.start] : undefined
+    anchor = entry === undefined ? undefined : { group: entry.groupIndex, by: 'top', wasFollowing, ring: undefined }
+  }
 }
 
 /* The choice applies at once; a store that refuses it only means it is
@@ -452,6 +560,7 @@ export const register: Register = on => {
   on('ui.scroll', { component: 'Pane', requestId: 'chat-toc' }, async ($, e, next) => {
     if (e.origin.kind !== 'person') return next(e)
     top = scrolledTop(lastWindow, e.by)
+    isPaused = true
     await update($, rev, n => n + 1)
     return {}
   })
@@ -508,8 +617,20 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: 'chat-toc' }, async ($, e) => {
     await read($, rev)
+    const lit = await read($, currentGroup)
+    const wasFocused = isPaneFocused
     isPaneFocused = e.props.isFocused
     if (!isPaneFocused) ring = undefined
+    /* The keyboard pauses following; once it is given back, a position
+       that moved meanwhile, or moves next, is followed again. */
+    if (isPaneFocused && !wasFocused) isPaused = true
+    if (!isPaneFocused && lit !== followed) {
+      followed = lit
+      isPaused = false
+    }
+    const isHeld = isPaused || isPaneFocused
+    const litGroup = lit >= 0 ? lit : undefined
+    litShown = litGroup
     /* A drawing writes nothing, so what its placement asks is done after. */
     const isAsked = await read($, isInlineAsked)
     const fate = placementFate(e.props.placement, isAsked)
@@ -528,18 +649,26 @@ export const register: Register = on => {
     const missing = (await read($, isCarriedOver)) ? NOT_WRITTEN_TEXT : EMPTY_TEXT
     const notice = source === 'missing' ? missing : isOk && entries.length === 0 ? EMPTY_TEXT : undefined
     const why = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
-    const footerLines = [refusal === undefined ? undefined : REFUSED_TEXT, why].filter((s): s is string => s !== undefined)
+    const footerLines = [refusal === undefined ? undefined : REFUSED_TEXT, why, isHeld ? PAUSED_TEXT : undefined].filter(
+      (s): s is string => s !== undefined,
+    )
     const footer = footerLines.length > 0 ? footerLines.join('\n') : undefined
     const heights = entries.map((_, i) => entryHeight(entries, i))
     const headRows = filterRows(width, filter, layout)
     const rows = e.props.scroll.bodyRows - headRows - (notice === undefined ? 0 : 1) - footerLines.length
+    if (!isHeld) {
+      const index = litGroup === undefined ? undefined : firstEntryFrom(entries, litGroup)
+      top = topFollowing(heights, rows, top, index, litGroup === reading.groups.length - 1)
+    }
     if (anchor !== undefined) {
       const kept = anchor
       anchor = undefined
       const index = firstEntryFrom(entries, kept.group)
       if (index !== undefined) {
-        const following = windowOf(heights, rows, undefined)
-        if (!kept.wasFollowing || index < following.start || index >= following.end) top = index
+        const shown = windowOf(heights, rows, kept.by === 'lit' ? top : undefined)
+        const isOut = index < shown.start || index >= shown.end
+        if (kept.by === 'top' || (kept.by === 'ring' && (!kept.wasFollowing || isOut))) top = index
+        else if (kept.by === 'lit' && isOut) top = topRevealing(heights, rows, shown, index)
         /* The host keeps the ring on the same place in its order across
            the redraw, a body line now; put it back on the selected entry
            once the new drawing is laid out. */
@@ -558,7 +687,7 @@ export const register: Register = on => {
       window: lastWindow,
       layout,
       filter,
-      litGroup: undefined,
+      litGroup,
       headRows,
       notice,
       footer,
