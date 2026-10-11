@@ -32,14 +32,13 @@ import {
   LOCK_QUIET_MS,
   addDrawable,
   drawableRows,
-  isViewChange,
   lastDrawnRow,
   liveRows,
   lockOn,
   openerRows,
   positionOf,
   quietAfter,
-  viewChanged,
+  siteReport,
 } from './position'
 import type { JumpLock } from './position'
 import { entryOfGroup, entryTable, newEntryCache } from './table'
@@ -259,14 +258,6 @@ function lockAfterJump($: EngineInterface, group: number): void {
   place($)
 }
 
-/* The view changed under a lock: a redraw of the jump's keeps it, the first
-   change after they stop lets it go. */
-function viewMovedUnderLock($: EngineInterface, held: JumpLock): void {
-  const seen = viewChanged(held)
-  if (seen.kind === 'released') lock = undefined
-  else $.clock.after(LOCK_QUIET_MS, () => quietAfter(held, seen.change))
-}
-
 /* The transcript drew a site: remembered with where it is on screen; a row
    drawn again brings back the sides refused for want of it; where the view
    is is worked out again. */
@@ -280,8 +271,12 @@ function sawSite($: EngineInterface, component: SiteComponent, requestId: string
     addDrawable(drawable, at)
     if (lastDrawn === undefined || at > lastDrawn) lastDrawn = at
   }
-  if (lock !== undefined && isViewChange(was, onScreen)) viewMovedUnderLock($, lock)
-  if (onScreen !== undefined) place($)
+  const held = lock
+  const report = siteReport(held, was, onScreen)
+  lock = report.lock
+  const change = report.quietAfter
+  if (held !== undefined && change !== undefined) $.clock.after(LOCK_QUIET_MS, () => quietAfter(held, change))
+  if (report.isPlaced) place($)
 }
 
 /* The terminal's layout, as a drawing on it says; the first word of it
