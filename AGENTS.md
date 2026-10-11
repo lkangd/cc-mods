@@ -12,6 +12,10 @@ The default triage label vocabulary is used. See `docs/agents/triage-labels.md`.
 
 Domain documentation uses the multi-context map in `CONTEXT-MAP.md`. See `docs/agents/domain.md`.
 
+## Mods
+
+Before writing or debugging mod code or running PTY acceptance, read `docs/agents/mod-host-gotchas.md`. Before dispatching implementer subagents, read `docs/agents/parallel-implementation.md`.
+
 ## Handoffs
 
 Handoff documents go in `docs/handoffs/` (git-ignored, local only), never in the OS temp directory. This applies to the `mattpocock-skills:handoff` skill too, which otherwise defaults to the temp directory: override it. Name files `<yyyymmdd>-<topic>.md`. Do not commit them.
