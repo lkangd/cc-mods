@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { ringMove } from '../hooks/ring'
+import { pendingShown, ringMove } from '../hooks/ring'
 import { topRevealing, windowOf } from '../hooks/window'
 import { PANE, entryTexts, host, mountPane, start } from './host'
 import { transcript } from './fixture'
@@ -49,6 +49,18 @@ test('at either end of the list the host wraps as it does', () => {
   expect(ringMove(KEYS, INDEX, all, 'g2.a', 'f-all')).toEqual({ kind: 'accept' })
   expect(ringMove(KEYS, INDEX, all, 'g2.a', 'g2.a.1')).toEqual({ kind: 'land', key: 'f-all' })
   expect(ringMove(KEYS, INDEX, all, 'g0.u', 'layout')).toEqual({ kind: 'accept' })
+})
+
+test('a ring move waiting for its entry is sent by the drawing whose window shows it', () => {
+  /* Entries 1 to 3 are in view. */
+  expect(pendingShown('g2.u', INDEX, WINDOW)).toBe('g2.u')
+  expect(pendingShown('g1.u', INDEX, WINDOW)).toBe('g1.u')
+  /* Not yet in this drawing's window: it waits for the next one. */
+  expect(pendingShown('g2.a', INDEX, WINDOW)).toBeUndefined()
+  expect(pendingShown('g0.u', INDEX, WINDOW)).toBeUndefined()
+  /* Gone from the entries (filtered out), or none waiting. */
+  expect(pendingShown('g9.u', INDEX, WINDOW)).toBeUndefined()
+  expect(pendingShown(undefined, INDEX, WINDOW)).toBeUndefined()
 })
 
 test('bringing an entry into view moves the window as little as it takes', () => {

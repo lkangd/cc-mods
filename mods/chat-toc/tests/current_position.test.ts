@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { currentChain } from '../hooks/chain'
 import { groupTurns } from '../hooks/groups'
-import { addDrawable, drawableRows, groupOfRow, openerRows, positionOf, trustedRun } from '../hooks/position'
+import { addDrawable, drawableRows, groupOfRow, lockOn, openerRows, positionOf, quietAfter, siteReport, trustedRun } from '../hooks/position'
 import type { LiveRow } from '../hooks/position'
 import { newSites, noteSite, rowIndex } from '../hooks/sites'
 import { parseTranscript } from '../hooks/transcript'
@@ -37,7 +37,7 @@ test('nothing on screen has no run', () => {
   expect(trustedRun([], [1, 2])).toBeUndefined()
 })
 
-test('the drawable rows are the prompts, the agent text and every row a site drew, in chain order', () => {
+test('the drawable rows are the User inputs, the main agent text and every row a site drew, in chain order', () => {
   const t = transcript()
   const asked = t.prompt('CT-SYN one')
   const tools = t.reply([{ type: 'tool_use', id: 'toolu_01', name: 'Bash', input: {} }])
@@ -129,6 +129,34 @@ test('a lock holds the jumped-to group whatever is on screen', () => {
     locked: 0,
   })
   expect(at).toBe(0)
+})
+
+const ROWS = { first: 0, last: 2, of: 3 }
+
+test("while a jump's redraws keep coming, a row leaving the view holds the lock", () => {
+  const got = siteReport(lockOn(4), ROWS, null)
+  expect(got.lock?.group).toBe(4)
+  expect(got.quietAfter).toBe(1)
+  expect(got.isPlaced).toBe(true)
+})
+
+test("the first row to leave the view after a jump's redraws stop lets the lock go and places the view again", () => {
+  const lock = lockOn(4)
+  quietAfter(lock, 0)
+
+  const got = siteReport(lock, ROWS, null)
+
+  expect(got.lock).toBeUndefined()
+  expect(got.quietAfter).toBeUndefined()
+  /* So the highlight leaves the jumped-to group now, not at the next report. */
+  expect(got.isPlaced).toBe(true)
+})
+
+test('a report that says nothing of the view neither moves a lock nor places the view', () => {
+  const lock = lockOn(4)
+  quietAfter(lock, 0)
+  expect(siteReport(lock, ROWS, undefined)).toEqual({ lock, quietAfter: undefined, isPlaced: false })
+  expect(siteReport(undefined, undefined, ROWS)).toEqual({ lock: undefined, quietAfter: undefined, isPlaced: true })
 })
 
 test('nothing on screen, or only rows before every group, lights nothing', () => {

@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { scrolledTop, windowOf } from '../hooks/window'
+import { scrolledTop, topOfDrawing, windowOf } from '../hooks/window'
 import { PANE, entryTexts, host, mountPane, start } from './host'
 import { transcript } from './fixture'
 
@@ -29,6 +29,60 @@ test('scrolling back to the end follows the newest again', () => {
   expect(scrolledTop(at, -1)).toBe(0)
   expect(scrolledTop(at, -5)).toBe(0)
   expect(scrolledTop(at, 1)).toBeUndefined()
+})
+
+/* Ten one-group entries of three rows, three to a window: the newest
+   window starts at entry 7. */
+const KEYS = Array.from({ length: 10 }, (_, g) => `g${g}.u`)
+const DRAWN = { heights: KEYS.map(() => 3), rows: 9, keys: KEYS, indexOf: new Map(KEYS.map((key, i) => [key, i])) }
+
+test('a drawing that follows keeps the lit entry in view, one entry below the top', () => {
+  expect(topOfDrawing(DRAWN, { top: undefined, follow: { index: 2, isLast: false }, anchor: undefined })).toEqual({ top: 1, refocusKey: undefined })
+  /* Already in view: the window stays. */
+  expect(topOfDrawing(DRAWN, { top: 1, follow: { index: 3, isLast: false }, anchor: undefined })).toEqual({ top: 1, refocusKey: undefined })
+  /* The last group lit, or none: the newest. */
+  expect(topOfDrawing(DRAWN, { top: 1, follow: { index: 9, isLast: true }, anchor: undefined }).top).toBeUndefined()
+  expect(topOfDrawing(DRAWN, { top: 1, follow: { index: undefined, isLast: false }, anchor: undefined }).top).toBeUndefined()
+})
+
+test('a held drawing leaves the window where it is', () => {
+  expect(topOfDrawing(DRAWN, { top: 4, follow: undefined, anchor: undefined })).toEqual({ top: 4, refocusKey: undefined })
+})
+
+test("after a switch the window's top group is put back at the top", () => {
+  expect(topOfDrawing(DRAWN, { top: 2, follow: undefined, anchor: { by: 'top', group: 5, index: 5, wasFollowing: false } })).toEqual({
+    top: 5,
+    refocusKey: undefined,
+  })
+})
+
+test('after a switch the selected entry is brought to the top, and the ring is sent back to it', () => {
+  /* Out of the newest window the person followed. */
+  expect(topOfDrawing(DRAWN, { top: undefined, follow: undefined, anchor: { by: 'ring', ring: 'g2.u', group: 2, index: 2, wasFollowing: true } })).toEqual({
+    top: 2,
+    refocusKey: 'g2.u',
+  })
+  /* In the newest window the person followed: it goes on following. */
+  expect(topOfDrawing(DRAWN, { top: undefined, follow: undefined, anchor: { by: 'ring', ring: 'g8.u', group: 8, index: 8, wasFollowing: true } })).toEqual({
+    top: undefined,
+    refocusKey: 'g8.u',
+  })
+  /* The selected side is filtered out: its group's first entry. */
+  expect(topOfDrawing(DRAWN, { top: 6, follow: undefined, anchor: { by: 'ring', ring: 'g4.a', group: 4, index: 4, wasFollowing: false } })).toEqual({
+    top: 4,
+    refocusKey: 'g4.u',
+  })
+})
+
+test('after a switch the lit group is brought into view as little as it takes', () => {
+  expect(topOfDrawing(DRAWN, { top: 4, follow: undefined, anchor: { by: 'lit', group: 1, index: 1, wasFollowing: false } })).toEqual({
+    top: 1,
+    refocusKey: undefined,
+  })
+  expect(topOfDrawing(DRAWN, { top: 4, follow: undefined, anchor: { by: 'lit', group: 5, index: 5, wasFollowing: false } })).toEqual({
+    top: 4,
+    refocusKey: undefined,
+  })
 })
 
 test('the wheel over the pane moves its window, and the newest shows first', async ($, on) => {

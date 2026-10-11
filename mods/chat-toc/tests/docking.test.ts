@@ -47,6 +47,47 @@ test('the open waits for the terminal to say its layout', async ($, on) => {
   expect(world.opens).toEqual([OPEN])
 })
 
+test('a transcript row drawn before the hint line tells the layout as well', async ($, on) => {
+  const world = host(on)
+  /* What Claude Code draws at a transcript site, beneath chat-toc's hooks. */
+  on('ui.render', { component: 'UserMessage' }, () => ({ type: 'Text' as const, props: {}, children: ['drawn by Claude Code'] }))
+  await $.session.start(SESSION)
+  await world.clock.settle()
+  expect(world.opens).toEqual([])
+
+  await $.ui.mount({
+    plugin: 'chat-toc',
+    surface: 'terminal',
+    component: 'UserMessage',
+    requestId: 'not-a-row-of-this-transcript',
+    viewport: { columns: 160, rows: 40, isFullscreen: true },
+    props: { text: 'CT-SYN', origin: { kind: 'composer' }, isExpanded: false },
+  } as never)
+  await world.clock.settle()
+
+  expect(world.opens).toEqual([OPEN])
+})
+
+test('a transcript row drawn on the main screen keeps the pane shut and says how to get the dock', async ($, on) => {
+  const world = host(on)
+  on('ui.render', { component: 'AssistantMessage' }, () => ({ type: 'Text' as const, props: {}, children: ['drawn by Claude Code'] }))
+  await $.session.start(SESSION)
+  await world.clock.settle()
+
+  await $.ui.mount({
+    plugin: 'chat-toc',
+    surface: 'terminal',
+    component: 'AssistantMessage',
+    requestId: 'not-a-row-of-this-transcript',
+    viewport: { columns: 160, rows: 40, isFullscreen: false },
+    props: { text: 'CT-SYN', isStreaming: false },
+  } as never)
+  await world.clock.settle()
+
+  expect(world.opens).toEqual([])
+  expect(last(world.statuses)).toBe(DOCK_STATUS.mainScreen)
+})
+
 test('an unasked open on a narrow terminal waits undrawn with the reason on the status line, cleared once it docks', async ($, on) => {
   const world = host(on)
   world.unplaced = true
@@ -104,7 +145,7 @@ test('/chat-toc on the main screen is placed inline and kept, the status line sa
   await mountPane($, 12, 'inline', false)
   await world.clock.settle()
 
-  expect(world.opens).toEqual([OPEN])
+  expect(world.opens).toEqual([{ ...OPEN, focus: true }])
   expect(world.closes).toEqual([])
   expect(last(world.statuses)).toBe(DOCK_STATUS.askedMainScreen)
 })
@@ -148,5 +189,18 @@ test('a pane withdrawn and seated inline again at once is not reopened over and 
 
   expect(world.closes.length).toBe(2)
   expect(world.opens.length).toBe(2)
+  expect(last(world.statuses)).toBe(DOCK_STATUS.narrow)
+
+  /* The same width drawn again changes nothing. */
+  await drawHint($, true, 160)
+  await world.clock.settle()
+  expect(world.opens.length).toBe(2)
+
+  /* The status line says it comes back once the terminal is wider: a change
+     of width opens it again, unasked, to wait for the room. */
+  world.unplaced = true
+  await drawHint($, true, 170)
+  await world.clock.settle()
+  expect(world.opens.length).toBe(3)
   expect(last(world.statuses)).toBe(DOCK_STATUS.narrow)
 })

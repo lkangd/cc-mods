@@ -34,6 +34,14 @@ export function entryAt(key: string | undefined, indexOf: ReadonlyMap<string, nu
   return index === undefined || !Number.isInteger(line) ? undefined : { index, line }
 }
 
+/* A ring move chat-toc owes, to an entry a drawing is to bring in: the key
+   once this drawing's window shows that entry, else undefined (it waits for
+   a later drawing, or its entry is gone). */
+export function pendingShown(pending: string | undefined, indexOf: ReadonlyMap<string, number>, window: TocWindow): string | undefined {
+  const index = pending === undefined ? undefined : indexOf.get(pending)
+  return index !== undefined && index >= window.start && index < window.end ? pending : undefined
+}
+
 /* The host moving the ring from `from` (where it was; undefined when the
    pane just took the keyboard) to `to` (undefined for one of the host's own
    stops). `keys[i]` is entry i's key, `indexOf` the table back. */
