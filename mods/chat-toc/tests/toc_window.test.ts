@@ -42,5 +42,7 @@ test('the wheel over the pane moves its window, and the newest shows first', asy
   expect(await shown()).toEqual(['CT-SYN prompt 9', 'CT-SYN prompt 10', 'CT-SYN prompt 11'])
 
   await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -3, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
-  expect(await shown()).toEqual(['CT-SYN prompt 6', 'CT-SYN prompt 7', 'CT-SYN prompt 8'])
+  /* Scrolled, the pane says it stopped following, on a row of its own. */
+  expect(await shown()).toEqual(['CT-SYN prompt 6', 'CT-SYN prompt 7'])
+  expect(await pane.find({ type: 'Text', text: '暂停' })).toBeDefined()
 })
