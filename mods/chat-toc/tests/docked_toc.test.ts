@@ -26,6 +26,7 @@ test('a pane already open, as after a hot reload, is not opened again', async ($
 test('the /chat-toc command is registered and opens the pane', async ($, on) => {
   const world = host(on)
   await start($, world)
+  world.panes = []
   world.opens.length = 0
 
   const ran = await $.command.run({ command: 'chat-toc', args: '' } as never)

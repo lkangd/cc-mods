@@ -14,6 +14,9 @@ declare module 'claude-code' {
       /* Bumped whenever what the pane draws from changed (a read finished,
          the window moved); the pane reads it to redraw. */
       rev: number
+      /* Whether the person closed the pane in this session, so it does not
+         open on its own again until /clear or /resume (which reset it). */
+      isClosed: boolean
     }
   }
 }
