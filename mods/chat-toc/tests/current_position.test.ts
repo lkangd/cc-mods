@@ -37,7 +37,7 @@ test('nothing on screen has no run', () => {
   expect(trustedRun([], [1, 2])).toBeUndefined()
 })
 
-test('the drawable rows are the prompts, the agent text, command output and every row a site drew, in chain order', () => {
+test('the drawable rows are the prompts, the agent text and every row a site drew, in chain order', () => {
   const t = transcript()
   const asked = t.prompt('CT-SYN one')
   const tools = t.reply([{ type: 'tool_use', id: 'toolu_01', name: 'Bash', input: {} }])
@@ -50,9 +50,12 @@ test('the drawable rows are the prompts, the agent text, command output and ever
   const sites = newSites()
   const order = (uuid: string) => rows.order.get(uuid) as number
 
-  expect(drawableRows(rows, sites)).toEqual([order(asked), order(said), order(output)])
+  /* A command's output is drawn at a site in the session that ran it, but
+     not when the session is resumed: it counts once a site drew it. */
+  expect(drawableRows(rows, sites)).toEqual([order(asked), order(said)])
 
   noteSite(sites, rows, 'ToolGroup', 'toolu_01', { first: 0, last: 0, of: 1 })
+  noteSite(sites, rows, 'CommandOutput', output, { first: 0, last: 0, of: 1 })
   expect(drawableRows(rows, sites)).toEqual([order(asked), order(tools), order(said), order(output)])
   /* A row drawn since the last rebuild goes in its place. */
   const kept = [order(asked), order(said)]

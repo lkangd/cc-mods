@@ -39,7 +39,7 @@ const hasCall = (row: TranscriptRow) => blocksOf(row.message?.content).some(b =>
 
 /* A local command's output with something in it, as a system row or the
    user row older hosts wrote. */
-export function isCommandOutput(row: TranscriptRow): boolean {
+function isCommandOutput(row: TranscriptRow): boolean {
   const content = row.type === 'system' ? row.content : row.type === 'user' ? row.message?.content : undefined
   if (typeof content !== 'string') return false
   return /<local-command-stdout>[\s\S]*?\S[\s\S]*?<\/local-command-stdout>/.test(content)
