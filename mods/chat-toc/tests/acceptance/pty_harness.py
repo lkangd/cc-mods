@@ -42,7 +42,8 @@ import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 PLUGIN = HERE.parents[1]                          # mods/chat-toc
-RUNS = PLUGIN / "build" / "pty-runs"
+# CHAT_TOC_PTY_RUNS puts every run of a release gate under one directory
+RUNS = pathlib.Path(os.environ.get("CHAT_TOC_PTY_RUNS") or PLUGIN / "build" / "pty-runs")
 sys.path.insert(0, str(HERE))
 import toc_verifier  # noqa: E402
 import transcript_fixture  # noqa: E402

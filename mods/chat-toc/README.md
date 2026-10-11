@@ -111,9 +111,12 @@ PY=<venv>/bin/python
 | CT-JUMP-001～003 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003]` |
 | CT-POS-001～003、CT-COEX-001、CT-LIFE-006 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6]`（coex 在临时项目里 `git init` 一份有改动的仓库，`/diff` 才会打开） |
 | CT-PERF-001（20 MiB many/heavy，各跑 3 次） | `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py run 2.1.287 many --runs 3`（再换 `heavy`、`current`）；汇总成发布报告的表：`$PY mods/chat-toc/tests/acceptance/perf_scenarios.py table <运行目录>...`。3000 条残留在屏记录下的 Current position 与条目表在 `tests/long_session.test.ts` 里量（`claude plugin test` 输出 `CT-PERF` 行） |
-| CT-UI-001～003、三种 Layout 截屏 | `.scratch/chat-toc/assets/25-layouts/`（`capture.py`、`check_screens.py`、`probe.py`、`remember.py`） |
+| CT-COMPAT-001，CT-DATA-001～005，CT-TURN-001～005，CT-UI-001～003，CT-SEC-001 | `$PY mods/chat-toc/tests/acceptance/gate_scenarios.py --host 2.1.287 [--only compat-001,data-002,forms,turn-004-live,ui-003,sec-001,...]` |
+| CT-COMPAT-002（marketplace 冒烟） | `$PY mods/chat-toc/tests/acceptance/ct_marketplace.py --host 2.1.287 --host current --source local\|github`（`local` 是本仓库目录，发布前跑；`github` 是 `lkangd/cc-mods`，发布后的安装级检查） |
+| 三种 Layout 截屏（人工目检用） | `.scratch/chat-toc/assets/25-layouts/capture.py`（另有 `check_screens.py`、`probe.py`、`remember.py`、`ring_check.py`） |
+| 整个发布门禁 | `$PY mods/chat-toc/tests/acceptance/release_gate.py run --host 2.1.287 --gate <目录> --screens`（当前版本另加 `--types <claude-code.d.ts>`），两个版本可以并行；再 `release_gate.py report --gate <目录> --out mods/chat-toc/tests/evidence/<版本> --commit <被测提交> --screens` 生成证据目录 |
 
-还没有脚本的 MUST 场景（CT-SEC-001、CT-COMPAT-001/002）随各自的票补进 `tests/acceptance/`。fixture 生成器 `transcript_fixture.py` 有 `forms`（规格点名的全部行形态）、`turns`、`many`（20 MiB 约 4500 轮）、`heavy`（20 MiB 约 108 轮、大工具结果）四种，种子固定。
+CT-TURN-004 的「进行中 · N 步」要一轮真正在跑：`gate_scenarios.py` 的 `turn-004-live` 用 `fake_api.py`（本机一个按脚本应答的 Messages API 替身，`ANTHROPIC_BASE_URL` 指向它）跑两步 Read 再收尾，不调用模型。fixture 生成器 `transcript_fixture.py` 有 `forms`（规格点名的全部行形态）、`turns`、`many`（20 MiB 约 4500 轮）、`heavy`（20 MiB 约 108 轮、大工具结果）四种，种子固定。
 
 **cmux**。场景脚本默认用 pyte（无头、尺寸可控、能读颜色）。要在 cmux 里看着跑，`pty_harness.py smoke --terminal cmux` 会在当前 workspace 开一个 `--focus false` 的分屏，结束时关掉；只动自己开的分屏。注意：
 
