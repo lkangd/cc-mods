@@ -20,6 +20,9 @@ declare module 'claude-code' {
       /* Whether the session began by resuming or forking another, so the
          transcript can show history before its own file is written. */
       isCarriedOver: boolean
+      /* Whether /chat-toc opened the pane and it has not docked since: the
+         one inline placement kept rather than withdrawn. */
+      isInlineAsked: boolean
     }
   }
 }

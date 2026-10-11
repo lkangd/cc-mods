@@ -14,7 +14,7 @@ import { entriesOf, firstEntryFrom } from './entries'
 import type { Entry } from './entries'
 import { REFUSED_MS, REFUSED_TEXT, dimRefused, jumpTargetsOf, relisted, sideKeyOf } from './jump'
 import type { Refused } from './jump'
-import { carriesHistory, isClosedByPerson, isPaneOpen, reopensOn } from './lifecycle'
+import { DOCK_STATUS, carriesHistory, isClosedByPerson, isPaneOpen, placementFate, reopensOn } from './lifecycle'
 import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, entryHeight, filterRows } from './pane'
 import { entryAt, ringMove } from './ring'
 import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
@@ -33,6 +33,7 @@ const transcriptPath = atom({ plugin: 'chat-toc', key: 'transcriptPath' } as con
 const rev = atom({ plugin: 'chat-toc', key: 'rev' } as const, 0)
 const isClosed = atom({ plugin: 'chat-toc', key: 'isClosed' } as const, false)
 const isCarriedOver = atom({ plugin: 'chat-toc', key: 'isCarriedOver' } as const, false)
+const isInlineAsked = atom({ plugin: 'chat-toc', key: 'isInlineAsked' } as const, false)
 
 type SourceState = 'unknown' | 'missing' | 'ok' | 'failed'
 
@@ -69,6 +70,17 @@ let lastWindow: TocWindow = { start: 0, end: 0, maxStart: 0 }
    events at once (a process started with --resume raises both) find the
    first one's pane and open one. */
 let opening: Promise<void> = Promise.resolve()
+/* The terminal's layout, as its drawings say it (fixed for the process);
+   undefined until one is drawn, and an unasked open waits for it. */
+let isFullscreen: boolean | undefined
+let isOpenWanted = false
+/* The status line as last set; null after a load, when what the host shows
+   is not known. */
+let statusShown: string | undefined | null = null
+/* Withdrawals since the pane last docked, so a pane the host keeps seating
+   inline is not withdrawn and reopened without end. */
+let withdrawals = 0
+let isWithdrawing = false
 
 /* The person's choices, read from `$.store` at each `session.start`. */
 let filter: ViewFilter = 'all'
@@ -92,7 +104,7 @@ let anchor: { group: number; wasFollowing: boolean; ring: string | undefined } |
 const REFOCUS_MS = 60
 
 /* The chain rows by what the host draws them under, and what it drew. */
-let rows: RowIndex = rowIndex([])
+let chainRows: RowIndex = rowIndex([])
 let sites: Sites = newSites()
 /* Sides whose every jump target the host refused, drawn dim until it draws
    one of them again. */
@@ -114,7 +126,7 @@ function forget(): void {
   source = 'unknown'
   top = undefined
   anchor = undefined
-  rows = rowIndex([])
+  chainRows = rowIndex([])
   sites = newSites()
   refused = new Map()
   refusal = undefined
@@ -134,8 +146,8 @@ function redrawSoon($: EngineInterface): void {
 /* The transcript drew a site: remembered with where it is on screen; a row
    drawn again brings back the sides refused for want of it. */
 function sawSite($: EngineInterface, component: SiteComponent, requestId: string, onScreen: OnScreen): void {
-  const uuid = noteSite(sites, rows, component, requestId, onScreen)
-  if (uuid !== undefined && refused.size > 0 && relisted(refused, uuid, reading.groups, rows, sites)) redrawSoon($)
+  const uuid = noteSite(sites, chainRows, component, requestId, onScreen)
+  if (uuid !== undefined && refused.size > 0 && relisted(refused, uuid, reading.groups, chainRows, sites)) redrawSoon($)
 }
 
 /* One chunk of the file at `offset`, as text. */
@@ -190,7 +202,7 @@ async function load($: EngineInterface): Promise<void> {
     if (got.isFromStart) reading = newReading()
     for (const lines of got.chunks.lines) readLines(reading, lines)
     countUnreadable(reading, got.chunks.overlong)
-    resolveSites(sites, rows, syncRows(rows, reading.chain))
+    resolveSites(sites, chainRows, syncRows(chainRows, reading.chain))
     cursor = at
     lastSize = got.size
     source = 'ok'
@@ -230,12 +242,26 @@ function openPane($: EngineInterface, focus?: true) {
   return $.ui.open({ id: PANE_ID, title: PANE_TITLE, columns: PANE_COLUMNS, ...(focus === undefined ? {} : { focus }) })
 }
 
-/* Opens the pane unasked unless the person closed it in this session or it
-   is open already, as it stays across a hot reload. */
+function showStatus($: EngineInterface, text: string | undefined): void {
+  if (text === statusShown) return
+  statusShown = text
+  $.ui.status(text)
+}
+
+/* Opens the pane unasked, in the fullscreen layout only, unless the person
+   closed it in this session or it is open already, as it stays across a hot
+   reload. While it cannot dock the status line says why. */
 async function openUnasked($: EngineInterface): Promise<void> {
+  if (isFullscreen === undefined) {
+    isOpenWanted = true
+    return
+  }
+  isOpenWanted = false
   if (await read($, isClosed)) return
-  if (isPaneOpen(await $.ui.panes())) return
-  await openPane($)
+  if (!isFullscreen) return showStatus($, DOCK_STATUS.mainScreen)
+  const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
+  const isPlaced = pane === undefined ? (await openPane($)).isPlaced : pane.isPlaced
+  if (!isPlaced) showStatus($, DOCK_STATUS.narrow)
 }
 
 function autoOpen($: EngineInterface): Promise<void> {
@@ -247,8 +273,32 @@ function autoOpen($: EngineInterface): Promise<void> {
    another, and asks for the keyboard. It never closes it. */
 async function openAsked($: EngineInterface): Promise<void> {
   await update($, isClosed, () => false)
+  await update($, isInlineAsked, () => true)
   const isOpen = isPaneOpen(await $.ui.panes())
   await openPane($, isOpen ? true : undefined)
+}
+
+/* Docked: nothing to explain, and a later inline is the terminal narrowing. */
+async function settleDocked($: EngineInterface): Promise<void> {
+  withdrawals = 0
+  showStatus($, undefined)
+  if (await read($, isInlineAsked)) await update($, isInlineAsked, () => false)
+}
+
+/* The host turned the docked pane inline: closed (not the person's close,
+   so not kept closed) and opened again unasked, to wait undrawn for the
+   room to dock, the status line saying so meanwhile. */
+async function withdraw($: EngineInterface): Promise<void> {
+  if (isWithdrawing) return
+  isWithdrawing = true
+  try {
+    withdrawals += 1
+    await $.ui.close({ id: PANE_ID }).catch(() => undefined)
+    if (withdrawals > 1) return showStatus($, DOCK_STATUS.narrow)
+    await autoOpen($)
+  } finally {
+    isWithdrawing = false
+  }
 }
 
 /* Only ever called from a press: the host moves the transcript only for
@@ -260,7 +310,7 @@ async function jump($: EngineInterface, entry: Entry): Promise<void> {
   const key = sideKeyOf(group, entry.side)
   const wasShown = refusal !== undefined || refused.has(key)
   refusal = undefined
-  for (const target of jumpTargetsOf(group, entry.side, rows, sites)) {
+  for (const target of jumpTargetsOf(group, entry.side, chainRows, sites)) {
     const got = await $.ui
       .scroll({ to: { requestId: target.requestId }, block: target.block })
       .catch((error: unknown) => ({ deny: String(error) }))
@@ -368,7 +418,10 @@ export const register: Register = on => {
      close of this one is kept, once no hook beneath refused it. */
   on('ui.close', async ($, e, next) => {
     const closed = await next(e)
-    if (isClosedByPerson(e)) await update($, isClosed, () => true).catch(() => undefined)
+    if (isClosedByPerson(e)) {
+      await update($, isClosed, () => true).catch(() => undefined)
+      showStatus($, undefined)
+    }
     return closed
   })
 
@@ -401,6 +454,17 @@ export const register: Register = on => {
     top = scrolledTop(lastWindow, e.by)
     await update($, rev, n => n + 1)
     return {}
+  })
+
+  /* The hint line is drawn from the start and again after every change of
+     width: where chat-toc learns the layout, which the start events lack. */
+  on('ui.render', { component: 'PromptHint', surface: 'terminal' }, ($, e, next) => {
+    const said = e.viewport?.isFullscreen
+    if (said !== undefined && said !== isFullscreen) {
+      isFullscreen = said
+      if (isOpenWanted) $.clock.after(0, () => void autoOpen($))
+    }
+    return next(e)
   })
 
   /* The arrows walk the host's focus ring Button by Button; this keeps it
@@ -446,6 +510,15 @@ export const register: Register = on => {
     await read($, rev)
     isPaneFocused = e.props.isFocused
     if (!isPaneFocused) ring = undefined
+    /* A drawing writes nothing, so what its placement asks is done after. */
+    const isAsked = await read($, isInlineAsked)
+    const fate = placementFate(e.props.placement, isAsked)
+    if (fate === 'docked' && (statusShown !== undefined || isAsked || withdrawals > 0)) $.clock.after(0, () => void settleDocked($))
+    if (fate === 'withdraw' && !isWithdrawing) $.clock.after(0, () => void withdraw($))
+    if (fate === 'asked-inline') {
+      const text = e.viewport?.isFullscreen === false ? DOCK_STATUS.askedMainScreen : DOCK_STATUS.askedNarrow
+      if (text !== statusShown) $.clock.after(0, () => showStatus($, text))
+    }
     const isOk = source === 'ok'
     const width = e.props.bodyColumns
     const listed = isOk ? entriesOf(reading.groups, { layout, filter, width, nowMs: await $.clock.now(), isRunning: isTurnRunning }) : []
