@@ -2,23 +2,27 @@
    conversation. This module wires the host's events to the parts:
      transcript.ts / chain.ts / groups.ts / regroup.ts  the file to Turn groups
      source.ts / reader.ts                              how and when it is read
-     entries.ts / cells.ts / window.ts / pane.tsx       what the pane draws
+     view.ts / entries.ts / cells.ts / window.ts        what the pane draws
+     pane.tsx / ring.ts                                 how it draws, the keyboard
      jump.ts                                            where a press scrolls
    The host's `$` may only be handed to functions declared at the top of
    this file, so every call on `$` is made here or in one of them. */
 
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
-import { cardEntries } from './entries'
+import { entriesOf, firstEntryFrom } from './entries'
 import type { Entry } from './entries'
 import { jumpTargetOf } from './jump'
-import { EMPTY_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, entryHeight } from './pane'
+import { EMPTY_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, entryHeight, filterRows } from './pane'
+import { entryAt, ringMove } from './ring'
+import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
+import type { Layout, ViewFilter } from './view'
 import { LATE_CHECK_MS, TRAILING_MS, gateFinish, gateFired, gateRequest, gateStart, readGate } from './reader'
 import { countUnreadable, newReading, readLines } from './regroup'
 import type { Reading } from './regroup'
 import { WHOLE_READ_LIMIT, chunkBytesFor, chunkCommand, chunkText, failReasonOf, readChunks, readCursor, takeWhole } from './source'
 import type { Chunks, FailReason, ReadCursor, SourceRead } from './source'
-import { scrolledTop, windowOf } from './window'
+import { scrolledTop, topRevealing, windowOf } from './window'
 import type { TocWindow } from './window'
 
 const transcriptPath = atom({ plugin: 'chat-toc', key: 'transcriptPath' } as const, '')
@@ -56,6 +60,25 @@ const gate = readGate()
 let top: number | undefined
 let lastWindow: TocWindow = { start: 0, end: 0, maxStart: 0 }
 
+/* The person's choices, read from `$.store` at each `session.start`. */
+let filter: ViewFilter = 'all'
+let layout: Layout = 'card'
+
+/* What the pane drew last, for the keyboard and the next switch: the
+   entries, their keys and the table back, their heights, the rows the
+   window had. */
+let lastEntries: readonly Entry[] = []
+let lastKeys: readonly string[] = []
+let lastIndexOf: ReadonlyMap<string, number> = new Map()
+let lastHeights: readonly number[] = []
+let lastRows = 1
+/* The Button the host's focus ring is on while the pane has the keyboard. */
+let ring: string | undefined
+let isPaneFocused = false
+/* The group a switch of filter or Layout keeps in view, resolved by the
+   next drawing, and whether the window followed the newest before it. */
+let anchor: { group: number; wasFollowing: boolean; refocus: boolean } | undefined
+
 function startOver(): void {
   reading = newReading()
   cursor = readCursor()
@@ -66,6 +89,7 @@ function forget(): void {
   startOver()
   source = 'unknown'
   top = undefined
+  anchor = undefined
 }
 
 /* One chunk of the file at `offset`, as text. */
@@ -166,6 +190,44 @@ async function jump($: EngineInterface, entry: Entry): Promise<void> {
   await $.ui.scroll({ to: { requestId: target.requestId }, block: target.block }).catch(() => undefined)
 }
 
+/* The filter and Layout the person chose last; a store that cannot be
+   read, or a value not known, reads as the default. */
+async function loadChoices($: EngineInterface): Promise<void> {
+  filter = filterOf(await $.store.get(FILTER_KEY).catch(() => undefined))
+  layout = layoutOf(await $.store.get(LAYOUT_KEY).catch(() => undefined))
+}
+
+/* The group a switch keeps in view: the selected entry's while the pane
+   has the keyboard, else the window's top one while the person has
+   scrolled it; none while it follows the newest, which it goes on doing. */
+function anchorForSwitch(): void {
+  const at = isPaneFocused ? entryAt(ring, lastIndexOf) : undefined
+  const entry = at !== undefined ? lastEntries[at.index] : top !== undefined ? lastEntries[lastWindow.start] : undefined
+  anchor = entry === undefined ? undefined : { group: entry.groupIndex, wasFollowing: top === undefined, refocus: at !== undefined }
+}
+
+/* The choice applies at once; a store that refuses it only means it is
+   not remembered. */
+async function chooseFilter($: EngineInterface, chosen: ViewFilter): Promise<void> {
+  if (chosen === filter) return
+  anchorForSwitch()
+  filter = chosen
+  await update($, rev, n => n + 1)
+  await $.store.set(FILTER_KEY, chosen).catch(() => undefined)
+}
+
+async function chooseLayout($: EngineInterface): Promise<void> {
+  anchorForSwitch()
+  layout = nextLayout(layout)
+  await update($, rev, n => n + 1)
+  await $.store.set(LAYOUT_KEY, layout).catch(() => undefined)
+}
+
+/* Lands the focus ring on a Button the next drawing brings. */
+async function focusKey($: EngineInterface, key: string): Promise<void> {
+  await $.ui.focus({ requestId: PANE_ID, key }).catch(() => undefined)
+}
+
 export const register: Register = on => {
   on('classic.SessionStart', async ($, e, next) => {
     const path = e.transcript_path ?? ''
@@ -179,6 +241,7 @@ export const register: Register = on => {
 
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'chat-toc', description: '打开对话目录', immediate: true })
+    await loadChoices($)
     readNow($)
     const panes = await $.ui.panes()
     if (!panes.some(pane => pane.id === PANE_ID)) void openPane($)
@@ -221,15 +284,65 @@ export const register: Register = on => {
     return {}
   })
 
+  /* The arrows walk the host's focus ring Button by Button; this keeps it
+     on entries' first lines and scrolls the window at its ends (ring.ts). */
+  on('ui.focus', { component: 'Pane', requestId: 'chat-toc' }, async ($, e, next) => {
+    const move = e.origin.kind === 'person' ? ringMove(lastKeys, lastIndexOf, lastWindow, ring, e.element) : { kind: 'accept' as const }
+    if (move.kind === 'reveal') {
+      const key = lastKeys[move.index]
+      if (key === undefined) return next(e)
+      top = topRevealing(lastHeights, lastRows, lastWindow, move.index)
+      await update($, rev, n => n + 1)
+      $.clock.after(0, () => void focusKey($, key))
+      return { deny: 'chat-toc moves its window to the next entry first' }
+    }
+    const element = move.kind === 'land' ? move.key : e.element
+    const result = await next(move.kind === 'land' ? { ...e, element: move.key } : e)
+    if (result.deny === undefined) ring = element
+    return result
+  })
+
   on('ui.render', { component: 'Pane', requestId: 'chat-toc' }, async ($, e) => {
     await read($, rev)
+    isPaneFocused = e.props.isFocused
+    if (!isPaneFocused) ring = undefined
     const isOk = source === 'ok'
-    const entries = isOk ? cardEntries(reading.groups, e.props.bodyColumns, await $.clock.now(), isTurnRunning) : []
+    const width = e.props.bodyColumns
+    const entries = isOk ? entriesOf(reading.groups, { layout, filter, width, nowMs: await $.clock.now(), isRunning: isTurnRunning }) : []
     const notice = (isOk && entries.length === 0) || source === 'missing' ? EMPTY_TEXT : undefined
     const footer = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
     const heights = entries.map((_, i) => entryHeight(entries, i))
-    const lines = (notice === undefined ? 0 : 1) + (footer === undefined ? 0 : 1)
-    lastWindow = windowOf(heights, e.props.scroll.bodyRows - lines, top)
-    return drawPane($.ui.resolve(e), { entries, window: lastWindow, notice, footer, onPress: entry => jump($, entry) })
+    const headRows = filterRows(width, filter, layout)
+    const rows = e.props.scroll.bodyRows - headRows - (notice === undefined ? 0 : 1) - (footer === undefined ? 0 : 1)
+    if (anchor !== undefined) {
+      const kept = anchor
+      anchor = undefined
+      const index = firstEntryFrom(entries, kept.group)
+      if (index !== undefined) {
+        const following = windowOf(heights, rows, undefined)
+        if (!kept.wasFollowing || index < following.start || index >= following.end) top = index
+        const key = entries[index]?.key
+        if (kept.refocus && key !== undefined) $.clock.after(0, () => void focusKey($, key))
+      }
+    }
+    lastWindow = windowOf(heights, rows, top)
+    lastEntries = entries
+    lastKeys = entries.map(entry => entry.key)
+    lastIndexOf = new Map(lastKeys.map((key, i) => [key, i]))
+    lastHeights = heights
+    lastRows = rows
+    return drawPane($.ui.resolve(e), {
+      entries,
+      window: lastWindow,
+      layout,
+      filter,
+      litGroup: undefined,
+      headRows,
+      notice,
+      footer,
+      onPress: entry => jump($, entry),
+      onFilter: chosen => chooseFilter($, chosen),
+      onLayout: () => chooseLayout($),
+    })
   })
 }

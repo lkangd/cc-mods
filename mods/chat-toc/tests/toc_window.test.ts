@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { scrolledTop, windowOf } from '../hooks/window'
-import { PANE, host, mountPane, start } from './host'
+import { PANE, entryTexts, host, mountPane, start } from './host'
 import { transcript } from './fixture'
 
 /* The pane draws only the entries in view, and follows the newest until the
@@ -36,11 +36,11 @@ test('the wheel over the pane moves its window, and the newest shows first', asy
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await mountPane($, 9)
+  const pane = await mountPane($, 10)
 
-  const shown = async () => (await pane.findAll({ type: 'Button' })).map(b => b.text).filter(s => s.startsWith('CT-SYN'))
+  const shown = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN'))
   expect(await shown()).toEqual(['CT-SYN prompt 9', 'CT-SYN prompt 10', 'CT-SYN prompt 11'])
 
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -3, bodyRows: 9, contentRows: 9, origin: { kind: 'person' } } as never)
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -3, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
   expect(await shown()).toEqual(['CT-SYN prompt 6', 'CT-SYN prompt 7', 'CT-SYN prompt 8'])
 })
