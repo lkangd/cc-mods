@@ -1,0 +1,5 @@
+first  1: ○全部 2: ○用户 3: ●Agent  l: 布局:紧凑  ✕
+second 1: ○全部 2: ○用户 3: ●Agent  l: 布局:紧凑  ✕
+store files ['plugins/store/chat-toc_inline-8255bb3c209a.json']
+store text {
+third  1: ●全部 2: ○用户 3: ○Agent  l: 布局:卡片  ✕

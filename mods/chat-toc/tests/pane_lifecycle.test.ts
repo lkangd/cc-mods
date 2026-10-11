@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { isClosedByPerson, reopensOn } from '../hooks/lifecycle'
-import { PANE, TRANSCRIPT, appendRow, drawHint, host, mountPane, readsOf, start } from './host'
+import { PANE, TRANSCRIPT, appendRow, drawHint, entryTexts, host, mountPane, readsOf, start } from './host'
 import { transcript } from './fixture'
 
 /* The pane's lifecycle (spec §2): it opens on its own when a session starts,
@@ -149,7 +149,7 @@ test('/clear lists the new, empty session in place of the old one, with nothing 
   await $.classic.SessionStart({ source: 'clear', transcript_path: OTHER_TRANSCRIPT })
   await world.clock.settle()
 
-  expect(await pane.findAll({ type: 'Button' })).toEqual([])
+  expect(await entryTexts(pane)).toEqual([])
   expect((await pane.find({ type: 'Text', text: '本会话还没有对话' }))?.text).toBe('本会话还没有对话')
 
   const next = transcript()
