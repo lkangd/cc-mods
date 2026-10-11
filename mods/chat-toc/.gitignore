@@ -1,2 +1,3 @@
 # Type declarations the engine lays beside a plugin it loads from this folder
 .claude-plugin/types/
+build/
