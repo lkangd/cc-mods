@@ -65,6 +65,10 @@ export type Host = {
   refuseStore?: boolean
   /* Where the pane's focus ring went, and who moved it. */
   focuses: { element: string | undefined; origin: string }[]
+  /* The process environment `$.env.get` reads. */
+  env: Record<string, string>
+  /* The lines chat-toc logged, and where to. */
+  logs: { text: string; to: string | undefined }[]
 }
 
 /* What the shell and Windows PowerShell commands of a chunked read write:
@@ -108,7 +112,14 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     store: { ...stored },
     focuses: [],
     statuses: [],
+    env: {},
+    logs: [],
   }
+  on('env.get', (_$, e) => ({ value: world.env[e.name] }))
+  on('ui.log', (_$, e) => {
+    world.logs.push({ text: e.text, to: e.to })
+    return { value: undefined }
+  })
   on('store.get', (_$, e) => ({ value: world.store[e.key] }))
   on('store.set', (_$, e) => {
     if (world.refuseStore) throw new Error('CT-SYN store refused')
