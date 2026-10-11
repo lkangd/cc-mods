@@ -144,6 +144,6 @@ CT-TURN-004 的「进行中 · N 步」要一轮真正在跑：`gate_scenarios.p
 2. [ ] 在本机 macOS 上用 2.1.287 和当时的当前版本，以 `--plugin-dir` 各跑一遍全部 MUST 场景：零失败、零缺失、零跳过；`claude plugin test`、两版 `validate`、两版 `tsc` 干净。
 3. [ ] 用本地目录 marketplace 在两个版本上跑 CT-COMPAT-002 冒烟（安装、Pane 自动弹出、点击一次用户侧并跳转成功），写进 `marketplace.md`。
 4. [ ] 人工目检三种 Layout 的观感、青色高亮与反色选择光标能否分清，在 `report.md` 签字（不阻断发布）。
-5. [ ] 发布提交：在**同一个提交**里加入 marketplace 条目（`.claude-plugin/marketplace.json`，`name`/`source`/`description`/`version`/`author`，不加 `category`、`tags`）、根 README 一览表的一行与 chat-toc 一节（改版本时更新那一行和「开发」里的通过结果）、`tests/evidence/<版本>/`。不打 git tag。
+5. [ ] 发布提交：在**同一个提交**里加入 marketplace 条目（`.claude-plugin/marketplace.json`，`name`/`source`/`description`/`version`/`author`，不加 `category`、`tags`）、根 README 一览表的一行与 chat-toc 一节（0.1.0 的草稿见 [`release/root-readme-section.md`](release/root-readme-section.md)）、`tests/evidence/<版本>/`。不打 git tag。
 6. [ ] 推上去后，从 `lkangd/cc-mods` 做一次安装级检查：`claude plugin marketplace add lkangd/cc-mods`、`claude plugin install chat-toc@cc-mods`、`claude plugin list` 里版本号正确且 enabled、全屏会话启动时 Pane 自动弹出。结果补进 `marketplace.md`（这一步不算重新发布）。本地目录 marketplace 直接运行源码目录，只有 GitHub 远程 marketplace 才复制到缓存，所以这一步不能省。
 7. [ ] 第 6 步失败就撤回发布提交。

@@ -14,15 +14,6 @@
       "author": {
         "name": "prompt-history contributors"
       }
-    },
-    {
-      "name": "chat-toc",
-      "source": "./mods/chat-toc",
-      "description": "A docked table of contents of the current Claude Code session; jump to any turn.",
-      "version": "0.1.0",
-      "author": {
-        "name": "chat-toc contributors"
-      }
     }
   ],
   "renames": {
