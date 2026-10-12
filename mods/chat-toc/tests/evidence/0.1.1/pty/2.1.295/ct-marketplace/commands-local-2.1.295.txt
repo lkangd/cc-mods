@@ -1,0 +1,17 @@
+$ claude plugin marketplace add <repo>
+(exit 0)
+Adding marketplace…✔ Successfully added marketplace: cc-mods (declared in user settings)
+
+$ claude plugin install chat-toc@cc-mods
+(exit 0)
+Installing plugin "chat-toc@cc-mods"...✔ Successfully installed plugin: chat-toc@cc-mods (scope: user)
+
+$ claude plugin list
+(exit 0)
+Installed plugins:
+
+  ❯ chat-toc@cc-mods
+    Version: 0.1.1
+    Read from: <repo>/mods/chat-toc
+    Scope: user
+    Status: ✔ enabled

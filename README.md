@@ -7,7 +7,7 @@ Claude Code 的 mod 合集。每个 mod 是独立插件，位于 `mods/<mod 名>
 | Mod | 版本 | 作用 |
 | --- | --- | --- |
 | [prompt-history](#prompt-history) | 0.3.0 | 保存成功提交的 prompt，在输入框上方显示可跳转的时间线 |
-| [chat-toc](#chat-toc) | 0.1.0 | 在对话右侧停靠当前会话的目录，点击跳回任意一轮 |
+| [chat-toc](#chat-toc) | 0.1.1 | 在对话右侧停靠当前会话的目录，点击跳回任意一轮 |
 
 新增 mod 时，在上表加一行，并在本文件中新增一个与下方 prompt-history 同级的一节。
 
@@ -235,4 +235,4 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 
 - 本地加载（不经 marketplace）：`claude --plugin-dir /path/to/cc-mods/mods/chat-toc`
 - 开发、测试、PTY 验收与发布清单见 [`mods/chat-toc/README.md`](mods/chat-toc/README.md)。
-- 发布证据：`mods/chat-toc/tests/evidence/0.1.0/`（被测提交 a83f74c）。Claude Code 2.1.287 与 2.1.295 上以 `--plugin-dir` 跑全部 32 个 MUST 场景，两个版本都是 32/32 通过，零失败、零缺失、零跳过；本地目录 marketplace 冒烟两个版本都通过，发布后从 GitHub 的安装级检查结果见 `marketplace.md`。三种排版的观感与颜色能否分清的人工目检尚待签字（不阻止发布）。
+- 发布证据：`mods/chat-toc/tests/evidence/0.1.1/`（被测提交 3777ac2）。Claude Code 2.1.287 与 2.1.295 上以 `--plugin-dir` 跑全部 33 个 MUST 场景，两个版本都是 33/33 通过，零失败、零缺失、零跳过；本地目录 marketplace 冒烟两个版本都通过，发布后从 GitHub 的安装级检查结果见 `marketplace.md`。三种排版的观感与颜色能否分清的人工目检尚待签字（不阻止发布）。
