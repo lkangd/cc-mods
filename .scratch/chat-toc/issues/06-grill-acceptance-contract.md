@@ -60,9 +60,10 @@ chat-toc MVP 的验收契约是什么：支持矩阵（`>=2.1.287` 终端全屏�
 - `CT-LIFE-001`：Pane 自动弹出；点 ✕ 后本会话保持关闭；`/chat-toc` 重新打开；新进程再次自动弹出。
 - `CT-LIFE-002`：`/clear` 后目录随新会话重建，不画分隔线；「已关闭」标记被重置，Pane 再次弹出。
 - `CT-LIFE-003`：`/compact` 后，compact 之前的条目照常显示。
-- `CT-LIFE-004`：rewind（包括 Esc Esc）之后的下一次提交，被弃分支的条目消失。
+- `CT-LIFE-004`：rewind（包括 Esc Esc）restore 对话后 500 ms 内，不需要再提交，被弃分支的条目（包括 rewind 到的那条）从目录消失，文件不变；之后的提交照常按文件的新分支显示。（2026-10-12 修订，见 33 号票）
 - `CT-LIFE-005`：`--resume`、`--continue`、会话内 `/resume`、`--fork-session` 之后，目录与该会话文件的对话链一致。
 - `CT-LIFE-006`：热重载（`/reload-plugins`）后，映射在读完 transcript 之后重建，跳转与高亮仍然正确。
+- `CT-LIFE-008`：rewind 后不提交就退出、再 resume，被弃分支回到目录，与宿主 transcript 的显示一致。（2026-10-12 新增，见 33 号票）
 - `CT-LIFE-007`：在已经运行的会话里启用插件、不重启，两种方式——`/plugin` 界面启用后关闭菜单（宿主自动 reload），以及 `claude plugin enable` 加 `/reload-plugins`——在不再提交任何消息的情况下，Pane 自动弹出并与该会话文件的对话链一致；项目路径含中文、空格且超过 200 字符时也一样。（2026-10-12 新增，见 31 号票）
 
 **过滤、布局与键盘**
@@ -96,8 +97,7 @@ chat-toc MVP 的验收契约是什么：支持矩阵（`>=2.1.287` 终端全屏�
 - Linux 与 Windows 只经过命令构造测试，未在真实系统上验收；Windows 只用 Windows PowerShell 5.1。
 - transcript 文件格式未公开，宿主改格式后 TOC 可能显示不全，由 `CT-DATA-003` 提示。
 - 会话中途启用时，transcript 的路径按宿主未公开的项目目录命名规则推算；宿主改了规则，目录要等下一次提交才出现。
-- 不保证能跳到 rewind 被弃的分支，也不保证能跳到 resume 前已被 compact 的行。
-- rewind 之后、下一次提交之前，目录可能仍显示被弃的条目：宿主没有 rewind 事件，文件也还没有变化。使用者确认接受这个窗口。
+- 不保证能跳到 resume 前已被 compact 的行。
 - 人工目检项（Layout 观感、颜色能否分清）不是发布阻断。
 - 不对所有硬件承诺固定的延迟 SLA；`CT-PERF` 的阈值只是在参考机器上采集的发布证据。
 
@@ -116,5 +116,6 @@ chat-toc MVP 的验收契约是什么：支持矩阵（`>=2.1.287` 终端全屏�
 
 - 2026-10-10 汇总规格时与使用者确认：使用者用 `/chat-toc` 主动打开、而宿主不能停靠（例如全屏下终端窄于 110 列）时，照宿主放成 inline。`CT-COMPAT-003` 改为：**自动弹出**时不出现 inline；`/chat-toc` 在不能停靠时出现 inline Pane，正文列出条目；已停靠后终端变窄、被宿主改成 inline 时，插件关掉 Pane（不记「已关闭」）并显示状态栏说明，条件恢复后再自动打开。不承诺清单新增一条：inline 形态下的排版、跟随与高亮未经验收。见 [规格](../spec.md)。
 - 2026-10-12（30 号票）：Pane 颜色改用宿主主题键，新增 MUST `CT-UI-004`；`CT-UI-003` 的高亮颜色判据从青色改为当前主题的 `suggestion`。
+- 2026-10-12（33 号票）：`CT-LIFE-004` 改为 restore 后 500 ms 内去掉被弃条目、不需要再提交；新增 MUST `CT-LIFE-008`（rewind 后退出再 resume）；「不承诺」删去 rewind 后到下一次提交之间的接受窗口，「不保证能跳到」只留 resume 前被 compact 的行。`CT-JUMP-003`、`CT-UI-003` 的 PTY 场景不再借 rewind 造出被拒或淡化的条目：前者改为 resume 后中途换入插件、按 compact 前的条目，后者改用 resume 前已 compact 的条目。
 - 2026-10-12（32 号票）：新增 MUST `CT-JUMP-005`（resume 后 compact 前的条目事先淡化）与 `CT-UI-005`（被拒提示的样式与闪烁）；`CT-JUMP-003` 改为只管按下后被拒的情况。实测 `--fork-session` 的文件从最后一个 compact 边界开始，没有边界之前的条目，所以事先判定只看 resume。
 - 2026-10-12（31 号票）：新增 MUST `CT-LIFE-007`（会话中途启用）；不承诺清单新增「中途启用依赖宿主未公开的目录命名规则」一条。

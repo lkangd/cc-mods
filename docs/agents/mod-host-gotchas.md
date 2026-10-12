@@ -20,6 +20,7 @@ Host and test-kit behaviour that the `plugin-authoring` skill does not state, me
 - `$.ui.status` shows as `⚠ <mod>: <text>` on the line under the prompt.
 - `/reload-plugins` keeps an unchanged hooks module. To hot-reload for real, edit the hooks file of the copy loaded with `--plugin-dir` (append a comment).
 - Colour with theme keys, never raw colours: `Text`'s `color`/`backgroundColor` take a key of the host theme (`suggestion`, `inactive`, `claude`, `success`, …) and the host resolves it per theme, custom themes included; `/theme` redraws an open Pane at once (2.1.287 and 2.1.295). `dimColor` already follows the theme. `Button` has no `color` prop: only `dimColor` and `hover`. `Text`'s `inverse` draws as SGR 7 on both hosts.
+- A rewind (Esc Esc, restore the conversation) writes nothing to the transcript and raises no hook but `PromptHint`'s `ui.render`; by then `$.session.turns()` and `$.session.messages()` are already cut. `turns()` counts `messages()`' user entries that are not tool results (the compaction summary and `!` input and output count; a local command like `/tui` is in neither). `messages()` starts at the last compaction, with its summary.
 - A resumed session's host lists no row before the file's last compaction boundary (`$.ui.scroll` refuses them); a `--fork-session`'s file starts at that boundary, so it has none of them.
 - `--debug-file <path>` logs module reloads, `session.start settled`, and `ui.open <mod> … (unasked|asked, N columns): placed|waits …`: model-free evidence of what the plugin did.
 

@@ -4,7 +4,7 @@
 
 **Blocked by:** 无
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## 问题
 
@@ -21,13 +21,15 @@
 
 ## 步骤
 
-- [ ] 实测 `turns()` 的计数口径（斜杠命令、`!` 命令、compact 后、resume 后）
-- [ ] 测试先行：对齐的纯函数（普通 rewind、rewind 到第一条、含本地命令组、compact 之后的 rewind、`messages()` 截在 4096 条）
-- [ ] 测试先行：`turns()` 未减少时不调用 `messages()`；流式输出期间不误删最新一组
-- [ ] 实现
-- [ ] 验收契约：修订 `CT-LIFE-004`（restore 后 500 ms 内被弃条目从目录消失，不需要再提交）；新增 `CT-LIFE-008`（rewind 后不提交、退出再 resume，被弃分支回到目录，与宿主显示一致）；删除「不承诺」里的接受窗口；README 同步
-- [ ] 两版宿主 PTY 验收
+- [x] 实测 `turns()` 的计数口径（斜杠命令、`!` 命令、compact 后、resume 后）
+- [x] 测试先行：对齐的纯函数（普通 rewind、rewind 到第一条、含本地命令组、compact 之后的 rewind、`messages()` 截在 4096 条）
+- [x] 测试先行：`turns()` 未减少时不调用 `messages()`；流式输出期间不误删最新一组
+- [x] 实现
+- [x] 验收契约：修订 `CT-LIFE-004`（restore 后 500 ms 内被弃条目从目录消失，不需要再提交）；新增 `CT-LIFE-008`（rewind 后不提交、退出再 resume，被弃分支回到目录，与宿主显示一致）；删除「不承诺」里的接受窗口；README 同步
+- [x] 两版宿主 PTY 验收
 
 ## Comments
 
 - 2026-10-12 spike（两版一致）：restore 前后 `.jsonl` 字节相同；除 `PromptHint` 的 `ui.render`（两次）外没有任何钩子触发；约 300 ms 后第一次轮询时 `$.session.messages()` 与 `turns()` 已是截短后的值。目前的 Pane 在 20 秒空闲、清空输入框、Esc、终端失焦再聚焦时都不变，下一次主循环 `session.append`（下一次提交，或 `/reload-plugins` 这类会记行的本地命令）后约 300 ms 才更新。登录状态下「过一会儿自己更新」最可能是终端失焦约 180 秒后宿主追加的 `system/away_summary` 行，未实证。「只恢复代码」不改对话（对话框原文：The conversation will be unchanged）。
+- 2026-10-12 实测（两版一致，探针插件，未登录）：`turns()` = `messages()` 里不是 tool result 的 user 条数；compact 摘要、`!` 的输入与输出都算，`/tui` 这类本地命令两者都不含；`messages()` 从最后一个 compact 摘要开始；restore 后在 `PromptHint` 的那次绘制里两者已经截短。
+- 2026-10-12 实现（分支 `chat-toc/33-rewind-live-update`）：`hooks/rewind.ts`。`messages()` 完整（< 4096）时从最后一个 compact 边界起按顺序对齐（能分清重复的 prompt），截断时从尾部找最晚吻合处；对不上（例如文件还没写进新的 compact）就什么都不改。最后一个仍持有的 user 行之后的分组全部隐藏——夹在其后的本地命令组也一起隐藏。文件下次有新行时清除隐藏、以文件为准。每次 `PromptHint` 绘制时检查一次、300 ms 后再查一次。PTY：`CT-LIFE-004` 两版都在 restore 后约 12 ms 去掉被弃条目（对照：`main` 的代码不去掉），`CT-LIFE-008` 两版通过。原来借 rewind 造被拒/淡化条目的 `CT-JUMP-003`、`CT-UI-003` 场景改写后两版通过。
