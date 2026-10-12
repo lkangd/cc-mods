@@ -13,9 +13,10 @@ record per scenario.
   centred, the typed row still in view.
 - 002b: a prompt-type command, a local command written as a user row, and an
   Agent side without text (its last tool row) jump without a refusal.
-- 003: rewind in the host (Esc Esc, no model call); an entry the rewind took
-  out of the host's list says so at the bottom, dims that side only, moves
-  nothing; the saying goes after about 5 s and the side stays dim.
+- 003: a resumed session compacted after its second turn, chat-toc swapped in
+  after the start (so it hears session.start alone and cannot know the
+  compacted turns); a press on one says so at the bottom, dims that side
+  only, moves nothing; the saying goes after about 5 s and the side stays dim.
 - 005: resume a session compacted after its second turn: the turns before
   the compaction are dim from the first drawing, the rest not (CT-JUMP-005);
   a click on one says 「⚠ 这一条在压缩之前，恢复会话后无法跳转」 at the bottom
@@ -25,6 +26,7 @@ record per scenario.
 """
 import json
 import pathlib
+import shutil
 import sys
 import time
 
@@ -214,60 +216,66 @@ def jump002b(run):
     return ok
 
 
+def compacted_session(world, host, session, label, seed):
+    """Four turns <label>00..03, compacted after the second."""
+    fx = tf.Transcript(world.transcript(session), str(world.project), session, seed=seed, version=host.version)
+    for i in range(4):
+        fx.prompt(f"{label}{i:02d} 合成问题 {i}")
+        fx.reply(f"{label}{i:02d} 合成回复 {i}")
+        if i == 1:
+            fx.compact()
+    fx.close()
+
+
 def jump003(run):
-    host, world, fx, t = launch(run, "turns", turns=12)
+    """chat-toc arriving in a session already resumed (a stub module swapped
+    for the real one: the host raises session.start alone) cannot tell the
+    turns compacted before the resume; a press on one is refused."""
+    host = h.Host(VERSION)
+    world = h.World()
+    session = "00000000-0000-4000-8000-000000000003"
+    compacted_session(world, host, session, "J", 3)
+    plugin = run.dir / "plugin-003"
+    shutil.copytree(PLUGIN, plugin, ignore=shutil.ignore_patterns("tests", "build", "node_modules"))
+    module = plugin / "hooks" / "register.tsx"
+    real = module.read_text()
+    module.write_text("import type { Register } from 'claude-code'\n\nexport const register: Register = () => {}\n")
+    log = run.dir / "debug-003.log"
+    t = h.launch(world, host, [plugin], ["--resume", session, "--debug-file", str(log)], run=run)
     actual, ev, ok = {}, [], True
     try:
-        ev.append(t.snap("after resume"))
-        # rewind: Esc Esc on the empty composer opens the message selector
-        t.key("esc", "esc", pause=0.4)
+        t.wait_for("J03", "the resumed transcript", timeout=40)
         t.settle(quiet=1.0)
-        ev.append(t.snap("message selector"))
-        for _ in range(4):
-            t.key("up", pause=0.3)
-        t.settle(quiet=0.6)
-        ev.append(t.snap("message selector, picked"))
-        t.key("enter")
-        t.settle(quiet=1.0)
-        ev.append(t.snap("after enter"))
-        # a confirmation of what to restore, when the host asks
-        if "Restore" in t.text() or "restore" in t.text():
-            t.key("enter")
-            t.settle(quiet=1.0)
-            ev.append(t.snap("after confirming"))
-        # clear whatever the rewind put back into the composer
-        for _ in range(120):
-            t.key("backspace", pause=0.0)
+        module.write_text(real + f"\n// jump003 {time.time()}\n")
+        t.wait_for(lambda t: (p := v.parse_pane(t.rows())) is not None and len(p.entries) >= 4, "the Pane after the swap", timeout=40)
+        t._write("\x1b[<35;6;6M")   # the pointer off the Pane: hover draws inverse
         rows = t.settle(quiet=1.0)
-        ev.append(t.snap("rewound"))
-        # the pane follows the view the rewind left near the top: wheel it to
-        # the rewound-away entry (which pauses its following)
-        p, e = wheel_pane_until(t, lambda p: next((e for e in reversed(p.entries) if "T0011" in e.user_text), None))
-        rows = t.settle(quiet=1.0)
+        ev.append(t.snap("003 chat-toc swapped in, nothing pressed"))
+        p = pane_of(t)
+        e = next(o for o in p.entries if "J00" in o.user_text)
+        actual["dimBeforePress"] = side_dim(t, p, e.row + 1)
         before = h.transcript_text(rows, p.left)
         t.click(p.left + 4, e.row + 1)
         rows = t.settle(quiet=1.0)
-        ev.append(t.snap("after clicking a rewound-away entry"))
+        ev.append(t.snap("003 after clicking J00"))
         after = h.transcript_text(rows, p.left)
         said = REFUSED in "\n".join(rows)
-        t._write("\x1b[<35;6;6M")   # the pointer off the entry: hover draws it inverse
+        t._write("\x1b[<35;6;6M")
         t.settle(quiet=0.6)
-        ev.append(t.snap("pointer moved off"))
-        # the pane's window may have moved with the click: read it again
         p = pane_of(t)
-        e = next(o for o in p.entries if "T0011" in o.user_text)
-        other = next(o for o in p.entries if "T0010" in o.user_text)
+        e = next(o for o in p.entries if "J00" in o.user_text)
+        other = next(o for o in p.entries if "J01" in o.user_text)
         actual["dim"] = side_dim(t, p, e.row + 1), side_dim(t, p, other.row + 1)
         actual["refusalShown"] = said
         actual["transcriptUnmoved"] = before == after
         time.sleep(6)
         rows = t.settle(quiet=1.0)
-        ev.append(t.snap("6 s later"))
+        ev.append(t.snap("003 6 s later"))
         actual["refusalGoneAfter6s"] = REFUSED not in "\n".join(rows)
         p = pane_of(t)
-        e = next(o for o in p.entries if "T0011" in o.user_text)
+        e = next(o for o in p.entries if "J00" in o.user_text)
         actual["dimAfter6s"] = side_dim(t, p, e.row + 1)
-        ok = (said and actual["transcriptUnmoved"] and actual["refusalGoneAfter6s"]
+        ok = (not actual["dimBeforePress"] and said and actual["transcriptUnmoved"] and actual["refusalGoneAfter6s"]
               and actual["dim"] == (True, False) and actual["dimAfter6s"])
     except h.ScenarioFailure as f:
         ok, actual["failure"] = False, str(f)
@@ -275,8 +283,12 @@ def jump003(run):
     finally:
         t.close()
         world.remove()
-    run.record("CT-JUMP-003", host=host.version, plugin=str(PLUGIN), fixture="turns 12, rewound in the host",
-               expected="clicking an entry the rewind took out of the host's list says so at the bottom, dims the side, moves nothing; the saying goes after ~5 s",
+        shutil.rmtree(plugin, ignore_errors=True)
+    run.record("CT-JUMP-003", host=host.version, plugin=str(PLUGIN),
+               fixture="4 turns compacted after the second, --resume, chat-toc swapped in after the start",
+               expected="J00 (compacted before the resume, unknown to a chat-toc that came later) is not dim before a "
+                        "press; clicking it says so at the bottom, dims that side only (J01 not), moves nothing; the "
+                        "saying goes after ~5 s and the side stays dim",
                actual=actual, result="pass" if ok else "fail", evidence=ev)
     return ok
 
@@ -313,13 +325,7 @@ def jump005(run):
     host = h.Host(VERSION)
     world = h.World()
     session = "00000000-0000-4000-8000-000000000035"
-    fx = tf.Transcript(world.transcript(session), str(world.project), session, seed=35, version=host.version)
-    for i in range(4):
-        fx.prompt(f"K{i:02d} 合成问题 {i}")
-        fx.reply(f"K{i:02d} 合成回复 {i}")
-        if i == 1:
-            fx.compact()
-    fx.close()
+    compacted_session(world, host, session, "K", 35)
     t = h.launch(world, host, [PLUGIN], ["--resume", session], run=run)
     jump, ui, ev = {}, {}, []
     ok_jump = ok_ui = False

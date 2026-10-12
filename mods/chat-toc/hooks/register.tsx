@@ -2,6 +2,7 @@
    conversation. This module wires the host's events to the parts:
      transcript.ts / chain.ts / groups.ts / regroup.ts  the file to Turn groups
      source.ts / reader.ts / locate.ts                  how, when and where it is read
+     rewind.ts                                          what a rewind took, before the file says
      view.ts / entries.ts / cells.ts / window.ts        what the pane draws
      pane.tsx / ring.ts                                 how it draws, the keyboard
      sites.ts / jump.ts                                 where a press scrolls
@@ -12,6 +13,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderViewport } from 'claude-code'
 import type { Entry } from './entries'
+import type { TurnGroup } from './groups'
 import {
   COMPACTED_TEXT,
   FLASHES,
@@ -31,6 +33,7 @@ import { DOCK_STATUS, carriesHistory, isClosedByPerson, placementFate, reopensOn
 import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, filterRows } from './pane'
 import { entryAt, pendingShown, ringMove } from './ring'
 import { UNLOCATED_TEXT, derivedTranscriptPath } from './locate'
+import { rewoundFrom } from './rewind'
 import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
 import type { Layout, ViewFilter } from './view'
 import { PERF_FLUSH_MS, newPerf, note, perfNow, takeLines } from './perf'
@@ -196,6 +199,29 @@ const newPositioning = (): Positioning => ({ drawable: [], openers: [], lastDraw
 let placing: Positioning = newPositioning()
 let isPositionQueued = false
 
+/* A rewind's turns, gone from the host's messages but still in the file
+   until it grows (rewind.ts): the opener of the first group not listed.
+   The turn count as last read, which only a rewind (or a compaction)
+   makes smaller. */
+let rewound: string | undefined
+let lastTurns: number | undefined
+let isRewindCheckQueued = false
+let isRewindRecheckQueued = false
+/* A rewind's check runs as the hint line is drawn and again this long
+   after, should the host's messages not be cut yet. */
+const REWIND_RECHECK_MS = 300
+let shownMemo: { groups: readonly TurnGroup[]; opener: string; shown: readonly TurnGroup[] } | undefined
+
+/* The groups the pane lists: the file's, short of a rewind's. */
+function shownGroups(): readonly TurnGroup[] {
+  if (rewound === undefined) return reading.groups
+  if (shownMemo?.groups === reading.groups && shownMemo.opener === rewound) return shownMemo.shown
+  const at = reading.groups.findIndex(g => g.openerUuid === rewound)
+  const shown = at === -1 ? reading.groups : reading.groups.slice(0, at)
+  shownMemo = { groups: reading.groups, opener: rewound, shown }
+  return shown
+}
+
 /* The entries kept between drawings (table.ts). */
 let entryCache = newEntryCache()
 const NO_ENTRIES: EntryTable = { entries: [], heights: [], keys: [], indexOf: new Map(), firstOfGroup: [] }
@@ -223,6 +249,7 @@ function forget(): void {
   chainRows = rowIndex([])
   sites = newSites()
   refused = new Map()
+  rewound = undefined
   isCompactedMarked = false
   refusal = undefined
   placing = newPositioning()
@@ -267,7 +294,7 @@ function place($: EngineInterface): void {
     drawable: placing.drawable,
     openers: placing.openers,
     lastDrawn: placing.lastDrawn,
-    groups: reading.groups.length,
+    groups: shownGroups().length,
     locked: placing.lock?.group,
   })
   if (perf.isOn) timed($, 'position', [perfNow() - began, sites.onScreen.size, placing.drawable.length])
@@ -411,6 +438,8 @@ async function load($: EngineInterface): Promise<void> {
     cursor = at
     lastSize = got.size
     source = 'ok'
+    /* The file grew: it says again what the conversation holds. */
+    rewound = undefined
     await markCompacted($)
   } else {
     startOver()
@@ -449,6 +478,41 @@ async function markCompacted($: EngineInterface): Promise<boolean> {
   isCompactedMarked = true
   for (const [key, side] of compactedSides(reading.groups, chainRows, sites, boundary)) if (!refused.has(key)) refused.set(key, side)
   return true
+}
+
+/* The turn count dropped: the host's messages say which groups a rewind
+   took; messages that do not line up with the file leave the list be. */
+async function checkRewind($: EngineInterface): Promise<void> {
+  const turns = await $.session.turns()
+  const was = lastTurns
+  lastTurns = turns
+  if (was === undefined || turns >= was || source !== 'ok') return
+  const found = rewoundFrom(reading.groups, reading.chain, await $.session.messages())
+  if (found.kind === 'unknown') return
+  const opener = found.kind === 'all' ? undefined : reading.groups[found.group]?.openerUuid
+  if (opener === rewound) return
+  rewound = opener
+  place($)
+  await update($, rev, n => n + 1)
+}
+
+/* Asked by every drawing of the hint line, which a rewind's restore makes;
+   a drawing may not write `$.state`, so it runs after. */
+function checkRewindSoon($: EngineInterface): void {
+  if (!isRewindCheckQueued) {
+    isRewindCheckQueued = true
+    $.clock.after(0, () => {
+      isRewindCheckQueued = false
+      void checkRewind($).catch(() => undefined)
+    })
+  }
+  if (!isRewindRecheckQueued) {
+    isRewindRecheckQueued = true
+    $.clock.after(REWIND_RECHECK_MS, () => {
+      isRewindRecheckQueued = false
+      void checkRewind($).catch(() => undefined)
+    })
+  }
 }
 
 function readNow($: EngineInterface): void {
@@ -774,6 +838,7 @@ export const register: Register = on => {
      width: where chat-toc learns the layout, which the start events lack. */
   on('ui.render', { component: 'PromptHint', surface: 'terminal' }, ($, e, next) => {
     sawViewport($, e.viewport)
+    checkRewindSoon($)
     return next(e)
   })
 
@@ -849,8 +914,9 @@ export const register: Register = on => {
     const isOk = source === 'ok'
     const width = e.props.bodyColumns
     const wasTable = entryCache.table
-    const table = isOk ? entryTable(entryCache, reading.groups, { layout, filter, width, nowMs, isRunning: isTurnRunning }) : NO_ENTRIES
-    const entries = dimRefused(table.entries, reading.groups, refused)
+    const groups = shownGroups()
+    const table = isOk ? entryTable(entryCache, groups, { layout, filter, width, nowMs, isRunning: isTurnRunning && groups === reading.groups }) : NO_ENTRIES
+    const entries = dimRefused(table.entries, groups, refused)
     /* A resumed or forked session shows its history in the transcript
        before its own file is written; it is not without a conversation. */
     const missing = isCarried ? NOT_WRITTEN_TEXT : EMPTY_TEXT
@@ -867,7 +933,7 @@ export const register: Register = on => {
     const anchorIndex = kept === undefined ? undefined : entryOfGroup(table, kept.group)
     const placed = topOfDrawing(drawnEntries, {
       top,
-      follow: isHeld ? undefined : { index: position === undefined ? undefined : entryOfGroup(table, position), isLast: position === reading.groups.length - 1 },
+      follow: isHeld ? undefined : { index: position === undefined ? undefined : entryOfGroup(table, position), isLast: position === groups.length - 1 },
       anchor: kept === undefined || anchorIndex === undefined ? undefined : { ...kept, index: anchorIndex },
     })
     top = placed.top
