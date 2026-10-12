@@ -14,6 +14,7 @@ the host's own claude-code.d.ts for tsc on a version newer than the minimum
   ct_compat.py         CT-COMPAT-003
   ct_marketplace.py    CT-COMPAT-002 (local directory marketplace)
   ct_life.py           CT-LIFE-001, 002, 005 (fork before the first submit)
+  ct_mid_session.py    CT-LIFE-007 (enabled in mid-session: CLI and /plugin)
   chain_scenarios.py   CT-LIFE-003, 004, 005, CT-DATA-006
   jump_scenarios.py    CT-JUMP-001..003
   position_scenarios.py CT-POS-001..003, CT-COEX-001, CT-LIFE-006
@@ -46,7 +47,7 @@ import pty_harness as h  # noqa: E402
 
 MUST = (["CT-COMPAT-001", "CT-COMPAT-002", "CT-COMPAT-003"]
         + [f"CT-DATA-00{i}" for i in range(1, 7)] + [f"CT-TURN-00{i}" for i in range(1, 6)]
-        + [f"CT-LIFE-00{i}" for i in range(1, 7)] + [f"CT-UI-00{i}" for i in range(1, 5)]
+        + [f"CT-LIFE-00{i}" for i in range(1, 8)] + [f"CT-UI-00{i}" for i in range(1, 5)]
         + [f"CT-JUMP-00{i}" for i in range(1, 4)] + [f"CT-POS-00{i}" for i in range(1, 4)]
         + ["CT-PERF-001", "CT-SEC-001", "CT-COEX-001"])
 MARKERS = PLUGIN / "build" / "sec-001-markers.txt"
@@ -91,6 +92,7 @@ def run_gate(args) -> int:
             ("ct-compat", [py, HERE / "ct_compat.py", "--host", v, "--out", runs / "ct-compat"]),
             ("ct-marketplace", [py, HERE / "ct_marketplace.py", "--host", v, "--source", "local", "--out", runs / "ct-marketplace"]),
             ("ct-life", [py, HERE / "ct_life.py", "--host", v, "--out", runs / "ct-life"]),
+            ("ct-mid-session", [py, HERE / "ct_mid_session.py", "--host", v, "--out", runs / "ct-mid-session"]),
             ("chain", [py, HERE / "chain_scenarios.py", "--host", v, "--out", runs / "chain"]),
             ("jump", [py, HERE / "jump_scenarios.py", v]),
             ("position", [py, HERE / "position_scenarios.py", v]),

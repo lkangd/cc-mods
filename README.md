@@ -205,6 +205,7 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
   - rewind（包括连按两次 Esc）：被抛弃的那一段在你下一次提交后从目录消失；提交之前可能还在。
   - `--resume`、`--continue`、会话内 `/resume`、`--fork-session`：目录按那个会话重建，也能跳到很早、从没显示过的轮次。
   - 多个终端各自只显示自己的会话。
+  - 在已经运行的会话里启用 chat-toc（`/plugin` 里启用，或 `claude plugin enable` 后 `/reload-plugins`）：不用重启，目录立刻列出已有的对话。万一找不到本会话的 transcript，会显示「提交下一条消息后显示目录」。
 - **与其他停靠面板**（例如 `/diff`）：照 Claude Code 的标签规则共存。新打开的面板总在前台；chat-toc 被挤到后台或回到前台时什么都不做，不抢焦点。
 - **终端变窄**：已停靠的目录在终端窄到 Claude Code 要把它挪到输入框上方时，chat-toc 会关掉它，并在状态栏显示「终端太窄，目录没有停靠；把终端拉宽后会自动出现」；拉宽后自动停靠。这不算你关闭的。
 - 界面文字都是中文。
@@ -225,6 +226,7 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 - Claude Code 低于 `2.1.287` 时，插件不检测、不提示。Desktop、IDE、移动端不支持；非全屏布局下不自动出现。
 - 只在 macOS 上真实验收过。Linux 与 Windows 只验证过读大文件时生成的命令，没在真机上跑；Windows 只用系统自带的 Windows PowerShell 5.1。
 - transcript 的文件格式不是公开的。Claude Code 改了格式后，目录可能显示不全，底部会说明有几行无法识别。
+- 会话中途启用时，transcript 的位置是按 Claude Code 未公开的目录命名规则推算的；规则变了，目录要等你下一次提交才出现。
 - 不保证能跳到 rewind 抛弃的那一段，也不保证能跳到 `--resume` 之前就被 compact 掉的行；跳不过去时底部会说明，那一侧变暗。
 - rewind 之后、下一次提交之前，目录可能还显示被抛弃的条目。
 - 三种排版的观感、高亮与反色选择能否分清，由人工目检，不阻止发布。
