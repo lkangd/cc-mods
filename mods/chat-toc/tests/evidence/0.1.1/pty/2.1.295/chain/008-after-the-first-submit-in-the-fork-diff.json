@@ -1,0 +1,125 @@
+[
+ {
+  "ok": true,
+  "start": 0,
+  "entries": [
+   {
+    "index": 0,
+    "key": "57c9b2c0-ba7c-4a75-8d50-0f76293dc206",
+    "expected": {
+     "key": "57c9b2c0-ba7c-4a75-8d50-0f76293dc206",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F02 合成问题 2",
+     "agentHead": "",
+     "lastText": "F02 合成回复 2",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 2,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F02 合成问题 2"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F02 合成回复 2"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 1,
+    "key": "e4daf1c3-cd8b-4e9c-b801-3ebbac7dc96b",
+    "expected": {
+     "key": "e4daf1c3-cd8b-4e9c-b801-3ebbac7dc96b",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "F03 合成问题 3",
+     "agentHead": "1 步",
+     "lastText": "F03 合成回复 3",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 7,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "F03 合成问题 3"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "F03 合成回复 3"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 2,
+    "key": "51927773-9be0-462c-924f-081438d727ff",
+    "expected": {
+     "key": "51927773-9be0-462c-924f-081438d727ff",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:01",
+     "userText": "FYY rewind 之后的一轮",
+     "agentHead": "",
+     "lastText": "FYY 新分支的回复",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 12,
+     "userHead": "你 · 10月9日 09:01",
+     "userLines": [
+      "FYY rewind 之后的一轮"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "FYY 新分支的回复"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 3,
+    "key": "56d2570c-3ac8-4f2f-93ef-e04ca42c6aca",
+    "expected": {
+     "key": "56d2570c-3ac8-4f2f-93ef-e04ca42c6aca",
+     "kind": "prompt",
+     "userHead": "你 · 10月12日 11:34",
+     "userText": "F 分叉之后的合成 prompt",
+     "agentHead": "出错",
+     "lastText": "Not logged in · Please run /login",
+     "steps": 0,
+     "status": "error"
+    },
+    "actual": {
+     "row": 17,
+     "userHead": "你 · 10月12日 11:34",
+     "userLines": [
+      "F 分叉之后的合成 prompt"
+     ],
+     "agentHead": "出错",
+     "agentLines": [
+      "Not logged in · Please run /login"
+     ],
+     "highlighted": true
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 4,
+   "windowEntries": 4,
+   "start": 0,
+   "problems": 0,
+   "partialTop": false,
+   "notes": []
+  }
+ }
+]

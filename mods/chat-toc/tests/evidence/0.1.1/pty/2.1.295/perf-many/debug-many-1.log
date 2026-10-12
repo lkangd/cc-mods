@@ -1,0 +1,185 @@
+# chat-toc's lines of the host debug log, without the per-frame ui.render/ui.scroll timings and the chat-toc-perf lines (those are in perf-samples-*.json)
+2026-10-12T06:16:23.143Z [DEBUG] --plugin-dir <tmp>/chat-toc is one plugin: .claude-plugin at its top marks it
+2026-10-12T06:16:23.151Z [DEBUG] Read hooks.json for plugin chat-toc (enabled=true): <tmp>/chat-toc/hooks/hooks.json
+2026-10-12T06:16:23.160Z [DEBUG] Loaded inline plugin from path: chat-toc
+2026-10-12T06:16:23.161Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-12T06:16:23.209Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-12T06:16:24.051Z [DEBUG] hooks module chat-toc@inline loaded (worker, environment 1, tier user); events: classic.SessionStart,session.start,command.run,ui.close,session.append,turn.start,turn.complete,ui.scroll,ui.render,ui.focus
+2026-10-12T06:16:24.053Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for chat-toc,cc-plugin-agents-md,cc-plugin-diff
+2026-10-12T06:16:24.053Z [DEBUG] plugin.register: chat-toc (user, chat-toc@inline), judged by core alone: admitted
+2026-10-12T06:16:24.057Z [DEBUG] plugin-dir watch: watching chat-toc; folders of plugins none
+2026-10-12T06:16:24.210Z [DEBUG] type root of chat-toc at <tmp>/chat-toc/.claude-plugin/types: entries claude-code, claude-code-tools, claude-code-mcp; wrote .claude-plugin/types/claude-code/index.d.ts, .claude-plugin/types/claude-code-tools/index.d.ts
+2026-10-12T06:16:24.213Z [DEBUG] $.command.register (chat-toc): /chat-toc listed
+2026-10-12T06:16:24.231Z [DEBUG] hooks module chat-toc@inline session.start settled in 20.6ms (worker hop, next() included)
+2026-10-12T06:16:24.232Z [DEBUG] ui.open chat-toc chat-toc (unasked, 170 columns): placed
+2026-10-12T06:16:24.232Z [DEBUG] hooks module chat-toc@inline classic.SessionStart settled in 21.0ms (worker hop, next() included)
+2026-10-12T06:16:24.233Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 63434)
+2026-10-12T06:16:24.249Z [DEBUG] chat-toc (user) answered ui.render without next() in 6.5ms; nothing beneath it ran for this dispatch
+2026-10-12T06:16:24.250Z [DEBUG] $.ui.status (chat-toc): (cleared)
+2026-10-12T06:16:24.257Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 25ms, 3780856 + 0 chars
+2026-10-12T06:16:24.270Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 63437)
+2026-10-12T06:16:24.304Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 35ms, 3780910 + 0 chars
+2026-10-12T06:16:24.331Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 63440)
+2026-10-12T06:16:24.397Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 67ms, 3781132 + 0 chars
+2026-10-12T06:16:24.411Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 63443)
+2026-10-12T06:16:24.425Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 15ms, 3781354 + 0 chars
+2026-10-12T06:16:24.438Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 63446)
+2026-10-12T06:16:24.452Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 15ms, 3781132 + 0 chars
+2026-10-12T06:16:24.461Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 63449)
+2026-10-12T06:16:24.472Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 12ms, 924619 + 0 chars
+2026-10-12T06:16:31.251Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 1.4ms; nothing beneath it ran for this dispatch
+2026-10-12T06:16:34.261Z [DEBUG] chat-toc (user) answered ui.render without next() 140 more times in the last 10s (the last in 1.1ms)
+2026-10-12T06:16:34.552Z [DEBUG] chat-toc (user) answered ui.render without next() in 1.3ms; nothing beneath it ran for this dispatch
+2026-10-12T06:16:41.249Z [DEBUG] chat-toc (user) answered ui.scroll without next() 878 more times in the last 10s (the last in 0.6ms)
+2026-10-12T06:16:41.251Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.3ms; nothing beneath it ran for this dispatch
+2026-10-12T06:16:44.553Z [DEBUG] chat-toc (user) answered ui.render without next() 256 more times in the last 10s (the last in 0.7ms)
+2026-10-12T06:16:44.573Z [DEBUG] chat-toc (user) answered ui.render without next() in 0.8ms; nothing beneath it ran for this dispatch
+2026-10-12T06:16:51.251Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1101 more times in the last 10s (the last in 0.2ms)
+2026-10-12T06:16:51.254Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.3ms; nothing beneath it ran for this dispatch
+2026-10-12T06:16:54.574Z [DEBUG] chat-toc (user) answered ui.render without next() 273 more times in the last 10s (the last in 1.3ms)
+2026-10-12T06:16:54.591Z [DEBUG] chat-toc (user) answered ui.render without next() in 1.0ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:01.256Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1079 more times in the last 10s (the last in 0.2ms)
+2026-10-12T06:17:01.301Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.9ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:04.592Z [DEBUG] chat-toc (user) answered ui.render without next() 272 more times in the last 10s (the last in 0.9ms)
+2026-10-12T06:17:04.613Z [DEBUG] chat-toc (user) answered ui.render without next() in 1.2ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:11.300Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1084 more times in the last 10s (the last in 0.3ms)
+2026-10-12T06:17:11.303Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.2ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:14.620Z [DEBUG] chat-toc (user) answered ui.render without next() 268 more times in the last 10s (the last in 0.5ms)
+2026-10-12T06:17:14.622Z [DEBUG] chat-toc (user) answered ui.render without next() in 0.7ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:21.303Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1055 more times in the last 10s (the last in 0.6ms)
+2026-10-12T06:17:21.307Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.2ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:24.623Z [DEBUG] chat-toc (user) answered ui.render without next() 264 more times in the last 10s (the last in 1.5ms)
+2026-10-12T06:17:24.641Z [DEBUG] chat-toc (user) answered ui.render without next() in 0.8ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:31.308Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1068 more times in the last 10s (the last in 0.3ms)
+2026-10-12T06:17:31.330Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.7ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:34.643Z [DEBUG] chat-toc (user) answered ui.render without next() 266 more times in the last 10s (the last in 1.1ms)
+2026-10-12T06:17:34.651Z [DEBUG] chat-toc (user) answered ui.render without next() in 1.6ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:41.329Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1075 more times in the last 10s (the last in 0.2ms)
+2026-10-12T06:17:41.334Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.2ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:44.652Z [DEBUG] chat-toc (user) answered ui.render without next() 269 more times in the last 10s (the last in 1.1ms)
+2026-10-12T06:17:44.684Z [DEBUG] chat-toc (user) answered ui.render without next() in 1.0ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:51.336Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1056 more times in the last 10s (the last in 0.2ms)
+2026-10-12T06:17:51.348Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.7ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:54.685Z [DEBUG] chat-toc (user) answered ui.render without next() 267 more times in the last 10s (the last in 1.7ms)
+2026-10-12T06:17:54.716Z [DEBUG] chat-toc (user) answered ui.render without next() in 1.6ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:59.968Z [DEBUG] ui.scroll chat-toc to 61b339ff-2481-44e5-998b-88dbaa99e079: revealed
+2026-10-12T06:17:59.985Z [DEBUG] chat-toc (core) answered ui.press without next() in 128.8ms; nothing beneath it ran for this dispatch
+2026-10-12T06:17:59.985Z [DEBUG] ui.press chat-toc/g0.u.1 in Pane from terminal: settled in 132.4ms
+2026-10-12T06:18:01.348Z [DEBUG] chat-toc (user) answered ui.scroll without next() 794 more times in the last 10s (the last in 0.2ms)
+2026-10-12T06:18:04.718Z [DEBUG] chat-toc (user) answered ui.render without next() 171 more times in the last 10s (the last in 10.3ms)
+2026-10-12T06:18:04.829Z [DEBUG] chat-toc (user) answered ui.render without next() in 15.0ms; nothing beneath it ran for this dispatch
+2026-10-12T06:18:10.703Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 1.1ms; nothing beneath it ran for this dispatch
+2026-10-12T06:18:14.829Z [DEBUG] chat-toc (user) answered ui.render without next() 150 more times in the last 10s (the last in 1.4ms)
+2026-10-12T06:18:14.849Z [DEBUG] chat-toc (user) answered ui.render without next() in 0.7ms; nothing beneath it ran for this dispatch
+2026-10-12T06:18:20.703Z [DEBUG] chat-toc (user) answered ui.scroll without next() 990 more times in the last 10s (the last in 0.1ms)
+2026-10-12T06:18:20.705Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.8ms; nothing beneath it ran for this dispatch
+2026-10-12T06:18:24.850Z [DEBUG] chat-toc (user) answered ui.render without next() 230 more times in the last 10s (the last in 0.6ms)
+2026-10-12T06:18:24.851Z [DEBUG] chat-toc (user) answered ui.render without next() in 1.0ms; nothing beneath it ran for this dispatch
+2026-10-12T06:18:30.704Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1053 more times in the last 10s (the last in 0.1ms)
+2026-10-12T06:18:30.708Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 1.4ms; nothing beneath it ran for this dispatch
+2026-10-12T06:18:34.852Z [DEBUG] chat-toc (user) answered ui.render without next() 268 more times in the last 10s (the last in 0.6ms)
+2026-10-12T06:18:34.873Z [DEBUG] chat-toc (user) answered ui.render without next() in 0.8ms; nothing beneath it ran for this dispatch
+2026-10-12T06:18:40.708Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1041 more times in the last 10s (the last in 0.3ms)
+2026-10-12T06:18:40.710Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.2ms; nothing beneath it ran for this dispatch
+2026-10-12T06:18:44.878Z [DEBUG] chat-toc (user) answered ui.render without next() 251 more times in the last 10s (the last in 0.6ms)
+2026-10-12T06:18:44.886Z [DEBUG] chat-toc (user) answered ui.render without next() in 0.8ms; nothing beneath it ran for this dispatch
+2026-10-12T06:18:50.711Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1070 more times in the last 10s (the last in 0.2ms)
+2026-10-12T06:18:50.715Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.3ms; nothing beneath it ran for this dispatch
+2026-10-12T06:18:54.887Z [DEBUG] chat-toc (user) answered ui.render without next() 253 more times in the last 10s (the last in 1.0ms)
+2026-10-12T06:18:54.895Z [DEBUG] chat-toc (user) answered ui.render without next() in 0.8ms; nothing beneath it ran for this dispatch
+2026-10-12T06:19:00.716Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1083 more times in the last 10s (the last in 0.2ms)
+2026-10-12T06:19:00.716Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.1ms; nothing beneath it ran for this dispatch
+2026-10-12T06:19:04.895Z [DEBUG] chat-toc (user) answered ui.render without next() 254 more times in the last 10s (the last in 0.8ms)
+2026-10-12T06:19:04.924Z [DEBUG] chat-toc (user) answered ui.render without next() in 0.6ms; nothing beneath it ran for this dispatch
+2026-10-12T06:19:10.718Z [DEBUG] chat-toc (user) answered ui.scroll without next() 1059 more times in the last 10s (the last in 0.2ms)
+2026-10-12T06:19:10.768Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.9ms; nothing beneath it ran for this dispatch
+2026-10-12T06:19:14.940Z [DEBUG] chat-toc (user) answered ui.render without next() 232 more times in the last 10s (the last in 3.5ms)
+2026-10-12T06:19:14.940Z [DEBUG] chat-toc (user) answered ui.render without next() in 2.5ms; nothing beneath it ran for this dispatch
+2026-10-12T06:19:20.769Z [DEBUG] chat-toc (user) answered ui.scroll without next() 608 more times in the last 10s (the last in 0.4ms)
+2026-10-12T06:19:20.771Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.6ms; nothing beneath it ran for this dispatch
+2026-10-12T06:19:24.941Z [DEBUG] chat-toc (user) answered ui.render without next() 153 more times in the last 10s (the last in 0.9ms)
+2026-10-12T06:19:24.956Z [DEBUG] chat-toc (user) answered ui.render without next() in 0.9ms; nothing beneath it ran for this dispatch
+2026-10-12T06:19:28.886Z [DEBUG] ui.scroll chat-toc to 09d8bbab-3e6d-4768-b017-6187c20f64b4: revealed
+2026-10-12T06:19:28.892Z [DEBUG] chat-toc (core) answered ui.press without next() in 60.3ms; nothing beneath it ran for this dispatch
+2026-10-12T06:19:28.892Z [DEBUG] ui.press chat-toc/g4520.u.1 in Pane from terminal: settled in 60.9ms
+2026-10-12T06:19:30.780Z [DEBUG] chat-toc (user) answered ui.scroll without next() 763 more times in the last 10s (the last in 0.3ms)
+2026-10-12T06:19:30.986Z [DEBUG] plugin.register: chat-toc (user, chat-toc@inline), judged by core alone: admitted
+2026-10-12T06:19:31.016Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for chat-toc
+2026-10-12T06:19:31.022Z [DEBUG] session.start: raised for chat-toc (loaded later)
+2026-10-12T06:19:31.022Z [DEBUG] hooks module chat-toc@inline reloaded in 36.1ms; events: classic.SessionStart,session.start,command.run,ui.close,session.append,turn.start,turn.complete,ui.scroll,ui.render,ui.focus
+2026-10-12T06:19:31.064Z [DEBUG] $.command.register (chat-toc): /chat-toc listed
+2026-10-12T06:19:31.137Z [DEBUG] hooks module chat-toc@inline session.start settled in 111.7ms (worker hop, next() included)
+2026-10-12T06:19:31.145Z [DEBUG] $.ui.status (chat-toc): (cleared)
+2026-10-12T06:19:31.150Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 87866)
+2026-10-12T06:19:31.183Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 35ms, 3780856 + 0 chars
+2026-10-12T06:19:31.186Z [DEBUG] type root of chat-toc at <tmp>/chat-toc/.claude-plugin/types: entries claude-code, claude-code-tools, claude-code-mcp; wrote nothing
+2026-10-12T06:19:31.186Z [DEBUG] [chat-toc] $.ui.log: reloaded (10 hooks: classic.SessionStart, session.start, command.run, ui.close, session.append, turn.start, turn.complete, ui.scroll, ui.render, ui.focus)
+2026-10-12T06:19:31.196Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 87875)
+2026-10-12T06:19:31.293Z [DEBUG] hooks module chat-toc@inline session.append settled in 104.5ms (worker hop, next() included)
+2026-10-12T06:19:31.305Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 111ms, 3780910 + 0 chars
+2026-10-12T06:19:31.320Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 87901)
+2026-10-12T06:19:31.384Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 64ms, 3781132 + 0 chars
+2026-10-12T06:19:31.399Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 87914)
+2026-10-12T06:19:31.438Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 41ms, 3781354 + 0 chars
+2026-10-12T06:19:31.458Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 87917)
+2026-10-12T06:19:31.489Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 33ms, 3781132 + 0 chars
+2026-10-12T06:19:31.498Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 87936)
+2026-10-12T06:19:31.538Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 42ms, 925247 + 0 chars
+2026-10-12T06:19:34.159Z [DEBUG] hooks module chat-toc@inline session.append settled in 24.4ms (worker hop, next() included)
+2026-10-12T06:19:34.163Z [DEBUG] hooks module chat-toc@inline session.append settled in 2.5ms (worker hop, next() included)
+2026-10-12T06:19:34.211Z [DEBUG] hooks module chat-toc@inline session.append settled in 47.6ms (worker hop, next() included)
+2026-10-12T06:19:34.236Z [DEBUG] hooks module chat-toc@inline session.append settled in 25.2ms (worker hop, next() included)
+2026-10-12T06:19:34.238Z [DEBUG] hooks module chat-toc@inline session.append settled in 2.1ms (worker hop, next() included)
+2026-10-12T06:19:34.259Z [DEBUG] hooks module chat-toc@inline session.append settled in 20.0ms (worker hop, next() included)
+2026-10-12T06:19:34.279Z [DEBUG] hooks module chat-toc@inline session.append settled in 20.4ms (worker hop, next() included)
+2026-10-12T06:19:34.299Z [DEBUG] hooks module chat-toc@inline session.append settled in 19.5ms (worker hop, next() included)
+2026-10-12T06:19:34.306Z [DEBUG] hooks module chat-toc@inline turn.start settled in 5.1ms (worker hop, next() included)
+2026-10-12T06:19:34.331Z [DEBUG] hooks module chat-toc@inline session.append settled in 0.7ms (worker hop, next() included)
+2026-10-12T06:19:34.352Z [DEBUG] hooks module chat-toc@inline session.append settled in 17.4ms (worker hop, next() included)
+2026-10-12T06:19:34.377Z [DEBUG] hooks module chat-toc@inline session.append settled in 17.3ms (worker hop, next() included)
+2026-10-12T06:19:34.400Z [DEBUG] hooks module chat-toc@inline session.append settled in 16.0ms (worker hop, next() included)
+2026-10-12T06:19:34.608Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 88310)
+2026-10-12T06:19:34.611Z [DEBUG] hooks module chat-toc@inline session.append settled in 3.6ms (worker hop, next() included)
+2026-10-12T06:19:34.643Z [DEBUG] hooks module chat-toc@inline turn.complete settled in 2.5ms (worker hop, next() included)
+2026-10-12T06:19:34.643Z [DEBUG] hooks module chat-toc@inline session.append settled in 1.7ms (worker hop, next() included)
+2026-10-12T06:19:34.667Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 59ms, 56987 + 0 chars
+2026-10-12T06:19:34.914Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 88314)
+2026-10-12T06:19:34.930Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 16ms, 1689 + 0 chars
+2026-10-12T06:19:34.957Z [DEBUG] chat-toc (user) answered ui.render without next() 86 more times in the last 10s (the last in 1.0ms)
+2026-10-12T06:19:36.396Z [DEBUG] hooks module chat-toc@inline session.append settled in 13.1ms (worker hop, next() included)
+2026-10-12T06:19:36.418Z [DEBUG] hooks module chat-toc@inline session.append settled in 21.5ms (worker hop, next() included)
+2026-10-12T06:19:36.530Z [DEBUG] hooks module chat-toc@inline turn.start settled in 112.0ms (worker hop, next() included)
+2026-10-12T06:19:36.569Z [DEBUG] hooks module chat-toc@inline session.append settled in 2.8ms (worker hop, next() included)
+2026-10-12T06:19:36.583Z [DEBUG] hooks module chat-toc@inline turn.complete settled in 2.3ms (worker hop, next() included)
+2026-10-12T06:19:36.583Z [DEBUG] hooks module chat-toc@inline session.append settled in 1.8ms (worker hop, next() included)
+2026-10-12T06:19:36.697Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 88686)
+2026-10-12T06:19:36.710Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 13ms, 1477 + 0 chars
+2026-10-12T06:19:36.719Z [DEBUG] chat-toc (user) answered ui.render without next() in 1.4ms; nothing beneath it ran for this dispatch
+2026-10-12T06:19:38.106Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 88930)
+2026-10-12T06:19:38.156Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 53ms, 1689 + 0 chars
+2026-10-12T06:19:38.178Z [DEBUG] hooks module chat-toc@inline session.append settled in 32.9ms (worker hop, next() included)
+2026-10-12T06:19:38.179Z [DEBUG] hooks module chat-toc@inline session.append settled in 1.4ms (worker hop, next() included)
+2026-10-12T06:19:38.245Z [DEBUG] hooks module chat-toc@inline turn.start settled in 65.4ms (worker hop, next() included)
+2026-10-12T06:19:38.303Z [DEBUG] hooks module chat-toc@inline session.append settled in 34.7ms (worker hop, next() included)
+2026-10-12T06:19:38.316Z [DEBUG] hooks module chat-toc@inline turn.complete settled in 2.0ms (worker hop, next() included)
+2026-10-12T06:19:38.316Z [DEBUG] hooks module chat-toc@inline session.append settled in 1.5ms (worker hop, next() included)
+2026-10-12T06:19:38.457Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 89185)
+2026-10-12T06:19:38.467Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 10ms, 3166 + 0 chars
+2026-10-12T06:19:39.995Z [DEBUG] hooks module chat-toc@inline session.append settled in 13.2ms (worker hop, next() included)
+2026-10-12T06:19:40.017Z [DEBUG] hooks module chat-toc@inline session.append settled in 21.8ms (worker hop, next() included)
+2026-10-12T06:19:40.150Z [DEBUG] hooks module chat-toc@inline turn.start settled in 132.8ms (worker hop, next() included)
+2026-10-12T06:19:40.184Z [DEBUG] hooks module chat-toc@inline session.append settled in 3.9ms (worker hop, next() included)
+2026-10-12T06:19:40.200Z [DEBUG] hooks module chat-toc@inline turn.complete settled in 2.2ms (worker hop, next() included)
+2026-10-12T06:19:40.200Z [DEBUG] hooks module chat-toc@inline session.append settled in 1.7ms (worker hop, next() included)
+2026-10-12T06:19:40.295Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 89476)
+2026-10-12T06:19:40.307Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 13ms, 1477 + 0 chars
+2026-10-12T06:19:41.725Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 89744)
+2026-10-12T06:19:41.782Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 64ms, 1689 + 0 chars
+2026-10-12T06:19:41.802Z [DEBUG] hooks module chat-toc@inline session.append settled in 31.8ms (worker hop, next() included)
+2026-10-12T06:19:41.804Z [DEBUG] hooks module chat-toc@inline session.append settled in 1.2ms (worker hop, next() included)
+2026-10-12T06:19:41.869Z [DEBUG] hooks module chat-toc@inline turn.start settled in 65.1ms (worker hop, next() included)
+2026-10-12T06:19:41.891Z [DEBUG] hooks module chat-toc@inline session.append settled in 0.9ms (worker hop, next() included)
+2026-10-12T06:19:41.904Z [DEBUG] hooks module chat-toc@inline turn.complete settled in 1.8ms (worker hop, next() included)
+2026-10-12T06:19:41.934Z [DEBUG] hooks module chat-toc@inline session.append settled in 32.0ms (worker hop, next() included)
+2026-10-12T06:19:42.085Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 89839)
+2026-10-12T06:19:42.094Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 10ms, 3166 + 0 chars
