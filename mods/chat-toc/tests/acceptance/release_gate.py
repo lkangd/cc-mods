@@ -106,7 +106,11 @@ def run_gate(args) -> int:
         for kind in ("many", "heavy"):
             codes[f"perf-{kind}"] = sh([py, str(HERE / "perf_scenarios.py"), "run", v, kind, "--runs", "3",
                                         "--out", str(runs / f"perf-{kind}")], logs / f"perf-{kind}.log", env=env, timeout=7200)
-    (base / "codes.json").write_text(json.dumps(codes, indent=1))
+    # a partial run (--only-perf, --skip-perf) adds to what earlier runs recorded
+    path = base / "codes.json"
+    if args.only_perf or args.skip_perf:
+        codes = {**(json.loads(path.read_text()) if path.exists() else {}), **codes}
+    path.write_text(json.dumps(codes, indent=1))
     print(json.dumps(codes))
     return 0 if all(c == 0 for c in codes.values()) else 1
 
