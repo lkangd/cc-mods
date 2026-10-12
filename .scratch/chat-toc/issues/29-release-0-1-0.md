@@ -22,3 +22,4 @@
 - 第一轮门禁里 2.1.287 的 CT-UI-003 失败一次，原因在检查本身（把宿主焦点环的起点写死、没算 `/tui` 只有用户一侧），改检查后（`a83f74c`）整套门禁与性能重跑。
 - 本地目录 marketplace 冒烟两版通过。发布提交 `066d082` 后，从 GitHub 的安装级检查两版都失败：仓库默认分支不是 main，`marketplace add lkangd/cc-mods` 克隆到的 marketplace 里没有 chat-toc；按规则撤回（`abd2e8b`）。使用者把默认分支改成 main 后重新发布（`b3396e6`，内容相同），安装级检查两版通过，见 `mods/chat-toc/tests/evidence/0.1.0/marketplace.md`。
 - 人工目检签字（三种 Layout 观感、青色高亮与反色光标可分清）未勾，证据目录那一项也因此未勾（`report.md`、`report.json`、`marketplace.md` 都已在，只差 `report.md` 里的签字）：留给使用者，在 `report.md` 的「人工目检（待使用者签字）」一节；不阻断发布。
+- 2026-10-12：0.1.0 的人工目检不再签。30 号票把高亮从固定青色改成主题的 `suggestion`，观感已变，签字并入 0.1.1 的证据目录（使用者在 grilling 中确认）。上面两个未勾项因此保留不勾。
