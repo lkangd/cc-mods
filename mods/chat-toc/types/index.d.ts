@@ -8,8 +8,8 @@ export type TranscriptPath = string
 declare module 'claude-code' {
   interface PluginState {
     'chat-toc': {
-      /* Where the current session's transcript file is, from the classic
-         events' `transcript_path`. */
+      /* Where the current session's transcript file is: a classic event's
+         `transcript_path`, else worked out at `session.start`. */
       transcriptPath: TranscriptPath
       /* Bumped whenever what the pane draws from changed (a read finished,
          the window moved); the pane reads it to redraw. */

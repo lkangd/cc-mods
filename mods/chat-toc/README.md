@@ -36,6 +36,7 @@ mods/chat-toc/
 │   ├── position.ts              Current position：在屏行分段、二分查找、跳转锁定
 │   ├── perf.ts                  CHAT_TOC_PERF 下的耗时采样（只有数字），写进宿主 debug 日志
 │   ├── lifecycle.ts             关闭标记、重开时机、放置结果、状态栏文字
+│   ├── locate.ts                中途启用时推算 transcript 路径（宿主的项目目录命名规则）
 │   └── pane.tsx                 Pane 的绘制（过滤行、条目、底栏）
 └── tests/
     ├── *.test.ts                claude plugin test 套件
@@ -109,6 +110,7 @@ PY=<venv>/bin/python
 | 冒烟：整列表与 verifier 一致、点击跳转 | `$PY mods/chat-toc/tests/acceptance/pty_harness.py smoke --host 2.1.287 --plugin mods/chat-toc [--fixture forms] [--terminal cmux]` |
 | CT-COMPAT-003 | `$PY mods/chat-toc/tests/acceptance/ct_compat.py --host 2.1.287 --host current [--scenario waiting\|narrowed\|asked\|main\|reload]` |
 | CT-LIFE-001、002、005（fork） | `$PY mods/chat-toc/tests/acceptance/ct_life.py --host 2.1.287 --host current [--scenario 001\|002\|fork]` |
+| CT-LIFE-007 | `$PY mods/chat-toc/tests/acceptance/ct_mid_session.py --host 2.1.287 --host current [--scenario cli\|ui]`（从运行目录里临时搭的目录 marketplace 安装并先禁用，再分别用 CLI 和 `/plugin` 界面在会话中途启用） |
 | CT-LIFE-003、004、005，CT-DATA-006 | `$PY mods/chat-toc/tests/acceptance/chain_scenarios.py --host 2.1.287 [--only life-003,...]` |
 | CT-JUMP-001～003 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003]` |
 | CT-POS-001～003、CT-COEX-001、CT-LIFE-006 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6]`（coex 在临时项目里 `git init` 一份有改动的仓库，`/diff` 才会打开） |

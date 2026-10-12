@@ -69,6 +69,8 @@ export type Host = {
   env: Record<string, string>
   /* The lines chat-toc logged, and where to. */
   logs: { text: string; to: string | undefined }[]
+  /* What `$.session.id()` answers; while undefined it is refused. */
+  sessionId: string | undefined
 }
 
 /* What the shell and Windows PowerShell commands of a chunked read write:
@@ -114,8 +116,13 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     statuses: [],
     env: {},
     logs: [],
+    sessionId: 'synthetic-session',
   }
   on('env.get', (_$, e) => ({ value: world.env[e.name] }))
+  on('session.id', () => {
+    if (world.sessionId === undefined) throw new Error('CT-SYN no session id')
+    return { value: world.sessionId }
+  })
   on('ui.log', (_$, e) => {
     world.logs.push({ text: e.text, to: e.to })
     return { value: undefined }
@@ -133,6 +140,7 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
   })
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('classic.SessionStart', () => ({}))
+  on('classic.UserPromptSubmit', () => ({}))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('ui.open', (_$, e) => {
     world.opens.push({ ...e })
