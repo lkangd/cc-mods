@@ -27,6 +27,10 @@ declare module 'claude-code' {
          for none. Derived in this process from what the transcript draws;
          the pane reads it to redraw the highlight. */
       currentPosition: number | null
+      /* In a session started by resume, the last compaction's boundary row
+         the file had then (the host lists no row before it): '' until the
+         first read finds it, null for none or not resumed. */
+      compactedAt: string | null
     }
   }
 }

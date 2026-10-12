@@ -37,5 +37,5 @@ The Turn group the person is looking at in the transcript: the one the topmost r
 _Avoid_: Active item, scroll-spy, selection
 
 **Jump target**:
-A temporary association from one side of a Turn group to the transcript row a jump scrolls to. The row need not have been drawn yet; it is good while Claude Code still lists it, and a side whose jump Claude Code refuses has no Jump target until the row is listed again. When that side's own row is shown but cannot be targeted, as with a slash command or `!` shell command, its Jump target is the nearest targetable row after it, or before it when none follows.
+A temporary association from one side of a Turn group to the transcript row a jump scrolls to. The row need not have been drawn yet; it is good while Claude Code still lists it, and a side whose jump Claude Code refuses has no Jump target until the row is listed again. When that side's own row is shown but cannot be targeted, as with a slash command or `!` shell command, its Jump target is the nearest targetable row after it, or before it when none follows. A side known beforehand to have no Jump target, as a turn compacted away before the session was resumed, is drawn dim like a refused one.
 _Avoid_: Anchor, link
