@@ -113,7 +113,7 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
     const gutter = gutterOf(entry, view.layout, isLit).join('\n')
     rows.push(
       <Box key={`row-${entry.key}`} flexDirection="row">
-        {isLit ? <Text color="cyan">{gutter}</Text> : <Text dimColor>{gutter}</Text>}
+        {isLit ? <Text color="suggestion">{gutter}</Text> : <Text dimColor>{gutter}</Text>}
         <Box flexDirection="column">
           {entry.lines.map((line, n) => (
             <Button key={n === 0 ? entry.key : `${entry.key}.${n}`} plain dimColor={line.dim} hover={hover} onPress={press}>
