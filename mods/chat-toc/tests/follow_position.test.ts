@@ -56,7 +56,7 @@ async function session($: Engine, on: Parameters<typeof host>[0]) {
   return { world, pane, prompts, replies, report, view }
 }
 
-/* The entries whose gutter is drawn cyan: the lit group's. */
+/* The entries whose gutter is drawn in the theme's `suggestion`: the lit group's. */
 async function litKeys(pane: Pane): Promise<string[]> {
   const out: string[] = []
   const walk = (node: unknown) => {
@@ -65,7 +65,7 @@ async function litKeys(pane: Pane): Promise<string[]> {
     const key = el.props?.key
     if (el.type === 'Box' && typeof key === 'string' && key.startsWith('row-')) {
       const gutter = el.children?.[0] as { props?: Record<string, unknown> } | undefined
-      if (gutter?.props?.color === 'cyan') out.push(key.slice('row-'.length))
+      if (gutter?.props?.color === 'suggestion') out.push(key.slice('row-'.length))
     }
     for (const child of el.children ?? []) walk(child)
   }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The MUST scenarios that had no PTY script before the 0.1.0 release gate
 (ticket 29): CT-COMPAT-001, CT-DATA-001..005, CT-TURN-001..005,
-CT-UI-001..003 and CT-SEC-001, on one Claude Code version.
+CT-UI-001..004 and CT-SEC-001, on one Claude Code version.
 
     $PY gate_scenarios.py --host 2.1.287 [--only compat-001,data-002,...] [--out DIR]
 
@@ -39,8 +39,13 @@ transcript file wherever the Pane's entries are judged.
                  same entries; the choice survives a new process; an unknown
                  value reads as 卡片
   ui-003         focused, ↑↓ step one side at a time through the entries
-                 without skipping a dimmed one; the inverse ring and the cyan
-                 highlight are drawn apart; Enter jumps like a click
+                 without skipping a dimmed one; the inverse ring and the
+                 highlight (the dark theme's `suggestion`) are drawn apart;
+                 Enter jumps like a click
+  ui-004         under dark, light, dark-ansi and light-ansi the lit gutter is
+                 the theme's `suggestion` and the dimmed text its `inactive`;
+                 /theme from Dark to Light redraws the Pane at once; the
+                 daltonized themes and auto are recorded, not judged
   sec-001        a synthetic marker prompt is drawn in the Pane and found in
                  none of chat-toc's store, its data directory, the debug log's
                  chat-toc lines, or the run's evidence
@@ -69,7 +74,11 @@ EMPTY = "本会话还没有对话"
 DENIED = "没有权限读本会话的 transcript，目录无法显示"
 FAILED = "读不到本会话的 transcript，目录无法显示"
 REFUSED = "这一条当前没有显示在对话里"
-DIM = "999999"
+# Each theme's `suggestion` (the lit gutter) and `inactive` (what dimColor
+# draws), as pyte reads them; measured the same on 2.1.287 and 2.1.295.
+THEMES = {"dark": ("b1b9f9", "999999"), "light": ("5769f7", "666666"),
+          "dark-ansi": ("brightblue", "white"), "light-ansi": ("blue", "brightblack")}
+DIM = THEMES["dark"][1]                                 # the harness's world is dark
 CHUNK = 4_000_000
 MARKERS = PLUGIN / "build" / "sec-001-markers.txt"     # gitignored; read by release_gate.py's leak scan
 
@@ -747,18 +756,13 @@ def is_dim(t, p, row):
     return bool(shown) and all(c.fg == DIM for c in shown)
 
 
-def is_cyan(fg):
-    """pyte's colour name, or the host's truecolor hex: blue and green well above red."""
-    if fg == "cyan":
-        return True
-    if not re.fullmatch(r"[0-9a-fA-F]{6}", fg or ""):
-        return False
-    r, g, b = (int(fg[i:i + 2], 16) for i in (0, 2, 4))
-    return g >= 0x80 and b >= 0x80 and r < min(g, b) - 0x40
+def is_lit(fg, theme="dark"):
+    """The theme's `suggestion`, which the lit gutter is drawn in."""
+    return fg == THEMES[theme][0]
 
 
 def lit_rows(t, p):
-    """Screen rows whose gutter mark ▌ is drawn in cyan."""
+    """Screen rows whose gutter mark is ▌, with its colour."""
     out = []
     with t.lock:
         for e in p.entries:
@@ -867,11 +871,11 @@ def ui_003(host, run):
         world.remove()
     ok = all(actual.get(k) is True for k in ("dimmedBeforeKeys", "oneSideAtATime", "ringOnDimmed", "enterJumped",
                                                "ringAndHighlightApart", "highlightNotInverse")) \
-        and len(actual.get("highlightColour", [])) == 1 and is_cyan(actual["highlightColour"][0])
+        and len(actual.get("highlightColour", [])) == 1 and is_lit(actual["highlightColour"][0])
     return ("CT-UI-003", "turns 12, rewound in the host, T0011's user side refused and dimmed",
             "focused, ↑ walks one side at a time (agent, user, the turn before's agent, ...) and stops on the dimmed side "
             "too; Enter on T0002's user side puts that prompt at the top and lights it; one more ↑ moves the inverse ring "
-            "off it while the cyan ▌ (not inverse) stays on T0002", actual, ok, ev)
+            "off it while the ▌ in the theme's `suggestion` (not inverse) stays on T0002", actual, ok, ev)
 
 
 def sec_001(host, run):
@@ -940,10 +944,112 @@ def sec_001(host, run):
             "the release evidence is scanned for it too (release_gate.py)", actual, ok, ev)
 
 
+def pane_colours(t, p):
+    """The Pane's colours: the lit gutter marks', the blank gutters', the
+    dimmed heads' (你 · time, ↳ N 步) and the rest of the entry text's."""
+    out = {"lit": set(), "gutter": set(), "dimmed": set(), "text": set()}
+    with t.lock:
+        buf = t.screen.buffer
+        for e in p.entries:
+            heads = {e.row} | ({e.row + 1 + len(e.user_lines)} if e.agent_head is not None else set())
+            last = e.row + len(e.user_lines) + (1 + len(e.agent_lines) if e.agent_head is not None else 0)
+            for row in range(e.row, min(last, t.screen.lines - 1) + 1):
+                mark = buf[row][p.left]
+                if mark.data == "▌":
+                    out["lit"].add(mark.fg)
+                elif not mark.data.strip():
+                    out["gutter"].add(mark.fg)
+                cells = [buf[row][x] for x in range(p.left + 2, t.screen.columns) if buf[row][x].data.strip()]
+                out["dimmed" if row in heads else "text"].update(c.fg for c in cells if not c.reverse)
+    return {k: sorted(v) for k, v in out.items()}
+
+
+def themed_world(host, theme):
+    world = h.World(token="")
+    config = world.config / ".claude.json"
+    config.write_text(json.dumps(json.loads(config.read_text()) | {"theme": theme}))
+    return world, world.fixture("turns", turns=12, version=host.version)
+
+
+def ui_004(host, run):
+    """One record per judged theme, one for the live switch, one recording
+    the themes that are not judged."""
+    out = []
+    for theme, (lit, dim) in THEMES.items():
+        world, fx = themed_world(host, theme)
+        t = launch(world, host, run, ["--resume", fx["session"]])
+        actual, ev = {"theme": theme, "expected": {"lit": lit, "dimmed": dim}}, []
+        try:
+            t.wait_for(listed, "the Pane with entries", timeout=40)
+            t.settle()
+            pointer_off(t)
+            actual |= pane_colours(t, pane(t))
+            ev.append(t.snap(f"ui-004 {theme}"))
+        except h.ScenarioFailure as failure:
+            actual["failure"] = repr(failure)
+        finally:
+            t.close()
+            world.remove()
+        ok = (actual.get("lit") == [lit] and actual.get("dimmed") == [dim] and actual.get("gutter") == [dim])
+        out.append(("CT-UI-004", f"turns 12, theme {theme}",
+                    f"the lit ▌ is {lit} (the theme's suggestion); the dimmed 你 · time / ↳ lines and the blank gutters "
+                    f"are {dim} (its inactive)", actual, ok, ev))
+
+    world, fx = themed_world(host, "dark")
+    t = launch(world, host, run, ["--resume", fx["session"]])
+    actual, ev = {}, []
+    try:
+        t.wait_for(listed, "the Pane with entries", timeout=40)
+        t.settle()
+        pointer_off(t)
+        actual["before"] = pane_colours(t, pane(t))
+        t.command("/theme", wait=2.0)
+        t.wait_for(lambda term: term.find("Light mode") is not None, "the /theme picker", timeout=15)
+        t.key("down", pause=0.5)
+        if not any("❯" in r and "Light mode" in r and "colorblind" not in r for r in t.rows()):
+            raise h.ScenarioFailure("the picker's cursor is not on Light mode")
+        t.key("enter", pause=0.5)
+        t.wait_for(lambda term: term.find("Choose the text style") is None, "the picker to close", timeout=15)
+        t.settle()
+        pointer_off(t)
+        actual["after"] = pane_colours(t, pane(t))
+        ev.append(t.snap("ui-004 after /theme to Light"))
+    except (h.ScenarioFailure, AttributeError) as failure:
+        actual["failure"] = repr(failure)
+    finally:
+        t.close()
+        world.remove()
+    dark, light = THEMES["dark"], THEMES["light"]
+    ok = (actual.get("before", {}).get("lit") == [dark[0]] and actual.get("before", {}).get("dimmed") == [dark[1]]
+          and actual.get("after", {}).get("lit") == [light[0]] and actual.get("after", {}).get("dimmed") == [light[1]])
+    out.append(("CT-UI-004", "turns 12, theme dark, then /theme → Light mode in the same session",
+                "the Pane redraws at once in the light theme's suggestion and inactive, with no reopen", actual, ok, ev))
+
+    seen, ev = {}, []
+    for theme in ("dark-daltonized", "light-daltonized", "auto"):
+        world, fx = themed_world(host, theme)
+        t = launch(world, host, run, ["--resume", fx["session"]])
+        try:
+            t.wait_for(listed, "the Pane with entries", timeout=40)
+            t.settle()
+            pointer_off(t)
+            seen[theme] = pane_colours(t, pane(t))
+            ev.append(t.snap(f"ui-004 {theme}"))
+        except h.ScenarioFailure as failure:
+            seen[theme] = {"failure": repr(failure)}
+        finally:
+            t.close()
+            world.remove()
+    out.append(("CT-UI-004", "turns 12, themes dark-daltonized, light-daltonized and auto",
+                "recorded for the record, not judged: the Pane draws under each", seen,
+                all("failure" not in c for c in seen.values()), ev))
+    return out
+
+
 SCENARIOS = {
     "compat-001": compat_001, "data-001": data_001, "data-002": data_002, "data-003": data_003, "data-004": data_004,
     "forms": forms, "turn-004-live": turn_004_live, "ui-001": ui_001, "ui-002": ui_002, "ui-003": ui_003,
-    "sec-001": sec_001,
+    "ui-004": ui_004, "sec-001": sec_001,
 }
 
 

@@ -17,7 +17,7 @@ the host's own claude-code.d.ts for tsc on a version newer than the minimum
   chain_scenarios.py   CT-LIFE-003, 004, 005, CT-DATA-006
   jump_scenarios.py    CT-JUMP-001..003
   position_scenarios.py CT-POS-001..003, CT-COEX-001, CT-LIFE-006
-  gate_scenarios.py    CT-COMPAT-001, CT-DATA-001..005, CT-TURN-001..005, CT-UI-001..003, CT-SEC-001
+  gate_scenarios.py    CT-COMPAT-001, CT-DATA-001..005, CT-TURN-001..005, CT-UI-001..004, CT-SEC-001
   perf_scenarios.py    CT-PERF-001 (20 MiB many and heavy, 3 runs each)
 
 `report` gathers every run.jsonl record, checks that each MUST scenario of
@@ -46,7 +46,7 @@ import pty_harness as h  # noqa: E402
 
 MUST = (["CT-COMPAT-001", "CT-COMPAT-002", "CT-COMPAT-003"]
         + [f"CT-DATA-00{i}" for i in range(1, 7)] + [f"CT-TURN-00{i}" for i in range(1, 6)]
-        + [f"CT-LIFE-00{i}" for i in range(1, 7)] + [f"CT-UI-00{i}" for i in range(1, 4)]
+        + [f"CT-LIFE-00{i}" for i in range(1, 7)] + [f"CT-UI-00{i}" for i in range(1, 5)]
         + [f"CT-JUMP-00{i}" for i in range(1, 4)] + [f"CT-POS-00{i}" for i in range(1, 4)]
         + ["CT-PERF-001", "CT-SEC-001", "CT-COEX-001"])
 MARKERS = PLUGIN / "build" / "sec-001-markers.txt"
@@ -289,13 +289,13 @@ def markdown(d: dict, perf: str) -> str:
     lines += ["", "## CT-PERF-001（20 MiB，两种 fixture × 两个版本 × 3 次，取各次 p95 中最差的）", "", perf, "",
               "## 人工目检（待使用者签字）", "",
               "> 不是发布阻断项（契约 §3、§5）。实现者没有签这一项：请使用者看下面的截屏（以及在自己的终端里实际看一次），"
-              "确认三种 Layout（卡片、紧凑、时间轴）的观感，以及青色高亮与反色选择光标能一眼分清，然后在本节填写。", "",
+              "确认三种 Layout（卡片、紧凑、时间轴）的观感，以及高亮（主题的 `suggestion` 色）与反色选择光标能一眼分清，然后在本节填写。", "",
               "- 本次发布门禁重新截的屏（被测提交、两个版本、36/44/56 列，每组：卡片、紧凑、时间轴、卡片+只看用户、卡片+只看 Agent）："
               "`signoff/<版本>-<列宽>/`", "- 25 号票当时的截屏：`.scratch/chat-toc/assets/25-layouts/screens/`（2.1.287 与 2.1.295，36/44/56 列）",
-              "- 青色与反色在文本截屏里看不出颜色；颜色由 CT-UI-003 自动核对（高亮 `▌` 前景 `05a2c2`、不反色；"
-              "选择光标反色，二者不在同一行），观感仍需真人看。", "",
+              "- 高亮色与反色在文本截屏里看不出；颜色由 CT-UI-003（高亮 `▌` 是 dark 主题的 `suggestion`、不反色；"
+              "选择光标反色，二者不在同一行）与 CT-UI-004（四种主题下高亮与淡化各是该主题的解析值）自动核对，观感仍需真人看。", "",
               "| 项 | 结论 | 签字 | 日期 |", "| --- | --- | --- | --- |",
-              "| 三种 Layout 的观感 | 待填 | 待使用者签字 | |", "| 青色高亮与反色选择光标能分清 | 待填 | 待使用者签字 | |", "",
+              "| 三种 Layout 的观感 | 待填 | 待使用者签字 | |", "| 高亮与反色选择光标能分清 | 待填 | 待使用者签字 | |", "",
               "## 各场景记录", ""]
     for r in sorted(d["records"], key=lambda r: (MUST.index(r["scenario"]) if r["scenario"] in MUST else 999,
                                                   r["claudeCodeVersion"], r["name"])):
