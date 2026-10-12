@@ -4,6 +4,7 @@
 import { mock } from 'claude-code/testing'
 import type { Engine, MockClock } from 'claude-code/testing'
 import type { On, PaneOpenArgs, UiPane } from 'claude-code'
+import type { HostMessage } from './fixture'
 
 export const PANE = 'chat-toc'
 export const TRANSCRIPT = '/home/synthetic/.claude/projects/p/synthetic-session.jsonl'
@@ -71,6 +72,11 @@ export type Host = {
   logs: { text: string; to: string | undefined }[]
   /* What `$.session.id()` answers; while undefined it is refused. */
   sessionId: string | undefined
+  /* What `$.session.messages()` answers, and how often it was asked;
+     `$.session.turns()` counts its user messages that are not tool results,
+     as the host does. */
+  messages: HostMessage[]
+  messageCalls: number
 }
 
 /* What the shell and Windows PowerShell commands of a chunked read write:
@@ -117,8 +123,15 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     env: {},
     logs: [],
     sessionId: 'synthetic-session',
+    messages: [],
+    messageCalls: 0,
   }
   on('env.get', (_$, e) => ({ value: world.env[e.name] }))
+  on('session.turns', () => ({ value: world.messages.filter(m => m.role === 'user' && !(m.toolResults?.length ?? 0)).length }))
+  on('session.messages', () => {
+    world.messageCalls += 1
+    return { value: world.messages as never }
+  })
   on('session.id', () => {
     if (world.sessionId === undefined) throw new Error('CT-SYN no session id')
     return { value: world.sessionId }

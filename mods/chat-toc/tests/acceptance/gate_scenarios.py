@@ -730,23 +730,17 @@ def ui_002(host, run):
             "the choice survives a new process; an unknown stored value reads as 卡片", actual, ok, ev)
 
 
-def rewind_three(t, ev):
-    """Esc Esc on the empty composer, rewind four prompts up, as jump_scenarios
-    does: the host's list loses the newest turns, the file keeps them."""
-    t.key("esc", "esc", pause=0.4)
-    t.settle(quiet=1.0)
-    for _ in range(4):
-        t.key("up", pause=0.3)
-    t.settle(quiet=0.6)
-    t.key("enter")
-    t.settle(quiet=1.0)
-    if "Restore" in t.text() or "restore" in t.text():
-        t.key("enter")
-        t.settle(quiet=1.0)
-    for _ in range(120):
-        t.key("backspace", pause=0.0)
-    t.settle(quiet=1.0)
-    ev.append(t.snap("ui-003 rewound"))
+def compacted_turns(world, host, turns, after):
+    """The `turns` fixture's turns, compacted after turn `after`: resumed, the
+    turns up to it are dim from the first drawing (CT-JUMP-005)."""
+    session = "00000000-0000-4000-8000-000000000ac3"
+    t = tf.Transcript(world.transcript(session), str(world.project), session, seed=12, version=host.version)
+    for i in range(turns):
+        tf._plain(t, i)
+        if i == after:
+            t.compact()
+    t.close()
+    return session
 
 
 def is_dim(t, p, row):
@@ -774,29 +768,29 @@ def lit_rows(t, p):
 
 def ui_003(host, run):
     world = h.World(token="")
-    fx = world.fixture("turns", turns=12, version=host.version)
+    session = compacted_turns(world, host, 12, after=1)
     actual, ev = {}, []
-    t = launch(world, host, run, ["--resume", fx["session"]])
+    t = launch(world, host, run, ["--resume", session])
     try:
         t.wait_for(listed, "the Pane with entries", timeout=40)
         t.settle()
-        rewind_three(t, ev)
+        pointer_off(t)
         col, row = h._wheel_point(t)
         for _ in range(40):
             p = v.parse_pane(t.settle(quiet=0.4))
-            target = next((e for e in reversed(p.entries) if "T0011" in e.user_text), None)
-            if target:
+            dimmed = next((e for e in p.entries if "T0001" in e.user_text), None)
+            if dimmed:
+                break
+            t.wheel(col, row, up=True, ticks=2)
+        else:
+            raise h.ScenarioFailure("T0001 never showed in the Pane")
+        actual["dimmedBeforeKeys"] = is_dim(t, p, dimmed.row + 1)
+        ev.append(t.snap("ui-003 T0001, compacted before the resume, dimmed"))
+        for _ in range(40):
+            p = v.parse_pane(t.settle(quiet=0.4))
+            if any("T0011" in e.user_text for e in p.entries):
                 break
             t.wheel(col, row, up=False, ticks=2)
-        else:
-            raise h.ScenarioFailure("T0011 never showed in the Pane")
-        t.click(p.left + 4, target.row + 1)
-        t.wait_for(lambda term: REFUSED in term.text(), "the refusal at the bottom", timeout=10)
-        pointer_off(t)
-        p = pane(t)
-        dimmed = next(e for e in p.entries if "T0011" in e.user_text)
-        actual["dimmedBeforeKeys"] = is_dim(t, p, dimmed.row + 1)
-        ev.append(t.snap("ui-003 T0011 refused and dimmed"))
 
         # the keyboard: ↑ walks up one side a time. Where the ring starts
         # after Ctrl+X Tab is the host's (2.1.295 wraps from the filter row
@@ -825,11 +819,9 @@ def ui_003(host, run):
         steps = [(w["turn"], w["side"]) for w in walk]
         actual["oneSideAtATime"] = (steps[0] in order and
                                     steps == order[order.index(steps[0]):order.index(steps[0]) + len(steps)])
-        actual["ringOnDimmed"] = any(w["turn"] == 11 and w["side"] == "user" and w["dim"] for w in walk)
 
         # Enter on the side the ring holds jumps like a click: walk on up to
-        # T0002's user side (well before the turns the rewind took out, so
-        # the transcript has room to put it at the top)
+        # T0002's user side, the first turn after the compaction
         for _ in range(30):
             got = ring(t)
             p = pane(t)
@@ -847,11 +839,17 @@ def ui_003(host, run):
         top = h.transcript_text(rows, pane(t).left).splitlines()[:6]
         actual["enterJumped"] = "T0002 用户问题" in "\n".join(top)
 
-        # the jump lights T0002; one ↑ moves the ring off it, the highlight stays
+        # the jump lights T0002; one ↑ moves the ring off it, onto T0001's
+        # dimmed Agent side (not skipped), while the highlight stays
         t.key("up", pause=0.3)
         pointer_off(t)
         got = ring(t)
         p = pane(t)
+        # T0001's user lines may sit above the window: read the ring's row
+        # (the Agent side's ↳ header) and the reply line under it
+        below = t.rows()[got[0][0] + 1] if len(got) == 1 else ""
+        actual["ringOnDimmed"] = (len(got) == 1 and got[0][1].startswith("↳") and "T0001" in below
+                                  and is_dim(t, p, got[0][0] + 1))
         lit = lit_rows(t, p)
         lit_turns = sorted({turn_of(e.user_text) for e in p.entries if e.highlighted})
         where = side_at(p, got[0][0]) if len(got) == 1 else None
@@ -872,10 +870,10 @@ def ui_003(host, run):
     ok = all(actual.get(k) is True for k in ("dimmedBeforeKeys", "oneSideAtATime", "ringOnDimmed", "enterJumped",
                                                "ringAndHighlightApart", "highlightNotInverse")) \
         and len(actual.get("highlightColour", [])) == 1 and is_lit(actual["highlightColour"][0])
-    return ("CT-UI-003", "turns 12, rewound in the host, T0011's user side refused and dimmed",
-            "focused, ↑ walks one side at a time (agent, user, the turn before's agent, ...) and stops on the dimmed side "
-            "too; Enter on T0002's user side puts that prompt at the top and lights it; one more ↑ moves the inverse ring "
-            "off it while the ▌ in the theme's `suggestion` (not inverse) stays on T0002", actual, ok, ev)
+    return ("CT-UI-003", "turns 12 compacted after T0001, --resume: T0000-T0001 dimmed from the start",
+            "focused, ↑ walks one side at a time (agent, user, the turn before's agent, ...); Enter on T0002's user side "
+            "puts that prompt at the top and lights it; one more ↑ moves the inverse ring off it onto T0001's dimmed "
+            "Agent side (not skipped) while the ▌ in the theme's `suggestion` (not inverse) stays on T0002", actual, ok, ev)
 
 
 def sec_001(host, run):

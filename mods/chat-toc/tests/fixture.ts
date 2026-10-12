@@ -127,3 +127,37 @@ export function transcript(start = Date.UTC(2026, 9, 10, 1, 0, 0)): Builder {
   }
   return b
 }
+
+/* As much of a `$.session.messages()` entry as chat-toc reads. */
+export type HostMessage = { role: string; text: string; toolResults?: readonly unknown[] }
+
+/* The host's messages for the rows from the last compaction on, as
+   `$.session.messages()` gives them: user and assistant messages with their
+   text blocks joined, tool results apart; system rows (local commands, the
+   boundary) not among them. */
+export function hostMessagesOf(t: Builder): HostMessage[] {
+  let from = 0
+  t.rows.forEach((r, i) => {
+    if (r.subtype === 'compact_boundary') from = i + 1
+  })
+  const out: HostMessage[] = []
+  for (const r of t.rows.slice(from)) {
+    if (r.type !== 'user' && r.type !== 'assistant') continue
+    const content = (r.message as { content?: unknown } | undefined)?.content
+    if (typeof content === 'string') out.push({ role: r.type, text: content })
+    else if (Array.isArray(content)) {
+      const blocks = content as { type?: string; text?: string }[]
+      const results = blocks.filter(b => b.type === 'tool_result')
+      const joined = blocks.filter(b => b.type === 'text').map(b => b.text ?? '').join('\n')
+      out.push({ role: r.type, text: joined, ...(results.length > 0 ? { toolResults: results } : {}) })
+    }
+  }
+  return out
+}
+
+/* The host's messages after a rewind to the prompt `prompt`: everything
+   from it on is gone. */
+export function rewoundTo(messages: HostMessage[], prompt: string): HostMessage[] {
+  const at = messages.findIndex(m => m.role === 'user' && m.text === prompt)
+  return messages.slice(0, at)
+}
