@@ -11,7 +11,7 @@ In the harness's isolated, logged-out world (no --plugin-dir for chat-toc):
      install-level check: the host clones it and copies the plugin into its
      cache);
   2. `claude plugin install chat-toc@cc-mods`;
-  3. `claude plugin list`: chat-toc@cc-mods, version 0.1.0, enabled;
+  3. `claude plugin list`: chat-toc@cc-mods, version from plugin.json, enabled;
   4. a fullscreen session resumed on a synthetic transcript: the Pane docks
      by itself; one click on a prompt's user side puts that prompt in view.
 
