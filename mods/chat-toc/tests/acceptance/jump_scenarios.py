@@ -30,7 +30,8 @@ import pty_harness as h  # noqa: E402
 import toc_verifier as v  # noqa: E402
 
 PLUGIN = HERE.parent.parent
-# The host draws dimColor text in this gray, not with SGR 2.
+# The host draws dimColor text in the theme's `inactive`, not with SGR 2: this
+# gray under the harness's dark theme.
 DIM = "999999"
 REFUSED = "这一条当前没有显示在对话里"
 
