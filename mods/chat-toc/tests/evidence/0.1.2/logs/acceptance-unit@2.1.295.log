@@ -1,0 +1,7 @@
+$ <tmp> -m unittest test_toc_verifier test_transcript_fixture test_pty_harness
+# 2026-10-12T18:06:27, exit 0
+...........................................
+----------------------------------------------------------------------
+Ran 43 tests in 1.001s
+
+OK

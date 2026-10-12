@@ -1,0 +1,377 @@
+2026-10-12T10:06:45.834Z [DEBUG] MDM settings load completed in 0ms
+2026-10-12T10:06:45.839Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /Library/Application Support/ClaudeCode/managed-settings.json
+2026-10-12T10:06:45.885Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/project/.claude/settings.json
+2026-10-12T10:06:45.886Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/project/.claude/settings.local.json
+2026-10-12T10:06:45.886Z [DEBUG] CA certs: Config fallback - globalEnv keys: , settingsEnv keys: none
+2026-10-12T10:06:45.888Z [DEBUG] [init] configureGlobalMTLS starting
+2026-10-12T10:06:45.888Z [DEBUG] [init] configureGlobalMTLS complete
+2026-10-12T10:06:45.888Z [DEBUG] [init] configureGlobalAgents starting
+2026-10-12T10:06:45.888Z [DEBUG] CA certs: stores=bundled,system, extraCertsPath=undefined
+2026-10-12T10:06:45.888Z [DEBUG] CA certs: Loaded 121 bundled root certificates
+2026-10-12T10:06:45.907Z [DEBUG] CA certs: Dropped 1 expired certificate(s) from system store
+2026-10-12T10:06:45.907Z [DEBUG] CA certs: Loaded 2 system CA certificates
+2026-10-12T10:06:45.907Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-10-12T10:06:45.908Z [DEBUG] [init] configureGlobalAgents complete
+2026-10-12T10:06:45.909Z [DEBUG] Error log sink initialized
+2026-10-12T10:06:45.909Z [DEBUG] clearPluginCache: invalidating loadAllPlugins cache (preAction: --plugin-dir inline plugins)
+2026-10-12T10:06:45.913Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:45.913Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.0a7f09da4ec2
+2026-10-12T10:06:45.913Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:45.913Z [DEBUG] Temp file written successfully, size: 290 bytes
+2026-10-12T10:06:45.913Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.0a7f09da4ec2 to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:45.913Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:45.914Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:45.914Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.8fc631a2f871
+2026-10-12T10:06:45.914Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:45.914Z [DEBUG] Temp file written successfully, size: 373 bytes
+2026-10-12T10:06:45.914Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.8fc631a2f871 to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:45.914Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:45.915Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:45.915Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.cca957a9aacd
+2026-10-12T10:06:45.915Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:45.915Z [DEBUG] Temp file written successfully, size: 409 bytes
+2026-10-12T10:06:45.915Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.cca957a9aacd to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:45.915Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:45.916Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:45.916Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.947928f5381e
+2026-10-12T10:06:45.916Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:45.916Z [DEBUG] Temp file written successfully, size: 448 bytes
+2026-10-12T10:06:45.916Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.947928f5381e to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:45.916Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:45.917Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:45.917Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.346373793346
+2026-10-12T10:06:45.917Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:45.918Z [DEBUG] Temp file written successfully, size: 475 bytes
+2026-10-12T10:06:45.918Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.346373793346 to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:45.918Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:45.918Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:45.919Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.a6e6bdca043a
+2026-10-12T10:06:45.919Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:45.919Z [DEBUG] Temp file written successfully, size: 523 bytes
+2026-10-12T10:06:45.919Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.a6e6bdca043a to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:45.919Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:45.920Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:45.920Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.b94b3355870b
+2026-10-12T10:06:45.920Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:45.920Z [DEBUG] Temp file written successfully, size: 549 bytes
+2026-10-12T10:06:45.920Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.b94b3355870b to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:45.920Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:45.928Z [DEBUG] [Claude in Chrome] Disabled: OAuth token has no scope accepted by /api/oauth/validate (needs user:profile, user:office, or user:ccr_inference; env-var and setup-token sessions default to user:inference only)
+2026-10-12T10:06:45.930Z [DEBUG] [ToolSearch:optimistic] mode=tst, ENABLE_TOOL_SEARCH=undefined, result=true
+2026-10-12T10:06:46.027Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-10-12T10:06:46.027Z [DEBUG] [STARTUP] Running setup()...
+2026-10-12T10:06:46.031Z [DEBUG] Loading skills from: managed=/Library/Application Support/ClaudeCode/.claude/skills, user=<tmp>/home/.claude/skills, project=[]
+2026-10-12T10:06:46.032Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/agents: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/agents'
+2026-10-12T10:06:46.032Z [DEBUG] Failed to stat directory <tmp>/home/.claude/agents: ENOENT: no such file or directory, stat '<tmp>/home/.claude/agents'
+2026-10-12T10:06:46.032Z [DEBUG] --plugin-dir <tmp> is one plugin: .claude-plugin at its top marks it
+2026-10-12T10:06:46.032Z [DEBUG] installed_plugins.json doesn't exist, returning empty V2 object
+2026-10-12T10:06:46.032Z [DEBUG] Failed to stat directory <tmp>/home/.claude/commands: ENOENT: no such file or directory, stat '<tmp>/home/.claude/commands'
+2026-10-12T10:06:46.033Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/commands: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/commands'
+2026-10-12T10:06:46.033Z [DEBUG] Loaded 0 unique skills (0 unconditional, 0 conditional, managed: 0, user: 0, project: 0, additional: 0, legacy commands: 0)
+2026-10-12T10:06:46.042Z [DEBUG] Read hooks.json for plugin chat-toc (enabled=true): <tmp>
+2026-10-12T10:06:46.042Z [DEBUG] Loaded inline plugin from path: chat-toc
+2026-10-12T10:06:46.042Z [DEBUG] Loaded 1 directory-loaded plugins
+2026-10-12T10:06:46.043Z [DEBUG] Found 4 plugins (4 enabled, 0 disabled)
+2026-10-12T10:06:46.044Z [DEBUG] getPluginSkills: Processing 4 enabled plugins
+2026-10-12T10:06:46.044Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-12T10:06:46.044Z [DEBUG] Checking plugin cc-plugin-agents-md: skillsPath=none, skillsPaths=0 paths
+2026-10-12T10:06:46.044Z [DEBUG] Checking plugin cc-plugin-plugin-authoring: skillsPath=none, skillsPaths=0 paths
+2026-10-12T10:06:46.044Z [DEBUG] Checking plugin cc-plugin-diff: skillsPath=none, skillsPaths=0 paths
+2026-10-12T10:06:46.044Z [DEBUG] Total plugin workflows loaded: 0
+2026-10-12T10:06:46.044Z [DEBUG] Total plugin commands loaded: 0
+2026-10-12T10:06:46.044Z [DEBUG] Total plugin skills loaded: 0 (0 duplicate/user-owned entries skipped)
+2026-10-12T10:06:46.044Z [DEBUG] Total plugin agents loaded: 0
+2026-10-12T10:06:46.045Z [INFO] [uds-messaging] Listening: /tmp/cc-socks/22508.sock
+2026-10-12T10:06:46.045Z [INFO] [uds-messaging] Inject messages (auth line optional here): { echo '{"type":"auth","token":"[REDACTED]"$CLAUDE_CODE_MESSAGING_TOKEN"'"}'; echo '{"type":"user","message":{"role":"user","content":"hello"}}'; } | socat - UNIX-CONNECT:/tmp/cc-socks/22508.sock
+2026-10-12T10:06:46.047Z [INFO] [uds-messaging] Connect when the data is ready (e.g. out=$(cmd); printf '%s\n' "$out" | nc -U "$CLAUDE_CODE_MESSAGING_SOCKET" — or the socat form above): a connection that sends no complete line within 30000 ms is closed
+2026-10-12T10:06:46.048Z [DEBUG] Error log sink initialized
+2026-10-12T10:06:46.050Z [DEBUG] cc-plugin-sec-default@builtin not seated: no managed settings and not a Team or Enterprise organization (none)
+2026-10-12T10:06:46.050Z [DEBUG] [STARTUP] setup() completed in 23ms
+2026-10-12T10:06:46.051Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-10-12T10:06:46.054Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 39 bundled skills, 1 builtin plugin skills
+2026-10-12T10:06:46.057Z [DEBUG] [STARTUP] Commands and agents loaded in 6ms
+2026-10-12T10:06:46.059Z [DEBUG] [STARTUP] Running showSetupScreens()...
+2026-10-12T10:06:46.062Z [DEBUG] Cleared mTLS configuration cache
+2026-10-12T10:06:46.062Z [DEBUG] Cleared proxy agent cache
+2026-10-12T10:06:46.062Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-10-12T10:06:46.063Z [DEBUG] [STARTUP] showSetupScreens() completed in 4ms
+2026-10-12T10:06:46.063Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-10-12T10:06:46.063Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-10-12T10:06:46.063Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-10-12T10:06:46.063Z [DEBUG] Starting background startup prefetches
+2026-10-12T10:06:46.063Z [DEBUG] [Bootstrap] Skipped: Nonessential traffic disabled
+2026-10-12T10:06:46.085Z [DEBUG] [STARTUP] MCP configs resolved in 23ms (awaited at +58ms)
+2026-10-12T10:06:46.088Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T10:06:46.089Z [DEBUG] Initialized versioned plugins system with 0 plugins
+2026-10-12T10:06:46.090Z [DEBUG] LSP Diagnostics: Resetting all state (0 pending, 0 files tracked)
+2026-10-12T10:06:46.091Z [DEBUG] Total LSP servers loaded: 0
+2026-10-12T10:06:46.091Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-10-12T10:06:46.091Z [DEBUG] LSP manager initialized with 0 servers
+2026-10-12T10:06:46.091Z [DEBUG] LSP server manager initialized successfully
+2026-10-12T10:06:46.091Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-10-12T10:06:46.119Z [DEBUG] [Perfetto] initializePerfettoTracing called, env value: undefined
+2026-10-12T10:06:46.119Z [DEBUG] [3P telemetry] isTelemetryEnabled=false (CLAUDE_CODE_ENABLE_TELEMETRY=undefined)
+2026-10-12T10:06:46.121Z [DEBUG] getPluginSkills: Processing 4 enabled plugins
+2026-10-12T10:06:46.121Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-12T10:06:46.121Z [DEBUG] Checking plugin cc-plugin-agents-md: skillsPath=none, skillsPaths=0 paths
+2026-10-12T10:06:46.121Z [DEBUG] Checking plugin cc-plugin-plugin-authoring: skillsPath=none, skillsPaths=0 paths
+2026-10-12T10:06:46.121Z [DEBUG] Checking plugin cc-plugin-diff: skillsPath=none, skillsPaths=0 paths
+2026-10-12T10:06:46.121Z [DEBUG] Total plugin workflows loaded: 0
+2026-10-12T10:06:46.121Z [DEBUG] Total plugin commands loaded: 0
+2026-10-12T10:06:46.122Z [DEBUG] Git remote URL: null
+2026-10-12T10:06:46.122Z [DEBUG] No git remote URL found
+2026-10-12T10:06:46.123Z [DEBUG] Ripgrep first use test: PASSED (mode=embedded, path=<home>/.local/share/claude/versions/2.1.295)
+2026-10-12T10:06:46.123Z [DEBUG] "rg error (signal=undefined, code=2, stderr: rg: <tmp>/home/.claude/plugins/cache: IO error for operation on <tmp>/home/.claude/plugins/cache: No such file or directory (os error 2)\n), 0 results"
+2026-10-12T10:06:46.123Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T10:06:46.123Z [DEBUG] Total plugin skills loaded: 0 (0 duplicate/user-owned entries skipped)
+2026-10-12T10:06:46.123Z [DEBUG] Loading skills from: managed=/Library/Application Support/ClaudeCode/.claude/skills, user=<tmp>/home/.claude/skills, project=[]
+2026-10-12T10:06:46.126Z [DEBUG] FileHistory: No need to copy file history for resuming with same session id: 00000000-0000-4000-8000-000000000001
+2026-10-12T10:06:46.127Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/commands: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/commands'
+2026-10-12T10:06:46.127Z [DEBUG] Failed to stat directory <tmp>/home/.claude/commands: ENOENT: no such file or directory, stat '<tmp>/home/.claude/commands'
+2026-10-12T10:06:46.127Z [DEBUG] Loaded 0 unique skills (0 unconditional, 0 conditional, managed: 0, user: 0, project: 0, additional: 0, legacy commands: 0)
+2026-10-12T10:06:46.127Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 39 bundled skills, 1 builtin plugin skills
+2026-10-12T10:06:46.132Z [DEBUG] [3P telemetry] Event dropped (no event logger initialized): plugin_loaded
+2026-10-12T10:06:46.136Z [DEBUG] [Bootstrap] Skipped: Nonessential traffic disabled
+2026-10-12T10:06:46.160Z [DEBUG] [keybindings] KeybindingSetup initialized with 226 bindings, 0 warnings
+2026-10-12T10:06:46.180Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T10:06:46.193Z [DEBUG] [engine] send set_max_thinking_tokens max=null
+2026-10-12T10:06:46.193Z [DEBUG] [engine] send set_model model=claude-haiku-4-5
+2026-10-12T10:06:46.196Z [DEBUG] prompt.edit: unhooked; the composer relays nothing
+2026-10-12T10:06:46.198Z [DEBUG] [claudeai-mcp] Disabled: API-key auth precedence active
+2026-10-12T10:06:46.198Z [DEBUG] performStartupChecks called
+2026-10-12T10:06:46.200Z [DEBUG] [jobStateNameSync] watch skipped: Error: ENOENT: no such file or directory, watch '<tmp>/home/.claude/jobs/00000000'
+2026-10-12T10:06:46.203Z [DEBUG] [REPL:mount] REPL mounted, disabled=false
+2026-10-12T10:06:46.204Z [DEBUG] [Claude in Chrome] Disabled: OAuth token has no scope accepted by /api/oauth/validate (needs user:profile, user:office, or user:ccr_inference; env-var and setup-token sessions default to user:inference only)
+2026-10-12T10:06:46.204Z [DEBUG] [ScheduledTasks] scheduler start() — enabled=false, hasTasks=false
+2026-10-12T10:06:46.205Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/project/.claude/settings.json
+2026-10-12T10:06:46.205Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/project/.claude/settings.local.json
+2026-10-12T10:06:46.205Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /Library/Application Support/ClaudeCode/managed-settings.json
+2026-10-12T10:06:46.212Z [DEBUG] [servedCatalog] off (essential_traffic)
+2026-10-12T10:06:46.215Z [DEBUG] High write ratio: blit=0, write=2149 (100.0% writes), screen=44x100
+2026-10-12T10:06:46.219Z [DEBUG] Starting background plugin installations
+2026-10-12T10:06:46.219Z [DEBUG] [auto-mode] verifyAutoModeGateAccess: enabledState=enabled disabledBySettings=false model=claude-haiku-4-5 modelSupported=false disableFastModeBreakerFires=false carouselAvailable=false canEnterAuto=false
+2026-10-12T10:06:46.219Z [WARN] auto mode disabled: model claude-haiku-4-5 does not support auto mode
+2026-10-12T10:06:46.220Z [DEBUG] performBackgroundPluginInstallations called
+2026-10-12T10:06:46.220Z [DEBUG] [auto-mode] kickOutOfAutoIfNeeded applying: ctx.mode=auto ctx.prePlanMode=undefined reason=model
+2026-10-12T10:06:46.220Z [DEBUG] Applying permission update: Setting mode to 'default'
+2026-10-12T10:06:46.224Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:46.225Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.de1f29dcff16
+2026-10-12T10:06:46.225Z [DEBUG] [keybindings] Watching for changes to <tmp>/home/.claude/keybindings.json
+2026-10-12T10:06:46.227Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T10:06:46.227Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T10:06:46.227Z [ERROR] install check: claude command at <tmp>/home/.local/bin/claude missing or broken (<tmp>/home/.local/bin does not exist)
+2026-10-12T10:06:46.227Z [ERROR] install check: claude command at <tmp>/home/.local/bin/claude missing or broken
+2026-10-12T10:06:46.227Z [INFO] 1 setup issue: install (run `claude doctor` for details)
+2026-10-12T10:06:46.227Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/agents: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/agents'
+2026-10-12T10:06:46.227Z [DEBUG] Failed to stat directory <tmp>/home/.claude/agents: ENOENT: no such file or directory, stat '<tmp>/home/.claude/agents'
+2026-10-12T10:06:46.227Z [DEBUG] memory index backfill: ENOENT: no such file or directory, scandir '<tmp>/home/.claude/projects/-private-var-folders-nh-5vhmfmd556j33t3g996v6c080000gn-T-ctoc-132cus2a-project/memory/'
+2026-10-12T10:06:46.227Z [DEBUG] No CLAUDE.md/rules files found
+2026-10-12T10:06:46.236Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:46.259Z [DEBUG] Total plugin agents loaded: 0
+2026-10-12T10:06:46.259Z [DEBUG] Temp file written successfully, size: 629 bytes
+2026-10-12T10:06:46.259Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.de1f29dcff16 to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:46.265Z [DEBUG] [FileIndex] getProjectFiles called, respectGitignore=true
+2026-10-12T10:06:46.265Z [DEBUG] [FileIndex] getFilesUsingGit called
+2026-10-12T10:06:46.265Z [DEBUG] [FileIndex] not a git repo, returning null
+2026-10-12T10:06:46.265Z [DEBUG] [FileIndex] git ls-files returned null, falling back to ripgrep
+2026-10-12T10:06:46.266Z [DEBUG] Git remote URL: null
+2026-10-12T10:06:46.266Z [DEBUG] No git remote URL found
+2026-10-12T10:06:46.266Z [DEBUG] Not in a GitHub repository, skipping path mapping update
+2026-10-12T10:06:46.266Z [DEBUG] XTVERSION: no reply (terminal ignored query)
+2026-10-12T10:06:46.267Z [DEBUG] Terminal capabilities: extendedKeys=no (env: terminal=xterm-256color, no answer); synchronizedOutput=no (env: no known terminal, no answer); kittyKeyboard=no (probe: no reply to CSI ? u); kittyGraphics=no (env: terminal=xterm-256color, not asked yet, no answer); mousePixels=no (env: terminal=xterm-256color, not asked yet, no answer); programStatus=no (probe: no reply to OSC 7501 ; ?); terminal said: no reply to CSI ? u; DECRQM 2026 not asked (no XTVERSION reply)
+2026-10-12T10:06:46.267Z [DEBUG] DECSTBM: gated (TMUX=unset ZELLIJ=unset TERM_PROGRAM=unset TERM=xterm-256color)
+2026-10-12T10:06:46.267Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:46.267Z [DEBUG] Failed to stat directory <tmp>/home/.claude/output-styles: ENOENT: no such file or directory, stat '<tmp>/home/.claude/output-styles'
+2026-10-12T10:06:46.267Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/output-styles: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/output-styles'
+2026-10-12T10:06:46.267Z [DEBUG] Failed to stat directory <tmp>/home/.claude/skills: ENOENT: no such file or directory, stat '<tmp>/home/.claude/skills'
+2026-10-12T10:06:46.267Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/skills: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/skills'
+2026-10-12T10:06:46.268Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/workflows: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/workflows'
+2026-10-12T10:06:46.268Z [DEBUG] Failed to stat directory <tmp>/home/.claude/workflows: ENOENT: no such file or directory, stat '<tmp>/home/.claude/workflows'
+2026-10-12T10:06:46.268Z [DEBUG] Failed to stat directory <tmp>/home/.claude/routines: ENOENT: no such file or directory, stat '<tmp>/home/.claude/routines'
+2026-10-12T10:06:46.268Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/routines: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/routines'
+2026-10-12T10:06:46.268Z [DEBUG] Watching <tmp>/project for <tmp>/project/.claude to appear
+2026-10-12T10:06:46.268Z [DEBUG] Watching for changes in setting files <tmp>/home/.claude/settings.json, /Library/Application Support/ClaudeCode/managed-settings.json...
+2026-10-12T10:06:46.283Z [DEBUG] plugin cc-plugin-agents-md: no pluginConfigs["agents-md@builtin" or "cc-plugin-agents-md@builtin"].options in user, --settings or managed settings (project settings are not read); every option is its default
+2026-10-12T10:06:46.283Z [DEBUG] hooks worker spawned (one for every plugin)
+2026-10-12T10:06:46.285Z [DEBUG] [FileIndex] ripgrep: 0 files in 20ms
+2026-10-12T10:06:46.285Z [DEBUG] [FileIndex] cache refresh completed in 20ms
+2026-10-12T10:06:46.285Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:46.285Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.3cd2eccc63dc
+2026-10-12T10:06:46.286Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:46.286Z [DEBUG] Temp file written successfully, size: 629 bytes
+2026-10-12T10:06:46.286Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.3cd2eccc63dc to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:46.286Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:46.287Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:46.287Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.1ec30c810992
+2026-10-12T10:06:46.287Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:46.287Z [DEBUG] Temp file written successfully, size: 1174 bytes
+2026-10-12T10:06:46.287Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.1ec30c810992 to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:46.287Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:46.288Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:46.288Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.695c24289dd9
+2026-10-12T10:06:46.288Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:46.288Z [DEBUG] Temp file written successfully, size: 1247 bytes
+2026-10-12T10:06:46.288Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.695c24289dd9 to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:46.289Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:46.319Z [DEBUG] hooks module chat-toc@inline loaded (worker, environment 1, tier user); events: classic.SessionStart,session.start,classic.UserPromptSubmit,command.run,ui.close,session.append,turn.start,turn.complete,ui.scroll,ui.render,ui.focus
+2026-10-12T10:06:46.319Z [DEBUG] hooks module cc-plugin-agents-md@builtin loaded (native, environment 2, tier builtin); events: session.start,prompt.context,command.run,session.compact,prompt.submit,turn.start,turn.complete,agent.spawn,tool.call,prompt.mention
+2026-10-12T10:06:46.320Z [DEBUG] hooks module cc-plugin-diff@builtin loaded (native, environment 3, tier builtin); events: session.start,ui.render,command.run,ui.close,ui.focus,ui.scroll,tool.call,prompt.submit
+2026-10-12T10:06:46.320Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for chat-toc,cc-plugin-agents-md,cc-plugin-diff
+2026-10-12T10:06:46.321Z [DEBUG] plugin.register: cc-plugin-agents-md (builtin, cc-plugin-agents-md@builtin), judged by core alone: admitted
+2026-10-12T10:06:46.321Z [DEBUG] plugin.register: cc-plugin-diff (builtin, cc-plugin-diff@builtin), judged by core alone: admitted
+2026-10-12T10:06:46.321Z [DEBUG] plugin.register: chat-toc (user, chat-toc@inline), judged by core alone: admitted
+2026-10-12T10:06:46.324Z [DEBUG] plugin-dir watch: watching chat-toc; folders of plugins none
+2026-10-12T10:06:46.336Z [DEBUG] Artifact gates frozen: capabilities=true comments=false db=true files=false types=false type_create=false type_catalog=false read_page_data=false room=false verify=false delete=false preview=false preview_browser=unread open=false endpoints=false pin=true share=false versions=false flag_source=disabled gb_fresh=false
+2026-10-12T10:06:46.336Z [DEBUG] Artifact input schema built: assets=false copy_from=false assets_source=cold_no_identity
+2026-10-12T10:06:46.371Z [DEBUG] anchor: libSystem *at loaded through bun:ffi
+2026-10-12T10:06:46.386Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.3ms (native link, next() included)
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.8ms (worker hop, next() included) key=61b339ff-2481-44e5-998b-88dbaa99e079
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.7ms (worker hop, next() included) key=collapsed-cf72f858-a4b6-4f8c-8628-04db7b87a9e2
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.5ms (worker hop, next() included) key=298a59f8-5e1e-4978-b0a7-6e49fa60dbd6
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.5ms (worker hop, next() included) key=6794cd2e-ae72-4aff-9645-9afed1ba5c0f
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.5ms (worker hop, next() included) key=collapsed-d1d4d2b3-0f8f-45ef-ab3d-787304c3405b
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.4ms (worker hop, next() included) key=668864bf-1566-4e20-90d1-8fb081dafbbb
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.4ms (worker hop, next() included) key=f7ab62a8-1529-455d-b9f0-9825a406bf0c
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.3ms (worker hop, next() included) key=collapsed-f0eb21aa-5b39-4037-82f5-d75ea9e16e27
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.3ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.2ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.2ms (worker hop, next() included) key=collapsed-ec9ba198-76f8-4037-aae5-68bafd1032e8
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.2ms (worker hop, next() included) key=c54acf4f-ea5b-4e10-84ac-4c11f29c5831
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.1ms (worker hop, next() included) key=ff9d608a-5c67-4c72-bbdb-4de81db6027c
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.1ms (worker hop, next() included) key=collapsed-e1c88247-528c-4100-ad71-1aba061eefe0
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.0ms (worker hop, next() included) key=83e2500b-dcb6-4e69-b1a3-ab9f547af48d
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.0ms (worker hop, next() included) key=b1b0d8fe-00f1-468e-aeec-6a9b074ce872
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.0ms (worker hop, next() included) key=collapsed-236cc43d-6b9a-4742-840d-8382e2ed8971
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.9ms (worker hop, next() included) key=333e46c7-88f1-4c36-aa5c-6b21e9173332
+2026-10-12T10:06:46.387Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.8ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:06:46.400Z [DEBUG] High write ratio: blit=349, write=1895 (84.4% writes), screen=44x100
+2026-10-12T10:06:46.411Z [DEBUG] type root of chat-toc at <tmp> entries claude-code, claude-code-tools, claude-code-mcp; wrote nothing
+2026-10-12T10:06:46.411Z [DEBUG] Registered 0 hooks from 4 plugins
+2026-10-12T10:06:46.412Z [DEBUG] session.start: raised (surface terminal, interactive)
+2026-10-12T10:06:46.413Z [DEBUG] Loaded plugins - Enabled: 4, Disabled: 0, Commands: 0, Agents: 0, Errors: 0
+2026-10-12T10:06:46.413Z [DEBUG] Plugin autoupdate: command-source refresh disabled by tengu_plugin_command_source_refresh (still excluding command-sourced plugins from the regular pass)
+2026-10-12T10:06:46.413Z [DEBUG] $.command.register (chat-toc): /chat-toc listed
+2026-10-12T10:06:46.420Z [DEBUG] $.command.register (cc-plugin-diff): /diff listed
+2026-10-12T10:06:46.421Z [DEBUG] hooks module cc-plugin-diff@builtin session.start settled in 2.1ms (native link, next() included)
+2026-10-12T10:06:46.421Z [DEBUG] hooks module cc-plugin-agents-md@builtin session.start settled in 2.2ms (native link, next() included)
+2026-10-12T10:06:46.421Z [DEBUG] hooks module chat-toc@inline session.start settled in 9.7ms (worker hop, next() included)
+2026-10-12T10:06:46.422Z [DEBUG] ui.open chat-toc chat-toc (unasked, 100 columns): waits unplaced (unasked below 144 columns (100 now): placed when the person opens it, or when the terminal is widened to 144 columns)
+2026-10-12T10:06:46.422Z [DEBUG] $.ui.status (chat-toc): 终端太窄，目录没有停靠；把终端拉宽后会自动出现
+2026-10-12T10:06:46.427Z [DEBUG] hooks module chat-toc@inline classic.SessionStart settled in 14.7ms (worker hop, next() included)
+2026-10-12T10:06:46.435Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:46.703Z [DEBUG] [fs.watch probe] verdict: delivers
+2026-10-12T10:06:47.376Z [DEBUG] High write ratio: blit=0, write=2397 (100.0% writes), screen=44x100
+2026-10-12T10:06:47.377Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.2ms (native link, next() included)
+2026-10-12T10:06:47.377Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.1ms (native link, next() included)
+2026-10-12T10:06:47.377Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.5ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:06:47.377Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.1ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:06:47.774Z [DEBUG] Plugin autoupdate: skipped (auto-updater disabled)
+2026-10-12T10:06:47.793Z [DEBUG] Started caffeinate to prevent sleep
+2026-10-12T10:06:47.797Z [DEBUG] High write ratio: blit=0, write=2145 (100.0% writes), screen=44x100
+2026-10-12T10:06:47.799Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.1ms (native link, next() included)
+2026-10-12T10:06:47.799Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.1ms (native link, next() included)
+2026-10-12T10:06:47.799Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.2ms (worker hop, next() included) key=placeholder
+2026-10-12T10:06:47.799Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.9ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:06:47.800Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.4ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:06:47.803Z [DEBUG] ui.open chat-toc chat-toc (asked, 100 columns): placed
+2026-10-12T10:06:47.804Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:47.805Z [DEBUG] chat-toc (user) answered command.run without next() in 25.5ms; nothing beneath it ran for this dispatch
+2026-10-12T10:06:47.805Z [DEBUG] hooks module chat-toc@inline command.run settled in 26.6ms (worker hop, next() included)
+2026-10-12T10:06:47.815Z [DEBUG] High write ratio: blit=0, write=2333 (100.0% writes), screen=44x100
+2026-10-12T10:06:47.816Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.1ms (native link, next() included)
+2026-10-12T10:06:47.816Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.1ms (native link, next() included)
+2026-10-12T10:06:47.816Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.3ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:06:47.816Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:06:47.817Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:47.817Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.9fd13f16a929
+2026-10-12T10:06:47.817Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:47.817Z [DEBUG] Temp file written successfully, size: 1363 bytes
+2026-10-12T10:06:47.817Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.9fd13f16a929 to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:47.818Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:47.819Z [DEBUG] chat-toc (user) answered ui.render without next() in 7.7ms; nothing beneath it ran for this dispatch
+2026-10-12T10:06:47.819Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.0ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:06:47.820Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.9ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:06:47.821Z [DEBUG] $.ui.status (chat-toc): 终端太窄，目录暂时放在输入框上方；把终端拉宽后会停靠到右侧
+2026-10-12T10:06:47.830Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:47.830Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-12T10:06:47.830Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=collapsed-ec9ba198-76f8-4037-aae5-68bafd1032e8
+2026-10-12T10:06:47.830Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=c54acf4f-ea5b-4e10-84ac-4c11f29c5831
+2026-10-12T10:06:47.999Z [DEBUG] Registered claude-cli:// protocol handler at <tmp>/home/Applications/Claude Code URL Handler.app
+2026-10-12T10:06:47.999Z [DEBUG] Auto-registered claude-cli:// deep link protocol handler
+2026-10-12T10:06:50.966Z [DEBUG] High write ratio: blit=0, write=4302 (100.0% writes), screen=44x170
+2026-10-12T10:06:50.981Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.7ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:50.981Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.7ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-12T10:06:50.981Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.7ms (worker hop, next() included) key=collapsed-ec9ba198-76f8-4037-aae5-68bafd1032e8
+2026-10-12T10:06:50.981Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.7ms (worker hop, next() included) key=c54acf4f-ea5b-4e10-84ac-4c11f29c5831
+2026-10-12T10:06:50.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 29.4ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:06:50.992Z [DEBUG] $.ui.status (chat-toc): (cleared)
+2026-10-12T10:06:51.021Z [DEBUG] High write ratio: blit=0, write=5238 (100.0% writes), screen=44x170
+2026-10-12T10:06:51.042Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.1ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:51.046Z [DEBUG] hooks module chat-toc@inline ui.render settled in 31.4ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:06:51.053Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.2ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:06:51.134Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.2ms (native link, next() included)
+2026-10-12T10:06:51.135Z [DEBUG] hooks module chat-toc@inline ui.render settled in 59.9ms (worker hop, next() included) key=61b339ff-2481-44e5-998b-88dbaa99e079
+2026-10-12T10:06:51.135Z [DEBUG] hooks module chat-toc@inline ui.render settled in 60.0ms (worker hop, next() included) key=collapsed-cf72f858-a4b6-4f8c-8628-04db7b87a9e2
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 60.9ms (worker hop, next() included) key=298a59f8-5e1e-4978-b0a7-6e49fa60dbd6
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 61.0ms (worker hop, next() included) key=6794cd2e-ae72-4aff-9645-9afed1ba5c0f
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 61.0ms (worker hop, next() included) key=collapsed-d1d4d2b3-0f8f-45ef-ab3d-787304c3405b
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 60.9ms (worker hop, next() included) key=668864bf-1566-4e20-90d1-8fb081dafbbb
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 60.9ms (worker hop, next() included) key=f7ab62a8-1529-455d-b9f0-9825a406bf0c
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 60.9ms (worker hop, next() included) key=collapsed-f0eb21aa-5b39-4037-82f5-d75ea9e16e27
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 60.9ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 60.2ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 59.5ms (worker hop, next() included) key=collapsed-ec9ba198-76f8-4037-aae5-68bafd1032e8
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 59.3ms (worker hop, next() included) key=c54acf4f-ea5b-4e10-84ac-4c11f29c5831
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 59.3ms (worker hop, next() included) key=ff9d608a-5c67-4c72-bbdb-4de81db6027c
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 59.2ms (worker hop, next() included) key=collapsed-e1c88247-528c-4100-ad71-1aba061eefe0
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 59.0ms (worker hop, next() included) key=83e2500b-dcb6-4e69-b1a3-ab9f547af48d
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 58.9ms (worker hop, next() included) key=b1b0d8fe-00f1-468e-aeec-6a9b074ce872
+2026-10-12T10:06:51.136Z [DEBUG] hooks module chat-toc@inline ui.render settled in 58.8ms (worker hop, next() included) key=collapsed-236cc43d-6b9a-4742-840d-8382e2ed8971
+2026-10-12T10:06:51.140Z [DEBUG] hooks module chat-toc@inline ui.render settled in 62.2ms (worker hop, next() included) key=333e46c7-88f1-4c36-aa5c-6b21e9173332
+2026-10-12T10:06:51.140Z [DEBUG] hooks module chat-toc@inline ui.render settled in 61.7ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:06:51.522Z [DEBUG] Zip extraction completed: 541 files, 13654KB uncompressed
+2026-10-12T10:06:51.630Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:51.630Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.53b7bbc7aa18
+2026-10-12T10:06:51.630Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:51.631Z [DEBUG] Temp file written successfully, size: 1458 bytes
+2026-10-12T10:06:51.631Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.53b7bbc7aa18 to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:51.631Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T10:06:52.826Z [DEBUG] High write ratio: blit=0, write=2335 (100.0% writes), screen=44x100
+2026-10-12T10:06:52.830Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.8ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:52.832Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.6ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:06:52.838Z [DEBUG] hooks module chat-toc@inline ui.close skipped: re-entry (the plugin's own code raised it; origin chat-toc)
+2026-10-12T10:06:52.841Z [DEBUG] High write ratio: blit=0, write=2147 (100.0% writes), screen=44x100
+2026-10-12T10:06:52.844Z [DEBUG] ui.open chat-toc chat-toc (unasked, 100 columns): waits unplaced (unasked below 110 columns (100 now, an id the person opened before): placed when the person opens it, or when the terminal is widened to 110 columns)
+2026-10-12T10:06:52.844Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.8ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:52.844Z [DEBUG] $.ui.status (chat-toc): 终端太窄，目录没有停靠；把终端拉宽后会自动出现
+2026-10-12T10:06:52.860Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.7ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:52.932Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.1ms (native link, next() included)
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.8ms (worker hop, next() included) key=61b339ff-2481-44e5-998b-88dbaa99e079
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.8ms (worker hop, next() included) key=collapsed-cf72f858-a4b6-4f8c-8628-04db7b87a9e2
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.8ms (worker hop, next() included) key=298a59f8-5e1e-4978-b0a7-6e49fa60dbd6
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.8ms (worker hop, next() included) key=6794cd2e-ae72-4aff-9645-9afed1ba5c0f
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.8ms (worker hop, next() included) key=collapsed-d1d4d2b3-0f8f-45ef-ab3d-787304c3405b
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.7ms (worker hop, next() included) key=668864bf-1566-4e20-90d1-8fb081dafbbb
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.7ms (worker hop, next() included) key=f7ab62a8-1529-455d-b9f0-9825a406bf0c
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.7ms (worker hop, next() included) key=collapsed-f0eb21aa-5b39-4037-82f5-d75ea9e16e27
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.7ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.7ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.6ms (worker hop, next() included) key=collapsed-ec9ba198-76f8-4037-aae5-68bafd1032e8
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.6ms (worker hop, next() included) key=c54acf4f-ea5b-4e10-84ac-4c11f29c5831
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.6ms (worker hop, next() included) key=ff9d608a-5c67-4c72-bbdb-4de81db6027c
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.6ms (worker hop, next() included) key=collapsed-e1c88247-528c-4100-ad71-1aba061eefe0
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.6ms (worker hop, next() included) key=83e2500b-dcb6-4e69-b1a3-ab9f547af48d
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.6ms (worker hop, next() included) key=b1b0d8fe-00f1-468e-aeec-6a9b074ce872
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.6ms (worker hop, next() included) key=collapsed-236cc43d-6b9a-4742-840d-8382e2ed8971
+2026-10-12T10:06:52.932Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.5ms (worker hop, next() included) key=333e46c7-88f1-4c36-aa5c-6b21e9173332
+2026-10-12T10:06:52.933Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.5ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:06:54.701Z [DEBUG] [REPL:unmount] REPL unmounting
+2026-10-12T10:06:54.705Z [DEBUG] [uds-messaging] Shutting down
+2026-10-12T10:06:54.708Z [DEBUG] Stopped sleep inhibitor, allowing sleep
+2026-10-12T10:06:54.708Z [DEBUG] LSP server manager shut down successfully
+2026-10-12T10:06:54.711Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T10:06:54.711Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.22508.6c3208aaa54a
+2026-10-12T10:06:54.711Z [DEBUG] Applied original permissions to temp file
+2026-10-12T10:06:54.711Z [DEBUG] Temp file written successfully, size: 2045 bytes
+2026-10-12T10:06:54.711Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.22508.6c3208aaa54a to <tmp>/home/.claude/.claude.json
+2026-10-12T10:06:54.712Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically

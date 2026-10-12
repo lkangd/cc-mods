@@ -1,0 +1,45 @@
+==== 003 after clicking J00 (44 rows)
+                                                                                                                             │1: ●全部 2: ○用户 3: ○Agent  l: 布局:卡片  ✕
+ ▐▛███▛█   Claude Code v2.1.287                                                                                              │  你 · 10月9日 09:00
+▝▜██████▀  Haiku 4.5 · API Usage Billing                                                                                     │  J00 合成问题 0
+ ▝▝   ▝▝   <tmp>/project                                    │  ↳
+                                                                                                                             │    J00 合成回复 0
+▎ Debug mode enabled · logging to <tmp>
+▎ 5a8fc71/scratchpad/gate/2.1.287/runs/20261012-174543-CT-JUMP-2.1.287/debug-003.log                                         │  你 · 10月9日 09:00
+                                                                                                                             │  J01 合成问题 1
+❯ J02 合成问题 2                                                                                                             │  ↳
+                                                                                                                             │    J01 合成回复 1
+⏺ J02 合成回复 2                                                                                                             │
+                                                                                                                             │  你 · 10月9日 09:00
+❯ J03 合成问题 3                                                                                                             │  J02 合成问题 2
+                                                                                                                             │  ↳
+⏺ J03 合成回复 3                                                                                                             │    J02 合成回复 2
+                                                                                                                             │
+⏺ chat-toc: reloaded (11 hooks: classic.SessionStart, session.start, classic.UserPromptSubmit, command.run, ui.close,        │▌ 你 · 10月9日 09:01
+  session.append, turn.start, turn.complete, ui.scroll, ui.render, ui.focus)                                                 │▌ J03 合成问题 3
+                                                                                                                             │▌ ↳
+                                                                                                                             │▌   J03 合成回复 3
+                                                                                                                             │⚠ 这一条当前没有显示在对话里，无法跳转
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                 Not logged in · Run /login  │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

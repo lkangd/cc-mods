@@ -1,0 +1,17 @@
+$ <npx>/node_modules/@anthropic-ai/claude-code/bin/claude.exe plugin validate <repo>/mods/chat-toc
+# 2026-10-12T17:43:04, exit 0
+Validating plugin manifest: <repo>/mods/chat-toc/.claude-plugin/plugin.json
+
+  ❯ types ./types/index.d.ts declares on $: nothing (no EngineInterface member)
+  ❯ types ./types/index.d.ts declares state: chat-toc.transcriptPath, chat-toc.rev, chat-toc.isClosed, chat-toc.isCarriedOver, chat-toc.isInlineAsked, chat-toc.currentPosition, chat-toc.compactedAt
+
+Validating hooks: <repo>/mods/chat-toc/hooks/hooks.json
+
+  ❯ ./register.tsx hooks: classic.SessionStart, session.start, classic.UserPromptSubmit, command.run{command=chat-toc}, ui.close, session.append, turn.start, turn.complete, ui.scroll{component=Pane, requestId=?}, ui.render{component=PromptHint, surface=terminal}, ui.focus{component=Pane, requestId=?}, ui.render{component=?}, ui.render{component=Pane, requestId=?}
+  ❯ ./register.tsx calls: $.clock.after, $.clock.now, $.command.register, $.env.get (via askPerf, locate), $.fs.exists (via readSource), $.fs.read (via readSource), $.fs.stat (via readSource), $.process.run (via runChunk), $.session.id (via locate), $.session.messages (via checkRewind), $.session.turns (via checkRewind), $.state.get, $.state.set, $.store.get (via loadChoices), $.store.set (via chooseFilter, chooseLayout), $.ui.close (via withdraw), $.ui.focus (via sendRing), $.ui.log (via timed), $.ui.open (via openPane), $.ui.panes (via openUnasked, showPosition), $.ui.resolve, $.ui.scroll (via jump), $.ui.status (via showStatus)
+  ❯ ./register.tsx env writes: nothing
+  ❯ ./register.tsx env reads: CHAT_TOC_PERF, CLAUDE_CONFIG_DIR, HOME, USERPROFILE
+  ❯ ./register.tsx state writes: chat-toc.compactedAt, chat-toc.currentPosition, chat-toc.isCarriedOver, chat-toc.isClosed, chat-toc.isInlineAsked, chat-toc.rev, chat-toc.transcriptPath
+  ❯ ./register.tsx state reads: chat-toc.compactedAt, chat-toc.currentPosition, chat-toc.isCarriedOver, chat-toc.isClosed, chat-toc.isInlineAsked, chat-toc.rev, chat-toc.transcriptPath
+
+✔ Validation passed

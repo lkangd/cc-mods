@@ -1,0 +1,314 @@
+$ <home>/.local/share/claude/versions/2.1.295 plugin test <repo>/mods/chat-toc
+# 2026-10-12T18:06:19, exit 0
+
+tests/agent_reply.test.ts:
+(pass) every tool call is a step, parallel ones each counted; thinking and text are not [15.37ms]
+(pass) a subagent is one step, and its own rows are not part of the TOC [7.17ms]
+(pass) the reply is the text after the last tool call, the parts of one message joined [53.44ms]
+(pass) of texts from two messages after the last tool call, the last message is the reply [1.59ms]
+(pass) a turn that ends on a tool call has no reply [4.33ms]
+(pass) a turn the person interrupted ends interrupted [0.36ms]
+(pass) a turn whose last reply is an API error ends in error; an error retried away does not [0.27ms]
+(pass) a local command, and a shell command the agent did no work on, have no Agent reply [0.44ms]
+(pass) a User input the file holds nothing after yet has no Agent reply to show [0.13ms]
+
+tests/card_entries.test.ts:
+(pass) a time this year reads month, day and minute of the local clock [10.78ms]
+(pass) a time from another year says the year [1.44ms]
+(pass) no time, or one that does not parse, shows nothing [0.30ms]
+(pass) the User input side says who and when, then the prompt [3.58ms]
+(pass) a transcript without timestamps shows no time, and none is made up [0.37ms]
+(pass) the Agent reply side counts the steps and shows the reply, indented, below the prompt [0.57ms]
+(pass) a reply without steps is headed by the arrow alone [0.26ms]
+(pass) a turn without a reply says so, with its steps when it took any [0.32ms]
+(pass) an interrupted turn and a turn that ended in an API error say so, with what the file holds [0.32ms]
+(pass) while a turn runs, the last group is in progress, its steps as far as the file has them [0.24ms]
+(pass) a turn that has just started shows in progress before the agent has written anything [0.33ms]
+(pass) a local command and a shell command without agent work draw only the User input side [0.31ms]
+(pass) a long prompt and a long reply show two lines each, the second ending in an ellipsis [3.58ms]
+(pass) a long prompt shows two lines, the second ending in an ellipsis [0.24ms]
+(pass) a short prompt is not given an ellipsis [1.02ms]
+(pass) wide characters take two cells [0.30ms]
+(pass) emoji drawn as emoji by default take two cells, as the host draws them [0.31ms]
+
+tests/chunked_read.test.ts:
+(pass) every chunk size reads the same whole lines as the file holds, half lines and half characters included [10.54ms]
+(pass) chunks start where the previous one kept its last newline [0.61ms]
+(pass) a half-written last line is left for the next read and read whole once it ends [0.22ms]
+(pass) a line longer than a chunk is counted once and skipped, and the lines after it are read [0.67ms]
+(pass) a line longer than a chunk still being written is counted once, when it ends [0.23ms]
+
+tests/compacted_sides.test.ts:
+(pass) the boundary is the last compaction on the chain, none without one [2.65ms]
+(pass) every side of every turn before the boundary is known refused, none after it [0.90ms]
+(pass) without a boundary nothing is known refused [0.23ms]
+(pass) turns after the boundary stay unknown, compacted again since or not [0.29ms]
+(pass) a command just before the boundary jumps to the rows after it, so it is not known refused [1.09ms]
+(pass) the refusal flashes inverse three times, 150 ms lit and 150 ms not, then stays lit [0.44ms]
+
+tests/current_position.test.ts:
+(pass) rows next to each other on the chain are one run, its first row the top [1.63ms]
+(pass) a drawable row off screen between two on-screen rows cuts them apart; the latest report picks the run [0.36ms]
+(pass) rows that are not drawable between two on-screen rows do not cut them [0.17ms]
+(pass) nothing on screen has no run [0.15ms]
+(pass) the drawable rows are the User inputs, the main agent text and every row a site drew, in chain order [10.80ms]
+(pass) a row belongs to the group opened last before it; a row before every group to none [1.04ms]
+(pass) the position is the group of the trusted run first row [0.29ms]
+(pass) the last drawn row wholly on screen lights the last group, whatever the top [0.27ms]
+(pass) a lock holds the jumped-to group whatever is on screen [5.38ms]
+(pass) while a jump's redraws keep coming, a row leaving the view holds the lock [1.19ms]
+(pass) the first row to leave the view after a jump's redraws stop lets the lock go and places the view again [0.22ms]
+(pass) a report that says nothing of the view neither moves a lock nor places the view [0.32ms]
+(pass) nothing on screen, or only rows before every group, lights nothing [0.26ms]
+
+tests/docked_toc.test.ts:
+(pass) a session start opens the docked pane, 44 columns wide [209.73ms]
+(pass) a pane already open, as after a hot reload, is not opened again [271.93ms]
+(pass) the /chat-toc command is registered and opens the pane [257.16ms]
+(pass) the pane lists each User input as a dim header and its first lines [544.55ms]
+(pass) a blank line parts one turn group from the next, not the two sides of one [578.84ms]
+(pass) a running turn shows in progress with its steps so far, and its count once it completes [471.55ms]
+(pass) a turn that completes with every row already read stops showing in progress [445.97ms]
+(pass) a subagent's turn does not end the main agent's [269.26ms]
+(pass) before the first message the file does not exist and the pane says so [145.83ms]
+(pass) the first User input written to the file appears once its row is appended [146.53ms]
+(pass) appends are read together 300 ms after the first, and not before [119.29ms]
+(pass) a subagent's rows do not make the pane read [121.92ms]
+(pass) a file the same size as last read is not read again [99.46ms]
+(pass) a finished turn reads at 300 ms and looks again 1.5 s later for rows written late [296.40ms]
+(pass) a read that lands while another runs is not lost [97.28ms]
+
+tests/docking.test.ts:
+(pass) the status line says what to do, in the words the person reads [2.56ms]
+(pass) a drawing docked settles it; inline is kept only for the one /chat-toc asked for [0.61ms]
+(pass) outside the fullscreen layout nothing opens by itself, and the status line says how to get the dock [203.65ms]
+(pass) the open waits for the terminal to say its layout [240.96ms]
+(pass) a transcript row drawn before the hint line tells the layout as well [255.52ms]
+(pass) a transcript row drawn on the main screen keeps the pane shut and says how to get the dock [435.70ms]
+(pass) an unasked open on a narrow terminal waits undrawn with the reason on the status line, cleared once it docks [255.91ms]
+(pass) a session start finding the pane still waiting opens no second one and keeps the reason up [548.98ms]
+(pass) a docked pane the host turns inline is closed by chat-toc, which opens it again to wait for the room [382.20ms]
+(pass) /chat-toc on the main screen is placed inline and kept, the status line saying how to get the dock [261.62ms]
+(pass) /chat-toc on a narrow fullscreen terminal is kept inline; once the host docks it, a later inline is withdrawn [344.07ms]
+(pass) a pane withdrawn and seated inline again at once is not reopened over and over [248.25ms]
+
+tests/entry_table.test.ts:
+(pass) the table lists what entriesOf lists, with heights and each group’s first entry [47.19ms]
+(pass) a session read a few rows at a time, a turn starting and ending, lists at every step what entriesOf lists [235.03ms]
+(pass) a redraw with nothing changed reuses the table [4.31ms]
+(pass) a read that grows the last group folds only that group again [1.27ms]
+(pass) the width, the filter, the Layout and a turn starting each rebuild the list [3.68ms]
+(pass) groups grouped again from the whole file keep their entries when they show the same [0.85ms]
+(pass) an empty list has no entries and no first entry for any group [0.21ms]
+
+tests/filter_layout.test.ts:
+(pass) the filter row shows all three filters, all chosen, and the Layout in use [314.54ms]
+(pass) choosing a filter redraws at once with only those sides, and is remembered [591.46ms]
+(pass) the Layout Button goes from cards to compact to timeline and back, each remembered [741.42ms]
+(pass) a new session draws with the filter and Layout chosen in an earlier one [375.74ms]
+(pass) stored values chat-toc does not know draw all sides as cards [405.90ms]
+(pass) a store that refuses the choice still switches, this time [286.82ms]
+(pass) the timeline draws its times and rail in a Text beside the Buttons, the card a blank gutter [133.00ms]
+(pass) where the Layout Button does not fit beside the filter it goes on a row of its own [109.01ms]
+
+tests/focus_ring.test.ts:
+(pass) a step onto an entry's first line, or onto the filter row, lands where the host puts it [5.98ms]
+(pass) down off an entry's first line goes to the next entry, not the entry's second line [0.40ms]
+(pass) up onto an entry's last line lands on its first [1.05ms]
+(pass) past the bottom of the window the next entry is brought into view [0.38ms]
+(pass) past the top of the window the entry before is brought into view [0.25ms]
+(pass) at either end of the list the host wraps as it does [0.47ms]
+(pass) a ring move waiting for its entry is sent by the drawing whose window shows it [0.38ms]
+(pass) bringing an entry into view moves the window as little as it takes [0.38ms]
+(pass) in the pane, down from a prompt lands on the reply below it [464.37ms]
+(pass) down past the window scrolls it one entry and puts the ring there [518.83ms]
+(pass) switching the Layout keeps the selected group in view [672.47ms]
+(pass) switching the Layout of a scrolled window keeps its top group at the top [357.57ms]
+(pass) switching the Layout of a window that follows the newest goes on following [223.46ms]
+
+tests/follow_position.test.ts:
+(pass) before the transcript reports where it is, nothing is lit and the window shows the newest [516.96ms]
+(pass) the group at the top of the transcript view is lit, both sides, and its entries come into the window [406.57ms]
+(pass) a row left over from an old view, never reported gone, does not hold the highlight [655.84ms]
+(pass) a row reported gone is dropped [527.06ms]
+(pass) with the last drawn row wholly in view the last group is lit [326.48ms]
+(pass) scrolling the pane pauses following and says so; the next change of position follows again [256.95ms]
+(pass) the transcript redrawing the same view does not end the pause [160.12ms]
+(pass) the pane holding the keyboard pauses following [120.82ms]
+(pass) a change of position while the pane is a tab behind another ends the pause [159.90ms]
+(pass) a Layout switch with no selection keeps the lit group in the window [142.54ms]
+(pass) a switch with the focus ring on the filter row, where a hotkey finds it, keeps the lit group in the window [246.30ms]
+
+tests/incremental_regroup.test.ts:
+(pass) rows appended on the current branch regroup from the last group only, as the whole file would [3.65ms]
+(pass) a new branch after a rewind regroups the whole chain, and the abandoned groups go [0.90ms]
+(pass) a compaction read after the turns it compacted keeps them, regrouping from the last group only [1.01ms]
+(pass) rows that do not reach the chain, and lines that are not rows, keep the groups the whole file gives [0.51ms]
+(pass) a row written again under a uuid already read regroups the whole chain [0.36ms]
+(pass) any growth, read in any slices, equals regrouping the whole file [208.91ms]
+
+tests/jump_targets.test.ts:
+(pass) a prompt jumps to its own row, its top at the top of the view [2.61ms]
+(pass) an Agent reply jumps to the row its last text starts on [0.37ms]
+(pass) a reply without text jumps to the turn's last tool rows, by their call ids, latest first [0.44ms]
+(pass) a tool row the host drew is jumped to under the id it drew it under [0.46ms]
+(pass) a turn interrupted before the agent wrote anything has nowhere to jump [0.18ms]
+(pass) a local command jumps to its output, centred, then to the rows after it [0.36ms]
+(pass) a prompt-type command jumps to the first row the agent drew for it, a tool row included [0.22ms]
+(pass) a shell command with nothing drawable after it jumps to the rows before it, nearest first [0.22ms]
+(pass) empty command output is skipped, but any row the host drew counts [0.36ms]
+
+tests/layouts.test.ts:
+(pass) the filter shows every side, only the User input sides, or only the Agent reply sides [7.60ms]
+(pass) a running turn shows its Agent side under the Agent filter before it wrote anything [0.40ms]
+(pass) cards and timelines leave a blank line between groups, compact lists none [0.96ms]
+(pass) compact draws each side on one line: the prompt with its time at the right, the reply dim [0.78ms]
+(pass) compact cuts a long prompt and a long reply to one line each, with an ellipsis [1.79ms]
+(pass) timeline draws the prompt and the reply, the reply dim, up to two lines each, the time kept apart [0.55ms]
+(pass) timeline folds to the width beside its 8-column time rail [0.27ms]
+(pass) the card Layout under a filter draws its sides as the card does unfiltered [0.28ms]
+(pass) a stored filter or Layout that is not known reads as all and as cards [0.31ms]
+(pass) the Layout goes from cards to compact to timeline and back to cards [0.16ms]
+
+tests/locate.test.ts:
+(pass) every character but an ASCII letter or digit becomes a dash, one per UTF-16 unit [1.92ms]
+(pass) a name over 200 characters keeps its first 200 and ends in a base-36 hash of the path [0.40ms]
+(pass) a name of exactly 200 characters is kept whole [0.21ms]
+(pass) the file is <config dir>/projects/<folder>/<session id>.jsonl, the config dir CLAUDE_CONFIG_DIR first [0.40ms]
+(pass) on Windows the home is USERPROFILE and the path is joined with backslashes [0.19ms]
+(pass) without a session id, a working directory or anywhere to look, there is no path [0.25ms]
+
+tests/long_session.test.ts:
+(pass) the Current position stays within 2 ms, and within 5 ms under 3000 stale on-screen records [945.41ms]
+(pass) the entry table: a redraw reuses it, a read growing the last group rebuilds it within 16 ms [118.67ms]
+
+tests/mid_session.test.ts:
+(pass) enabled in mid-session, it lists the conversation so far from the path under HOME/.claude [598.99ms]
+(pass) CLAUDE_CONFIG_DIR, when set, is where it looks [314.67ms]
+(pass) a worked-out path with no file yet reads as a session without a conversation [257.52ms]
+(pass) with no path to work out the pane says the next submit shows the TOC, and the submit does [184.78ms]
+(pass) a classic event's transcript_path unlike the worked-out one replaces it, and the file is read from the start [121.95ms]
+(pass) a later classic path unlike the one read forgets the old file's entries [109.85ms]
+(pass) a session.start after the classic path is known never puts a worked-out path over it, raised together or after [150.34ms]
+
+tests/pane_lifecycle.test.ts:
+(pass) only the person closing chat-toc's own pane keeps it closed [1.63ms]
+(pass) the pane opens again for a session started by /clear or /resume, not for a compaction or a fork [0.37ms]
+(pass) a session start with the pane gone, closed but not by the person, opens it again [485.10ms]
+(pass) /chat-toc opens the pane when it is not open, and asks for the keyboard [299.34ms]
+(pass) /chat-toc on an open pane, shown or behind another tab, raises it and asks for the keyboard [211.72ms]
+(pass) /chat-toc never closes the pane, however often it runs [158.43ms]
+(pass) /clear opens the pane again for the new session when it is not open [103.46ms]
+(pass) /resume opens the pane again for the resumed session when it is not open [104.53ms]
+(pass) a session start for a compaction does not open the pane [130.24ms]
+(pass) /clear with the pane still open does not open a second one [88.68ms]
+(pass) a process resumed at start opens the pane once, from whichever start event comes first [292.17ms]
+(pass) /clear lists the new, empty session in place of the old one, with nothing parting them [148.42ms]
+(pass) /resume reads the resumed session from its own file [119.61ms]
+(pass) a session started by resume whose file is not written yet says the list shows after the first submit [117.31ms]
+(pass) a session started by fork whose file is not written yet says the list shows after the first submit [253.46ms]
+(pass) a session started or cleared with no file yet still says it has no conversation [118.00ms]
+(pass) a compaction in a resumed session that is written already does not change what an empty file says later [104.21ms]
+(pass) once a resumed session's file is written its turns are listed [90.86ms]
+
+tests/perf_log.test.ts:
+(pass) without CHAT_TOC_PERF nothing is timed or logged [225.62ms]
+(pass) with CHAT_TOC_PERF the reads and drawings are timed into the debug log, numbers only [153.10ms]
+(pass) a sample keeps numbers only, rounded, and the lines take them once [0.39ms]
+(pass) many samples go out in lines short enough for the debug log, none lost [2.38ms]
+
+tests/refusal_notice.test.ts:
+(pass) after a resume the turns before the compaction are dim before anything is pressed, the rest not [144.40ms]
+(pass) a session not started by resume dims nothing beforehand [234.79ms]
+(pass) a resumed session without a compaction dims nothing beforehand [219.99ms]
+(pass) a compaction after the resume leaves the turns since the resume as they were [141.35ms]
+(pass) a press on a turn from before the compaction says it cannot be reached after a resume [99.79ms]
+(pass) any other refusal says the entry is not shown in the conversation [405.59ms]
+(pass) the refusal flashes inverse three times over about a second, stays lit, and goes after five [118.47ms]
+
+tests/refused_jumps.test.ts:
+(pass) nothing is dimmed before a jump is refused [294.40ms]
+(pass) a refused side is said at the bottom and drawn dim, every line, the rest as it was [88.59ms]
+(pass) the refusal goes after about five seconds; the side stays dim [131.41ms]
+(pass) the next jump takes the refusal away [460.43ms]
+(pass) moving the selection to another entry takes the refusal away [124.33ms]
+(pass) a refused row the transcript draws again brings its side back [68.67ms]
+
+tests/request_ids.test.ts:
+(pass) a message drawn under its own uuid is that row [10.86ms]
+(pass) a collapsed tool group is the row behind its prefix, whole or as 24 characters [0.31ms]
+(pass) a tool call drawn under its id is the row that made the call [0.26ms]
+(pass) one block of a split message, numbered after the first 24 characters, is that row [1.08ms]
+(pass) the optimistic placeholder and ids of no chain row match nothing [0.24ms]
+(pass) a row drawn before the file was read is matched once the read brings it [0.57ms]
+(pass) a jump uses the id the host drew a row under, and a message id over a tool group [0.22ms]
+(pass) a tool row never drawn is reached by its tool call id [0.15ms]
+(pass) rows read later are added without matching the chain again, and a new chain is matched afresh [0.33ms]
+
+tests/rewind.test.ts:
+(pass) the groups from the prompt rewound to on are no longer held [3.14ms]
+(pass) messages that hold every turn the file has hide nothing [0.36ms]
+(pass) a rewind to the first prompt leaves nothing held [0.27ms]
+(pass) a turn whose last user message is a tool result, or a shell command and its output, is still held [0.46ms]
+(pass) a local command after the last turn held goes with the rewound turn [0.72ms]
+(pass) after a compaction the turns before it stay, and a rewind past it is found from the summary on [0.45ms]
+(pass) messages that do not line up with the file, as a compaction not written yet, say nothing [0.22ms]
+(pass) the same prompt typed several times is told apart by where the messages end [0.29ms]
+(pass) messages cut to the newest 4096 line up from their end [95.44ms]
+(pass) whitespace the host joins text blocks with does not matter [0.38ms]
+
+tests/rewind_live.test.ts:
+(pass) hint-line drawings with the turn count unchanged never ask for the messages [167.13ms]
+(pass) a drop in the turn count drops the turn rewound to and the ones after it, with no read [93.14ms]
+(pass) once the file grows it decides again: the new branch, not the rewound turns [114.38ms]
+(pass) a turn under way, its count up, keeps the newest group [445.73ms]
+(pass) messages that do not line up with the file hide nothing [92.45ms]
+
+tests/toc_window.test.ts:
+(pass) with no scroll the window shows the newest entries that fit [1.84ms]
+(pass) a window taller than every entry shows them all from the first [0.26ms]
+(pass) an entry taller than the window still shows [0.19ms]
+(pass) a scrolled window starts where the person left it, kept inside the list [0.30ms]
+(pass) scrolling back to the end follows the newest again [0.25ms]
+(pass) a drawing that follows keeps the lit entry in view, one entry below the top [0.32ms]
+(pass) a held drawing leaves the window where it is [0.13ms]
+(pass) after a switch the window's top group is put back at the top [0.12ms]
+(pass) after a switch the selected entry is brought to the top, and the ring is sent back to it [0.21ms]
+(pass) after a switch the lit group is brought into view as little as it takes [0.17ms]
+(pass) the wheel over the pane moves its window, and the newest shows first [316.91ms]
+
+tests/transcript_source.test.ts:
+(pass) a transcript over 4 MiB is read in 4,000,000-byte chunks from byte offsets, and every prompt is listed [506.91ms]
+(pass) rows appended after the first read are read from where it stopped, never from the start [100.36ms]
+(pass) a half-written last row is read once the rest of it is written [65.92ms]
+(pass) a file that got smaller is read again from the start [66.46ms]
+(pass) a transcript refused for permission lists nothing and says why at the bottom [51.92ms]
+(pass) a read that fails after entries showed takes them all away, and says so [50.97ms]
+(pass) lines that are not rows are skipped and counted at the bottom of the pane [46.27ms]
+(pass) a line longer than a chunk is skipped and counted, and the rows around it are listed [61.23ms]
+(pass) on Windows the chunks are read by Windows PowerShell 5.1 as base64, the path passed through the environment [421.47ms]
+
+tests/turn_groups.test.ts:
+(pass) each typed prompt opens its own turn group, in order [2.30ms]
+(pass) the same prompt submitted twice is two turn groups [0.28ms]
+(pass) tool results, injected reminders and rows nobody typed join the turn group before them [0.41ms]
+(pass) a branch the conversation was rewound away from is not listed [0.36ms]
+(pass) turn groups from before a compaction are still listed, the summary joins no new group [0.34ms]
+(pass) a compaction after a rewind keeps only the branch it was compacted on [0.22ms]
+(pass) a subagent sidechain is not part of the transcript [0.17ms]
+(pass) lines that are not rows are counted, and the rest still read [0.18ms]
+(pass) a prompt split over lines is listed with its whitespace collapsed [0.12ms]
+(pass) slash commands, local commands and ! shell commands each open a group, shown as typed [0.25ms]
+(pass) command output, shell output, interruptions, notifications, summaries and hook rows join the group before them [0.28ms]
+(pass) a queued prompt and a prompt from an accepted suggestion each open a group [0.17ms]
+(pass) pasted-content tags, code blocks, images and Markdown marks are left out [2.25ms]
+(pass) stars that do not wrap words, as in file patterns, are kept [1.61ms]
+(pass) a prompt of only images says so [0.26ms]
+(pass) a prompt that is nothing but a code block still shows its code [0.15ms]
+
+ 251 pass
+ 0 fail
+Ran 251 tests across 27 files. [6.19s]
+CT-PERF position groups=4432 chain=26590 live=12 p50/p95/max=0.009/0.015/0.792 ms
+CT-PERF position-residue records=3012 p50/p95/max=0.328/2.96/26.881 ms
+CT-PERF entry-table entries=8864 first=111.961 ms; redraw p95=0.001 ms; last group grown p50/p95/max=0.047/0.055/0.059 ms
