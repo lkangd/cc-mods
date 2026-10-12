@@ -1,7 +1,7 @@
 /* chat-toc: a docked table of contents of the current session's
    conversation. This module wires the host's events to the parts:
      transcript.ts / chain.ts / groups.ts / regroup.ts  the file to Turn groups
-     source.ts / reader.ts                              how and when it is read
+     source.ts / reader.ts / locate.ts                  how, when and where it is read
      view.ts / entries.ts / cells.ts / window.ts        what the pane draws
      pane.tsx / ring.ts                                 how it draws, the keyboard
      sites.ts / jump.ts                                 where a press scrolls
@@ -17,6 +17,7 @@ import type { Refused } from './jump'
 import { DOCK_STATUS, carriesHistory, isClosedByPerson, placementFate, reopensOn } from './lifecycle'
 import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, filterRows } from './pane'
 import { entryAt, pendingShown, ringMove } from './ring'
+import { UNLOCATED_TEXT, derivedTranscriptPath } from './locate'
 import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
 import type { Layout, ViewFilter } from './view'
 import { PERF_FLUSH_MS, newPerf, note, perfNow, takeLines } from './perf'
@@ -71,6 +72,9 @@ let reading: Reading = newReading()
 let cursor: ReadCursor = readCursor()
 let source: SourceState = 'unknown'
 let failure: FailReason = 'error'
+/* No path is known and none could be worked out: the pane says the next
+   submit brings one. */
+let isUnlocated = false
 /* The file's size at the last read; undefined reads it from the start. */
 let lastSize: number | undefined
 /* Whether the main agent's turn is under way: from `turn.start` until the
@@ -370,6 +374,9 @@ async function load($: EngineInterface): Promise<void> {
   appendedAt = undefined
   const at = { ...cursor }
   const got = await readSource($, path, at)
+  /* A classic event moved the session to another file meanwhile: what was
+     read is not its, and the read it asked for runs after this one. */
+  if (path !== (await read($, transcriptPath))) return
   const sourced = perfNow()
   if (got.kind === 'unchanged') {
     appendedAt ??= asked
@@ -427,6 +434,36 @@ function requestRead($: EngineInterface): void {
     gateFired(gate)
     readNow($)
   })
+}
+
+/* A classic event's `transcript_path`: one unlike the path in use (worked
+   out, or another conversation's) replaces it and the file is read again
+   from the start. Whether it did. */
+async function adoptPath($: EngineInterface, path: string | undefined): Promise<boolean> {
+  if (!path || path === (await read($, transcriptPath))) return false
+  await update($, transcriptPath, () => path)
+  isUnlocated = false
+  forget()
+  return true
+}
+
+/* `session.start` with no path known, as when the plugin is enabled in
+   mid-session: the path is worked out (locate.ts). A classic event's path
+   that came meanwhile is kept. */
+async function locate($: EngineInterface, cwd: string): Promise<void> {
+  if (await read($, transcriptPath)) return
+  const sessionId = await $.session.id().catch(() => '')
+  const configDir = await $.env.get('CLAUDE_CONFIG_DIR').catch(() => undefined)
+  const home = await $.env.get('HOME').catch(() => undefined)
+  const userProfile = await $.env.get('USERPROFILE').catch(() => undefined)
+  const path = derivedTranscriptPath({ sessionId, cwd, configDir, home, userProfile })
+  if (path !== undefined) {
+    await update($, transcriptPath, known => known || path)
+    return
+  }
+  if (await read($, transcriptPath)) return
+  isUnlocated = true
+  await update($, rev, n => n + 1)
 }
 
 function openPane($: EngineInterface, focus?: true) {
@@ -599,12 +636,9 @@ function sendRing($: EngineInterface, key: string, left = RING_RETRIES): void {
 
 export const register: Register = on => {
   on('classic.SessionStart', async ($, e, next) => {
-    const path = e.transcript_path ?? ''
-    if (path !== (await read($, transcriptPath))) {
-      await update($, transcriptPath, () => path)
-      await update($, isCarriedOver, () => carriesHistory(e.source))
-      forget()
-    }
+    /* A worked-out path may have come first: a resume onto the same file
+       still carries history. */
+    if ((await adoptPath($, e.transcript_path)) || carriesHistory(e.source)) await update($, isCarriedOver, () => carriesHistory(e.source))
     await askPerf($)
     readNow($)
     /* /clear and /resume start another conversation; the host resets
@@ -620,8 +654,17 @@ export const register: Register = on => {
     await $.command.register({ name: 'chat-toc', description: '打开对话目录', immediate: true })
     await loadChoices($)
     await askPerf($)
+    await locate($, e.cwd)
     readNow($)
     void autoOpen($)
+    return next(e)
+  })
+
+  /* A submit's classic event says where the transcript is: what a plugin
+     enabled in mid-session waits for when no path could be worked out, or
+     the correction when the worked-out one was wrong. */
+  on('classic.UserPromptSubmit', async ($, e, next) => {
+    if (await adoptPath($, e.transcript_path)) readNow($)
     return next(e)
   })
 
@@ -760,7 +803,7 @@ export const register: Register = on => {
     /* A resumed or forked session shows its history in the transcript
        before its own file is written; it is not without a conversation. */
     const missing = isCarried ? NOT_WRITTEN_TEXT : EMPTY_TEXT
-    const notice = source === 'missing' ? missing : isOk && entries.length === 0 ? EMPTY_TEXT : undefined
+    const notice = isUnlocated ? UNLOCATED_TEXT : source === 'missing' ? missing : isOk && entries.length === 0 ? EMPTY_TEXT : undefined
     const why = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
     const footerLines = [refusal === undefined ? undefined : REFUSED_TEXT, why, isHeld ? PAUSED_TEXT : undefined].filter(
       (s): s is string => s !== undefined,
