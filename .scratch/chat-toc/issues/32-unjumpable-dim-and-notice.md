@@ -4,7 +4,7 @@
 
 **Blocked by:** 无
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## 问题
 
@@ -23,14 +23,15 @@
 
 ## 步骤
 
-- [ ] 实测 `fork` 是否与 `resume` 一样拒绝 compact 边界之前的行
-- [ ] 测试先行：事先判定的纯函数（resume/非 resume、无 compact、多次 compact、启动后又 compact 的行不受影响）
-- [ ] 测试先行：提示的绘制（`warning` 色、`⚠`、闪烁的帧序列、两种文字）
-- [ ] 实现
-- [ ] 验收契约：新增 `CT-JUMP-005`（resume 后 compact 之前的条目一出现就是灰色，按下后显示对应文字）、`CT-UI-005`（提示 `warning` 色、带 `⚠`、出现时反色闪 3 下后常亮、5 秒后消失，pyte 按时间点抽帧）；`CT-JUMP-003` 随之核对措辞
-- [ ] `CONTEXT.md` 的 Jump target 补一句：可事先判定为不可跳的条目，画成淡化色
-- [ ] 两版宿主 PTY 验收
+- [x] 实测 `fork` 是否与 `resume` 一样拒绝 compact 边界之前的行
+- [x] 测试先行：事先判定的纯函数（resume/非 resume、无 compact、多次 compact、启动后又 compact 的行不受影响）
+- [x] 测试先行：提示的绘制（`warning` 色、`⚠`、闪烁的帧序列、两种文字）
+- [x] 实现
+- [x] 验收契约：新增 `CT-JUMP-005`（resume 后 compact 之前的条目一出现就是灰色，按下后显示对应文字）、`CT-UI-005`（提示 `warning` 色、带 `⚠`、出现时反色闪 3 下后常亮、5 秒后消失，pyte 按时间点抽帧）；`CT-JUMP-003` 随之核对措辞
+- [x] `CONTEXT.md` 的 Jump target 补一句：可事先判定为不可跳的条目，画成淡化色
+- [x] 两版宿主 PTY 验收
 
 ## Comments
 
 - 2026-10-12 spike（两版一致）：普通会话里 prompt、斜杠命令、`!` 命令、中断轮、只有工具调用的回复都能跳；被拒的只有 resume 前被 compact 的行（边界前全拒、边界后全可跳）和 rewind 被弃的行（由 33 号票处理）。live `/compact` 不 resume 时，compact 前的行仍可跳。没有不移动视图就能探测某行是否被列出的办法（非本人发起的 scroll 先被拒为 `not person-initiated`）。宿主主题有 `warning`、`error`；`TextProps` 有 `bold`、`inverse`（2.1.287 运行时未验）。
+- 2026-10-12 实现（分支 `chat-toc/32-unjumpable-dim-and-notice`）：fork 实测（两版）——`--fork-session` 的文件从最后一个 compact 边界开始，不含边界之前的条目，所以事先判定只看 `resume`。`classic.SessionStart` 的 source 为 `resume` 时把 `$.state` 的 `compactedAt` 置为待定，下一次读到行时记下链上最后一个 compact 边界；边界之前、所有跳转候选都在边界之前的一侧以 `why: 'compacted'` 放进被拒表（与按下被拒同一套淡化与恢复逻辑），存在 `$.state` 里所以热重载后还在。提示单独一行：`⚠` + `warning` 色，`inverse` 按 150 ms 一档闪 3 下。PTY：`jump_scenarios.py 005` 两版都通过（`CT-JUMP-005`、`CT-UI-005`），`inverse` 在 2.1.287 上生效；改动后 `CT-JUMP-003` 在当前版本复跑通过。

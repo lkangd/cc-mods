@@ -12,7 +12,20 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderViewport } from 'claude-code'
 import type { Entry } from './entries'
-import { REFUSED_MS, REFUSED_TEXT, dimRefused, jumpTargetsOf, relisted, sideKeyOf } from './jump'
+import {
+  COMPACTED_TEXT,
+  FLASHES,
+  FLASH_MS,
+  REFUSED_MS,
+  REFUSED_TEXT,
+  compactedSides,
+  dimRefused,
+  jumpTargetsOf,
+  lastBoundary,
+  refusalFrame,
+  relisted,
+  sideKeyOf,
+} from './jump'
 import type { Refused } from './jump'
 import { DOCK_STATUS, carriesHistory, isClosedByPerson, placementFate, reopensOn } from './lifecycle'
 import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, filterRows } from './pane'
@@ -53,6 +66,7 @@ const isClosed = atom({ plugin: 'chat-toc', key: 'isClosed' } as const, false)
 const isCarriedOver = atom({ plugin: 'chat-toc', key: 'isCarriedOver' } as const, false)
 const isInlineAsked = atom({ plugin: 'chat-toc', key: 'isInlineAsked' } as const, false)
 const currentPosition = atom({ plugin: 'chat-toc', key: 'currentPosition' } as const, null as number | null)
+const compactedAt = atom({ plugin: 'chat-toc', key: 'compactedAt' } as const, null as string | null)
 
 type SourceState = 'unknown' | 'missing' | 'ok' | 'failed'
 
@@ -157,12 +171,14 @@ const PAUSED_TEXT = '暂停'
 /* The chain rows by what the host draws them under, and what it drew. */
 let chainRows: RowIndex = rowIndex([])
 let sites: Sites = newSites()
-/* Sides whose every jump target the host refused, drawn dim until it draws
-   one of them again. */
+/* Sides whose every jump target the host refused, or known compacted
+   before a resume, drawn dim until it draws one of them again. */
 let refused: Refused = new Map()
-/* The refusal said at the bottom: the entry pressed, and which saying it is
-   (its timer clears only its own). */
-let refusal: { key: string; n: number } | undefined
+/* Whether the compacted sides are in `refused` for what was read. */
+let isCompactedMarked = false
+/* The refusal said at the bottom: the entry pressed, which saying it is
+   (its timers act only on their own), what it says, and when it began. */
+let refusal: { key: string; n: number; text: string; at: number } | undefined
 let refusals = 0
 let isRedrawQueued = false
 
@@ -207,6 +223,7 @@ function forget(): void {
   chainRows = rowIndex([])
   sites = newSites()
   refused = new Map()
+  isCompactedMarked = false
   refusal = undefined
   placing = newPositioning()
   entryCache = newEntryCache()
@@ -380,16 +397,21 @@ async function load($: EngineInterface): Promise<void> {
   const sourced = perfNow()
   if (got.kind === 'unchanged') {
     appendedAt ??= asked
+    if (await markCompacted($)) await update($, rev, n => n + 1)
     return
   }
   if (got.kind === 'lines') {
-    if (got.isFromStart) reading = newReading()
+    if (got.isFromStart) {
+      reading = newReading()
+      isCompactedMarked = false
+    }
     for (const lines of got.chunks.lines) readLines(reading, lines)
     countUnreadable(reading, got.chunks.overlong)
     resolveSites(sites, chainRows, syncRows(chainRows, reading.chain))
     cursor = at
     lastSize = got.size
     source = 'ok'
+    await markCompacted($)
   } else {
     startOver()
     source = got.kind
@@ -408,6 +430,25 @@ async function load($: EngineInterface): Promise<void> {
     if (asked !== undefined) timed($, 'append.model', [ended - asked])
   }
   await update($, rev, n => n + 1)
+}
+
+/* In a session this process resumed, the sides the host refuses for sure
+   are dimmed: the first read after the resume keeps the last compaction the
+   file had, and every read of the file from the start marks its sides
+   again. Whether it marked them now. */
+async function markCompacted($: EngineInterface): Promise<boolean> {
+  if (source !== 'ok') return false
+  let boundary = await read($, compactedAt)
+  if (boundary === '') {
+    const found = lastBoundary(reading.chain) ?? null
+    boundary = found
+    await update($, compactedAt, () => found)
+    isCompactedMarked = false
+  }
+  if (boundary === null || isCompactedMarked) return false
+  isCompactedMarked = true
+  for (const [key, side] of compactedSides(reading.groups, chainRows, sites, boundary)) if (!refused.has(key)) refused.set(key, side)
+  return true
 }
 
 function readNow($: EngineInterface): void {
@@ -542,6 +583,7 @@ async function jump($: EngineInterface, entry: Entry): Promise<void> {
   if (!group) return
   const key = sideKeyOf(group, entry.side)
   const wasShown = refusal !== undefined || refused.has(key)
+  const why = refused.get(key)?.why ?? 'refused'
   refusal = undefined
   for (const target of jumpTargetsOf(group, entry.side, chainRows, sites)) {
     const got = await $.ui
@@ -554,9 +596,15 @@ async function jump($: EngineInterface, entry: Entry): Promise<void> {
       return
     }
   }
-  refused.set(key, { side: entry.side, opener: group.openerUuid, groupIndex: entry.groupIndex })
+  refused.set(key, { side: entry.side, opener: group.openerUuid, groupIndex: entry.groupIndex, why })
   const n = ++refusals
-  refusal = { key: entry.key, n }
+  refusal = { key: entry.key, n, text: why === 'compacted' ? COMPACTED_TEXT : REFUSED_TEXT, at: await $.clock.now() }
+  /* Each step of the flash is drawn. */
+  for (let step = 1; step <= FLASHES * 2; step++) {
+    $.clock.after(step * FLASH_MS, () => {
+      if (refusal?.n === n) void update($, rev, x => x + 1).catch(() => undefined)
+    })
+  }
   $.clock.after(REFUSED_MS, () => {
     if (refusal?.n !== n) return
     refusal = undefined
@@ -643,6 +691,9 @@ export const register: Register = on => {
     readNow($)
     /* /clear and /resume start another conversation; the host resets
        `$.state` with it, and the pane opens for it as at a start. */
+    /* A resumed session's turns before its last compaction are not listed
+       by the host: the next read finds that compaction. */
+    if (e.source === 'resume') await update($, compactedAt, () => '')
     if (reopensOn(e.source)) {
       await update($, isClosed, () => false)
       void autoOpen($)
@@ -805,12 +856,11 @@ export const register: Register = on => {
     const missing = isCarried ? NOT_WRITTEN_TEXT : EMPTY_TEXT
     const notice = isUnlocated ? UNLOCATED_TEXT : source === 'missing' ? missing : isOk && entries.length === 0 ? EMPTY_TEXT : undefined
     const why = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
-    const footerLines = [refusal === undefined ? undefined : REFUSED_TEXT, why, isHeld ? PAUSED_TEXT : undefined].filter(
-      (s): s is string => s !== undefined,
-    )
+    const footerLines = [why, isHeld ? PAUSED_TEXT : undefined].filter((s): s is string => s !== undefined)
     const footer = footerLines.length > 0 ? footerLines.join('\n') : undefined
+    const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
     const headRows = filterRows(width, filter, layout)
-    const rows = e.props.scroll.bodyRows - headRows - (notice === undefined ? 0 : 1) - footerLines.length
+    const rows = e.props.scroll.bodyRows - headRows - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - footerLines.length
     const drawnEntries = { heights: table.heights, rows, keys: table.keys, indexOf: table.indexOf }
     const kept = anchor
     anchor = undefined
@@ -848,6 +898,7 @@ export const register: Register = on => {
       litGroup: position,
       headRows,
       notice,
+      alert,
       footer,
       onPress: entry => jump($, entry),
       onFilter: chosen => chooseFilter($, chosen),
