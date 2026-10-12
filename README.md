@@ -202,7 +202,7 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 - **会话变化**：
   - `/clear`：目录清空，随新会话重建（新会话的第一个条目就是 `/clear`），不画分隔线。
   - compact：之前的条目照常显示。
-  - rewind（包括连按两次 Esc）：被抛弃的那一段在你下一次提交后从目录消失；提交之前可能还在。
+  - rewind（包括连按两次 Esc）：restore 对话后，被抛弃的那一段（包括 rewind 到的那一条，它的文字回到了输入框）立刻从目录消失，不用等下一次提交。rewind 后没提交就退出、再 resume，那一段会和对话一起回来。
   - `--resume`、`--continue`、会话内 `/resume`、`--fork-session`：目录按那个会话重建，也能跳到很早、从没显示过的轮次。
   - 多个终端各自只显示自己的会话。
   - 在已经运行的会话里启用 chat-toc（`/plugin` 里启用，或 `claude plugin enable` 后 `/reload-plugins`）：不用重启，目录立刻列出已有的对话。万一找不到本会话的 transcript，会显示「提交下一条消息后显示目录」。
@@ -227,8 +227,7 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 - 只在 macOS 上真实验收过。Linux 与 Windows 只验证过读大文件时生成的命令，没在真机上跑；Windows 只用系统自带的 Windows PowerShell 5.1。
 - transcript 的文件格式不是公开的。Claude Code 改了格式后，目录可能显示不全，底部会说明有几行无法识别。
 - 会话中途启用时，transcript 的位置是按 Claude Code 未公开的目录命名规则推算的；规则变了，目录要等你下一次提交才出现。
-- 不保证能跳到 rewind 抛弃的那一段，也不保证能跳到 `--resume` 之前就被 compact 掉的行（后者一出现就是暗的）；跳不过去时底部会说明，那一侧变暗。
-- rewind 之后、下一次提交之前，目录可能还显示被抛弃的条目。
+- 不保证能跳到 `--resume` 之前就被 compact 掉的行（`--resume` 打开时它们一出现就是暗的）；跳不过去时底部会说明，那一侧变暗。
 - 三种排版的观感、高亮与反色选择能否分清，由人工目检，不阻止发布。
 - 不承诺在所有机器上有固定的速度；发布时的性能数字只是在一台参考机器上测得的（Apple M1 Pro 的 Mac 上，20 MB 级的长会话打开后，Claude Code 显示出最后一轮之后约 0.7 秒内出现目录，滚动和跳转不卡）。
 - 用 `/chat-toc` 在不能停靠时打开、放在输入框上方的目录：排版、跟随与高亮都未经验收。

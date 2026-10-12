@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""PTY scenarios for the conversation chain (ticket 21): compaction, rewind,
-resume, continue, fork, in-session /resume, and two sessions of one project
+"""PTY scenarios for the conversation chain (tickets 21, 33): compaction, rewind
+(at once, and quitting after one), resume, continue, fork, in-session /resume, and two sessions of one project
 side by side. Every verdict comes from toc_verifier against the session's
 own transcript file.
 
@@ -114,42 +114,103 @@ def life_003(world, host, run):
             got, got["ok"], got.pop("evidence"))
 
 
+def rewind_to_r03(term, evidence) -> float:
+    """Esc Esc, up to R03, restore the conversation; returns when the
+    restoring Enter was pressed (time.monotonic())."""
+    term.key("esc")
+    time.sleep(0.3)
+    term.key("esc")
+    term.wait_for(lambda t: t.find("Rewind") is not None, "the rewind dialog", timeout=10)
+    term.key("up", "up", "up")           # (current) -> R05 -> R04 -> R03
+    time.sleep(0.5)
+    evidence.append(term.snap("rewind dialog on R03"))
+    term.key("enter")
+    restored = time.monotonic()
+    time.sleep(1)
+    if term.find("Restore conversation") is not None:
+        term.key("enter")
+        restored = time.monotonic()
+    return restored
+
+
+def held_after_rewind(path: pathlib.Path):
+    """The Pane lists exactly R00-R02, the verifier's first three groups."""
+    groups = v.expected_toc(path).groups[:3]
+    def check(term):
+        p = v.parse_pane(term.rows())
+        return p is not None and len(p.entries) == 3 and v.compare_window(groups, p)["ok"]
+    return check
+
+
 def life_004(world, host, run):
-    """Rewind with Esc Esc, then the next submit: the abandoned branch goes."""
+    """Rewind with Esc Esc: within 500 ms of the restore the Pane drops R03
+    (the turn rewound to, back in the composer) and everything after it,
+    with the file unchanged; the next submit keeps it in line with the
+    file's new branch."""
     path = write_session(world, host, SESSION_A, "R", 6)
     term = h.launch(world, host, [PLUGIN], ["--resume", SESSION_A], run=run)
-    evidence = []
+    evidence, actual = [], {}
     try:
         wait_docked(term)
         before = compare(term, path, "before rewind")
         evidence += before.pop("evidence")
-        term.key("esc")
-        time.sleep(0.3)
-        term.key("esc")
-        term.wait_for(lambda t: t.find("Rewind") is not None, "the rewind dialog", timeout=10)
-        term.key("up", "up", "up")           # (current) -> R05 -> R04 -> R03
-        time.sleep(0.5)
-        evidence.append(term.snap("rewind dialog on R03"))
-        term.key("enter")
-        time.sleep(1)
-        if term.find("Restore conversation") is not None:
-            term.key("enter")
+        actual["before"] = before
+        size = path.stat().st_size
+        restored = rewind_to_r03(term, evidence)
+        check = held_after_rewind(path)
+        while not check(term) and time.monotonic() - restored < 5:
+            time.sleep(0.02)
+        actual["droppedAfterMs"] = round((time.monotonic() - restored) * 1000) if check(term) else None
         term.wait_for(lambda t: t.find("Rewind") is None, "the rewind dialog to close", timeout=10)
-        time.sleep(1)
-        rows = term.settle()
+        term.settle()
         evidence.append(term.snap("after rewind, before the next submit"))
-        pane = v.parse_pane(rows)
-        old_still_listed = bool(pane) and any("R05" in e.user_text for e in pane.entries)
+        actual["fileUnchanged"] = path.stat().st_size == size
+        actual["heldBeforeSubmit"] = check(term)
         clear_composer(term)
         submit(term, "R03 rewind 之后提交的合成 prompt")
         after = compare(term, path, "after the next submit")
         evidence += after.pop("evidence")
-        gone = all(f"R0{i}" not in "\n".join(term.rows()) for i in (4, 5)) or after["ok"]
+        actual["after"] = after
     finally:
         term.close()
-    actual = {"before": before, "oldEntriesBeforeSubmit": old_still_listed, "after": after}
-    return ("after the submit the Pane equals the chain: R00-R02 and the new prompt; R03-R05 gone",
-            actual, before["ok"] and after["ok"] and gone, evidence)
+    dropped = actual.get("droppedAfterMs")
+    ok = (before["ok"] and dropped is not None and dropped <= 500 and actual["fileUnchanged"]
+          and actual["heldBeforeSubmit"] and after["ok"])
+    return ("within 500 ms of the restore, with the file unchanged, the Pane lists R00-R02 only; after the next "
+            "submit it equals the file's chain: R00-R02 and the new prompt", actual, ok, evidence)
+
+
+def life_008(world, host, run):
+    """A rewind is not written: quit without submitting and resume, and the
+    abandoned turns are back, in the transcript and in the Pane alike."""
+    path = write_session(world, host, SESSION_A, "R", 6)
+    term = h.launch(world, host, [PLUGIN], ["--resume", SESSION_A], run=run)
+    evidence, actual = [], {}
+    try:
+        wait_docked(term)
+        rewind_to_r03(term, evidence)
+        term.wait_for(held_after_rewind(path), "the Pane to drop R03-R05", timeout=5)
+        term.settle()
+        evidence.append(term.snap("008 rewound, not submitted"))
+        clear_composer(term)
+    finally:
+        term.close()
+    term = h.launch(world, host, [PLUGIN], ["--resume", SESSION_A], run=run)
+    try:
+        wait_docked(term)
+        after = compare(term, path, "008 resumed after quitting", whole=True)
+        evidence += after.pop("evidence")
+        actual["afterResume"] = after
+        rows = term.settle()
+        p = v.parse_pane(rows)
+        actual["paneListsR05"] = p is not None and any("R05" in e.user_text for e in p.entries)
+        actual["transcriptShowsR05"] = p is not None and "R05" in h.transcript_text(rows, p.left)
+        evidence.append(term.snap("008 after resume"))
+    finally:
+        term.close()
+    ok = after["ok"] and actual["paneListsR05"] and actual["transcriptShowsR05"]
+    return ("after quitting a rewound session without a submit and resuming it, the Pane equals the file's whole chain "
+            "R00-R05, and R05 shows in the transcript too", actual, ok, evidence)
 
 
 def life_005_continue(world, host, run):
@@ -263,6 +324,7 @@ def data_006(world, host, run):
 SCENARIOS = {
     "life-003": ("CT-LIFE-003", life_003),
     "life-004": ("CT-LIFE-004", life_004),
+    "life-008": ("CT-LIFE-008", life_008),
     "life-005-continue": ("CT-LIFE-005", life_005_continue),
     "life-005-fork": ("CT-LIFE-005", life_005_fork),
     "life-005-in-session": ("CT-LIFE-005", life_005_in_session),
