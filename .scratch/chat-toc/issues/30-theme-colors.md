@@ -4,7 +4,7 @@
 
 **Blocked by:** 无
 
-**Status:** claimed
+**Status:** resolved
 
 ## 已定的决定（2026-10-12 grilling）
 
@@ -21,7 +21,7 @@
 - [x] 测试先行：`drawPane` 的颜色纯函数测试，再改实现
 - [x] PTY 验收：两版 × `dark`、`light`、`dark-ansi`、`light-ansi`，读 SGR 断言高亮与暗淡元素的前景色等于该主题的解析值，不再出现 cyan 或 `999999`；`daltonized` 与 `auto` 只截屏
 - [x] `mod-host-gotchas.md` 补一条
-- [ ] 0.1.1 按 README 的发布清单发布（门禁、marketplace 冒烟、GitHub 安装检查），人工目检签字并入 0.1.1
+- [x] 0.1.1 按 README 的发布清单发布（门禁、marketplace 冒烟、GitHub 安装检查），人工目检签字并入 0.1.1
 
 ## Comments
 
@@ -43,3 +43,4 @@
 - 2026-10-12 第二轮（串行重跑）：2.1.287 gate_scenarios 21 过 1 不过——CT-DATA-004 的 4 次提交后读取里有一次 `chunks: 0`（读到时没有新字节），判据要求每次都是 1 块；整列表与跨块边界都对。CT-PERF-001：两版 heavy 通过，两版 many 不过，都卡在「增量读取，单次 ≤ 150 ms」（p95 192–405 ms；0.1.0 时是 104–111 ms，本来就贴着阈值，主要是热重载后第一次 `$.process.run`）。当时机器 load average 25–35（Chrome、WindowServer 等），不是空闲机器。插件读取路径与 0.1.0 相同。
 - 2026-10-12 第三轮（使用者关掉其他程序后串行重跑，load average 6–9）：第二轮不过的运行目录挪到 scratchpad 的 `gate-attempt2/` 留存，重跑 2.1.287 的整套 gate_scenarios 与两版 perf many。结果全部通过：2.1.287 gate_scenarios 22/22（CT-DATA-004 两次提交后读取都是 1 块）；CT-PERF-001 many 增量读取最大 2.1.287 为 100–108 ms、2.1.295 为 94–102 ms，回到 0.1.0 的水平。确认第二轮的失败来自机器负载。两版的 `codes.json` 被 `--only-perf` 那次覆盖成只有 perf 两项，按各日志头的 exit 与本轮结果重建。
 - 2026-10-12 侧栏背景：使用者反馈 Pane 背景与终端不协调。原因是宿主停靠侧栏写死 `backgroundColor: "composerSidebarBackground"`（dark 下 `rgb(38,38,38)`），使用者的自定义主题 cc-themes:dracula 没覆盖这个键；插件盖不住宿主画的边框列与 ✕ 行，所以不在 chat-toc 里改。在使用者的 cc-themes 仓库补了 Dracula 的 5 个键并新加 Catppuccin Mocha 主题（使用者终端用 Mocha），提交 `c6f515a`（未推送）。两版 PTY 实测（`--plugin-dir` 加载 cc-themes，`theme: custom:cc-themes:<slug>`）：Pane、边框列、✕ 行都是该主题的 `composerSidebarBackground`（Dracula `282a36`、Mocha `181825`），高亮为 `bd93f9` / `cba6f7`，淡化为 `6272a4` / `7f849c`。
+- 2026-10-12 发布：`release_gate.py report --screens` 生成 `tests/evidence/0.1.1/`（33 个 MUST × 2 版，104 条记录全过，泄漏 0）；`--no-ff` 合入 main（`5327d7a`），发布提交 `0caa821`，经使用者同意推送。`lkangd/cc-mods` 默认分支是 `main`；从 GitHub 的安装级检查两版都通过（`b80d1ab`，`marketplace.md`）。cc-themes `c6f515a` 也已推送（SSH 被断开，改 HTTPS 推）。人工目检签字留给使用者，在 `tests/evidence/0.1.1/report.md`。
