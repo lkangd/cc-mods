@@ -1,0 +1,125 @@
+[
+ {
+  "ok": true,
+  "start": 0,
+  "entries": [
+   {
+    "index": 0,
+    "key": "d7e11b1b-7aa6-440d-8800-7596a28f5b37",
+    "expected": {
+     "key": "d7e11b1b-7aa6-440d-8800-7596a28f5b37",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:00",
+     "userText": "R00 合成问题 0",
+     "agentHead": "",
+     "lastText": "R00 合成回复 0",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 2,
+     "userHead": "你 · 10月9日 09:00",
+     "userLines": [
+      "R00 合成问题 0"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "R00 合成回复 0"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 1,
+    "key": "6d9deeee-95da-4109-aeca-8c285efcea76",
+    "expected": {
+     "key": "6d9deeee-95da-4109-aeca-8c285efcea76",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:00",
+     "userText": "R01 合成问题 1",
+     "agentHead": "1 步",
+     "lastText": "R01 合成回复 1",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 7,
+     "userHead": "你 · 10月9日 09:00",
+     "userLines": [
+      "R01 合成问题 1"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "R01 合成回复 1"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 2,
+    "key": "1ff7f212-16a5-41f4-9148-4c93bdb39a62",
+    "expected": {
+     "key": "1ff7f212-16a5-41f4-9148-4c93bdb39a62",
+     "kind": "prompt",
+     "userHead": "你 · 10月9日 09:00",
+     "userText": "R02 合成问题 2",
+     "agentHead": "",
+     "lastText": "R02 合成回复 2",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 12,
+     "userHead": "你 · 10月9日 09:00",
+     "userLines": [
+      "R02 合成问题 2"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "R02 合成回复 2"
+     ],
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 3,
+    "key": "5e5ca7c6-d043-4f12-899f-fc4d326a76b1",
+    "expected": {
+     "key": "5e5ca7c6-d043-4f12-899f-fc4d326a76b1",
+     "kind": "prompt",
+     "userHead": "你 · 10月12日 18:08",
+     "userText": "R03 rewind 之后提交的合成 prompt",
+     "agentHead": "出错",
+     "lastText": "Not logged in · Please run /login",
+     "steps": 0,
+     "status": "error"
+    },
+    "actual": {
+     "row": 17,
+     "userHead": "你 · 10月12日 18:08",
+     "userLines": [
+      "R03 rewind 之后提交的合成 prompt"
+     ],
+     "agentHead": "出错",
+     "agentLines": [
+      "Not logged in · Please run /login"
+     ],
+     "highlighted": true
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 4,
+   "windowEntries": 4,
+   "start": 0,
+   "problems": 0,
+   "partialTop": false,
+   "notes": []
+  }
+ }
+]

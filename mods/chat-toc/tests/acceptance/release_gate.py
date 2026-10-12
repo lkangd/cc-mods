@@ -249,7 +249,7 @@ def report(args) -> int:
         "minimumClaudeCode": "2.1.287", "os": f"macOS {platform.mac_ver()[0]}", "arch": platform.machine(),
         "cpu": subprocess.run(["sysctl", "-n", "machdep.cpu.brand_string"], capture_output=True, text=True).stdout.strip(),
         "surface": "interactive terminal, fullscreen layout (pseudo-terminal read through pyte 0.8.2, 170x44 unless a scenario says otherwise)",
-        "loading": "--plugin-dir for every scenario; CT-COMPAT-002 through a local directory marketplace",
+        "loading": "--plugin-dir for every scenario; CT-COMPAT-002 and CT-LIFE-007 through local directory marketplaces",
         "functionHooks": "not set (chat-toc does not need CLAUDE_CODE_ENABLE_FUNCTION_HOOKS)",
         "account": "logged out; no model call (CT-TURN-004's live turn runs against fake_api.py, a local scripted stand-in)",
         "python": platform.python_version(),

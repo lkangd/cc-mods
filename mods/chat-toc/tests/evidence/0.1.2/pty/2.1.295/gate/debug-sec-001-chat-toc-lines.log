@@ -1,0 +1,168 @@
+2026-10-12T10:16:53.972Z [DEBUG] Read hooks.json for plugin chat-toc (enabled=true): <tmp>
+2026-10-12T10:16:53.973Z [DEBUG] Loaded inline plugin from path: chat-toc
+2026-10-12T10:16:53.975Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-12T10:16:54.059Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-12T10:16:54.276Z [DEBUG] hooks module chat-toc@inline loaded (worker, environment 1, tier user); events: classic.SessionStart,session.start,classic.UserPromptSubmit,command.run,ui.close,session.append,turn.start,turn.complete,ui.scroll,ui.render,ui.focus
+2026-10-12T10:16:54.279Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for chat-toc,cc-plugin-agents-md,cc-plugin-diff
+2026-10-12T10:16:54.279Z [DEBUG] plugin.register: chat-toc (user, chat-toc@inline), judged by core alone: admitted
+2026-10-12T10:16:54.283Z [DEBUG] plugin-dir watch: watching chat-toc; folders of plugins none
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.4ms (worker hop, next() included) key=61b339ff-2481-44e5-998b-88dbaa99e079
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.4ms (worker hop, next() included) key=collapsed-cf72f858-a4b6-4f8c-8628-04db7b87a9e2
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.3ms (worker hop, next() included) key=298a59f8-5e1e-4978-b0a7-6e49fa60dbd6
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.3ms (worker hop, next() included) key=6794cd2e-ae72-4aff-9645-9afed1ba5c0f
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.3ms (worker hop, next() included) key=collapsed-d1d4d2b3-0f8f-45ef-ab3d-787304c3405b
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.2ms (worker hop, next() included) key=668864bf-1566-4e20-90d1-8fb081dafbbb
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.2ms (worker hop, next() included) key=f7ab62a8-1529-455d-b9f0-9825a406bf0c
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.1ms (worker hop, next() included) key=collapsed-f0eb21aa-5b39-4037-82f5-d75ea9e16e27
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.1ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.1ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.0ms (worker hop, next() included) key=collapsed-ec9ba198-76f8-4037-aae5-68bafd1032e8
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.0ms (worker hop, next() included) key=c54acf4f-ea5b-4e10-84ac-4c11f29c5831
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.9ms (worker hop, next() included) key=ff9d608a-5c67-4c72-bbdb-4de81db6027c
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.9ms (worker hop, next() included) key=collapsed-e1c88247-528c-4100-ad71-1aba061eefe0
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.8ms (worker hop, next() included) key=83e2500b-dcb6-4e69-b1a3-ab9f547af48d
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.8ms (worker hop, next() included) key=b1b0d8fe-00f1-468e-aeec-6a9b074ce872
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.8ms (worker hop, next() included) key=collapsed-236cc43d-6b9a-4742-840d-8382e2ed8971
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.6ms (worker hop, next() included) key=333e46c7-88f1-4c36-aa5c-6b21e9173332
+2026-10-12T10:16:54.353Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.3ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:16:54.377Z [DEBUG] type root of chat-toc at <tmp> entries claude-code, claude-code-tools, claude-code-mcp; wrote nothing
+2026-10-12T10:16:54.380Z [DEBUG] $.command.register (chat-toc): /chat-toc listed
+2026-10-12T10:16:54.388Z [DEBUG] hooks module chat-toc@inline session.start settled in 10.0ms (worker hop, next() included)
+2026-10-12T10:16:54.388Z [DEBUG] ui.open chat-toc chat-toc (unasked, 170 columns): placed
+2026-10-12T10:16:54.395Z [DEBUG] hooks module chat-toc@inline classic.SessionStart settled in 16.6ms (worker hop, next() included)
+2026-10-12T10:16:54.408Z [DEBUG] chat-toc (user) answered ui.render without next() in 12.9ms; nothing beneath it ran for this dispatch
+2026-10-12T10:16:54.408Z [DEBUG] hooks module chat-toc@inline ui.render settled in 13.8ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:54.415Z [DEBUG] $.ui.status (chat-toc): (cleared)
+2026-10-12T10:16:54.426Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.0ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.3ms (worker hop, next() included) key=61b339ff-2481-44e5-998b-88dbaa99e079
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.2ms (worker hop, next() included) key=collapsed-cf72f858-a4b6-4f8c-8628-04db7b87a9e2
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.2ms (worker hop, next() included) key=298a59f8-5e1e-4978-b0a7-6e49fa60dbd6
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.2ms (worker hop, next() included) key=6794cd2e-ae72-4aff-9645-9afed1ba5c0f
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.1ms (worker hop, next() included) key=collapsed-d1d4d2b3-0f8f-45ef-ab3d-787304c3405b
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.1ms (worker hop, next() included) key=668864bf-1566-4e20-90d1-8fb081dafbbb
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.1ms (worker hop, next() included) key=f7ab62a8-1529-455d-b9f0-9825a406bf0c
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.0ms (worker hop, next() included) key=collapsed-f0eb21aa-5b39-4037-82f5-d75ea9e16e27
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.0ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.0ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.9ms (worker hop, next() included) key=collapsed-ec9ba198-76f8-4037-aae5-68bafd1032e8
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.0ms (worker hop, next() included) key=c54acf4f-ea5b-4e10-84ac-4c11f29c5831
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.9ms (worker hop, next() included) key=ff9d608a-5c67-4c72-bbdb-4de81db6027c
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.9ms (worker hop, next() included) key=collapsed-e1c88247-528c-4100-ad71-1aba061eefe0
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.9ms (worker hop, next() included) key=83e2500b-dcb6-4e69-b1a3-ab9f547af48d
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.9ms (worker hop, next() included) key=b1b0d8fe-00f1-468e-aeec-6a9b074ce872
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.9ms (worker hop, next() included) key=collapsed-236cc43d-6b9a-4742-840d-8382e2ed8971
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.8ms (worker hop, next() included) key=333e46c7-88f1-4c36-aa5c-6b21e9173332
+2026-10-12T10:16:54.503Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.8ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:16:54.509Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.5ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:55.362Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:16:55.362Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.7ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:16:55.407Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"position":[[0,0,12],[0.01,0,12],[0,0,13],[0,0,13],[0,0,13],[0,0,14],[0,0,14],[0,0,14],[0,0,15],[0.05,1,15],[0.02,2,15],[0.01,3,16],[0.01,4,16],[0.01,5,16],[0.01,6,17],[0.01,7,17],[0.01,8,17],[0.01,9,18],[0.01,10,18]]}
+2026-10-12T10:16:55.407Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"read.whole":[[19.44,10.71,1,6,36,29611,1]]}
+2026-10-12T10:16:55.407Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"pane":[[2.23,11.77,12,1],[0.55,5.06,12,0],[0.42,0.92,12,0]]}
+2026-10-12T10:16:55.407Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"listed":[[132.89]]}
+2026-10-12T10:16:55.809Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.8ms (worker hop, next() included) key=placeholder
+2026-10-12T10:16:55.809Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.6ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:16:55.809Z [DEBUG] hooks module chat-toc@inline ui.render settled in 8.4ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:16:55.809Z [DEBUG] hooks module chat-toc@inline classic.UserPromptSubmit settled in 19.4ms (worker hop, next() included)
+2026-10-12T10:16:55.822Z [DEBUG] hooks module chat-toc@inline session.append settled in 10.9ms (worker hop, next() included)
+2026-10-12T10:16:55.823Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.2ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:16:55.824Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:16:55.824Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=bf4966fc-87c8-4039-951c-e78b0b1ecfe9
+2026-10-12T10:16:55.824Z [DEBUG] hooks module chat-toc@inline session.append settled in 1.0ms (worker hop, next() included)
+2026-10-12T10:16:55.828Z [DEBUG] hooks module chat-toc@inline session.append settled in 4.1ms (worker hop, next() included)
+2026-10-12T10:16:55.832Z [DEBUG] hooks module chat-toc@inline session.append settled in 4.0ms (worker hop, next() included)
+2026-10-12T10:16:55.836Z [DEBUG] hooks module chat-toc@inline session.append settled in 3.6ms (worker hop, next() included)
+2026-10-12T10:16:55.836Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=bf4966fc-87c8-4039-951c-e78b0b1ecfe9
+2026-10-12T10:16:55.839Z [DEBUG] hooks module chat-toc@inline session.append settled in 3.4ms (worker hop, next() included)
+2026-10-12T10:16:55.843Z [DEBUG] hooks module chat-toc@inline session.append settled in 2.8ms (worker hop, next() included)
+2026-10-12T10:16:55.845Z [DEBUG] hooks module chat-toc@inline session.append settled in 2.4ms (worker hop, next() included)
+2026-10-12T10:16:55.849Z [DEBUG] hooks module chat-toc@inline turn.start settled in 3.0ms (worker hop, next() included)
+2026-10-12T10:16:55.862Z [DEBUG] hooks module chat-toc@inline session.append settled in 0.6ms (worker hop, next() included)
+2026-10-12T10:16:55.865Z [DEBUG] hooks module chat-toc@inline session.append settled in 2.5ms (worker hop, next() included)
+2026-10-12T10:16:55.869Z [DEBUG] hooks module chat-toc@inline session.append settled in 2.4ms (worker hop, next() included)
+2026-10-12T10:16:55.872Z [DEBUG] hooks module chat-toc@inline session.append settled in 1.9ms (worker hop, next() included)
+2026-10-12T10:16:55.889Z [DEBUG] hooks module chat-toc@inline session.append settled in 2.2ms (worker hop, next() included)
+2026-10-12T10:16:55.893Z [DEBUG] hooks module chat-toc@inline turn.complete settled in 1.8ms (worker hop, next() included)
+2026-10-12T10:16:55.893Z [DEBUG] hooks module chat-toc@inline session.append settled in 1.4ms (worker hop, next() included)
+2026-10-12T10:16:55.906Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.8ms (worker hop, next() included) key=c5f16593-bcd1-4d68-96da-38c3c09299a5
+2026-10-12T10:16:55.906Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.6ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:16:55.906Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:16:55.922Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.7ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:16:55.922Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.7ms (worker hop, next() included) key=c5f16593-bcd1-4d68-96da-38c3c09299a5
+2026-10-12T10:16:56.120Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 29547)
+2026-10-12T10:16:56.130Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 11ms, 58701 + 0 chars
+2026-10-12T10:16:56.135Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.7ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:56.171Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.0ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:56.824Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"position":[[0.03,10,18],[0.02,10,18],[0.02,11,18],[0.02,10,18],[0.01,11,18],[0.02,11,20]]}
+2026-10-12T10:16:56.824Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"read.tail":[[12.87,12.3,1,7,50,88483,0]]}
+2026-10-12T10:16:56.824Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"append.model":[[319.61]]}
+2026-10-12T10:16:56.825Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"pane":[[0.45,1.07,14,1],[0.33,1.24,14,0]]}
+2026-10-12T10:16:57.216Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:57.940Z [DEBUG] $.store.set (chat-toc@inline): viewFilter
+2026-10-12T10:16:57.940Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.1ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:57.941Z [DEBUG] chat-toc (core) answered ui.press without next() in 8.7ms; nothing beneath it ran for this dispatch
+2026-10-12T10:16:57.941Z [DEBUG] ui.press chat-toc/f-user in Pane from terminal: settled in 9.7ms
+2026-10-12T10:16:58.217Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"pane":[[0.41,1.81,14,0],[0.52,1.39,7,1]]}
+2026-10-12T10:16:58.429Z [DEBUG] $.store.set (chat-toc@inline): viewFilter
+2026-10-12T10:16:58.430Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:58.430Z [DEBUG] ui.press chat-toc/f-all in Pane from terminal: settled in 6.5ms
+2026-10-12T10:16:58.931Z [DEBUG] $.store.set (chat-toc@inline): layout
+2026-10-12T10:16:58.931Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.0ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:58.932Z [DEBUG] ui.press chat-toc/layout in Pane from terminal: settled in 5.6ms
+2026-10-12T10:16:59.433Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"pane":[[0.8,1.53,14,1],[0.59,1.41,14,1]]}
+2026-10-12T10:16:59.452Z [DEBUG] $.store.set (chat-toc@inline): layout
+2026-10-12T10:16:59.453Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:59.454Z [DEBUG] ui.press chat-toc/layout in Pane from terminal: settled in 16.3ms
+2026-10-12T10:16:59.968Z [DEBUG] $.store.set (chat-toc@inline): layout
+2026-10-12T10:16:59.979Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.1ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:16:59.983Z [DEBUG] ui.press chat-toc/layout in Pane from terminal: settled in 35.9ms
+2026-10-12T10:17:00.453Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"pane":[[1.03,2.16,14,1],[8.31,11.64,14,1]]}
+2026-10-12T10:17:00.505Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.2ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:17:00.996Z [DEBUG] ui.scroll chat-toc to bf4966fc-87c8-4039-951c-e78b0b1ecfe9: revealed
+2026-10-12T10:17:00.999Z [DEBUG] ui.press chat-toc/g6.u.1 in Pane from terminal: settled in 4.7ms
+2026-10-12T10:17:01.506Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"pane":[[0.34,1.48,14,0]]}
+2026-10-12T10:17:01.506Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"position":[[0.02,11,20]]}
+2026-10-12T10:17:02.502Z [DEBUG] plugin.register: chat-toc (user, chat-toc@inline), judged by core alone: admitted
+2026-10-12T10:17:02.510Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for chat-toc
+2026-10-12T10:17:02.512Z [DEBUG] session.start: raised for chat-toc (loaded later)
+2026-10-12T10:17:02.512Z [DEBUG] hooks module chat-toc@inline reloaded in 10.2ms; events: classic.SessionStart,session.start,classic.UserPromptSubmit,command.run,ui.close,session.append,turn.start,turn.complete,ui.scroll,ui.render,ui.focus
+2026-10-12T10:17:02.524Z [DEBUG] $.command.register (chat-toc): /chat-toc listed
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.9ms (worker hop, next() included) key=61b339ff-2481-44e5-998b-88dbaa99e079
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.9ms (worker hop, next() included) key=collapsed-cf72f858-a4b6-4f8c-8628-04db7b87a9e2
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.9ms (worker hop, next() included) key=298a59f8-5e1e-4978-b0a7-6e49fa60dbd6
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.9ms (worker hop, next() included) key=6794cd2e-ae72-4aff-9645-9afed1ba5c0f
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.8ms (worker hop, next() included) key=collapsed-d1d4d2b3-0f8f-45ef-ab3d-787304c3405b
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.8ms (worker hop, next() included) key=668864bf-1566-4e20-90d1-8fb081dafbbb
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.8ms (worker hop, next() included) key=f7ab62a8-1529-455d-b9f0-9825a406bf0c
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.8ms (worker hop, next() included) key=collapsed-f0eb21aa-5b39-4037-82f5-d75ea9e16e27
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.7ms (worker hop, next() included) key=9a211dab-581c-44cf-bf90-925c46cbd355
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.7ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.7ms (worker hop, next() included) key=collapsed-ec9ba198-76f8-4037-aae5-68bafd1032e8
+2026-10-12T10:17:02.535Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.7ms (worker hop, next() included) key=c54acf4f-ea5b-4e10-84ac-4c11f29c5831
+2026-10-12T10:17:02.536Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.7ms (worker hop, next() included) key=ff9d608a-5c67-4c72-bbdb-4de81db6027c
+2026-10-12T10:17:02.536Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.6ms (worker hop, next() included) key=collapsed-e1c88247-528c-4100-ad71-1aba061eefe0
+2026-10-12T10:17:02.536Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.6ms (worker hop, next() included) key=83e2500b-dcb6-4e69-b1a3-ab9f547af48d
+2026-10-12T10:17:02.536Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.6ms (worker hop, next() included) key=b1b0d8fe-00f1-468e-aeec-6a9b074ce872
+2026-10-12T10:17:02.536Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.6ms (worker hop, next() included) key=collapsed-236cc43d-6b9a-4742-840d-8382e2ed8971
+2026-10-12T10:17:02.536Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.6ms (worker hop, next() included) key=333e46c7-88f1-4c36-aa5c-6b21e9173332
+2026-10-12T10:17:02.536Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.6ms (worker hop, next() included) key=bf4966fc-87c8-4039-951c-e78b0b1ecfe9
+2026-10-12T10:17:02.536Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.6ms (worker hop, next() included) key=c5f16593-bcd1-4d68-96da-38c3c09299a5
+2026-10-12T10:17:02.536Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.4ms (worker hop, next() included) key=prompt-hint
+2026-10-12T10:17:02.538Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.0ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:17:02.540Z [DEBUG] $.ui.status (chat-toc): (cleared)
+2026-10-12T10:17:02.541Z [DEBUG] hooks module chat-toc@inline session.start settled in 27.6ms (worker hop, next() included)
+2026-10-12T10:17:02.548Z [DEBUG] type root of chat-toc at <tmp> entries claude-code, claude-code-tools, claude-code-mcp; wrote nothing
+2026-10-12T10:17:02.548Z [DEBUG] [chat-toc] $.ui.log: reloaded (11 hooks: classic.SessionStart, session.start, classic.UserPromptSubmit, command.run, ui.close, session.append, turn.start, turn.complete, ui.scroll, ui.render, ui.focus)
+2026-10-12T10:17:02.549Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.8ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:17:02.556Z [DEBUG] hooks module chat-toc@inline session.append settled in 7.3ms (worker hop, next() included)
+2026-10-12T10:17:02.569Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.7ms (worker hop, next() included) key=db04a838-f570-43ef-b26b-2b3079ec55a3
+2026-10-12T10:17:02.862Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/project (pid 30630)
+2026-10-12T10:17:02.876Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 19ms, 654 + 0 chars
+2026-10-12T10:17:02.880Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.4ms (worker hop, next() included) key=chat-toc
+2026-10-12T10:17:03.574Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"position":[[0.03,11,20],[0.03,10,20],[0.02,10,20]]}
+2026-10-12T10:17:03.574Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"read.whole":[[5.01,4.03,1,7,50,88483,1]]}
+2026-10-12T10:17:03.574Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"pane":[[0.73,1.17,14,1],[0.36,0.7,14,1]]}
+2026-10-12T10:17:03.574Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"listed":[[39.85]]}
+2026-10-12T10:17:03.574Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"read.tail":[[24.36,24.04,1,7,51,89137,0]]}
+2026-10-12T10:17:03.575Z [DEBUG] [chat-toc] $.ui.log (to debug): chat-toc-perf {"append.model":[[327.25]]}
+2026-10-12T10:17:04.418Z [DEBUG] chat-toc (user) answered ui.render without next() 14 more times in the last 10s (the last in 1.0ms)

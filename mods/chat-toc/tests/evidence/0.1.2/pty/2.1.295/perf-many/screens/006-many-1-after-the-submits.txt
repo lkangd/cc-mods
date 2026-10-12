@@ -1,0 +1,45 @@
+==== many-1 after the submits (44 rows)
+                                                                                                                             │                                          ✕
+❯ T4520 用户问题：请检查第 4520 个模块的状态，                                                                               │1: ●全部 2: ○用户 3: ○Agent  l: 布局:卡片
+  并说明下一步该做什么。                                                                                                     │  ↳ 2 步
+                                                                                                                             │    T4519 回复： 第 1 行说明：模块 4519 的检
+  Ran 3 shell commands                                                                                                       │    查结果正常，没有发现需要处理的问题。 第…
+                                                                                                                             │
+⏺ T4520 回复：                                                                                                               │  你 · 10月11日 10:55
+  第 1 行说明：模块 4520 的检查结果正常，没有发现需要处理的问题。                                                            │  T4520 用户问题：请检查第 4520 个模块的状态
+  第 2 行说明：模块 4520 的检查结果正常，没有发现需要处理的问题。                                                            │  ， 并说明下一步该做什么。
+  第 3 行说明：模块 4520 的检查结果正常，没有发现需要处理的问题。                                                            │  ↳ 3 步
+  第 4 行说明：模块 4520 的检查结果正常，没有发现需要处理的问题。                                                            │    T4520 回复： 第 1 行说明：模块 4520 的检
+                                                                                                                             │    查结果正常，没有发现需要处理的问题。 第…
+⏺ chat-toc: reloaded (11 hooks: classic.SessionStart, session.start, classic.UserPromptSubmit, command.run, ui.close,        │
+  session.append, turn.start, turn.complete, ui.scroll, ui.render, ui.focus)                                                 │  你 · 10月12日 18:53
+                                                                                                                             │  CT-PERF 追加的合成 prompt 0
+❯ CT-PERF 追加的合成 prompt 0                                                                                                │  ↳ 出错
+  ⎿  Not logged in · Please run /login                                                                                       │    Not logged in · Please run /login
+                                                                                                                             │
+✻ Churned for 0s · done 6:53 PM                                                                                              │  你 · 10月12日 18:53
+                                                                                                                             │  CT-PERF 追加的合成 prompt 1
+❯ CT-PERF 追加的合成 prompt 1                                                                                                │  ↳ 出错
+  ⎿  Not logged in · Please run /login                                                                                       │    Not logged in · Please run /login
+                                                                                                                             │
+✻ Cogitated for 0s · done 6:53 PM                                                                                            │  你 · 10月12日 18:53
+                                                                                                                             │  CT-PERF 追加的合成 prompt 2
+❯ CT-PERF 追加的合成 prompt 2                                                                                                │  ↳ 出错
+  ⎿  Not logged in · Please run /login                                                                                       │    Not logged in · Please run /login
+                                                                                                                             │
+✻ Worked for 0s · done 6:53 PM                                                                                               │  你 · 10月12日 18:53
+                                                                                                                             │  CT-PERF 追加的合成 prompt 3
+❯ CT-PERF 追加的合成 prompt 3                                                                                                │  ↳ 出错
+  ⎿  Not logged in · Please run /login                                                                                       │    Not logged in · Please run /login
+                                                                                                                             │
+✻ Sautéed for 0s · done 6:53 PM                                                                                              │▌ 你 · 10月12日 18:53
+                                                                                                                             │▌ CT-PERF 追加的合成 prompt 4
+❯ CT-PERF 追加的合成 prompt 4                                                                                                │▌ ↳ 出错
+  ⎿  Not logged in · Please run /login                                                                                       │▌   Not logged in · Please run /login
+                                                                                                                             │
+✻ Churned for 0s · done 6:53 PM                                                                                              │
+                                                                                                 Not logged in · Run /login  │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

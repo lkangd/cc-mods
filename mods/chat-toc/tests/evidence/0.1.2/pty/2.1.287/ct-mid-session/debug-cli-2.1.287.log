@@ -1,0 +1,487 @@
+2026-10-12T09:44:22.116Z [DEBUG] MDM settings load completed in 0ms
+2026-10-12T09:44:22.121Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /Library/Application Support/ClaudeCode/managed-settings.json
+2026-10-12T09:44:22.163Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude/settings.json
+2026-10-12T09:44:22.164Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude/settings.local.json
+2026-10-12T09:44:22.164Z [DEBUG] CA certs: Config fallback - globalEnv keys: , settingsEnv keys: none
+2026-10-12T09:44:22.166Z [DEBUG] [init] configureGlobalMTLS starting
+2026-10-12T09:44:22.166Z [DEBUG] [init] configureGlobalMTLS complete
+2026-10-12T09:44:22.166Z [DEBUG] [init] configureGlobalAgents starting
+2026-10-12T09:44:22.166Z [DEBUG] CA certs: stores=bundled,system, extraCertsPath=undefined
+2026-10-12T09:44:22.166Z [DEBUG] CA certs: Loaded 121 bundled root certificates
+2026-10-12T09:44:22.182Z [DEBUG] CA certs: Dropped 1 expired certificate(s) from system store
+2026-10-12T09:44:22.183Z [DEBUG] CA certs: Loaded 2 system CA certificates
+2026-10-12T09:44:22.183Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-10-12T09:44:22.183Z [DEBUG] [init] configureGlobalAgents complete
+2026-10-12T09:44:22.184Z [DEBUG] Error log sink initialized
+2026-10-12T09:44:22.190Z [DEBUG] [Claude in Chrome] Disabled: OAuth token has no scope accepted by /api/oauth/validate (needs user:profile, user:office, or user:ccr_inference; env-var and setup-token sessions default to user:inference only)
+2026-10-12T09:44:22.192Z [DEBUG] [ToolSearch:optimistic] mode=tst, ENABLE_TOOL_SEARCH=undefined, result=true
+2026-10-12T09:44:22.281Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-10-12T09:44:22.282Z [DEBUG] [STARTUP] Running setup()...
+2026-10-12T09:44:22.287Z [DEBUG] Loading skills from: managed=/Library/Application Support/ClaudeCode/.claude/skills, user=<tmp>/home/.claude/skills, project=[]
+2026-10-12T09:44:22.288Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/agents: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/agents'
+2026-10-12T09:44:22.288Z [DEBUG] Failed to stat directory <tmp>/home/.claude/agents: ENOENT: no such file or directory, stat '<tmp>/home/.claude/agents'
+2026-10-12T09:44:22.288Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/commands: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/commands'
+2026-10-12T09:44:22.288Z [DEBUG] Failed to stat directory <tmp>/home/.claude/commands: ENOENT: no such file or directory, stat '<tmp>/home/.claude/commands'
+2026-10-12T09:44:22.289Z [DEBUG] Loaded 0 unique skills (0 unconditional, 0 conditional, managed: 0, user: 0, project: 0, additional: 0, legacy commands: 0)
+2026-10-12T09:44:22.293Z [DEBUG] Loaded 1 installed plugins from <tmp>/home/.claude/plugins/installed_plugins.json
+2026-10-12T09:44:22.298Z [INFO] [uds-messaging] Listening: /tmp/cc-socks/90474.sock
+2026-10-12T09:44:22.298Z [INFO] [uds-messaging] Inject messages (auth line optional here): { echo '{"type":"auth","token":"[REDACTED]"$CLAUDE_CODE_MESSAGING_TOKEN"'"}'; echo '{"type":"user","message":{"role":"user","content":"hello"}}'; } | socat - UNIX-CONNECT:/tmp/cc-socks/90474.sock
+2026-10-12T09:44:22.298Z [INFO] [uds-messaging] Connect when the data is ready (e.g. out=$(cmd); printf '%s\n' "$out" | nc -U "$CLAUDE_CODE_MESSAGING_SOCKET" — or the socat form above): a connection that sends no complete line within 30000 ms is closed
+2026-10-12T09:44:22.298Z [DEBUG] Error log sink initialized
+2026-10-12T09:44:22.299Z [DEBUG] Read hooks.json for plugin chat-toc (enabled=false; will NOT register, plugin is disabled): <tmp>
+2026-10-12T09:44:22.299Z [DEBUG] [STARTUP] setup() completed in 17ms
+2026-10-12T09:44:22.300Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-10-12T09:44:22.303Z [DEBUG] Found 4 plugins (3 enabled, 1 disabled)
+2026-10-12T09:44:22.304Z [DEBUG] getPluginSkills: Processing 3 enabled plugins
+2026-10-12T09:44:22.304Z [DEBUG] Checking plugin cc-plugin-agents-md: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:22.304Z [DEBUG] Checking plugin cc-plugin-plugin-authoring: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:22.304Z [DEBUG] Checking plugin cc-plugin-diff: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:22.304Z [DEBUG] Total plugin workflows loaded: 0
+2026-10-12T09:44:22.304Z [DEBUG] cc-plugin-sec-default@builtin not seated: no managed settings and not a Team or Enterprise organization (none)
+2026-10-12T09:44:22.305Z [DEBUG] Total plugin commands loaded: 0
+2026-10-12T09:44:22.305Z [DEBUG] Total plugin skills loaded: 0 (0 duplicate/user-owned entries skipped)
+2026-10-12T09:44:22.305Z [DEBUG] Total plugin agents loaded: 0
+2026-10-12T09:44:22.306Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 39 bundled skills, 1 builtin plugin skills
+2026-10-12T09:44:22.309Z [DEBUG] [STARTUP] Commands and agents loaded in 9ms
+2026-10-12T09:44:22.312Z [DEBUG] [STARTUP] Running showSetupScreens()...
+2026-10-12T09:44:22.314Z [DEBUG] plugin cc-plugin-agents-md: no pluginConfigs["agents-md@builtin" or "cc-plugin-agents-md@builtin"].options in user, --settings or managed settings (project settings are not read); every option is its default
+2026-10-12T09:44:22.315Z [DEBUG] hooks module cc-plugin-agents-md@builtin loaded (native, environment 1, tier builtin); events: session.start,prompt.context,agent.spawn,tool.call
+2026-10-12T09:44:22.316Z [DEBUG] hooks module cc-plugin-diff@builtin loaded (native, environment 2, tier builtin); events: session.start,ui.render,command.run,ui.close,ui.focus,ui.scroll,tool.call,prompt.submit
+2026-10-12T09:44:22.316Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for cc-plugin-agents-md,cc-plugin-diff
+2026-10-12T09:44:22.317Z [DEBUG] plugin.register: cc-plugin-agents-md (builtin, cc-plugin-agents-md@builtin), judged by core alone: admitted
+2026-10-12T09:44:22.317Z [DEBUG] plugin.register: cc-plugin-diff (builtin, cc-plugin-diff@builtin), judged by core alone: admitted
+2026-10-12T09:44:22.318Z [DEBUG] Registered 0 hooks from 3 plugins
+2026-10-12T09:44:22.318Z [DEBUG] Cleared mTLS configuration cache
+2026-10-12T09:44:22.318Z [DEBUG] Cleared proxy agent cache
+2026-10-12T09:44:22.318Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-10-12T09:44:22.319Z [DEBUG] [STARTUP] showSetupScreens() completed in 7ms
+2026-10-12T09:44:22.319Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-10-12T09:44:22.319Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-10-12T09:44:22.319Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-10-12T09:44:22.319Z [DEBUG] Starting background startup prefetches
+2026-10-12T09:44:22.320Z [DEBUG] [Bootstrap] Skipped: Nonessential traffic disabled
+2026-10-12T09:44:22.340Z [DEBUG] [STARTUP] MCP configs resolved in 24ms (awaited at +59ms)
+2026-10-12T09:44:22.343Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:22.344Z [DEBUG] All plugins already exist, skipping migration
+2026-10-12T09:44:22.344Z [DEBUG] Total LSP servers loaded: 0
+2026-10-12T09:44:22.344Z [DEBUG] Initialized versioned plugins system with 1 plugins
+2026-10-12T09:44:22.344Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-10-12T09:44:22.344Z [DEBUG] LSP manager initialized with 0 servers
+2026-10-12T09:44:22.344Z [DEBUG] LSP server manager initialized successfully
+2026-10-12T09:44:22.345Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-10-12T09:44:22.367Z [DEBUG] [keybindings] KeybindingSetup initialized with 217 bindings, 0 warnings
+2026-10-12T09:44:22.375Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:22.384Z [DEBUG] [engine] send set_max_thinking_tokens max=null
+2026-10-12T09:44:22.384Z [DEBUG] [engine] send set_model model=claude-opus-5-5
+2026-10-12T09:44:22.386Z [DEBUG] prompt.edit: unhooked; the composer relays nothing
+2026-10-12T09:44:22.389Z [DEBUG] [claudeai-mcp] Disabled: API-key auth precedence active
+2026-10-12T09:44:22.389Z [DEBUG] performStartupChecks called
+2026-10-12T09:44:22.391Z [DEBUG] [jobStateNameSync] watch skipped: Error: ENOENT: no such file or directory, watch '<tmp>/home/.claude/jobs/a0256f0a'
+2026-10-12T09:44:22.392Z [DEBUG] [REPL:mount] REPL mounted, disabled=false
+2026-10-12T09:44:22.393Z [DEBUG] [ScheduledTasks] scheduler start() — enabled=false, hasTasks=false
+2026-10-12T09:44:22.394Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude/settings.json
+2026-10-12T09:44:22.394Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude/settings.local.json
+2026-10-12T09:44:22.395Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /Library/Application Support/ClaudeCode/managed-settings.json
+2026-10-12T09:44:22.401Z [DEBUG] [servedCatalog] off (essential_traffic)
+2026-10-12T09:44:22.407Z [DEBUG] Starting background plugin installations
+2026-10-12T09:44:22.407Z [DEBUG] session.start: raised (surface terminal, interactive)
+2026-10-12T09:44:22.408Z [DEBUG] [auto-mode] verifyAutoModeGateAccess: enabledState=enabled disabledBySettings=false model=claude-opus-5-5 modelSupported=true disableFastModeBreakerFires=false carouselAvailable=true canEnterAuto=true
+2026-10-12T09:44:22.408Z [DEBUG] performBackgroundPluginInstallations called
+2026-10-12T09:44:22.410Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 10.4ms (native link, next() included)
+2026-10-12T09:44:22.411Z [DEBUG] $.command.register (cc-plugin-diff): /diff listed
+2026-10-12T09:44:22.414Z [DEBUG] hooks module cc-plugin-diff@builtin session.start settled in 6.1ms (native link, next() included)
+2026-10-12T09:44:22.414Z [DEBUG] hooks module cc-plugin-agents-md@builtin session.start settled in 6.2ms (native link, next() included)
+2026-10-12T09:44:22.415Z [DEBUG] [keybindings] Watching for changes to <tmp>/home/.claude/keybindings.json
+2026-10-12T09:44:22.415Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:22.415Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:22.416Z [DEBUG] memory index backfill: ENOENT: no such file or directory, scandir '<tmp>/home/.claude/projects/-private-var-folders-nh-5vhmfmd556j33t3g996v6c080000gn-T-ctoc-hneb0vop----a-b-c-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-lon-37ws2t/memory/'
+2026-10-12T09:44:22.416Z [DEBUG] No CLAUDE.md/rules files found
+2026-10-12T09:44:22.425Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:22.427Z [DEBUG] [Perfetto] initializePerfettoTracing called, env value: undefined
+2026-10-12T09:44:22.427Z [DEBUG] [3P telemetry] isTelemetryEnabled=false (CLAUDE_CODE_ENABLE_TELEMETRY=undefined)
+2026-10-12T09:44:22.431Z [DEBUG] [3P telemetry] Event dropped (no event logger initialized): plugin_loaded
+2026-10-12T09:44:22.436Z [DEBUG] [FileIndex] getProjectFiles called, respectGitignore=true
+2026-10-12T09:44:22.436Z [DEBUG] [FileIndex] getFilesUsingGit called
+2026-10-12T09:44:22.436Z [DEBUG] [FileIndex] not a git repo, returning null
+2026-10-12T09:44:22.436Z [DEBUG] [FileIndex] git ls-files returned null, falling back to ripgrep
+2026-10-12T09:44:22.437Z [DEBUG] Git remote URL: null
+2026-10-12T09:44:22.437Z [DEBUG] No git remote URL found
+2026-10-12T09:44:22.439Z [DEBUG] XTVERSION: no reply (terminal ignored query)
+2026-10-12T09:44:22.439Z [DEBUG] Terminal capabilities: extendedKeys=no (env: terminal=xterm-256color, no answer); synchronizedOutput=no (env: no known terminal, no answer); kittyKeyboard=no (probe: no reply to CSI ? u); kittyGraphics=no (env: terminal=xterm-256color, not asked yet, no answer); mousePixels=no (env: terminal=xterm-256color, not asked yet, no answer); terminal said: no reply to CSI ? u; DECRQM 2026 not asked (no XTVERSION reply)
+2026-10-12T09:44:22.439Z [DEBUG] DECSTBM: gated (TMUX=unset ZELLIJ=unset TERM_PROGRAM=unset TERM=xterm-256color)
+2026-10-12T09:44:22.439Z [DEBUG] Keeping <tmp>/home/.claude/plugins/cache/ctmid/chat-toc: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-10-12T09:44:22.441Z [DEBUG] Failed to stat directory <tmp>/home/.claude/routines: ENOENT: no such file or directory, stat '<tmp>/home/.claude/routines'
+2026-10-12T09:44:22.441Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/routines: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/routines'
+2026-10-12T09:44:22.441Z [DEBUG] Failed to stat directory <tmp>/home/.claude/workflows: ENOENT: no such file or directory, stat '<tmp>/home/.claude/workflows'
+2026-10-12T09:44:22.441Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/workflows: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/workflows'
+2026-10-12T09:44:22.441Z [DEBUG] Failed to stat directory <tmp>/home/.claude/skills: ENOENT: no such file or directory, stat '<tmp>/home/.claude/skills'
+2026-10-12T09:44:22.441Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/skills: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/skills'
+2026-10-12T09:44:22.442Z [DEBUG] Failed to stat directory <tmp>/home/.claude/output-styles: ENOENT: no such file or directory, stat '<tmp>/home/.claude/output-styles'
+2026-10-12T09:44:22.442Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/output-styles: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/output-styles'
+2026-10-12T09:44:22.443Z [DEBUG] Loaded plugins - Enabled: 3, Disabled: 1, Commands: 0, Agents: 0, Errors: 0
+2026-10-12T09:44:22.443Z [DEBUG] Plugin autoupdate: command-source refresh disabled by tengu_plugin_command_source_refresh (still excluding command-sourced plugins from the regular pass)
+2026-10-12T09:44:22.444Z [DEBUG] Keeping <tmp>/home/.claude/plugins/cache/ctmid: it still holds a directory, a symlink, a versioned archive or an entry of unknown type
+2026-10-12T09:44:22.444Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:22.444Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.6794e1593d0b
+2026-10-12T09:44:22.445Z [DEBUG] Watching <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment- for <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude to appear
+2026-10-12T09:44:22.445Z [DEBUG] Watching for changes in setting files <tmp>/home/.claude/settings.json, /Library/Application Support/ClaudeCode/managed-settings.json...
+2026-10-12T09:44:22.447Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:22.450Z [DEBUG] Ripgrep first use test: PASSED (mode=embedded, path=<npx>/node_modules/@anthropic-ai/claude-code/bin/claude.exe)
+2026-10-12T09:44:22.450Z [DEBUG] [FileIndex] ripgrep: 0 files in 14ms
+2026-10-12T09:44:22.450Z [DEBUG] [FileIndex] cache refresh completed in 14ms
+2026-10-12T09:44:22.450Z [DEBUG] Temp file written successfully, size: 813 bytes
+2026-10-12T09:44:22.450Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.6794e1593d0b to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:22.451Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T09:44:22.454Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:22.454Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.42162920d47e
+2026-10-12T09:44:22.454Z [DEBUG] $.fs.ancestors (cc-plugin-agents-md): CLAUDE.md, .claude/CLAUDE.md, CLAUDE.local.md found 0 of 9 directories
+2026-10-12T09:44:22.455Z [DEBUG] Git remote URL: null
+2026-10-12T09:44:22.455Z [DEBUG] No git remote URL found
+2026-10-12T09:44:22.455Z [DEBUG] Not in a GitHub repository, skipping path mapping update
+2026-10-12T09:44:22.455Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:22.455Z [DEBUG] Temp file written successfully, size: 854 bytes
+2026-10-12T09:44:22.455Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.42162920d47e to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:22.455Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T09:44:22.456Z [DEBUG] $.fs.ancestors (cc-plugin-agents-md): AGENTS.md, .claude/AGENTS.md found 0 of 9 directories
+2026-10-12T09:44:22.456Z [DEBUG] hooks module cc-plugin-agents-md@builtin prompt.context settled in 38.2ms (native link, next() included)
+2026-10-12T09:44:22.456Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:22.457Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.00e9f14c6881
+2026-10-12T09:44:22.457Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:22.457Z [DEBUG] Temp file written successfully, size: 891 bytes
+2026-10-12T09:44:22.457Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.00e9f14c6881 to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:22.457Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T09:44:22.458Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:22.458Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.61fe196175b7
+2026-10-12T09:44:22.458Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:22.458Z [DEBUG] Temp file written successfully, size: 927 bytes
+2026-10-12T09:44:22.458Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.61fe196175b7 to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:22.458Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T09:44:22.459Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:22.459Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.aa42c8ddc4ab
+2026-10-12T09:44:22.459Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:22.459Z [DEBUG] Temp file written successfully, size: 1000 bytes
+2026-10-12T09:44:22.459Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.aa42c8ddc4ab to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:22.460Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T09:44:22.460Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:22.460Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.4c8769cac313
+2026-10-12T09:44:22.460Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:22.460Z [DEBUG] Temp file written successfully, size: 1424 bytes
+2026-10-12T09:44:22.460Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.4c8769cac313 to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:22.461Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T09:44:22.756Z [DEBUG] [fs.watch probe] verdict: delivers
+2026-10-12T09:44:25.321Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 2.2ms (native link, next() included)
+2026-10-12T09:44:25.321Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 1.1ms (native link, next() included)
+2026-10-12T09:44:25.734Z [DEBUG] Plugin autoupdate: skipped (auto-updater disabled)
+2026-10-12T09:44:25.738Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-10-12T09:44:25.738Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-10-12T09:44:25.738Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-10-12T09:44:25.739Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-10-12T09:44:25.739Z [DEBUG] Total plugin output styles loaded: 0
+2026-10-12T09:44:25.740Z [DEBUG] Sending 13 skills via attachment (initial)
+2026-10-12T09:44:25.743Z [DEBUG] FileHistory: Added snapshot for 46a6f429-e985-4f9f-a2e9-f1d755bdf036, tracking 0 files
+2026-10-12T09:44:25.748Z [DEBUG] act_dont_rederive_arm_active source=growthbook
+2026-10-12T09:44:25.751Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.287.ee4; cc_entrypoint=cli; cch=00000;
+2026-10-12T09:44:25.752Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:25.752Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:25.753Z [DEBUG] hooks module cc-plugin-diff@builtin prompt.submit settled in 11.2ms (native link, next() included)
+2026-10-12T09:44:25.756Z [DEBUG] [engine] yield system/init (first)
+2026-10-12T09:44:25.756Z [DEBUG] [engine] turn 1 start
+2026-10-12T09:44:25.760Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-10-12T09:44:25.768Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:25.768Z [DEBUG] [API:timing] dispatching to firstParty model=claude-haiku-4-5-20251001
+2026-10-12T09:44:25.769Z [ERROR] API error (attempt 1/11): Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:25.769Z [ERROR] Error in API request: Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:25.770Z [ERROR] API error x-client-request-id=0a99bbe0-9ed0-4754-a7d4-3d71e7c84ed3 (give this to the API team for server-log lookup)
+2026-10-12T09:44:25.770Z [ERROR] API invalid_api_key: [REDACTED] not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:25.782Z [DEBUG] Started caffeinate to prevent sleep
+2026-10-12T09:44:25.786Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 3.0ms (native link, next() included)
+2026-10-12T09:44:25.786Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 1.2ms (native link, next() included)
+2026-10-12T09:44:25.793Z [DEBUG] Dynamic tool loading: 0/12 deferred tools included
+2026-10-12T09:44:25.794Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.287.085; cc_entrypoint=cli; cch=00000; cc_prompt_id=f07d7efb-cfb1-486e-9d5b-f71d9e569e5a; cc_turn_origin=human; cc_prompt_index=1; cc_turn_index=1;
+2026-10-12T09:44:25.794Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:25.795Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:25.796Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:25.797Z [DEBUG] [API:timing] dispatching to firstParty model=claude-opus-5-5
+2026-10-12T09:44:25.797Z [ERROR] API error (attempt 1/11): Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:25.797Z [ERROR] Error in API request: Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:25.797Z [ERROR] API error x-client-request-id=112c14ab-26ad-4085-9077-8279a38e16d2 (give this to the API team for server-log lookup)
+2026-10-12T09:44:25.797Z [ERROR] API invalid_api_key: [REDACTED] not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:25.799Z [DEBUG] [engine] turn 1 end (turns=1 usage in=0 out=0 cost=$0.0000 api=0ms stop=stop_sequence resultLen=0)
+2026-10-12T09:44:25.799Z [ERROR] [engine] turn ended in error: Not logged in · Please run /login
+2026-10-12T09:44:25.802Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:25.802Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:25.812Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 2.3ms (native link, next() included)
+2026-10-12T09:44:25.812Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 1.4ms (native link, next() included)
+2026-10-12T09:44:25.815Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:25.815Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.164eb9a22c09
+2026-10-12T09:44:25.815Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:25.816Z [DEBUG] Temp file written successfully, size: 1533 bytes
+2026-10-12T09:44:25.816Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.164eb9a22c09 to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:25.816Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T09:44:25.935Z [DEBUG] Registered claude-cli:// protocol handler at <tmp>/home/Applications/Claude Code URL Handler.app
+2026-10-12T09:44:25.936Z [DEBUG] Auto-registered claude-cli:// deep link protocol handler
+2026-10-12T09:44:26.719Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 1.3ms (native link, next() included)
+2026-10-12T09:44:26.719Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.8ms (native link, next() included)
+2026-10-12T09:44:27.142Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-10-12T09:44:27.142Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-10-12T09:44:27.142Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-10-12T09:44:27.143Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-10-12T09:44:27.144Z [DEBUG] FileHistory: Making snapshot for message 06a4b825-862b-46d7-b2a2-a62d74466014
+2026-10-12T09:44:27.145Z [DEBUG] FileHistory: Added snapshot for 06a4b825-862b-46d7-b2a2-a62d74466014, tracking 0 files
+2026-10-12T09:44:27.146Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.287.a9c; cc_entrypoint=cli; cch=00000;
+2026-10-12T09:44:27.146Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:27.147Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:27.147Z [DEBUG] hooks module cc-plugin-diff@builtin prompt.submit settled in 3.3ms (native link, next() included)
+2026-10-12T09:44:27.147Z [DEBUG] [engine] turn 2 start
+2026-10-12T09:44:27.148Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-10-12T09:44:27.151Z [DEBUG] Dynamic tool loading: 0/12 deferred tools included
+2026-10-12T09:44:27.152Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.287.085; cc_entrypoint=cli; cch=00000; cc_prompt_id=41cb987f-de9a-4a67-ba3e-7b8828430c98; cc_turn_origin=human; cc_prompt_index=2; cc_turn_index=2;
+2026-10-12T09:44:27.152Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:27.153Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:27.163Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 2.6ms (native link, next() included)
+2026-10-12T09:44:27.163Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 1.4ms (native link, next() included)
+2026-10-12T09:44:27.164Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:27.164Z [DEBUG] [API:timing] dispatching to firstParty model=claude-opus-5-5
+2026-10-12T09:44:27.164Z [ERROR] API error (attempt 1/11): Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:27.165Z [ERROR] Error in API request: Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:27.165Z [ERROR] API error x-client-request-id=3b25ec0b-4684-4f16-9d5d-68ef97c8ed62 (give this to the API team for server-log lookup)
+2026-10-12T09:44:27.165Z [ERROR] API invalid_api_key: [REDACTED] not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:27.166Z [DEBUG] [engine] turn 2 end (turns=1 usage in=0 out=0 cost=$0.0000 api=0ms stop=stop_sequence resultLen=0)
+2026-10-12T09:44:27.166Z [ERROR] [engine] turn ended in error: Not logged in · Please run /login
+2026-10-12T09:44:27.167Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:27.167Z [DEBUG] [API:timing] dispatching to firstParty model=claude-haiku-4-5-20251001
+2026-10-12T09:44:27.168Z [ERROR] API error (attempt 1/11): Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:27.168Z [ERROR] Error in API request: Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:27.168Z [ERROR] API error x-client-request-id=3ad6f993-2605-4012-a00f-468f42012df4 (give this to the API team for server-log lookup)
+2026-10-12T09:44:27.168Z [ERROR] API invalid_api_key: [REDACTED] not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:27.168Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:27.168Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:27.174Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 1.0ms (native link, next() included)
+2026-10-12T09:44:27.174Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.4ms (native link, next() included)
+2026-10-12T09:44:27.176Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:27.176Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.a56e76a58db0
+2026-10-12T09:44:27.176Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:27.176Z [DEBUG] Temp file written successfully, size: 1609 bytes
+2026-10-12T09:44:27.176Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.a56e76a58db0 to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:27.177Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T09:44:27.446Z [WARN] Official marketplace GCS fetch failed: Socket is closed
+2026-10-12T09:44:27.447Z [DEBUG] Attempting to auto-install official marketplace
+2026-10-12T09:44:28.148Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 1.6ms (native link, next() included)
+2026-10-12T09:44:28.148Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.8ms (native link, next() included)
+2026-10-12T09:44:28.546Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-10-12T09:44:28.546Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-10-12T09:44:28.546Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-10-12T09:44:28.546Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-10-12T09:44:28.547Z [DEBUG] FileHistory: Making snapshot for message ef294043-147f-4086-9d62-edf1dd74f8fe
+2026-10-12T09:44:28.548Z [DEBUG] FileHistory: Added snapshot for ef294043-147f-4086-9d62-edf1dd74f8fe, tracking 0 files
+2026-10-12T09:44:28.548Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.287.ccf; cc_entrypoint=cli; cch=00000;
+2026-10-12T09:44:28.549Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:28.549Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:28.549Z [DEBUG] hooks module cc-plugin-diff@builtin prompt.submit settled in 2.2ms (native link, next() included)
+2026-10-12T09:44:28.549Z [DEBUG] [engine] turn 3 start
+2026-10-12T09:44:28.550Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=980000
+2026-10-12T09:44:28.552Z [DEBUG] Dynamic tool loading: 0/12 deferred tools included
+2026-10-12T09:44:28.553Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.287.085; cc_entrypoint=cli; cch=00000; cc_prompt_id=44038006-27e9-4ad0-a0ea-46aca424582e; cc_turn_origin=human; cc_prompt_index=3; cc_turn_index=3;
+2026-10-12T09:44:28.553Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:28.553Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:28.562Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 2.3ms (native link, next() included)
+2026-10-12T09:44:28.562Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 1.2ms (native link, next() included)
+2026-10-12T09:44:28.562Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:28.562Z [DEBUG] [API:timing] dispatching to firstParty model=claude-haiku-4-5-20251001
+2026-10-12T09:44:28.563Z [ERROR] API error (attempt 1/11): Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:28.563Z [ERROR] Error in API request: Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:28.563Z [ERROR] API error x-client-request-id=66ec7ce1-0527-4146-9692-e37ed02e71b0 (give this to the API team for server-log lookup)
+2026-10-12T09:44:28.563Z [ERROR] API invalid_api_key: [REDACTED] not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:28.563Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-12T09:44:28.564Z [DEBUG] [API:timing] dispatching to firstParty model=claude-opus-5-5
+2026-10-12T09:44:28.564Z [ERROR] API error (attempt 1/11): Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:28.564Z [ERROR] Error in API request: Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:28.564Z [ERROR] API error x-client-request-id=2824dda1-8f56-4338-bdf1-fe9da53e6606 (give this to the API team for server-log lookup)
+2026-10-12T09:44:28.564Z [ERROR] API invalid_api_key: [REDACTED] not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for one of the "X-Api-Key" or "Authorization" headers to be explicitly omitted
+2026-10-12T09:44:28.565Z [DEBUG] [engine] turn 3 end (turns=1 usage in=0 out=0 cost=$0.0000 api=0ms stop=stop_sequence resultLen=0)
+2026-10-12T09:44:28.565Z [ERROR] [engine] turn ended in error: Not logged in · Please run /login
+2026-10-12T09:44:28.566Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:28.566Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:28.572Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 1.2ms (native link, next() included)
+2026-10-12T09:44:28.572Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.4ms (native link, next() included)
+2026-10-12T09:44:28.574Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:28.574Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.384020b5361c
+2026-10-12T09:44:28.575Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:28.575Z [DEBUG] Temp file written successfully, size: 1770 bytes
+2026-10-12T09:44:28.575Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.384020b5361c to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:28.576Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T09:44:30.453Z [DEBUG] SSH config check: code=1 configured=false
+2026-10-12T09:44:30.453Z [INFO] SSH not configured for GitHub, using HTTPS for anthropics/claude-plugins-official
+2026-10-12T09:44:30.455Z [DEBUG] Marketplace checkout probe: no readable HEAD, cloning
+2026-10-12T09:44:30.470Z [DEBUG] git clone: url=https://github.com/anthropics/claude-plugins-official.git ref=default timeout=120000ms
+2026-10-12T09:44:30.765Z [DEBUG] Detected change to <tmp>/home/.claude/settings.json
+2026-10-12T09:44:30.767Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /Library/Application Support/ClaudeCode/managed-settings.json
+2026-10-12T09:44:30.769Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude/settings.json
+2026-10-12T09:44:30.769Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude/settings.local.json
+2026-10-12T09:44:30.770Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude/settings.json
+2026-10-12T09:44:30.771Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude/settings.local.json
+2026-10-12T09:44:30.771Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /Library/Application Support/ClaudeCode/managed-settings.json
+2026-10-12T09:44:30.771Z [DEBUG] Settings changed from userSettings, updating app state
+2026-10-12T09:44:30.772Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /Library/Application Support/ClaudeCode/managed-settings.json
+2026-10-12T09:44:30.773Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude/settings.json
+2026-10-12T09:44:30.773Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-/.claude/settings.local.json
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all allow rules for destination 'userSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all deny rules for destination 'userSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all ask rules for destination 'userSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all allow rules for destination 'projectSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all deny rules for destination 'projectSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all ask rules for destination 'projectSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all allow rules for destination 'localSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all deny rules for destination 'localSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all ask rules for destination 'localSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all allow rules for destination 'flagSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all deny rules for destination 'flagSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all ask rules for destination 'flagSettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all allow rules for destination 'policySettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all deny rules for destination 'policySettings' with 0 rule(s): []
+2026-10-12T09:44:30.774Z [DEBUG] Replacing all ask rules for destination 'policySettings' with 0 rule(s): []
+2026-10-12T09:44:30.793Z [DEBUG] Total plugin workflows loaded: 0
+2026-10-12T09:44:30.794Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 39 bundled skills, 1 builtin plugin skills
+2026-10-12T09:44:30.870Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 4.6ms (native link, next() included)
+2026-10-12T09:44:30.870Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 2.6ms (native link, next() included)
+2026-10-12T09:44:31.278Z [DEBUG] High write ratio: blit=0, write=2018 (100.0% writes), screen=44x170
+2026-10-12T09:44:31.279Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 2.7ms (native link, next() included)
+2026-10-12T09:44:31.279Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 1.6ms (native link, next() included)
+2026-10-12T09:44:31.281Z [DEBUG] Read hooks.json for plugin chat-toc (enabled=true): <tmp>
+2026-10-12T09:44:31.282Z [DEBUG] Found 4 plugins (4 enabled, 0 disabled)
+2026-10-12T09:44:31.282Z [DEBUG] refreshActivePlugins: clearing all plugin caches
+2026-10-12T09:44:31.282Z [DEBUG] Cleared installed plugins cache
+2026-10-12T09:44:31.283Z [DEBUG] Loaded 1 installed plugins from <tmp>/home/.claude/plugins/installed_plugins.json
+2026-10-12T09:44:31.284Z [DEBUG] Loading plugin chat-toc from source: "./chat-toc"
+2026-10-12T09:44:31.285Z [DEBUG] Read hooks.json for plugin chat-toc (enabled=true): <tmp>
+2026-10-12T09:44:31.285Z [DEBUG] Read hooks.json for plugin chat-toc (enabled=true): <tmp>
+2026-10-12T09:44:31.286Z [DEBUG] Found 4 plugins (4 enabled, 0 disabled)
+2026-10-12T09:44:31.286Z [DEBUG] Found 4 plugins (4 enabled, 0 disabled)
+2026-10-12T09:44:31.286Z [DEBUG] getPluginSkills: Processing 4 enabled plugins
+2026-10-12T09:44:31.286Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:31.286Z [DEBUG] Checking plugin cc-plugin-agents-md: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:31.286Z [DEBUG] Checking plugin cc-plugin-plugin-authoring: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:31.286Z [DEBUG] Checking plugin cc-plugin-diff: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:31.286Z [DEBUG] Total plugin commands loaded: 0
+2026-10-12T09:44:31.286Z [DEBUG] Total plugin skills loaded: 0 (0 duplicate/user-owned entries skipped)
+2026-10-12T09:44:31.286Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/agents: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/agents'
+2026-10-12T09:44:31.286Z [DEBUG] Failed to stat directory <tmp>/home/.claude/agents: ENOENT: no such file or directory, stat '<tmp>/home/.claude/agents'
+2026-10-12T09:44:31.286Z [DEBUG] Total plugin agents loaded: 0
+2026-10-12T09:44:31.288Z [DEBUG] [LSP MANAGER] reinitializeLspServerManager() called
+2026-10-12T09:44:31.288Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-10-12T09:44:31.288Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-10-12T09:44:31.288Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 2)
+2026-10-12T09:44:31.288Z [DEBUG] cc-plugin-sec-default@builtin not seated: no managed settings and not a Team or Enterprise organization (none)
+2026-10-12T09:44:31.288Z [DEBUG] Total LSP servers loaded: 0
+2026-10-12T09:44:31.288Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-10-12T09:44:31.288Z [DEBUG] LSP manager initialized with 0 servers
+2026-10-12T09:44:31.288Z [DEBUG] LSP server manager initialized successfully
+2026-10-12T09:44:31.288Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-10-12T09:44:31.291Z [DEBUG] [claudeai-mcp] Disabled: API-key auth precedence active
+2026-10-12T09:44:31.291Z [DEBUG] [FileIndex] getProjectFiles called, respectGitignore=true
+2026-10-12T09:44:31.291Z [DEBUG] [FileIndex] getFilesUsingGit called
+2026-10-12T09:44:31.291Z [DEBUG] [FileIndex] not a git repo, returning null
+2026-10-12T09:44:31.291Z [DEBUG] [FileIndex] git ls-files returned null, falling back to ripgrep
+2026-10-12T09:44:31.313Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/commands: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/commands'
+2026-10-12T09:44:31.313Z [DEBUG] Failed to stat directory <tmp>/home/.claude/commands: ENOENT: no such file or directory, stat '<tmp>/home/.claude/commands'
+2026-10-12T09:44:31.313Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/output-styles: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/output-styles'
+2026-10-12T09:44:31.313Z [DEBUG] Failed to stat directory <tmp>/home/.claude/output-styles: ENOENT: no such file or directory, stat '<tmp>/home/.claude/output-styles'
+2026-10-12T09:44:31.313Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/workflows: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/workflows'
+2026-10-12T09:44:31.313Z [DEBUG] Failed to stat directory <tmp>/home/.claude/skills: ENOENT: no such file or directory, stat '<tmp>/home/.claude/skills'
+2026-10-12T09:44:31.313Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/skills: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/skills'
+2026-10-12T09:44:31.313Z [DEBUG] Failed to stat directory <tmp>/home/.claude/workflows: ENOENT: no such file or directory, stat '<tmp>/home/.claude/workflows'
+2026-10-12T09:44:31.313Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/routines: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/routines'
+2026-10-12T09:44:31.313Z [DEBUG] Failed to stat directory <tmp>/home/.claude/routines: ENOENT: no such file or directory, stat '<tmp>/home/.claude/routines'
+2026-10-12T09:44:31.314Z [DEBUG] [FileIndex] ripgrep: 0 files in 22ms
+2026-10-12T09:44:31.314Z [DEBUG] [FileIndex] skipped index rebuild — tracked paths unchanged
+2026-10-12T09:44:31.314Z [DEBUG] [FileIndex] cache refresh completed in 23ms
+2026-10-12T09:44:31.362Z [DEBUG] plugin cc-plugin-agents-md: no pluginConfigs["agents-md@builtin" or "cc-plugin-agents-md@builtin"].options in user, --settings or managed settings (project settings are not read); every option is its default
+2026-10-12T09:44:31.362Z [DEBUG] hooks worker spawned (one for every plugin)
+2026-10-12T09:44:31.396Z [DEBUG] hooks module chat-toc@ctmid loaded (worker, environment 3, tier user); events: classic.SessionStart,session.start,classic.UserPromptSubmit,command.run,ui.close,session.append,turn.start,turn.complete,ui.scroll,ui.render,ui.focus
+2026-10-12T09:44:31.396Z [DEBUG] hooks modules kept as loaded, unchanged: cc-plugin-agents-md, cc-plugin-diff
+2026-10-12T09:44:31.397Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for chat-toc
+2026-10-12T09:44:31.397Z [DEBUG] plugin.register: chat-toc (user, chat-toc@ctmid), judged by core alone: admitted
+2026-10-12T09:44:31.399Z [DEBUG] session.start: raised for chat-toc (loaded later)
+2026-10-12T09:44:31.399Z [DEBUG] Total plugin workflows loaded: 0
+2026-10-12T09:44:31.399Z [DEBUG] Registered 0 hooks from 4 plugins
+2026-10-12T09:44:31.399Z [DEBUG] refreshActivePlugins: 4 enabled, 0 commands, 0 skills, 6 agents, 0 hooks, 0 MCP, 0 LSP
+2026-10-12T09:44:31.399Z [DEBUG] getPluginSkills: Processing 4 enabled plugins
+2026-10-12T09:44:31.399Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:31.399Z [DEBUG] Checking plugin cc-plugin-agents-md: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:31.399Z [DEBUG] Checking plugin cc-plugin-plugin-authoring: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:31.399Z [DEBUG] Checking plugin cc-plugin-diff: skillsPath=none, skillsPaths=0 paths
+2026-10-12T09:44:31.399Z [DEBUG] Total plugin workflows loaded: 0
+2026-10-12T09:44:31.400Z [DEBUG] Total plugin commands loaded: 0
+2026-10-12T09:44:31.400Z [DEBUG] FileHistory: Making snapshot for message d95143de-700d-4a64-af7e-09a4a075837a
+2026-10-12T09:44:31.400Z [DEBUG] FileHistory: Added snapshot for d95143de-700d-4a64-af7e-09a4a075837a, tracking 0 files
+2026-10-12T09:44:31.401Z [DEBUG] Loading skills from: managed=/Library/Application Support/ClaudeCode/.claude/skills, user=<tmp>/home/.claude/skills, project=[]
+2026-10-12T09:44:31.401Z [DEBUG] Loading skills from: managed=/Library/Application Support/ClaudeCode/.claude/skills, user=<tmp>/home/.claude/skills, project=[]
+2026-10-12T09:44:31.401Z [DEBUG] Total plugin skills loaded: 0 (0 duplicate/user-owned entries skipped)
+2026-10-12T09:44:31.401Z [DEBUG] $.command.register (chat-toc): /chat-toc listed
+2026-10-12T09:44:31.402Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/commands: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/commands'
+2026-10-12T09:44:31.402Z [DEBUG] Failed to stat directory <tmp>/home/.claude/commands: ENOENT: no such file or directory, stat '<tmp>/home/.claude/commands'
+2026-10-12T09:44:31.402Z [DEBUG] Loaded 0 unique skills (0 unconditional, 0 conditional, managed: 0, user: 0, project: 0, additional: 0, legacy commands: 0)
+2026-10-12T09:44:31.402Z [DEBUG] Loaded 0 unique skills (0 unconditional, 0 conditional, managed: 0, user: 0, project: 0, additional: 0, legacy commands: 0)
+2026-10-12T09:44:31.402Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 39 bundled skills, 1 builtin plugin skills
+2026-10-12T09:44:31.402Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 39 bundled skills, 1 builtin plugin skills
+2026-10-12T09:44:31.405Z [DEBUG] hooks module chat-toc@ctmid session.append settled in 4.9ms (worker hop, next() included)
+2026-10-12T09:44:31.412Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.2ms (native link, next() included)
+2026-10-12T09:44:31.413Z [DEBUG] hooks module chat-toc@ctmid session.append settled in 7.1ms (worker hop, next() included)
+2026-10-12T09:44:31.413Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.9ms (worker hop, next() included) key=46a6f429-e985-4f9f-a2e9-f1d755bdf036
+2026-10-12T09:44:31.413Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.9ms (worker hop, next() included) key=0a75298b-7662-4dc8-8fdc-7246b88a2655
+2026-10-12T09:44:31.413Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.8ms (worker hop, next() included) key=06a4b825-862b-46d7-b2a2-a62d74466014
+2026-10-12T09:44:31.413Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.8ms (worker hop, next() included) key=ec9db55e-8785-4017-aa45-c26f5bc7a916
+2026-10-12T09:44:31.413Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.8ms (worker hop, next() included) key=ef294043-147f-4086-9d62-edf1dd74f8fe
+2026-10-12T09:44:31.413Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.7ms (worker hop, next() included) key=4f518e4e-5bf5-4b36-86e8-ee62367afffe
+2026-10-12T09:44:31.413Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.7ms (worker hop, next() included) key=placeholder
+2026-10-12T09:44:31.413Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.6ms (worker hop, next() included) key=prompt-hint
+2026-10-12T09:44:31.413Z [DEBUG] hooks module chat-toc@ctmid session.append settled in 0.8ms (worker hop, next() included)
+2026-10-12T09:44:31.415Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:31.415Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-12T09:44:31.423Z [DEBUG] Failed to stat directory <tmp>/home/.claude/agents: ENOENT: no such file or directory, stat '<tmp>/home/.claude/agents'
+2026-10-12T09:44:31.423Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/agents: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/agents'
+2026-10-12T09:44:31.424Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.1ms (native link, next() included)
+2026-10-12T09:44:31.424Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.1ms (native link, next() included)
+2026-10-12T09:44:31.424Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.6ms (worker hop, next() included) key=4496ecb1-6668-4086-a933-9a0669d74969
+2026-10-12T09:44:31.424Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.4ms (worker hop, next() included) key=prompt-hint
+2026-10-12T09:44:31.424Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 1.6ms (worker hop, next() included) key=prompt-hint
+2026-10-12T09:44:31.435Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 1.1ms (worker hop, next() included) key=4496ecb1-6668-4086-a933-9a0669d74969
+2026-10-12T09:44:31.437Z [DEBUG] hooks module chat-toc@ctmid session.start settled in 37.7ms (worker hop, next() included)
+2026-10-12T09:44:31.437Z [DEBUG] ui.open chat-toc chat-toc (unasked, 170 columns): placed
+2026-10-12T09:44:31.443Z [DEBUG] High write ratio: blit=0, write=3652 (100.0% writes), screen=44x170
+2026-10-12T09:44:31.451Z [DEBUG] chat-toc (user) answered ui.render without next() in 9.0ms; nothing beneath it ran for this dispatch
+2026-10-12T09:44:31.451Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 9.3ms (worker hop, next() included) key=chat-toc
+2026-10-12T09:44:31.452Z [DEBUG] $.ui.status (chat-toc): (cleared)
+2026-10-12T09:44:31.460Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 5.1ms (worker hop, next() included) key=chat-toc
+2026-10-12T09:44:31.490Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 1.6ms (worker hop, next() included) key=chat-toc
+2026-10-12T09:44:31.546Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.1ms (native link, next() included)
+2026-10-12T09:44:31.546Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.1ms (worker hop, next() included) key=46a6f429-e985-4f9f-a2e9-f1d755bdf036
+2026-10-12T09:44:31.546Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.0ms (worker hop, next() included) key=0a75298b-7662-4dc8-8fdc-7246b88a2655
+2026-10-12T09:44:31.546Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.0ms (worker hop, next() included) key=06a4b825-862b-46d7-b2a2-a62d74466014
+2026-10-12T09:44:31.546Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.0ms (worker hop, next() included) key=ec9db55e-8785-4017-aa45-c26f5bc7a916
+2026-10-12T09:44:31.546Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.0ms (worker hop, next() included) key=ef294043-147f-4086-9d62-edf1dd74f8fe
+2026-10-12T09:44:31.546Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.0ms (worker hop, next() included) key=4f518e4e-5bf5-4b36-86e8-ee62367afffe
+2026-10-12T09:44:31.546Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.0ms (worker hop, next() included) key=4496ecb1-6668-4086-a933-9a0669d74969
+2026-10-12T09:44:31.546Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.0ms (worker hop, next() included) key=prompt-hint
+2026-10-12T09:44:31.705Z [DEBUG] $.process.run (chat-toc): sh with 6 args in <tmp>/项目 a.b_c/long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment-long-segment- (pid 92329)
+2026-10-12T09:44:31.725Z [DEBUG] $.process.run (chat-toc): sh exited 0 in 21ms, 2784 + 0 chars
+2026-10-12T09:44:31.730Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 2.0ms (worker hop, next() included) key=chat-toc
+2026-10-12T09:44:31.765Z [DEBUG] hooks module chat-toc@ctmid ui.render settled in 1.3ms (worker hop, next() included) key=chat-toc
+2026-10-12T09:44:32.068Z [DEBUG] AutoUpdaterWrapper: Installation type: npm-global
+2026-10-12T09:44:34.439Z [DEBUG] [REPL:unmount] REPL unmounting
+2026-10-12T09:44:34.441Z [DEBUG] [uds-messaging] Shutting down
+2026-10-12T09:44:34.442Z [DEBUG] Stopped sleep inhibitor, allowing sleep
+2026-10-12T09:44:34.442Z [DEBUG] LSP server manager shut down successfully
+2026-10-12T09:44:40.513Z [DEBUG] Lock acquisition took longer than expected - another Claude instance may be running
+2026-10-12T09:44:40.574Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:40.574Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.78a65198a9c5
+2026-10-12T09:44:40.585Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:40.587Z [DEBUG] Temp file written successfully, size: 1818 bytes
+2026-10-12T09:44:40.588Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.78a65198a9c5 to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:40.591Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-12T09:44:40.605Z [DEBUG] Preserving file permissions: 100644
+2026-10-12T09:44:40.605Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.90474.1e519ec0f565
+2026-10-12T09:44:40.606Z [DEBUG] Applied original permissions to temp file
+2026-10-12T09:44:40.607Z [DEBUG] Temp file written successfully, size: 2407 bytes
+2026-10-12T09:44:40.607Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.90474.1e519ec0f565 to <tmp>/home/.claude/.claude.json
+2026-10-12T09:44:40.609Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
