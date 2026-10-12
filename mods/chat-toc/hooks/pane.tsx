@@ -61,7 +61,10 @@ export type PaneView = {
   headRows: number
   /* One line instead of entries, when there are none to show. */
   notice: string | undefined
-  /* One line kept below the entries: why the list is empty or incomplete. */
+  /* A refusal said below the entries, after a ⚠ in the theme's warning
+     colour, inverse while it flashes. */
+  alert: { text: string; isInverse: boolean } | undefined
+  /* Lines kept at the bottom: why the list is empty or incomplete. */
   footer: string | undefined
   onPress: (entry: Entry) => Promise<void>
   onFilter: (filter: ViewFilter) => Promise<void>
@@ -130,6 +133,11 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
       {head}
       {view.notice === undefined ? null : <Text dimColor>{view.notice}</Text>}
       {rows}
+      {view.alert === undefined ? null : (
+        <Text color="warning" inverse={view.alert.isInverse}>
+          {`⚠ ${view.alert.text}`}
+        </Text>
+      )}
       {view.footer === undefined ? null : <Text dimColor>{view.footer}</Text>}
     </Box>
   )

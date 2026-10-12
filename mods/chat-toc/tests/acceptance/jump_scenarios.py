@@ -1,6 +1,6 @@
 """PTY acceptance of the jumps, CT-JUMP-001..003, on one Claude Code version.
 
-usage: python jump_scenarios.py <host-version> [001 002 002b 003]
+usage: python jump_scenarios.py <host-version> [001 002 002b 003 005]
 
 Run with the pyte venv (see requirements.txt). No model calls: every
 session is a synthetic transcript opened with --resume, in the harness's
@@ -16,6 +16,12 @@ record per scenario.
 - 003: rewind in the host (Esc Esc, no model call); an entry the rewind took
   out of the host's list says so at the bottom, dims that side only, moves
   nothing; the saying goes after about 5 s and the side stays dim.
+- 005: resume a session compacted after its second turn: the turns before
+  the compaction are dim from the first drawing, the rest not (CT-JUMP-005);
+  a click on one says 「⚠ 这一条在压缩之前，恢复会话后无法跳转」 at the bottom
+  in the theme's warning colour, flashing inverse three times in about a
+  second, then lit until it goes after about 5 s (CT-UI-005, sampled every
+  ~30 ms); a turn after the compaction still jumps.
 """
 import json
 import pathlib
@@ -28,12 +34,16 @@ ONLY = set(sys.argv[2:])
 sys.path.insert(0, str(HERE))
 import pty_harness as h  # noqa: E402
 import toc_verifier as v  # noqa: E402
+import transcript_fixture as tf  # noqa: E402
 
 PLUGIN = HERE.parent.parent
 # The host draws dimColor text in the theme's `inactive`, not with SGR 2: this
 # gray under the harness's dark theme.
 DIM = "999999"
 REFUSED = "这一条当前没有显示在对话里"
+COMPACTED = "⚠ 这一条在压缩之前，恢复会话后无法跳转"
+# The dark theme's `warning`, as both hosts' theme tables give it.
+WARNING = "ffc107"
 
 
 def pane_of(t):
@@ -271,10 +281,114 @@ def jump003(run):
     return ok
 
 
+def notice_cells(t):
+    """The ⚠ line right of the Pane border: its text, whether it is drawn
+    inverse, and its foreground; None while there is none."""
+    for row in t.styles():
+        text = "".join(c[0] for c in row)
+        at = text.find("⚠")
+        if at >= 0 and "│" in text[:at]:
+            shown = [c for c in row[at:] if c[0].strip()]
+            return {"text": "".join(c[0] for c in row[at:]).strip(), "reverse": all(c[3] for c in shown),
+                    "fg": sorted({c[1] for c in shown})}
+    return None
+
+
+def runs_of(samples):
+    """The inverse runs among timed samples: [(first ms, last ms)]."""
+    out, start, last = [], None, None
+    for ms, on in samples:
+        if on and start is None:
+            start = ms
+        if not on and start is not None:
+            out.append((start, last))
+            start = None
+        last = ms
+    if start is not None:
+        out.append((start, last))
+    return out
+
+
+def jump005(run):
+    host = h.Host(VERSION)
+    world = h.World()
+    session = "00000000-0000-4000-8000-000000000035"
+    fx = tf.Transcript(world.transcript(session), str(world.project), session, seed=35, version=host.version)
+    for i in range(4):
+        fx.prompt(f"K{i:02d} 合成问题 {i}")
+        fx.reply(f"K{i:02d} 合成回复 {i}")
+        if i == 1:
+            fx.compact()
+    fx.close()
+    t = h.launch(world, host, [PLUGIN], ["--resume", session], run=run)
+    jump, ui, ev = {}, {}, []
+    ok_jump = ok_ui = False
+    try:
+        t.wait_for(lambda t: (p := v.parse_pane(t.rows())) is not None and len(p.entries) >= 4, "pane", timeout=40)
+        t._write("\x1b[<35;6;6M")   # the pointer off the Pane: hover draws inverse
+        t.settle(quiet=1.0)
+        ev.append(t.snap("005 after resume, nothing pressed"))
+        p = pane_of(t)
+        entry = {k: next(e for e in p.entries if k in e.user_text) for k in ("K00", "K01", "K02", "K03")}
+        agent_row = lambda e: e.row + 1 + len(e.user_lines) + 1
+        jump["dimBeforePress"] = {k: [side_dim(t, p, e.row + 1), side_dim(t, p, agent_row(e))] for k, e in entry.items()}
+        jump["noticeBeforePress"] = notice_cells(t)
+        t.click(p.left + 4, entry["K00"].row + 1)
+        began = time.monotonic()
+        samples, seen = [], None
+        while time.monotonic() - began < 6.5:
+            cells = notice_cells(t)
+            ms = round((time.monotonic() - began) * 1000)
+            if cells is not None:
+                seen = seen or cells
+                samples.append((ms, cells["reverse"], cells["fg"], cells["text"]))
+            elif samples:
+                samples.append((ms, None, None, None))
+            time.sleep(0.03)
+        ev.append(t.snap("005 6.5 s after clicking K00"))
+        shown = [s for s in samples if s[1] is not None]
+        jump["saysCompacted"] = bool(shown) and all(s[3] == COMPACTED for s in shown)
+        ui["inverseRuns"] = runs_of([(s[0], s[1]) for s in shown])
+        ui["foregrounds"] = sorted({fg for s in shown for fg in s[2]})
+        ui["shownMs"] = [shown[0][0], shown[-1][0]] if shown else None
+        ui["goneBy6500"] = bool(samples) and samples[-1][1] is None
+        ui["samples"] = len(samples)
+        runs = ui["inverseRuns"]
+        ok_ui = (jump["saysCompacted"] and ui["foregrounds"] == [WARNING] and len(runs) == 3 and runs[0][0] < 400
+                 and runs[-1][1] < 1500 and shown[-1][0] > 4000 and not shown[-1][1] and ui["goneBy6500"])
+        # a turn after the compaction still jumps: no refusal said
+        p = pane_of(t)
+        e = next(o for o in p.entries if "K02" in o.user_text)
+        t.click(p.left + 4, e.row + 1)
+        t.settle(quiet=1.0)
+        ev.append(t.snap("005 after clicking K02"))
+        jump["afterCompactionRefused"] = notice_cells(t) is not None
+        dim = jump["dimBeforePress"]
+        ok_jump = (dim["K00"] == [True, True] and dim["K01"] == [True, True] and dim["K02"] == [False, False]
+                   and dim["K03"] == [False, False] and jump["noticeBeforePress"] is None and jump["saysCompacted"]
+                   and not jump["afterCompactionRefused"])
+    except h.ScenarioFailure as f:
+        jump["failure"] = ui["failure"] = str(f)
+        ev.append(t.snap("failure"))
+    finally:
+        t.close()
+        world.remove()
+    fixture = "4 turns, compacted after the second, --resume"
+    run.record("CT-JUMP-005", host=host.version, plugin=str(PLUGIN), fixture=fixture,
+               expected="the two turns before the compaction are dim on both sides before anything is pressed, the two "
+                        "after not; a click on K00 says " + COMPACTED + "; a click on K02 jumps with nothing said",
+               actual=jump, result="pass" if ok_jump else "fail", evidence=ev)
+    run.record("CT-UI-005", host=host.version, plugin=str(PLUGIN), fixture=fixture,
+               expected=f"the ⚠ line is drawn in {WARNING} (the dark theme's warning); it flashes inverse 3 times, the "
+                        "first at once and the last over within 1.5 s, then stays lit (not inverse) past 4 s and is gone by 6.5 s",
+               actual=ui, result="pass" if ok_ui else "fail", evidence=ev)
+    return ok_jump and ok_ui
+
+
 def main():
     run = h.Run(label=f"CT-JUMP-{VERSION}")
     results = {}
-    for name, fn in (("001", jump001), ("002", jump002), ("002b", jump002b), ("003", jump003)):
+    for name, fn in (("001", jump001), ("002", jump002), ("002b", jump002b), ("003", jump003), ("005", jump005)):
         if ONLY and name not in ONLY:
             continue
         results[name] = fn(run)
