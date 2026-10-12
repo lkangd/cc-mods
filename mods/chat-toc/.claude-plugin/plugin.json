@@ -1,6 +1,6 @@
 {
   "name": "chat-toc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A docked table of contents of the current Claude Code session; jump to any turn.",
   "author": {
     "name": "chat-toc contributors"
