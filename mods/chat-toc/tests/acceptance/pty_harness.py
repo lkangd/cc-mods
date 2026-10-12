@@ -270,7 +270,7 @@ class PyteTerminal(_Screen):
             return [row.rstrip() for row in self.screen.display]
 
     def styles(self) -> list[list]:
-        """Each row's cells (data, fg, bold, reverse): what read-screen cannot see, such as the cyan highlight."""
+        """Each row's cells (data, fg, bold, reverse): what read-screen cannot see, such as the highlight's colour."""
         with self.lock:
             return [[(c.data, c.fg, c.bold, c.reverse) for c in (self.screen.buffer[y][x] for x in range(self.screen.columns))]
                     for y in range(self.screen.lines)]

@@ -17,6 +17,7 @@ Host and test-kit behaviour that the `plugin-authoring` skill does not state, me
 - An unasked `ui.open` of a docked Pane waits below 144 columns; a person-asked open places at any width (inline when too narrow). The debug log names the reason.
 - `$.ui.status` shows as `⚠ <mod>: <text>` on the line under the prompt.
 - `/reload-plugins` keeps an unchanged hooks module. To hot-reload for real, edit the hooks file of the copy loaded with `--plugin-dir` (append a comment).
+- Colour with theme keys, never raw colours: `Text`'s `color`/`backgroundColor` take a key of the host theme (`suggestion`, `inactive`, `claude`, `success`, …) and the host resolves it per theme, custom themes included; `/theme` redraws an open Pane at once (2.1.287 and 2.1.295). `dimColor` already follows the theme. `Button` has no `color` prop: only `dimColor` and `hover`.
 - `--debug-file <path>` logs module reloads, `session.start settled`, and `ui.open <mod> … (unasked|asked, N columns): placed|waits …`: model-free evidence of what the plugin did.
 
 ## Test kit (`claude plugin test`)
@@ -37,7 +38,7 @@ Install into a scratch dir, never globally: `npm install --prefix <dir> @anthrop
 - Run worlds **not logged in** (temporary `CLAUDE_CONFIG_DIR`). A submit is still written to the transcript and the host answers `Not logged in · Please run /login`: real rows, no model call, no quota. Resume, clicks, scrolls, local slash commands, rewind and fork all work this way.
 - `!cmd` in a resumed session starts a model turn when logged in (one run spent 973k tokens on a big synthetic transcript). It is not a model-free trigger.
 - Prefer pyte for whole-pane reads; cmux wheel input makes a pane window jump. cmux specifics (click side effects, sizes, commands) live in the memory `cmux-pty-acceptance`.
-- The host draws `dimColor` as foreground `999999`, not SGR 2. A hovered entry is drawn inverse: move the pointer off before checking colours.
+- The host draws `dimColor` as the theme's `inactive` foreground, not SGR 2: `999999` under dark (the harness's world), `666666` under light, `white`/`brightblack` under dark-ansi/light-ansi. A hovered entry is drawn inverse: move the pointer off before checking colours.
 - Slice pyte rows by cell column, not char index: CJK text shifts character offsets.
 - Rewind without a model: Esc Esc on the empty composer, Up to the prompt, Enter, Enter (restore), then backspaces to clear the restored prompt.
 - The shell is fish: `$var` with spaces does not word-split. Drive loops from Python.
