@@ -32,11 +32,11 @@
 - [x] 日期分隔与行高
 - [x] gutter：节点、轨道、当前位置、进行中；悬停色
 - [x] 桌面端分树与缩略条
-- [ ] verifier 与场景脚本跟上新格式；两版宿主 PTY 验收
+- [x] verifier 与场景脚本跟上新格式；两版宿主 PTY 验收
 - [x] 文档：spec、CONTEXT、根 README、开发者 README
 
 ## Comments
 
 - 2026-10-13 实现（分支 `chat-toc/35-visual-redesign`）：按测试接口逐轮红绿，`claude plugin test` 271 过，两版 tsc 与 validate 干净。首次建 4432 轮的条目表一度从约 30 ms 涨到约 50 ms（折行先把整段文字展开成数组、每字调一次宽度函数、每组多次解析时间戳），改成按需取字、宽度提到循环外、时间戳每组解析一次后与基线持平。「位置残留 5 ms」那条性能用例在机器负载约 20 时基线也会偶发失败，与本次改动无关。
 - verifier `parse_pane` 改读时间轨（节点、分支、空心记号、日期分隔、时间列、页签线、底栏），样本换成两版宿主上 forms fixture 的四种视图截屏（`tests/acceptance/testdata/`），30 个单元测试过。各场景脚本改用 `user_row` / `agent_row`，UI-003/UI-004 改读轨道记号与颜色。
-
+- 2026-10-13 CT-PERF-001（`release_gate.py run --only-perf`，两版串行）：头两轮在 load 10–20（`xctest`、Vibessage）下增量读取 p95 屡次超 150 ms；同负载下 0.1.2 与本版交替跑，0.1.2 也超（288 ms），读取路径未改，判为负载。另有 3 次运行在 pyte 内部崩溃（`screens.py` `render` 的 `IndexError`，34 号票也遇到过）：宿主在一帧中途用窄字符盖掉宽字符的首格，pyte 留下空占位格，自己的 `display` 读不了。`pty_harness.screen_rows` 把孤立占位格读作空格（与终端一致），`rows()` 改用它。load 2–5 时四个组合各 3 次全过：增量读取 p95 最大 107–128 ms，追加到模型 335–598 ms，空闲整份读取 181–366 ms，Pane 含宿主最大 11 ms。

@@ -1,4 +1,5 @@
 """The harness's isolation and run log, checked without starting a host."""
+import importlib.util
 import json
 import os
 import pathlib
@@ -76,6 +77,41 @@ class RunLog(unittest.TestCase):
         run = pty_harness.Run(pathlib.Path(tempfile.mkdtemp()) / "r")
         with self.assertRaises(ValueError):
             run.record("X", host="h", plugin="p", fixture="f", expected="e", actual="a", result="ok", evidence=[])
+
+
+class Cell:
+    def __init__(self, data):
+        self.data = data
+
+
+class Screen:
+    def __init__(self, *rows):
+        self.lines, self.columns = len(rows), len(rows[0])
+        self.buffer = [[Cell(d) for d in row] for row in rows]
+
+
+def wide(char: str) -> int:
+    return 2 if char in "中文" else 1
+
+
+class ScreenRows(unittest.TestCase):
+    def test_a_wide_char_takes_its_placeholder_with_it(self):
+        self.assertEqual(pty_harness.screen_rows(Screen(["中", "", "b", " "]), wide), ["中b"])
+
+    def test_a_placeholder_a_narrow_char_left_behind_reads_as_a_space(self):
+        # the host overwrote the wide char's first cell mid-frame; pyte's own display raises here
+        self.assertEqual(pty_harness.screen_rows(Screen(["a", "", "b", " "], ["文", "", "", "c"]), wide), ["a b", "文 c"])
+
+    @unittest.skipUnless(importlib.util.find_spec("pyte"), "pyte is in the PTY venv only")
+    def test_pyte_overwritten_mid_frame(self):
+        import pyte
+        screen = pyte.Screen(6, 1)
+        stream = pyte.Stream(screen)
+        stream.feed("中b\r")
+        stream.feed("a")
+        with self.assertRaises(IndexError):
+            screen.display
+        self.assertEqual(pty_harness.screen_rows(screen), ["a b"])
 
 
 if __name__ == "__main__":
