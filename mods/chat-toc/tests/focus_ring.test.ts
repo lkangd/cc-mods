@@ -15,10 +15,12 @@ const INDEX = new Map(KEYS.map((key, i) => [key, i]))
 const WINDOW = { start: 1, end: 4, maxStart: 2 }
 const move = (from: string | undefined, to: string | undefined) => ringMove(KEYS, INDEX, WINDOW, from, to)
 
-test("a step onto an entry's first line, or onto the filter row, lands where the host puts it", () => {
+/* The ring runs the filter Buttons, the entries in the window, then the
+   footer's Layout Button, and wraps. */
+test("a step onto an entry's first line, or onto a control, lands where the host puts it", () => {
   expect(move('g1.u', 'g2.u')).toEqual({ kind: 'accept' })
   expect(move(undefined, 'g0.a')).toEqual({ kind: 'accept' })
-  expect(move('layout', 'g0.a')).toEqual({ kind: 'accept' })
+  expect(move('f-agent', 'g0.a')).toEqual({ kind: 'accept' })
   expect(move('f-all', 'f-user')).toEqual({ kind: 'accept' })
 })
 
@@ -29,26 +31,26 @@ test("down off an entry's first line goes to the next entry, not the entry's sec
 
 test("up onto an entry's last line lands on its first", () => {
   expect(move('g2.u', 'g1.u.2')).toEqual({ kind: 'land', key: 'g1.u' })
-  /* The host wraps up from the first Button to the last entry's last line. */
-  expect(move('f-all', 'g2.u.1')).toEqual({ kind: 'land', key: 'g2.u' })
+  /* Up from the footer's Layout Button onto the last entry's last line. */
+  expect(move('layout', 'g2.u.1')).toEqual({ kind: 'land', key: 'g2.u' })
 })
 
 test('past the bottom of the window the next entry is brought into view', () => {
   /* A multi-line entry: down goes to its second line. */
   expect(move('g2.u', 'g2.u.1')).toEqual({ kind: 'reveal', index: 4 })
-  /* A one-line entry: the host wraps to the first Button. */
-  expect(move('g2.u', 'f-all')).toEqual({ kind: 'reveal', index: 4 })
+  /* A one-line entry: the host goes on to the footer's Layout Button. */
+  expect(move('g2.u', 'layout')).toEqual({ kind: 'reveal', index: 4 })
 })
 
 test('past the top of the window the entry before is brought into view', () => {
-  expect(move('g0.a', 'layout')).toEqual({ kind: 'reveal', index: 0 })
+  expect(move('g0.a', 'f-agent')).toEqual({ kind: 'reveal', index: 0 })
 })
 
 test('at either end of the list the host wraps as it does', () => {
   const all = { start: 0, end: 5, maxStart: 0 }
-  expect(ringMove(KEYS, INDEX, all, 'g2.a', 'f-all')).toEqual({ kind: 'accept' })
-  expect(ringMove(KEYS, INDEX, all, 'g2.a', 'g2.a.1')).toEqual({ kind: 'land', key: 'f-all' })
-  expect(ringMove(KEYS, INDEX, all, 'g0.u', 'layout')).toEqual({ kind: 'accept' })
+  expect(ringMove(KEYS, INDEX, all, 'g2.a', 'layout')).toEqual({ kind: 'accept' })
+  expect(ringMove(KEYS, INDEX, all, 'g2.a', 'g2.a.1')).toEqual({ kind: 'land', key: 'layout' })
+  expect(ringMove(KEYS, INDEX, all, 'g0.u', 'f-agent')).toEqual({ kind: 'accept' })
 })
 
 test('a ring move waiting for its entry is sent by the drawing whose window shows it', () => {
@@ -99,7 +101,7 @@ test('down past the window scrolls it one entry and puts the ring there', async 
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
-  /* The filter row, three 2-line prompts with their gaps, and 暂停 below. */
+  /* The head, three 1-line prompts with their gaps, the footer. */
   const pane = await mountPane($, 11)
   const prompts = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN'))
 
@@ -118,7 +120,7 @@ test('down past the window scrolls it one entry and puts the ring there', async 
 
   /* Up past the top scrolls back. */
   await arrow($, 'g4.u')
-  expect((await arrow($, 'layout')).deny).toBeDefined()
+  expect((await arrow($, 'f-agent')).deny).toBeDefined()
   await world.clock.advance(1)
   expect(await prompts()).toEqual(['CT-SYN prompt 3', 'CT-SYN prompt 4', 'CT-SYN prompt 5'])
 })
@@ -145,10 +147,10 @@ test('switching the Layout keeps the selected group in view', async ($, on) => {
   }
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await focusedPane($, 12)
+  const pane = await focusedPane($, 11)
   const prompts = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN prompt'))
 
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -10, bodyRows: 12, contentRows: 12, origin: { kind: 'person' } } as never)
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -10, bodyRows: 11, contentRows: 11, origin: { kind: 'person' } } as never)
   const before = await prompts()
   expect(before).toEqual(['CT-SYN prompt 5', 'CT-SYN prompt 6'])
   await arrow($, 'g6.u')
@@ -157,7 +159,7 @@ test('switching the Layout keeps the selected group in view', async ($, on) => {
   await world.clock.advance(1)
 
   /* Compact: the selected group at the top of the window. */
-  expect((await prompts())[0]).toMatch(/^CT-SYN prompt 6 /)
+  expect((await prompts())[0]).toBe('CT-SYN prompt 6')
 })
 
 test('switching the Layout of a scrolled window keeps its top group at the top', async ($, on) => {
@@ -165,12 +167,12 @@ test('switching the Layout of a scrolled window keeps its top group at the top',
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await mountPane($, 10)
+  const pane = await mountPane($, 11)
 
   await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
   await pane.press({ key: 'layout' })
 
-  expect((await entryTexts(pane))[0]).toMatch(/^CT-SYN prompt 3 /)
+  expect((await entryTexts(pane))[0]).toBe('CT-SYN prompt 3')
 })
 
 test('switching the Layout of a window that follows the newest goes on following', async ($, on) => {
@@ -178,10 +180,10 @@ test('switching the Layout of a window that follows the newest goes on following
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await mountPane($, 10)
+  const pane = await mountPane($, 14)
 
   await pane.press({ key: 'layout' })
 
-  expect((await entryTexts(pane)).at(-1)).toMatch(/^CT-SYN prompt 11 /)
+  expect((await entryTexts(pane)).at(-1)).toBe('CT-SYN prompt 11')
   expect(world.focuses).toEqual([])
 })

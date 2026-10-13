@@ -171,12 +171,12 @@ export function relisted(refused: Refused, uuid: string, groups: readonly TurnGr
 /* Which side of which group: an entry's identity across regrouping. */
 export const sideKeyOf = (group: TurnGroup, side: 'user' | 'agent') => `${group.openerUuid}.${side}`
 
-/* Entries with the sides refused drawn dim, every line. */
+/* Entries with the sides refused drawn dim, every line, and marked off. */
 export function dimRefused(entries: readonly Entry[], groups: readonly TurnGroup[], refused: Refused): Entry[] {
   if (refused.size === 0) return entries as Entry[]
   return entries.map(entry => {
     const group = groups[entry.groupIndex]
     if (!group || !refused.has(sideKeyOf(group, entry.side))) return entry
-    return { ...entry, lines: entry.lines.map((line): EntryLine => ({ ...line, dim: true })) }
+    return { ...entry, isOff: true, lines: entry.lines.map((line): EntryLine => ({ ...line, dim: true })) }
   })
 }

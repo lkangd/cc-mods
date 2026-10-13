@@ -95,7 +95,7 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-hist
   另外，`type: system, subtype: local_command` 中带 `<command-name>` 的行也开组，它的输出行归入该组。（定义 Turn group 的划分与边界；原型验证停靠 TOC Pane 的外观与交互）
 - **不开组、归入当前组**：task-notification、`<local-command-stdout|caveat>`、`<bash-stdout>`、`[Request interrupted by user…]`、compact 摘要、hook 与提醒（isMeta）。所以排队提交自成一组，后台任务通知、`/loop` 触发的 agent 工作并入前一组。
 - **用户侧文字**：斜杠命令还原成 `/name args`；`!` 行显示 `!cmd`；普通文本去掉代码块、图片与 Markdown 记号、`<pasted_content>` 标签，压缩空白；只有图片时写「（只有图片）」。
-- **时间**：取 User input 行的 `timestamp`（UTC ISO，转本地时间），格式「M月D日 HH:MM」，不是今年的加年份；时间轴布局的左栏只写 `HH:MM`。读不到就不显示，不伪造。
+- **时间**：取 User input 行的 `timestamp`（UTC ISO，转本地时间）。条目旁只写 `HH:MM`（卡片在用户侧首行右端，紧凑与时间轴在左栏）；日期写在日期分隔行里：「M月D日」，今天「今天 · M月D日」，不是今年的加年份。读不到就不显示，也不触发日期分隔，不伪造。（35 号票改版）
 - **步数**：本组内主循环 assistant 行里的 `tool_use` 块数。并行调用逐个计，一次子 agent 调用算 1 步，思考和中间文字不计，0 不显示。
 - **末段文字**：本组最后一个 `tool_use` 之后的 text 块；同一 `message.id` 的多个块拼成一段。
 - **Agent 侧状态**：
@@ -125,21 +125,22 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-hist
   （原型验证停靠 TOC Pane 的外观与交互；实测长会话的读取与渲染开销）
 - **跳转后锁定**：跳转引起的重绘每次间隔不到 300 ms，期间保持锁定；重绘停下后，视口第一次变化就解锁，恢复按视口顶部计算。（原型验证停靠 TOC Pane 的外观与交互）
 - **重绘 Pane**：transcript render hook 比较新旧 Current position，只有真的变了才 `$.clock.after(0, () => update($, atom, …))` 写一个 `$.state` atom，然后照常 `return next(e)`；Pane 的 render hook 读这个 atom。不要在 render hook 里直接写、不要用 `Promise.then` 写（偶发被拒），不要无条件 `invalidate`（会自循环）。这个 atom 是本进程的派生值，不持久化。（实测 Pane 随 Current position 重绘的方式）
-- **TOC 跟随**：TOC 的滚动位置统一跟随高亮组（transcript 在底部时就停在最新）。使用者手动滚动 TOC，或 Pane 聚焦时，暂停跟随，底栏显示「暂停」；Current position 下一次变化时恢复跟随。滚动由插件自管：hook `ui.scroll` 返回 `{}` 自己维护偏移，不用 `$.ui.scroll({ to: 'end' })`（2.1.290 之前它会无限重绘）。（决定是否做当前位置高亮；核实停靠 Pane 的生命周期与放置规则）
+- **TOC 跟随**：TOC 的滚动位置统一跟随高亮组（transcript 在底部时就停在最新）。使用者手动滚动 TOC，或 Pane 聚焦时，暂停跟随，底栏左边显示「⏸ 暂停跟随」；Current position 下一次变化时恢复跟随。滚动由插件自管：hook `ui.scroll` 返回 `{}` 自己维护偏移，不用 `$.ui.scroll({ to: 'end' })`（2.1.290 之前它会无限重绘）。（决定是否做当前位置高亮；核实停靠 Pane 的生命周期与放置规则）
 - 高亮与 ↑↓ 选择光标相互独立，可以落在不同组上。
 
 ### 7. Pane 外观与交互
 
-- **结构**，自上而下：过滤行（左边 View filter，右边「布局:<当前 Layout>」按钮，最右留约 3 列给 2.1.287 画在内容第一行的 ✕）；条目列表；底栏（不常驻，只在显示「暂停」、跳转被拒说明、数据源说明时出现）。2.1.287 的停靠 Pane 没有标题行，第 0 行就是正文；2.1.295 第 0 行是标题行，排版两版都要看。（决定 Layout 的切换入口与默认值；实测 Pane 随 Current position 重绘的方式）
-- **View filter**：三个 `plain` Button，内容是单个字符串 `●全部`、`○用户`、`○Agent`（选中项是 `●`），热键 1/2/3；默认「全部」；切换后立即重画；选择写进 `$.store`，跨会话全局记住，值认不出时回到「全部」。（用只收 label 的 Button 画三种 Layout）
-- **Layout**：默认卡片。唯一入口是过滤行右端一个 `plain` Button，文字为「布局:卡片」「布局:紧凑」「布局:时间轴」（显示当前的，不显示下一种）；点击它或 Pane 聚焦时按 `l`，按卡片 → 紧凑 → 时间轴 → 卡片循环。选择立即写进 `$.store`，写入失败时本次仍然切换；值认不出时回到卡片。切换时以选中的组（有选择光标时）或 Current position 所在组为锚，切换后锚定组留在可见窗口内，跟随或暂停的状态不变。不提供命令参数，不用 `v`。（决定 Layout 的切换入口与默认值，供 CT-UI-002）
-- **三种 Layout 的画法**：每个条目画成一行 `Box`（row），左边是宽度统一的多行 `Text`（卡片和紧凑 2 列，时间轴 8 列：`HH:MM`、空格、`│`/`┃`、空格），右边是一列 Button。条目一侧的**每一行**是一个 `plain` Button，内容是这一行的字符串，同侧所有行共用一个 `onPress`；key 为 `<条目 key>` 和 `<条目 key>.<行号>`；`hover: { scope: 'e-<条目 key>', inverse: true }`，悬停时整侧一起反色。（用只收 label 的 Button 画三种 Layout）
-  - **卡片**：头行「你 · M月D日 HH:MM」和「↳ N 步」（或状态）用 `dimColor`，下面各接最多 2 行正文；高亮是左栏的青色 `▌`。Agent 正文的缩进写在 Button 文字里。
-  - **紧凑**：每侧一行，Agent 行整行 `dimColor`；高亮是青色 `●`。
-  - **时间轴**：左栏是时间加 `│`，高亮时变青色 `┃`；Agent 行整行 `dimColor`。
-  - 高亮不加粗（Button 没有 `bold`），只靠青色标记。
-  - 换行和截断由插件自己算：按终端单元宽度折行（全角 2 格），第 2 行（紧凑是第 1 行）末尾加 `…`。Button 不会替你换行。
-- **键盘**：Pane 聚焦时 ↑↓ 走宿主焦点环，焦点落在条目的第一行 Button（key 等于条目 key）；Enter 与点击相同；↑↓ 不跳过淡化的条目。1/2/3 切 View filter，`l` 切 Layout（Pane 内热键只能挂在画出的 Button 上，只在聚焦时生效）。选择光标是宿主的反色，与青色高亮一眼能分清。插件不能绑定 Tab 或方向键。（决定 Layout 的切换入口与默认值；用只收 label 的 Button 画三种 Layout）
+- **结构**，自上而下（35 号票改版，方案 C 主体 + 方案 A 的顶部与底栏）：过滤行（三个 View filter Button，最右留约 3 列给 2.1.287 画在内容第一行的 ✕）；页签线（选中 Button 正下方 `━`，`suggestion`；其余 `─`，`subtle`）；一行空白；条目列表；列表下方按需出现的说明（跳转被拒、数据源）；底栏固定在面板最下面：一行 `─`（`subtle`），下一行左边是 Turn group 数「N 轮」（淡化，不随 View filter 变）或暂停时的「⏸ 暂停跟随」（`warning`），右边是 Layout Button。2.1.287 的停靠 Pane 没有标题行，第 0 行就是正文；2.1.295 第 0 行是标题行，排版两版都要看。
+- **View filter**：三个 `plain` Button，label 只写名字 `全部`、`用户`、`Agent`，宿主画成 `1: 全部`；选中项不淡化，其余 `dimColor`，选中项由页签线标出；热键 1/2/3；默认「全部」；切换后立即重画；选择写进 `$.store`，跨会话全局记住，值认不出时回到「全部」。
+- **Layout**：默认卡片。唯一入口是底栏右端一个 `plain` Button，文字为「布局 卡片」「布局 紧凑」「布局 时间轴」（显示当前的，不显示下一种）；点击它或 Pane 聚焦时按 `l`，按卡片 → 紧凑 → 时间轴 → 卡片循环。选择立即写进 `$.store`，写入失败时本次仍然切换；值认不出时回到卡片。切换时以选中的组（有选择光标时）或 Current position 所在组为锚，切换后锚定组留在可见窗口内，跟随或暂停的状态不变。不提供命令参数，不用 `v`。焦点环的顺序是过滤 Button、条目、Layout Button。
+- **时间轨**：三种 Layout 都把条目挂在一条轨道上。用户侧首行是节点 `●`（`inactive`），Agent 侧首行是分支 `├╴`，续行和同一天的组间空行是 `│`（都是 `subtle`）；Current position 所在组变成 `◉`、`┣╸`、`┃`，连同时间用 `suggestion`。进行中的 Agent 侧在分支后加 `◐`（`claude`）。没有 Jump target 的一侧挂在空心记号上：用户侧 `○`、Agent 侧 `├┄`（`subtle`），用户侧文字淡化。日期变化处（含列表第一组）在组前画一行 `─ <日期> ───`，前一组的空行不画轨道。
+- **三种 Layout 的画法**：每个条目画成一个列 `Box`：日期分隔（如有）；一行 row，左边是时间列（紧凑与时间轴，6 列 `HH:MM `）和轨道列（每行一个 `Text`，3 列），进行中再加 2 列 `◐ `，右边是一列 Button；组间空行。条目一侧的**每一行**是一个 `plain` Button，内容是这一行的字符串，同侧所有行共用一个 `onPress`；key 为 `<条目 key>` 和 `<条目 key>.<行号>`；`hover: { scope: 'e-<条目 key>', color: 'suggestion' }`，悬停时整侧变色（指针正下方那一行仍由宿主反色）。
+  - **卡片**：没有时间列；用户侧最多 2 行，首行右端是 `HH:MM`（`Text`，淡化，首行留 6 列）；Agent 侧是「状态 · 末段文字」一段，整段 `dimColor`，最多 2 行。没有头行。
+  - **紧凑**：每侧一行，时间写在组里第一个显示的那一侧的时间列。
+  - **时间轴**：每侧最多 2 行，时间同紧凑。
+  - 换行和截断由插件自己算：按终端单元宽度折行（全角 2 格），闭合标点不出现在行首（把上一行最后一个字带下来），不超过 14 个字符的英文词与路径整体换行，折在空格处时丢掉那个空格；第 2 行（紧凑是第 1 行）末尾加 `…`。Button 不会替你换行。
+- **其他 surface**：`e.surface` 不是 `terminal` 时（Desktop、VS Code、移动端）画另一棵树：三个筛选 Button（选中的 `variant="primary"`）；Layout 用 `Select`（没有 Select 的 surface 用 Button 循环）；有 `Svg` 时，列表上方一条缩略条，每个 Turn group 一根竖条，高度按步数，当前组与进行中组上色，Svg 内自带 `prefers-color-scheme` 与 `prefers-reduced-motion`，超过 120 组时一根竖条代表几组；每侧一个 Button，label 是不折行的整段文字（最多 300 字），左边是时间与节点 `Text`；日期分隔、跳转被拒说明、轮数或暂停用 `Text`。条目窗口沿用终端的窗口逻辑，保证一棵树有界。Button 只用 label（2.1.287 的类型）。只经过 test kit 的元素树测试。
+- **键盘**：Pane 聚焦时 ↑↓ 走宿主焦点环，焦点落在条目的第一行 Button（key 等于条目 key）；Enter 与点击相同；↑↓ 不跳过没有 Jump target 的条目。1/2/3 切 View filter，`l` 切 Layout（Pane 内热键只能挂在画出的 Button 上，只在聚焦时生效）。选择光标是宿主的反色，与 `suggestion` 色的高亮一眼能分清。插件不能绑定 Tab 或方向键。（决定 Layout 的切换入口与默认值；用只收 label 的 Button 画三种 Layout）
 - **长会话**：连续滚动、按需渲染、不分页。条目按组缓存（键是宽度、进行中、步数、状态、末段），只在数据、宽度、View filter、Layout 变化时重建条目表；高亮和光标在绘制时才叠加；只画可见窗口（一棵树最多画 100,000 字符）；组到条目的定位用表，不用 `findIndex`。（实测长会话的读取与渲染开销）
 
 ### 8. 隐私
@@ -220,7 +221,7 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-hist
 
 **不承诺**（写进 README 已知限制；定稿兼容与验收契约 §5 及其后续修订）：
 
-1. Claude Code `<2.1.287`：不检测、不提示；也不承诺 Desktop、IDE、移动端，以及非全屏布局下的 inline 放置。
+1. Claude Code `<2.1.287`：不检测、不提示；也不承诺非全屏布局下的 inline 放置。Desktop、VS Code、移动端的绘制只经过元素树测试，观感由使用者在应用里目检；不支持 JetBrains。
 2. Linux 与 Windows 只经过命令构造测试，未在真实系统上验收；Windows 只用 Windows PowerShell 5.1。
 3. transcript 文件格式未公开，宿主改格式后目录可能显示不全，由 CT-DATA-003 提示。
 4. 不保证能跳到 rewind 被弃的分支，也不保证能跳到 resume 前已被 compact 的行。

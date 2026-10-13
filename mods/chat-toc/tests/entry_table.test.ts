@@ -108,7 +108,7 @@ test('a read that grows the last group folds only that group again', () => {
     /* Same group, same entry: not folded again. */
     expect(second.entries[i]!.lines).toBe(was.lines)
   }
-  expect(second.entries.at(-1)!.lines.map(l => l.text)).toContain('  CT-SYN last answer')
+  expect(second.entries.at(-1)!.lines.map(l => l.text)).toContain('1 步 · CT-SYN last answer')
 })
 
 test('the width, the filter, the Layout and a turn starting each rebuild the list', () => {

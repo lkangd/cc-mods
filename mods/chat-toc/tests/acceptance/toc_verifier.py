@@ -34,10 +34,16 @@ class Group:
     status: str             # done | interrupted | error
     has_agent: bool
     rows: list[str] = dataclasses.field(default_factory=list)
+    day: str | None = None  # 「M月D日」, 「今天 · M月D日」 or with the year, for the day's rule
+
+    @property
+    def clock(self) -> str:
+        """The local 「HH:MM」 the Pane shows beside the group, '' without a time."""
+        return self.time.split(" ")[-1] if self.time else ""
 
     @property
     def agent_head(self) -> str:
-        """The agent side's header text after 「↳ 」, without the in-progress state."""
+        """The agent side's state and steps, before its reply, without the in-progress state."""
         steps = f"{self.steps} 步" if self.steps else ""
         if self.status == "interrupted":
             return "已中断" + (f" · {steps}" if steps else "")
@@ -47,12 +53,8 @@ class Group:
             return f"{steps} · 无文字回复" if steps else "无文字回复"
         return steps
 
-    @property
-    def user_head(self) -> str:
-        return "你" + (f" · {self.time}" if self.time else "")
-
     def public(self) -> dict:
-        return {"key": self.key, "kind": self.kind, "userHead": self.user_head, "userText": self.user_text,
+        return {"key": self.key, "kind": self.kind, "day": self.day, "time": self.clock, "userText": self.user_text,
                 "agentHead": self.agent_head if self.has_agent else None,
                 "lastText": self.last_text, "steps": self.steps, "status": self.status}
 
@@ -207,6 +209,23 @@ def format_time(stamp, tz, now: datetime.datetime) -> str | None:
     return text if local.year == now.astimezone(tz).year else f"{local.year}年{text}"
 
 
+def format_day(stamp, tz, now: datetime.datetime) -> str | None:
+    """The day's rule for a timestamp: 「M月D日」, today 「今天 · M月D日」, another year's with the year."""
+    if not isinstance(stamp, str):
+        return None
+    try:
+        moment = datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        return None
+    local, today = moment.astimezone(tz), now.astimezone(tz)
+    text = f"{local.month}月{local.day}日"
+    if local.year != today.year:
+        return f"{local.year}年{text}"
+    return f"今天 · {text}" if local.date() == today.date() else text
+
+
 def turn_groups(chain: list[dict], tz=None, now: datetime.datetime | None = None) -> list[Group]:
     now = now or datetime.datetime.now().astimezone()
     tz = tz or now.astimezone().tzinfo
@@ -225,7 +244,8 @@ def turn_groups(chain: list[dict], tz=None, now: datetime.datetime | None = None
             close()
             tail = []
             group = Group(key=row["uuid"], kind=kind, user_text=user_text(kind, row),
-                          time=format_time(row.get("timestamp"), tz, now), steps=0, last_text=None,
+                          time=format_time(row.get("timestamp"), tz, now), day=format_day(row.get("timestamp"), tz, now),
+                          steps=0, last_text=None,
                           status="done", has_agent=False)   # an assistant row or an interruption gives it one
             groups.append(group)
         if group is None:
@@ -293,27 +313,41 @@ def _right_of(row: str, column: int) -> str | None:
     return None
 
 
-_FILTERS = {"●全部": "all", "●用户": "user", "●Agent": "agent"}
+_FILTERS = (("1: 全部", "all"), ("2: 用户", "user"), ("3: Agent", "agent"))
 
 
 _EMPTY = "本会话还没有对话"
 
+# The rail the entries hang on: a User input's first line on a node, an
+# Agent reply's on a branch, the lines after beside the rail; lit, heavy.
+_NODES, _BRANCHES, _RAILS = "●◉○", ("├╴", "┣╸", "├┄"), "│┃"
+# A side with no Jump target hangs on a hollow mark.
+_OFF = ("○", "├┄")
+_LIT = "◉┣┃"
+_TIME_COLUMN = re.compile(r"^(\d\d:\d\d| {5}) (?=[●◉├┣│┃])")
+_DAY_RULE = re.compile(r"^─ (.+?) ─+$")
+_FOOTER_RULE = re.compile(r"^─{10,}$")
+_ASIDE = re.compile(r"^(.*?)\s+(\d\d:\d\d)$")
+_AGENT_HEAD = re.compile(r"^(?:(?:进行中|已中断|出错)(?: · \d+ 步)?|\d+ 步(?: · 无文字回复)?|无文字回复)")
+
 
 def _is_filter_row(text: str | None) -> bool:
-    return bool(text) and any(mark in text for mark in _FILTERS) and "用户" in text and "Agent" in text
+    return bool(text) and all(label in text for label, _ in _FILTERS)
 
 
-def _is_entry_head(text: str | None) -> bool:
-    body = (text or "")[2:]
-    return (text or "")[:2] in ("  ", "▌ ") and (body == "你" or body.startswith("你 · ") or body.startswith("↳"))
+def _is_entry_line(text: str | None) -> bool:
+    if not text:
+        return False
+    rest = text[6:] if _TIME_COLUMN.match(text) else text
+    return rest[:1] in _NODES or rest[:2] in _BRANCHES
 
 
 def find_pane(rows: list[str]) -> tuple[int, int] | None:
     """(first content cell column, row just above the entries) of the chat-toc
     Pane: the docked column whose border `│` runs down the screen and whose
-    content holds the View filter row, an entry header or the empty-state
-    line. The row above the entries is the filter row when there is one, else
-    the row above the Pane's first row. None when no such Pane is drawn."""
+    content holds the View filter row, an entry or the empty-state line. The
+    row above the entries is the filter row when there is one, else the row
+    above the Pane's first row. None when no such Pane is drawn."""
     counts: dict[int, int] = {}
     for row in rows:
         for x, char in _cells(row):
@@ -326,7 +360,7 @@ def find_pane(rows: list[str]) -> tuple[int, int] | None:
         for y, text in enumerate(texts):
             if _is_filter_row(text):
                 return border + 1, y
-        if any(_is_entry_head(t) or (t and _EMPTY in t) for t in texts):
+        if any(_is_entry_line(t) or (t and _EMPTY in t) for t in texts):
             first = next(y for y, t in enumerate(texts) if t is not None)
             return border + 1, first - 1
     return None
@@ -334,21 +368,33 @@ def find_pane(rows: list[str]) -> tuple[int, int] | None:
 
 @dataclasses.dataclass
 class PaneEntry:
-    row: int
-    user_head: str | None = None
+    row: int                   # the entry's first line
+    user_row: int | None = None
+    agent_row: int | None = None
+    time: str | None = None    # 「HH:MM」 beside it, '' when none shows
+    day: str | None = None     # the day's rule above it
     user_lines: list[str] = dataclasses.field(default_factory=list)
-    agent_head: str | None = None
+    agent_head: str | None = None   # its state and steps, '' when none; None: no agent side
     agent_lines: list[str] = dataclasses.field(default_factory=list)
+    running: bool = False
+    user_off: bool = False     # the user side hangs on a hollow mark: no Jump target
+    agent_off: bool = False
     highlighted: bool = False
     clipped: bool = False      # may continue below the window
+
+    @property
+    def has_user(self) -> bool:
+        return self.user_row is not None
 
     @property
     def user_text(self) -> str:
         return " ".join(self.user_lines)
 
     def public(self) -> dict:
-        return {"row": self.row, "userHead": self.user_head, "userLines": self.user_lines,
-                "agentHead": self.agent_head, "agentLines": self.agent_lines, "highlighted": self.highlighted}
+        return {"row": self.row, "day": self.day, "time": self.time, "userLines": self.user_lines,
+                "agentHead": self.agent_head, "agentLines": self.agent_lines, "running": self.running,
+                "userOff": self.user_off, "agentOff": self.agent_off,
+                "highlighted": self.highlighted}
 
 
 @dataclasses.dataclass
@@ -359,24 +405,53 @@ class Pane:
     entries: list[PaneEntry]
     notes: list[str]
     partial_top: bool
+    layout: str | None = None   # 卡片 / 紧凑 / 时间轴, as the footer says it
+    footer: str | None = None   # the footer's left: 「N 轮」 or 「⏸ 暂停跟随」
+
+
+def _chosen_filter(rows: list[str], filter_row: int, left: int) -> str:
+    """The filter the tab rule under the filter row marks heavy."""
+    head = _right_of(rows[filter_row], left) if filter_row >= 0 else None
+    rule = _right_of(rows[filter_row + 1], left) if 0 <= filter_row + 1 < len(rows) else None
+    if not head or not rule or "━" not in rule:
+        return "all"
+    start = next(x for x, c in _cells(rule) if c == "━")
+    for label, name in _FILTERS:
+        at = head.find(label)
+        if at >= 0 and sum(cell_width(c) for c in head[:at]) == start:
+            return name
+    return "all"
+
+
+def _split_agent(text: str) -> tuple[str, str]:
+    """An Agent reply's first line: its state and steps, then the start of its reply."""
+    head = (m.group(0) if (m := _AGENT_HEAD.match(text)) else "")
+    rest = text[len(head):]
+    if rest.startswith(" · "):
+        rest = rest[3:]
+    elif rest.strip() == "·":
+        rest = ""
+    elif head and rest and not rest.startswith(" "):
+        head, rest = "", text           # a reply that merely starts like a state
+    return head, rest.strip()
 
 
 def parse_pane(rows: list[str]) -> Pane | None:
-    """The entries a card-layout Pane window shows, top to bottom. An entry cut
-    off at the top is dropped (partial_top); the last one may be cut off below
-    (clipped). Lines that are not part of an entry are kept as notes."""
+    """The entries a Pane window shows, top to bottom, in any Layout. An entry
+    cut off at the top is dropped (partial_top); the last one may be cut off
+    below (clipped). Lines that are not part of an entry are kept as notes."""
     found = find_pane(rows)
     if found is None:
         return None
     left, filter_row = found
-    head = (_right_of(rows[filter_row], left) or "") if filter_row >= 0 else ""
-    chosen = next((name for mark, name in _FILTERS.items() if mark in head), "all")
+    chosen = _chosen_filter(rows, filter_row, left)
     entries: list[PaneEntry] = []
     notes: list[str] = []
     partial_top = False
+    layout = footer = None
     current: PaneEntry | None = None
     side = None
-    skipping = False                      # inside an entry cut off at the top
+    day = None
     for y in range(filter_row + 1, len(rows)):
         text = _right_of(rows[y], left)
         if text is None:
@@ -385,48 +460,84 @@ def parse_pane(rows: list[str]) -> Pane | None:
             if "│" not in rows[y]:
                 break
             notes.append("<row off the border column: " + rows[y].rsplit("│", 1)[-1].strip() + ">")
-            current, side, skipping = None, None, False
+            current, side = None, None
             continue
         # 2.1.287 draws the Pane's ✕ at the right end of its first content row
         text = re.sub(r"\s+✕$", "", text)
-        if not text.strip():
-            current, side, skipping = None, None, False
-            continue
-        if not (len(text) >= 2 and text[0] in "▌ " and text[1] == " "):
-            current, side, skipping = None, None, False
-            notes.append(text.strip())
-            continue
-        mark, body = text[0] == "▌", text[2:]
-        if body == "你" or body.startswith("你 · "):
-            current = PaneEntry(row=y, user_head=body.strip(), highlighted=mark)
-            entries.append(current)
-            side, skipping = "user", False
-        elif body.startswith("↳"):
-            agent_head = body[1:].strip()
-            if current is not None and current.agent_head is None and side == "user":
-                current.agent_head, side = agent_head, "agent"
-            elif chosen == "agent":
-                current = PaneEntry(row=y, agent_head=agent_head, highlighted=mark)
-                entries.append(current)
-                side = "agent"
-            else:
-                partial_top, skipping, current, side = True, True, None, None
-        elif skipping or current is None:
-            if entries:
-                notes.append(text.strip())
-            else:
-                partial_top = True
-        elif side == "user" and len(current.user_lines) < 2:
-            current.user_lines.append(body.strip())
-        elif side == "agent" and len(current.agent_lines) < 2 and body.startswith("  "):
-            current.agent_lines.append(body[2:].strip())
-        else:
-            notes.append(text.strip())
+        stripped = text.strip()
+        if not stripped or (set(stripped) <= set("━─") and "━" in stripped):
             current, side = None, None
+            continue
+        if _FOOTER_RULE.match(stripped):
+            current, side = None, None
+            below = _right_of(rows[y + 1], left) if y + 1 < len(rows) else None
+            if below and (m := re.search(r"l: 布局 (\S+)$", below.strip())):
+                layout = m.group(1)
+                footer = below.strip()[: m.start()].strip() or None
+            break
+        if m := _DAY_RULE.match(stripped):
+            day, current, side = m.group(1), None, None
+            continue
+        time = None
+        rest = text
+        if m := _TIME_COLUMN.match(text):
+            time, rest = m.group(1).strip(), text[6:]
+        lit = rest[:1] in _LIT
+        if rest[:1] in _NODES:
+            body = rest[3:].rstrip()
+            if time is None:                         # the card: the time at the right
+                aside = _ASIDE.match(body)
+                body, time = (aside.group(1), aside.group(2)) if aside else (body, "")
+            current = PaneEntry(row=y, user_row=y, time=time, day=day, user_lines=[body.strip()], highlighted=lit,
+                                user_off=rest[:1] == "○")
+            entries.append(current)
+            side, day = "user", None
+        elif rest[:2] in _BRANCHES:
+            body = rest[3:].rstrip()
+            running = body.startswith("◐ ")
+            if running:
+                body = body[2:]
+            head, start = _split_agent(body.strip())
+            if current is not None and side == "user" and current.agent_head is None:
+                current.agent_row, current.agent_head, current.running = y, head, running
+                current.agent_off = rest[:2] == "├┄"
+                current.highlighted = current.highlighted or lit
+                if time:
+                    current.time = current.time or time
+            elif chosen == "agent" or entries:
+                current = PaneEntry(row=y, agent_row=y, time=time or "", day=day, agent_head=head, running=running,
+                                    highlighted=lit, agent_off=rest[:2] == "├┄")
+                entries.append(current)
+                day = None
+            else:
+                partial_top, current, side = True, None, None
+                continue
+            if start:
+                current.agent_lines.append(start)
+            side = "agent"
+        elif rest[:1] in _RAILS and rest[1:3] == "  " and rest[3:].strip():
+            body = rest[3:].strip()
+            if current is None:
+                if entries:
+                    notes.append(stripped)
+                else:
+                    partial_top = True
+            elif side == "user" and len(current.user_lines) < 2:
+                current.user_lines.append(body)
+            elif side == "agent" and len(current.agent_lines) < 2 + (0 if current.agent_lines else 1):
+                current.agent_lines.append(body)
+            else:
+                notes.append(stripped)
+        elif rest.strip() in _RAILS:
+            current, side = None, None             # the gap between two groups of a day
+        else:
+            current, side = None, None
+            notes.append(stripped)
     if entries:
         # the window may end inside it, blank filler below or not
         entries[-1].clipped = True
-    return Pane(left=left, filter_row=filter_row, filter=chosen, entries=entries, notes=notes, partial_top=partial_top)
+    return Pane(left=left, filter_row=filter_row, filter=chosen, entries=entries, notes=notes, partial_top=partial_top,
+                layout=layout, footer=footer)
 
 
 # ---------- the diff ----------
@@ -454,9 +565,13 @@ _IN_PROGRESS = re.compile(r"^进行中( · \d+ 步)?$")
 
 def entry_problems(group: Group, entry: PaneEntry, chosen: str = "all", in_progress: bool = False) -> list[str]:
     problems = []
+    if entry.day is not None and entry.day != group.day:
+        problems.append(f"day: expected {group.day!r}, got {entry.day!r}")
+    if entry.time and entry.time != group.clock:
+        problems.append(f"time: expected {group.clock!r}, got {entry.time!r}")
     if chosen != "agent":
-        if entry.user_head != group.user_head:
-            problems.append(f"userHead: expected {group.user_head!r}, got {entry.user_head!r}")
+        if not entry.has_user:
+            problems.append("userText: expected a user side, got none")
         problem = _text_problem("userText", group.user_text, entry.user_lines, entry.clipped)
         if problem:
             problems.append(problem)
@@ -471,7 +586,8 @@ def entry_problems(group: Group, entry: PaneEntry, chosen: str = "all", in_progr
     elif not group.has_agent and not running:
         problems.append(f"agentHead: expected no agent side, got {entry.agent_head!r}")
     elif not running:
-        if entry.agent_head != group.agent_head:
+        if entry.agent_head != group.agent_head and not (entry.agent_lines and entry.agent_lines[-1].endswith("…")
+                                                          and group.agent_head.startswith(entry.agent_head)):
             problems.append(f"agentHead: expected {group.agent_head!r}, got {entry.agent_head!r}")
         problem = _text_problem("agentText", group.last_text, entry.agent_lines, entry.clipped)
         if problem:

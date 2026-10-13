@@ -42,7 +42,7 @@ transcript file wherever the Pane's entries are judged.
                  without skipping a dimmed one; the inverse ring and the
                  highlight (the dark theme's `suggestion`) are drawn apart;
                  Enter jumps like a click
-  ui-004         under dark, light, dark-ansi and light-ansi the lit gutter is
+  ui-004         under dark, light, dark-ansi and light-ansi the lit marks are
                  the theme's `suggestion` and the dimmed text its `inactive`;
                  /theme from Dark to Light redraws the Pane at once; the
                  daltonized themes and auto are recorded, not judged
@@ -74,7 +74,7 @@ EMPTY = "本会话还没有对话"
 DENIED = "没有权限读本会话的 transcript，目录无法显示"
 FAILED = "读不到本会话的 transcript，目录无法显示"
 REFUSED = "这一条当前没有显示在对话里"
-# Each theme's `suggestion` (the lit gutter) and `inactive` (what dimColor
+# Each theme's `suggestion` (the lit rail marks) and `inactive` (what dimColor
 # draws), as pyte reads them; measured the same on 2.1.287 and 2.1.295.
 THEMES = {"dark": ("b1b9f9", "999999"), "light": ("5769f7", "666666"),
           "dark-ansi": ("brightblue", "white"), "light-ansi": ("blue", "brightblack")}
@@ -175,11 +175,11 @@ def ring(t):
 
 
 def side_at(p, y):
-    """(entry index, 'user'|'agent') of the side whose header is screen row y."""
+    """(entry index, 'user'|'agent') of the side whose first line is screen row y."""
     for i, e in enumerate(p.entries):
-        if e.row == y:
-            return i, "user" if e.user_head is not None else "agent"
-        if e.agent_head is not None and e.user_head is not None and e.row + 1 + len(e.user_lines) == y:
+        if e.user_row == y:
+            return i, "user"
+        if e.agent_row == y:
             return i, "agent"
     return None
 
@@ -508,8 +508,9 @@ def forms(host, run):
         "error": bool(f13) and f13.agent_head == "出错 · 1 步" and "API Error" in " ".join(f13.agent_lines),
     }
     f05 = one("F05")
-    checks["turn005"] = {"noTimestampNoTime": bool(f05) and f05.user_head == "你",
-                         "othersTimed": all(e.user_head.startswith("你 · ") for e in found if e is not f05 and e.user_head)}
+    checks["turn005"] = {"noTimestampNoTime": bool(f05) and f05.time == "",
+                         "othersTimed": all(re.fullmatch(r"\d\d:\d\d", e.time or "") is not None
+                                            for e in found if e is not f05 and e.has_user)}
     f11 = one("F11")
     checks["data005"] = {"subagentOneStep": bool(f11) and f11.agent_head == "1 步",
                          "subagentContentNotListed": actual.get("subagentTextShown") is False}
@@ -594,8 +595,10 @@ def turn_004_live(host, run):
             "after it, 2 步 with the closing text, as the verifier reads the file", actual, ok, ev)
 
 
-def filter_row(t):
-    return next((r for r in t.rows() if "全部" in r and "Agent" in r), "")
+def chosen_filter(t):
+    """The filter the Pane's tab rule marks; None without a Pane."""
+    p = v.parse_pane(t.rows())
+    return p.filter if p is not None else None
 
 
 def ui_001(host, run):
@@ -608,10 +611,10 @@ def ui_001(host, run):
         t.wait_for(listed, "the Pane with entries", timeout=40)
         t.settle()
         focus_pane(t)
-        for key, mark, chosen in (("2", "●用户", "user"), ("3", "●Agent", "agent"), ("1", "●全部", "all")):
+        for key, chosen in (("2", "user"), ("3", "agent"), ("1", "all")):
             began = time.monotonic()
             t.type(key)
-            t.wait_for(lambda term: mark in filter_row(term), f"the filter row to show {mark}", timeout=5)
+            t.wait_for(lambda term: chosen_filter(term) == chosen, f"the tab rule under {chosen}", timeout=5)
             took = round(time.monotonic() - began, 2)
             pointer_off(t)
             ev.append(t.snap(f"ui-001 filter {chosen}"))
@@ -619,7 +622,7 @@ def ui_001(host, run):
             ev.append(diff)
             actual[chosen] = {"redrawSeconds": took, "wholeList": {k: result[k] for k in ("ok", "covered", "missing")}}
         t.type("3")
-        t.wait_for(lambda term: "●Agent" in filter_row(term), "●Agent before quitting", timeout=5)
+        t.wait_for(lambda term: chosen_filter(term) == "agent", "Agent chosen before quitting", timeout=5)
     except h.ScenarioFailure as failure:
         actual["failure"] = str(failure)
     finally:
@@ -629,7 +632,7 @@ def ui_001(host, run):
         t.wait_for(listed, "the Pane in a new process", timeout=40)
         t.settle()
         ev.append(t.snap("ui-001 new process"))
-        actual["newProcessFilterRow"] = filter_row(t).split("│")[-1].strip()
+        actual["newProcessFilter"] = chosen_filter(t)
         t.close()
         for store in store_files(world):
             store.write_text(json.dumps({"viewFilter": "nonsense", "layout": ["compact"]}))
@@ -637,7 +640,7 @@ def ui_001(host, run):
         t.wait_for(listed, "the Pane after an unknown stored value", timeout=40)
         t.settle()
         ev.append(t.snap("ui-001 unknown stored value"))
-        actual["unknownValueFilterRow"] = filter_row(t).split("│")[-1].strip()
+        actual["unknownValueFilter"] = chosen_filter(t)
     except h.ScenarioFailure as failure:
         actual["failure"] = str(failure)
     finally:
@@ -645,7 +648,7 @@ def ui_001(host, run):
         world.remove()
     ok = (all(actual.get(c, {}).get("wholeList", {}).get("ok") is True and actual[c]["redrawSeconds"] <= 1.0
               for c in ("user", "agent", "all"))
-          and "●Agent" in actual.get("newProcessFilterRow", "") and "●全部" in actual.get("unknownValueFilterRow", "")
+          and actual.get("newProcessFilter") == "agent" and actual.get("unknownValueFilter") == "all"
           and "failure" not in actual)
     return ("CT-UI-001", "turns 9 (a /tui group with a user side only)",
             "2/3/1 switch the filter and the Pane redraws at once (≤ 1 s from the key), each whole list equal to the "
@@ -654,17 +657,17 @@ def ui_001(host, run):
 
 
 def layout_view(t):
-    rows = t.rows()
-    body = [r.rsplit("│", 1)[1] for r in rows if "│" in r]
-    label = next((m.group(1) for r in body for m in [re.search(r"布局:(\S+)", r)] if m), None)
-    turns = sorted({int(n) for r in body for n in re.findall(r"T(\d{4}) 用户问题", r)})
-    agents = sum(r.lstrip().lstrip("│ ").startswith("↳") or " ↳ " in r for r in body)
-    return {"label": label, "turns": turns, "agentSides": agents}
+    p = v.parse_pane(t.rows())
+    if p is None:
+        return {"label": None, "turns": [], "agentSides": 0}
+    turns = sorted({int(n) for e in p.entries for n in re.findall(r"T(\d{4}) 用户问题", e.user_text)})
+    agents = sum(e.agent_head is not None for e in p.entries)
+    return {"label": p.layout, "turns": turns, "agentSides": agents}
 
 
 def click_layout_button(t):
     t.settle(quiet=0.6)
-    at = t.find("布局:")
+    at = t.find("l: 布局")
     if at is None:
         raise h.ScenarioFailure("no Layout button")
     t.click(at[1] + 1, at[0])
@@ -683,20 +686,20 @@ def ui_002(host, run):
         ev.append(t.snap("ui-002 card"))
         focus_pane(t)
         t.type("l")                                   # the hotkey
-        t.wait_for(lambda term: layout_view(term)["label"] == "紧凑", "布局:紧凑", timeout=5)
+        t.wait_for(lambda term: layout_view(term)["label"] == "紧凑", "布局 紧凑", timeout=5)
         pointer_off(t)
         views.append(layout_view(t))
         ev.append(t.snap("ui-002 compact by l"))
         click_layout_button(t)                        # the button
-        t.wait_for(lambda term: layout_view(term)["label"] == "时间轴", "布局:时间轴", timeout=5)
+        t.wait_for(lambda term: layout_view(term)["label"] == "时间轴", "布局 时间轴", timeout=5)
         pointer_off(t)
         views.append(layout_view(t))
         ev.append(t.snap("ui-002 timeline by a click"))
         # back to 卡片 and on to 紧凑 with the button, which leaves the keyboard where it was
         click_layout_button(t)
-        t.wait_for(lambda term: layout_view(term)["label"] == "卡片", "布局:卡片 again", timeout=5)
+        t.wait_for(lambda term: layout_view(term)["label"] == "卡片", "布局 卡片 again", timeout=5)
         click_layout_button(t)
-        t.wait_for(lambda term: layout_view(term)["label"] == "紧凑", "布局:紧凑 before quitting", timeout=5)
+        t.wait_for(lambda term: layout_view(term)["label"] == "紧凑", "布局 紧凑 before quitting", timeout=5)
         time.sleep(0.5)
         actual["views"] = views
     except h.ScenarioFailure as failure:
@@ -743,26 +746,34 @@ def compacted_turns(world, host, turns, after):
     return session
 
 
-def is_dim(t, p, row):
+def is_dim(t, p, row, start=1):
+    """Whether every non-blank cell of a pane row from column `start` on is
+    drawn dim; 3 skips the rail mark."""
     with t.lock:
-        cells = [t.screen.buffer[row][x] for x in range(p.left + 1, t.screen.columns)]
+        cells = [t.screen.buffer[row][x] for x in range(p.left + start, t.screen.columns)]
     shown = [c for c in cells if c.data.strip()]
     return bool(shown) and all(c.fg == DIM for c in shown)
 
 
 def is_lit(fg, theme="dark"):
-    """The theme's `suggestion`, which the lit gutter is drawn in."""
+    """The theme's `suggestion`, which the lit rail marks are drawn in."""
     return fg == THEMES[theme][0]
 
 
+LIT_MARKS = "◉┣"
+
+
 def lit_rows(t, p):
-    """Screen rows whose gutter mark is ▌, with its colour."""
+    """Screen rows whose rail mark is lit (◉ or ┣╸), with its colour."""
     out = []
     with t.lock:
         for e in p.entries:
-            c = t.screen.buffer[e.row][p.left]
-            if c.data == "▌":
-                out.append((e.row, c.fg))
+            for row in (e.user_row, e.agent_row):
+                if row is None:
+                    continue
+                c = t.screen.buffer[row][p.left]
+                if c.data in LIT_MARKS:
+                    out.append((row, c.fg))
     return out
 
 
@@ -784,7 +795,7 @@ def ui_003(host, run):
             t.wheel(col, row, up=True, ticks=2)
         else:
             raise h.ScenarioFailure("T0001 never showed in the Pane")
-        actual["dimmedBeforeKeys"] = is_dim(t, p, dimmed.row + 1)
+        actual["dimmedBeforeKeys"] = dimmed.user_off and is_dim(t, p, dimmed.user_row)
         ev.append(t.snap("ui-003 T0001, compacted before the resume, dimmed"))
         for _ in range(40):
             p = v.parse_pane(t.settle(quiet=0.4))
@@ -810,13 +821,16 @@ def ui_003(host, run):
                 nxt = turn_of(p.entries[where[0] + 1].user_text)   # /tui names no turn: the one before its neighbour
                 turn = nxt - 1 if nxt is not None else None
             walk.append({"ring": got, "turn": turn, "side": where[1] if where else None,
-                         "dim": is_dim(t, p, entry.row + 1) if entry and where[1] == "user" else None,
+                         "dim": is_dim(t, p, entry.user_row) if entry and where[1] == "user" else None,
                          "lit": lit_rows(t, p)})
         ev.append(t.snap("ui-003 after the ↑ walk"))
         actual["walk"] = walk
         # the sides above one another: each turn's agent side then its user side; turn 7 (/tui) has a user side only
         order = [(n, s) for n in range(11, -1, -1) for s in (("user",) if n == 7 else ("agent", "user"))]
+        # the ring may first stop on the footer's Layout Button, below the entries
         steps = [(w["turn"], w["side"]) for w in walk]
+        while steps and steps[0][1] is None:
+            steps.pop(0)
         actual["oneSideAtATime"] = (steps[0] in order and
                                     steps == order[order.index(steps[0]):order.index(steps[0]) + len(steps)])
 
@@ -845,11 +859,12 @@ def ui_003(host, run):
         pointer_off(t)
         got = ring(t)
         p = pane(t)
-        # T0001's user lines may sit above the window: read the ring's row
-        # (the Agent side's ↳ header) and the reply line under it
-        below = t.rows()[got[0][0] + 1] if len(got) == 1 else ""
-        actual["ringOnDimmed"] = (len(got) == 1 and got[0][1].startswith("↳") and "T0001" in below
-                                  and is_dim(t, p, got[0][0] + 1))
+        # T0001's user lines may sit above the window: read the ring's row,
+        # the Agent side's first line, the hollow branch beside it, and the
+        # reply's line under it (the ring's own row is drawn inverse)
+        with t.lock:
+            mark = "".join(t.screen.buffer[got[0][0]][p.left + i].data for i in range(2)) if len(got) == 1 else ""
+        actual["ringOnDimmed"] = len(got) == 1 and mark == "├┄" and "T0001" in got[0][1] and is_dim(t, p, got[0][0] + 1, 3)
         lit = lit_rows(t, p)
         lit_turns = sorted({turn_of(e.user_text) for e in p.entries if e.highlighted})
         where = side_at(p, got[0][0]) if len(got) == 1 else None
@@ -858,7 +873,7 @@ def ui_003(host, run):
                                      "litTurns": lit_turns, "litMarks": lit}
         with t.lock:
             reverse_lit = any(t.screen.buffer[r][p.left].reverse for r, _ in lit)
-            ring_on_lit = len(got) == 1 and t.screen.buffer[got[0][0]][p.left].data == "▌"
+            ring_on_lit = len(got) == 1 and t.screen.buffer[got[0][0]][p.left].data in LIT_MARKS
         actual["ringAndHighlightApart"] = lit_turns == [2] and len(got) == 1 and not ring_on_lit
         actual["highlightColour"] = sorted({str(fg) for _, fg in lit})
         actual["highlightNotInverse"] = bool(lit) and not reverse_lit
@@ -872,8 +887,9 @@ def ui_003(host, run):
         and len(actual.get("highlightColour", [])) == 1 and is_lit(actual["highlightColour"][0])
     return ("CT-UI-003", "turns 12 compacted after T0001, --resume: T0000-T0001 dimmed from the start",
             "focused, ↑ walks one side at a time (agent, user, the turn before's agent, ...); Enter on T0002's user side "
-            "puts that prompt at the top and lights it; one more ↑ moves the inverse ring off it onto T0001's dimmed "
-            "Agent side (not skipped) while the ▌ in the theme's `suggestion` (not inverse) stays on T0002", actual, ok, ev)
+            "puts that prompt at the top and lights it; one more ↑ moves the inverse ring off it onto T0001's Agent side "
+            "on its hollow branch (not skipped) while the lit ◉ in the theme's `suggestion` (not inverse) stays on T0002",
+            actual, ok, ev)
 
 
 def sec_001(host, run):
@@ -902,7 +918,7 @@ def sec_001(host, run):
         p = pane(t)
         mine = next((e for e in p.entries if marker in e.user_text), None)
         if mine is not None:
-            t.click(p.left + 4, mine.row + 1)              # a jump
+            t.click(p.left + 4, mine.user_row)              # a jump
             time.sleep(1.0)
         hot_reload(t, copy, log)                            # a whole re-read
         time.sleep(1.5)
@@ -943,22 +959,32 @@ def sec_001(host, run):
 
 
 def pane_colours(t, p):
-    """The Pane's colours: the lit gutter marks', the blank gutters', the
-    dimmed heads' (你 · time, ↳ N 步) and the rest of the entry text's."""
-    out = {"lit": set(), "gutter": set(), "dimmed": set(), "text": set()}
+    """The Pane's colours: the lit marks' (◉ ┣╸), the other nodes' (●), the
+    rail's (├╴ │), the dimmed text's (each Agent reply and the time at the
+    right of a prompt) and the prompts' text."""
+    out = {"lit": set(), "node": set(), "rail": set(), "dimmed": set(), "text": set()}
     with t.lock:
         buf = t.screen.buffer
         for e in p.entries:
-            heads = {e.row} | ({e.row + 1 + len(e.user_lines)} if e.agent_head is not None else set())
-            last = e.row + len(e.user_lines) + (1 + len(e.agent_lines) if e.agent_head is not None else 0)
-            for row in range(e.row, min(last, t.screen.lines - 1) + 1):
-                mark = buf[row][p.left]
-                if mark.data == "▌":
-                    out["lit"].add(mark.fg)
-                elif not mark.data.strip():
-                    out["gutter"].add(mark.fg)
-                cells = [buf[row][x] for x in range(p.left + 2, t.screen.columns) if buf[row][x].data.strip()]
-                out["dimmed" if row in heads else "text"].update(c.fg for c in cells if not c.reverse)
+            sides = [("user", e.user_row, len(e.user_lines)), ("agent", e.agent_row, max(1, len(e.agent_lines)))]
+            for side, first, count in sides:
+                if first is None:
+                    continue
+                for row in range(first, min(first + count, t.screen.lines)):
+                    mark = buf[row][p.left]
+                    if mark.data in LIT_MARKS:
+                        out["lit"].add(mark.fg)
+                    elif mark.data == "●":
+                        out["node"].add(mark.fg)
+                    elif mark.data in "├│":
+                        out["rail"].add(mark.fg)
+                    cells = [buf[row][x] for x in range(p.left + 3, t.screen.columns) if buf[row][x].data.strip()]
+                    cells = [c for c in cells if not c.reverse]
+                    if side == "user" and row == first and e.time and len(cells) >= 5:
+                        # the time at the right: lit with its group, else dim
+                        out["lit" if e.highlighted else "dimmed"].update(c.fg for c in cells[-5:])
+                        cells = cells[:-5]
+                    out["dimmed" if side == "agent" else "text"].update(c.fg for c in cells)
     return {k: sorted(v) for k, v in out.items()}
 
 
@@ -988,10 +1014,10 @@ def ui_004(host, run):
         finally:
             t.close()
             world.remove()
-        ok = (actual.get("lit") == [lit] and actual.get("dimmed") == [dim] and actual.get("gutter") == [dim])
+        ok = (actual.get("lit") == [lit] and actual.get("dimmed") == [dim] and actual.get("node") == [dim])
         out.append(("CT-UI-004", f"turns 12, theme {theme}",
-                    f"the lit ▌ is {lit} (the theme's suggestion); the dimmed 你 · time / ↳ lines and the blank gutters "
-                    f"are {dim} (its inactive)", actual, ok, ev))
+                    f"the lit ◉ ┣╸ are {lit} (the theme's suggestion); the Agent replies, the prompts' times and the "
+                    f"other nodes ● are {dim} (its inactive)", actual, ok, ev))
 
     world, fx = themed_world(host, "dark")
     t = launch(world, host, run, ["--resume", fx["session"]])

@@ -127,7 +127,7 @@ def ct_life_001(host, run, plugin):
         # the Pane is focused) switches the Layout; `l` twice more goes back.
         t.type("l")
         rows = t.settle()
-        actual["reopenedFocused"] = any("布局:紧凑" in row for row in rows)
+        actual["reopenedFocused"] = any("布局 紧凑" in row for row in rows)
         evidence.append(t.snap("001 l pressed after /chat-toc reopened it"))
         t.type("l")
         t.settle()
@@ -251,7 +251,7 @@ def not_written(t):
     neither of which is drawn here."""
     rows = t.rows()
     right = "".join("".join(row.rsplit("│", 1)[1].replace("✕", "").split()) for row in rows if "│" in row)
-    return "".join(NOT_WRITTEN.split()) in right and "你 ·" not in right
+    return "".join(NOT_WRITTEN.split()) in right and not any(mark in right for mark in "●◉├┣")
 
 
 def ct_life_fork(host, run, plugin):

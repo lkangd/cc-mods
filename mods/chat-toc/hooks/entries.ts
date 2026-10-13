@@ -1,17 +1,23 @@
 /* Entries: what the pane draws for each side of a Turn group, as lines of
    text already folded to the pane's width, in the Layout chosen and under
-   the View filter:
-     card      each side a dim header line, then up to two lines of text;
-     compact   each side one line, the prompt with its time at the right;
-     timeline  each side up to two lines beside a rail of times.
-   The gutter left of the lines (highlight mark, time rail) is the pane's to
-   draw; an entry carries what it needs, its `time`. */
+   the View filter. Every Layout hangs the sides on a rail: the User input's
+   first line on a node, the Agent reply's on a branch.
+     card      each side up to two lines, the User input's time at the right
+               of its first line;
+     compact   each side one line, the time in a column left of the rail;
+     timeline  each side up to two lines, the time in a column left of the
+               rail.
+   The Agent reply is one dim run: its state and steps, then its reply.
+   The gutter left of the lines (time column, rail) is the pane's to draw;
+   an entry carries what it needs, its `time` and whether it runs. */
 
 import { textCells, wrapCells } from './cells'
 import type { TurnGroup } from './groups'
 import type { Layout, ViewFilter } from './view'
 
-export type EntryLine = { text: string; dim: boolean }
+/* A line of an entry; `aside`, on a card's first User input line, is the
+   time the pane draws at the right of it. */
+export type EntryLine = { text: string; dim: boolean; aside?: string }
 
 export type Entry = {
   /* The entry's key: its first line's Button key; later lines add `.<n>`. */
@@ -21,38 +27,61 @@ export type Entry = {
   /* The transcript row a press jumps to. */
   jumpUuid: string
   lines: EntryLine[]
-  /* The User input's local `HH:MM` for the timeline's rail; '' elsewhere,
-     and when the transcript has no time for it. */
+  /* The group's local `HH:MM` for the time column of the compact and
+     timeline Layouts, on the group's first side shown; '' elsewhere, and
+     when the transcript has no time for it. */
   time: string
+  /* An Agent reply side whose turn is under way: the pane marks it ◐. */
+  isRunning: boolean
+  /* The group's day, as `dayLabel` says it; '' when it has no time. */
+  day: string
+  /* A side with no Jump target (refused, or compacted away before a
+     resume): the pane hangs it on a hollow mark. */
+  isOff?: boolean
   /* Whether a blank line follows: one parts each Turn group from the next
      in the card and timeline Layouts. */
   gapAfter: boolean
 }
 
-/* The gutter each Layout keeps left of its Buttons, in cells: a highlight
-   mark and a space, or in the timeline `HH:MM`, a space, the rail, a space. */
-export const GUTTER: Record<Layout, number> = { card: 2, compact: 2, timeline: 8 }
-/* The card's Agent reply text sits this far in, inside its Buttons. */
-const REPLY_INDENT = '  '
+/* The gutter each Layout keeps left of its Buttons, in cells: the rail and
+   two spaces; in compact and timeline after `HH:MM` and a space. */
+export const GUTTER: Record<Layout, number> = { card: 3, compact: 9, timeline: 9 }
+/* What a running Agent reply side adds to the gutter: `◐ `. */
+export const RUNNING_MARK = 2
+/* The room a card keeps at the right of its first User input line for the
+   time: a space, then `HH:MM`. */
+const ASIDE = 6
 const BODY_LINES = 2
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
-/* A transcript timestamp in the local clock, `M月D日 HH:MM`, with the year
-   when it is not this year's; '' when there is none to read. */
-export function formatTime(timestamp: string | undefined, nowMs: number): string {
-  if (!timestamp) return ''
+/* A transcript timestamp as a local time; undefined when there is none to
+   read. */
+function timeOf(timestamp: string | undefined): Date | undefined {
+  if (!timestamp) return undefined
   const at = new Date(timestamp)
-  if (Number.isNaN(at.getTime())) return ''
-  const day = `${at.getMonth() + 1}月${at.getDate()}日 ${pad2(at.getHours())}:${pad2(at.getMinutes())}`
-  return at.getFullYear() === new Date(nowMs).getFullYear() ? day : `${at.getFullYear()}年${day}`
+  return Number.isNaN(at.getTime()) ? undefined : at
+}
+
+function dayOf(at: Date | undefined, now: Date): string {
+  if (at === undefined) return ''
+  const day = `${at.getMonth() + 1}月${at.getDate()}日`
+  if (at.getFullYear() !== now.getFullYear()) return `${at.getFullYear()}年${day}`
+  return at.getMonth() === now.getMonth() && at.getDate() === now.getDate() ? `今天 · ${day}` : day
+}
+
+const clockOf = (at: Date | undefined) => (at === undefined ? '' : `${pad2(at.getHours())}:${pad2(at.getMinutes())}`)
+
+/* A transcript timestamp's local day for the day's rule: `M月D日`, today
+   `今天 · M月D日`, another year's with the year; '' when there is none to
+   read. */
+export function dayLabel(timestamp: string | undefined, nowMs: number): string {
+  return dayOf(timeOf(timestamp), new Date(nowMs))
 }
 
 /* A transcript timestamp's local `HH:MM`; '' when there is none to read. */
 export function clockTime(timestamp: string | undefined): string {
-  if (!timestamp) return ''
-  const at = new Date(timestamp)
-  return Number.isNaN(at.getTime()) ? '' : `${pad2(at.getHours())}:${pad2(at.getMinutes())}`
+  return clockOf(timeOf(timestamp))
 }
 
 /* The Agent reply's state, as its header says it: in progress, interrupted
@@ -66,7 +95,7 @@ export function agentHeadOf(group: TurnGroup, isRunning: boolean): string {
   return steps
 }
 
-type Side = Omit<Entry, 'time' | 'gapAfter'>
+type Side = Omit<Entry, 'time' | 'gapAfter' | 'isRunning' | 'day'>
 
 function sideOf(group: TurnGroup, groupIndex: number, side: 'user' | 'agent', lines: EntryLine[]): Side {
   return {
@@ -80,37 +109,28 @@ function sideOf(group: TurnGroup, groupIndex: number, side: 'user' | 'agent', li
 
 const linesOf = (texts: string[], dim: boolean): EntryLine[] => texts.map(text => ({ text, dim }))
 
-/* The Agent reply as one run of text: the arrow, its state, its reply. */
+/* The Agent reply as one run of text: its state, then its reply. */
 function agentText(group: TurnGroup, isRunning: boolean): string {
-  const said = [agentHeadOf(group, isRunning), group.reply?.text ?? ''].filter(Boolean).join(' · ')
-  return said ? `↳ ${said}` : '↳'
+  return [agentHeadOf(group, isRunning), group.reply?.text ?? ''].filter(Boolean).join(' · ')
 }
 
-function cardSide(group: TurnGroup, i: number, side: 'user' | 'agent', room: number, nowMs: number, isRunning: boolean): Side {
-  if (side === 'user') {
-    const time = formatTime(group.timestamp, nowMs)
-    const head = wrapCells(time ? `你 · ${time}` : '你', room, 1)
-    const body = group.userText ? wrapCells(group.userText, room, BODY_LINES) : []
-    return sideOf(group, i, side, [...linesOf(head, true), ...linesOf(body, false)])
-  }
-  const state = agentHeadOf(group, isRunning)
-  const head = wrapCells(state ? `↳ ${state}` : '↳', room, 1)
-  const body = group.reply ? wrapCells(group.reply.text, room - REPLY_INDENT.length, BODY_LINES).map(line => REPLY_INDENT + line) : []
-  return sideOf(group, i, side, [...linesOf(head, true), ...linesOf(body, false)])
+/* A side's whole text, unfolded, for a surface that wraps it itself. */
+export function sideText(group: TurnGroup, side: 'user' | 'agent', isRunning: boolean): string {
+  return side === 'user' ? group.userText : agentText(group, isRunning)
 }
 
-function compactSide(group: TurnGroup, i: number, side: 'user' | 'agent', room: number, isRunning: boolean): Side {
-  if (side === 'agent') return sideOf(group, i, side, linesOf(wrapCells(agentText(group, isRunning), room, 1), true))
-  const time = clockTime(group.timestamp)
-  if (!time) return sideOf(group, i, side, linesOf(wrapCells(group.userText, room, 1), false))
-  const textRoom = room - time.length - 1
-  const line = wrapCells(group.userText, textRoom, 1)[0] ?? ''
-  return sideOf(group, i, side, [{ text: line + ' '.repeat(Math.max(0, textRoom - textCells(line)) + 1) + time, dim: false }])
+function userSide(group: TurnGroup, i: number, layout: Layout, room: number, clock: string): Side {
+  const lines = layout === 'compact' ? 1 : BODY_LINES
+  const time = layout === 'card' ? clock : ''
+  if (!time) return sideOf(group, i, 'user', linesOf(wrapCells(group.userText, room, lines), false))
+  const folded = linesOf(wrapCells(group.userText, room, lines, room - ASIDE), false)
+  folded[0] = { ...folded[0]!, aside: time }
+  return sideOf(group, i, 'user', folded)
 }
 
-function timelineSide(group: TurnGroup, i: number, side: 'user' | 'agent', room: number, isRunning: boolean): Side {
-  if (side === 'agent') return sideOf(group, i, side, linesOf(wrapCells(agentText(group, isRunning), room, BODY_LINES), true))
-  return sideOf(group, i, side, linesOf(wrapCells(group.userText, room, BODY_LINES), false))
+function agentSide(group: TurnGroup, i: number, layout: Layout, room: number, isRunning: boolean): Side {
+  const lines = layout === 'compact' ? 1 : BODY_LINES
+  return sideOf(group, i, 'agent', linesOf(wrapCells(agentText(group, isRunning), isRunning ? room - RUNNING_MARK : room, lines), true))
 }
 
 export type EntryOptions = {
@@ -133,16 +153,35 @@ export function groupEntries(group: TurnGroup, i: number, isGroupRunning: boolea
   const sides: ('user' | 'agent')[] = []
   if (filter !== 'agent') sides.push('user')
   if (filter !== 'user' && (group.hasAgentReply || isGroupRunning)) sides.push('agent')
+  const at = timeOf(group.timestamp)
+  const day = dayOf(at, new Date(nowMs))
+  const clock = clockOf(at)
   return sides.map((side, n) => {
-    const drawn =
-      layout === 'card'
-        ? cardSide(group, i, side, room, nowMs, isGroupRunning)
-        : layout === 'compact'
-          ? compactSide(group, i, side, room, isGroupRunning)
-          : timelineSide(group, i, side, room, isGroupRunning)
-    const time = layout === 'timeline' && side === 'user' ? clockTime(group.timestamp) : ''
-    return { ...drawn, time, gapAfter: layout !== 'compact' && n === sides.length - 1 }
+    const drawn = side === 'user' ? userSide(group, i, layout, room, clock) : agentSide(group, i, layout, room, isGroupRunning)
+    const time = layout !== 'card' && n === 0 ? clock : ''
+    return { ...drawn, time, isRunning: side === 'agent' && isGroupRunning, day, gapAfter: layout !== 'compact' && n === sides.length - 1 }
   })
+}
+
+/* The day's rule drawn above entry `i`: its day, when it is the first
+   entry of its group and the day is not the one the list was on. A group
+   without a time draws none and leaves the list on its day. */
+export function dayRuleBefore(entries: readonly Entry[], i: number): string | undefined {
+  const entry = entries[i]
+  if (entry === undefined || entry.day === '') return undefined
+  if (entries[i - 1]?.groupIndex === entry.groupIndex) return undefined
+  for (let j = i - 1; j >= 0; j--) {
+    const before = entries[j]!.day
+    if (before !== '') return before === entry.day ? undefined : entry.day
+  }
+  return entry.day
+}
+
+/* The rows entry `i` takes: its day's rule, its lines, the gap after it. */
+export function entryRows(entries: readonly Entry[], i: number): number {
+  const entry = entries[i]
+  if (entry === undefined) return 0
+  return (dayRuleBefore(entries, i) === undefined ? 0 : 1) + entry.lines.length + (entry.gapAfter ? 1 : 0)
 }
 
 /* The list's last entry, which has nothing after it to part from. */

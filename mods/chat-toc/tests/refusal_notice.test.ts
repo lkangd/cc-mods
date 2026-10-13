@@ -51,7 +51,8 @@ test('after a resume the turns before the compaction are dim before anything is 
   await resume($, world)
   const pane = await mountPane($)
 
-  expect(await dimOf(pane)).toMatchObject({ 'g0.u.1': true, 'g0.a.1': true, 'g1.u.1': true, 'g1.a.1': true, 'g2.u.1': false, 'g2.a.1': false })
+  /* An Agent reply side is always drawn dim; its User input side tells. */
+  expect(await dimOf(pane)).toMatchObject({ 'g0.u': true, 'g1.u': true, 'g2.u': false })
   expect(await notice(pane)).toBeUndefined()
 })
 
@@ -60,7 +61,7 @@ test('a session not started by resume dims nothing beforehand', async ($, on) =>
   await start($, world)
   const pane = await mountPane($)
 
-  expect(await dimOf(pane)).toMatchObject({ 'g0.u.1': false, 'g1.a.1': false, 'g2.u.1': false })
+  expect(await dimOf(pane)).toMatchObject({ 'g0.u': false, 'g1.u': false, 'g2.u': false })
 })
 
 test('a resumed session without a compaction dims nothing beforehand', async ($, on) => {
@@ -71,7 +72,7 @@ test('a resumed session without a compaction dims nothing beforehand', async ($,
   await resume($, world)
   const pane = await mountPane($)
 
-  expect(await dimOf(pane)).toMatchObject({ 'g0.u.1': false, 'g0.a.1': false })
+  expect(await dimOf(pane)).toMatchObject({ 'g0.u': false })
 })
 
 test('a compaction after the resume leaves the turns since the resume as they were', async ($, on) => {
@@ -86,7 +87,7 @@ test('a compaction after the resume leaves the turns since the resume as they we
   await $.classic.SessionStart({ source: 'compact', transcript_path: world.path })
   await world.clock.settle()
 
-  expect(await dimOf(pane)).toMatchObject({ 'g1.a.1': true, 'g2.u.1': false, 'g2.a.1': false, 'g3.u.1': false })
+  expect(await dimOf(pane)).toMatchObject({ 'g1.u': true, 'g2.u': false, 'g3.u': false })
 })
 
 test('a press on a turn from before the compaction says it cannot be reached after a resume', async ($, on) => {
@@ -94,7 +95,7 @@ test('a press on a turn from before the compaction says it cannot be reached aft
   await resume($, world)
   const pane = await mountPane($)
 
-  await pane.press({ key: 'g0.u.1' })
+  await pane.press({ key: 'g0.u' })
 
   expect(await notice(pane)).toEqual({ text: COMPACTED, color: 'warning', inverse: true })
 })
@@ -104,17 +105,17 @@ test('any other refusal says the entry is not shown in the conversation', async 
   await resume($, world)
   const pane = await mountPane($)
 
-  await pane.press({ key: 'g2.u.1' })
+  await pane.press({ key: 'g2.u' })
 
   expect((await notice(pane))?.text).toBe(REFUSED)
-  expect((await dimOf(pane))['g2.u.1']).toBe(true)
+  expect((await dimOf(pane))['g2.u']).toBe(true)
 })
 
 test('the refusal flashes inverse three times over about a second, stays lit, and goes after five', async ($, on) => {
   const world = host(on, compactedSession().jsonl())
   await start($, world)
   const pane = await mountPane($)
-  await pane.press({ key: 'g2.u.1' })
+  await pane.press({ key: 'g2.u' })
 
   const frames: boolean[] = []
   for (let i = 0; i < 8; i++) {

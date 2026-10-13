@@ -17,7 +17,7 @@ const text = (t: string): Row => ({ type: 'text', text: t })
 
 const build = (t: Builder, layout: Layout, filter: ViewFilter = 'all', width = 44, isRunning = false) =>
   entriesOf(tocModel(t.jsonl()).groups, { layout, filter, width, nowMs: NOW, isRunning })
-const shown = (entries: Entry[]) => entries.map(e => [e.key, e.lines.map(l => (l.dim ? `(${l.text})` : l.text))])
+const shown = (entries: Entry[]) => entries.map(e => [e.key, e.lines.map(l => (l.dim ? `(${l.text})` : l.text) + (l.aside ? ` @${l.aside}` : ''))])
 
 /* Three groups: a prompt with a reply, a local command with no Agent side,
    and a prompt whose turn used tools. */
@@ -58,19 +58,24 @@ test('cards and timelines leave a blank line between groups, compact lists none'
   expect(gaps('card', 'user')).toEqual([true, true, false])
 })
 
-test('compact draws each side on one line: the prompt with its time at the right, the reply dim', () => {
+test('compact draws each side on one line, the reply dim, the time kept apart for the left column', () => {
   const t = three()
   const entries = build(t, 'compact', 'all', 30)
 
   expect(shown(entries)).toEqual([
-    ['g0.u', ['CT-SYN first           09:05']],
-    ['g0.a', ['(↳ CT-SYN first answer)']],
-    ['g1.u', ['/tui                   09:07']],
-    ['g2.u', ['CT-SYN third           09:09']],
-    ['g2.a', ['(↳ 1 步 · CT-SYN third answer)']],
+    ['g0.u', ['CT-SYN first']],
+    ['g0.a', ['(CT-SYN first answer)']],
+    ['g1.u', ['/tui']],
+    ['g2.u', ['CT-SYN third']],
+    ['g2.a', ['(1 步 · CT-SYN third…)']],
   ])
-  /* The 2-column gutter and the line fill the width. */
-  for (const e of entries) for (const l of e.lines) expect(textCells(l.text) <= 28).toBe(true)
+  expect(entries.map(e => e.time)).toEqual(['09:05', '', '09:07', '09:09', ''])
+  /* The 9-column time and rail and the line fill the width. */
+  for (const e of entries) for (const l of e.lines) expect(textCells(l.text) <= 21).toBe(true)
+})
+
+test("the time goes to a group's first side the filter shows", () => {
+  expect(build(three(), 'compact', 'agent').map(e => e.time)).toEqual(['09:05', '09:09'])
 })
 
 test('compact cuts a long prompt and a long reply to one line each, with an ellipsis', () => {
@@ -81,11 +86,12 @@ test('compact cuts a long prompt and a long reply to one line each, with an elli
   delete t.rows[t.rows.length - 1]?.timestamp
 
   expect(shown(build(t, 'compact', 'all', 24))).toEqual([
-    ['g0.u', ['一二三四五六七…  09:05']],
-    ['g0.a', ['(↳ abcdefghijklmnopqrs…)']],
-    /* No time to show: none is made up, and the prompt takes the room. */
+    ['g0.u', ['一二三四五六七…']],
+    ['g0.a', ['(abcdefghijklmn…)']],
     ['g1.u', ['CT-SYN untimed']],
   ])
+  /* No time to show: none is made up. */
+  expect(build(t, 'compact', 'all', 24).map(e => e.time)).toEqual(['09:05', '', ''])
 })
 
 test('timeline draws the prompt and the reply, the reply dim, up to two lines each, the time kept apart', () => {
@@ -94,30 +100,30 @@ test('timeline draws the prompt and the reply, the reply dim, up to two lines ea
 
   expect(shown(entries)).toEqual([
     ['g0.u', ['CT-SYN first']],
-    ['g0.a', ['(↳ CT-SYN first answer)']],
+    ['g0.a', ['(CT-SYN first answer)']],
     ['g1.u', ['/tui']],
     ['g2.u', ['CT-SYN third']],
-    ['g2.a', ['(↳ 1 步 · CT-SYN third answer)']],
+    ['g2.a', ['(1 步 · CT-SYN third answer)']],
   ])
   expect(entries.map(e => e.time)).toEqual(['09:05', '', '09:07', '09:09', ''])
 })
 
-test('timeline folds to the width beside its 8-column time rail', () => {
+test('timeline folds to the width beside its 9-column time and rail, two less beside a running mark', () => {
   const t = transcript(new Date(2026, 9, 10, 9, 4).getTime())
   t.prompt('一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十')
   t.reply([tool('t1'), text('CT-SYN')])
 
   expect(shown(build(t, 'timeline', 'all', 28, true))).toEqual([
-    ['g0.u', ['一二三四五六七八九十', '一二三四五六七八九…']],
-    ['g0.a', ['(↳ 进行中 · 1 步 · CT)', '(-SYN)']],
+    ['g0.u', ['一二三四五六七八九', '十一二三四五六七八…']],
+    ['g0.a', ['(进行中 · 1 步 ·)', '(CT-SYN)']],
   ])
 })
 
 test('the card Layout under a filter draws its sides as the card does unfiltered', () => {
   const t = three()
   expect(shown(build(t, 'card', 'agent'))).toEqual([
-    ['g0.a', ['(↳)', '  CT-SYN first answer']],
-    ['g2.a', ['(↳ 1 步)', '  CT-SYN third answer']],
+    ['g0.a', ['(CT-SYN first answer)']],
+    ['g2.a', ['(1 步 · CT-SYN third answer)']],
   ])
 })
 

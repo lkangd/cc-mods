@@ -33,13 +33,13 @@ export function nextLayout(layout: Layout): Layout {
   return LAYOUTS[(LAYOUTS.indexOf(layout) + 1) % LAYOUTS.length] ?? 'card'
 }
 
-/* A filter Button's label: the chosen one marked `●`, the others `○`. */
-export function filterLabel(filter: ViewFilter, chosen: ViewFilter): string {
-  const name = FILTERS.find(f => f.filter === filter)?.name ?? ''
-  return (filter === chosen ? '●' : '○') + name
+/* A filter Button's label: its name. The chosen one is drawn at full
+   strength and marked by the tab rule below the row. */
+export function filterLabel(filter: ViewFilter): string {
+  return FILTERS.find(f => f.filter === filter)?.name ?? ''
 }
 
 /* The Layout Button says the Layout in use, not the next one. */
 export function layoutLabel(layout: Layout): string {
-  return `布局:${LAYOUT_NAMES[layout]}`
+  return `布局 ${LAYOUT_NAMES[layout]}`
 }

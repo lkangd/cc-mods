@@ -44,25 +44,64 @@ export function textCells(text: string): number {
   return n
 }
 
-/* Folds text into at most `maxLines` lines of `width` cells; when text is
-   left over, the last line ends in `…`. */
-export function wrapCells(text: string, width: number, maxLines: number): string[] {
-  const w = Math.max(2, width)
+/* Punctuation that closes what comes before it, which no line opens with. */
+const CLOSING = new Set('，。、；：！？）」』》〉】,.;:!?)…')
+
+/* A character of a Latin word or path: letters, digits and `_./-`. */
+function isWordChar(code: number): boolean {
+  return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 95 || code === 46 || code === 47 || code === 45
+}
+/* The longest Latin word or path that moves down whole. */
+const WORD_MOVES = 14
+
+/* What of a full `line` moves down to the next when the character at
+   `text[at]` does not fit: the line's last character when that one closes
+   it; the start of a word it continues, when the whole word is short and
+   the line has more than it. */
+function carriedDown(line: string, text: string, at: number, width: number): string {
+  const next = text.codePointAt(at) ?? 0
+  if (CLOSING.has(String.fromCodePoint(next))) {
+    const last = line.codePointAt(line.length - 1) ?? 0
+    const lastLength = last >= 0xdc00 && last <= 0xdfff ? 2 : 1
+    return line.length > lastLength ? line.slice(line.length - lastLength) : ''
+  }
+  if (!isWordChar(next)) return ''
+  let start = line.length
+  while (start > 0 && isWordChar(line.charCodeAt(start - 1))) start--
+  if (start === line.length || start === 0) return ''
+  let word = line.length - start
+  for (let i = at; i < text.length && word <= WORD_MOVES && isWordChar(text.charCodeAt(i)); i++) word++
+  return word <= WORD_MOVES && word <= width ? line.slice(start) : ''
+}
+
+/* Folds text into at most `maxLines` lines of `width` cells, the first of
+   `firstWidth`; when text is left over, the last line ends in `…`. */
+export function wrapCells(text: string, width: number, maxLines: number, firstWidth = width): string[] {
+  const widthOf = (line: number) => Math.max(2, line === 0 ? firstWidth : width)
   const lines: string[] = []
   let line = ''
   let used = 0
+  /* `at` is where `ch` starts in `text`, in UTF-16 units. */
+  let at = 0
+  let w = widthOf(0)
   for (const ch of text) {
+    const here = at
+    at += ch.length
     const c = charCells(ch)
     if (used + c > w) {
       if (lines.length === maxLines - 1) {
         let cut = [...line]
         while (textCells(cut.join('')) + 1 > w) cut = cut.slice(0, -1)
-        lines.push(cut.join('') + '…')
+        lines.push(cut.join('').trimEnd() + '…')
         return lines
       }
-      lines.push(line)
-      line = ''
-      used = 0
+      w = widthOf(lines.length + 1)
+      const carry = carriedDown(line, text, here, w)
+      lines.push(line.slice(0, line.length - carry.length).trimEnd())
+      line = carry
+      used = textCells(carry)
+      /* A fold at a space drops it. */
+      if (ch === ' ' && carry === '') continue
     }
     line += ch
     used += c

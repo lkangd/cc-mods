@@ -13,6 +13,8 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderViewport } from 'claude-code'
 import type { Entry } from './entries'
+import { sideText } from './entries'
+import { drawDesktopPane } from './desktop'
 import type { TurnGroup } from './groups'
 import {
   COMPACTED_TEXT,
@@ -30,7 +32,7 @@ import {
 } from './jump'
 import type { Refused } from './jump'
 import { DOCK_STATUS, carriesHistory, isClosedByPerson, placementFate, reopensOn } from './lifecycle'
-import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, filterRows } from './pane'
+import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
 import { entryAt, pendingShown, ringMove } from './ring'
 import { UNLOCATED_TEXT, derivedTranscriptPath } from './locate'
 import { rewoundFrom } from './rewind'
@@ -169,7 +171,6 @@ const RING_CONFIRM_MS = 150
    next drawing. */
 let anchor: SwitchAnchor | undefined
 /* Said at the bottom while the window does not follow the Current position. */
-const PAUSED_TEXT = '暂停'
 
 /* The chain rows by what the host draws them under, and what it drew. */
 let chainRows: RowIndex = rowIndex([])
@@ -722,9 +723,11 @@ async function chooseFilter($: EngineInterface, chosen: ViewFilter): Promise<voi
   await $.store.set(FILTER_KEY, chosen).catch(() => undefined)
 }
 
-async function chooseLayout($: EngineInterface): Promise<void> {
+/* The Layout after this one or, from the desktop's select, the one picked. */
+async function chooseLayout($: EngineInterface, to?: Layout): Promise<void> {
+  if (to === layout) return
   anchorForSwitch()
-  layout = nextLayout(layout)
+  layout = to ?? nextLayout(layout)
   await update($, rev, n => n + 1)
   await $.store.set(LAYOUT_KEY, layout).catch(() => undefined)
 }
@@ -922,11 +925,9 @@ export const register: Register = on => {
     const missing = isCarried ? NOT_WRITTEN_TEXT : EMPTY_TEXT
     const notice = isUnlocated ? UNLOCATED_TEXT : source === 'missing' ? missing : isOk && entries.length === 0 ? EMPTY_TEXT : undefined
     const why = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
-    const footerLines = [why, isHeld ? PAUSED_TEXT : undefined].filter((s): s is string => s !== undefined)
-    const footer = footerLines.length > 0 ? footerLines.join('\n') : undefined
     const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
-    const headRows = filterRows(width, filter, layout)
-    const rows = e.props.scroll.bodyRows - headRows - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - footerLines.length
+    const headRows = HEAD_ROWS
+    const rows = e.props.scroll.bodyRows - headRows - FOOT_ROWS - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
     const drawnEntries = { heights: table.heights, rows, keys: table.keys, indexOf: table.indexOf }
     const kept = anchor
     anchor = undefined
@@ -956,20 +957,35 @@ export const register: Register = on => {
     } else if (owed !== undefined && owed === ring && table.indexOf.has(owed)) {
       $.clock.after(0, () => sendRing($, owed))
     }
-    const drawn = drawPane($.ui.resolve(e), {
+    const isRunningNow = isTurnRunning && groups === reading.groups
+    const shared = {
       entries,
       window,
       layout,
       filter,
       litGroup: position,
-      headRows,
+      bodyColumns: width,
       notice,
       alert,
-      footer,
-      onPress: entry => jump($, entry),
-      onFilter: chosen => chooseFilter($, chosen),
-      onLayout: () => chooseLayout($),
-    })
+      why,
+      count: isOk && groups.length > 0 ? groups.length : undefined,
+      isPaused: isHeld,
+      onPress: (entry: Entry) => jump($, entry),
+      onFilter: (chosen: ViewFilter) => chooseFilter($, chosen),
+    }
+    const drawn =
+      e.surface === 'terminal'
+        ? drawPane($.ui.resolve(e), { ...shared, bodyRows: e.props.scroll.bodyRows, onLayout: () => chooseLayout($) })
+        : drawDesktopPane($.ui.resolve(e), {
+            ...shared,
+            textOf: entry => {
+              const group = groups[entry.groupIndex]
+              return group === undefined ? '' : sideText(group, entry.side, entry.isRunning)
+            },
+            steps: isOk ? groups.map(g => g.steps) : [],
+            runningGroup: isRunningNow ? groups.length - 1 : undefined,
+            onLayout: to => chooseLayout($, to),
+          })
     if (perf.isOn) {
       const ended = perfNow()
       timed($, 'pane', [ended - awaited, ended - began, entries.length, table === wasTable ? 0 : 1])

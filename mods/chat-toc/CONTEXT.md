@@ -29,7 +29,7 @@ Which side of each Turn group the Chat TOC shows: all, User inputs only, or Agen
 _Avoid_: Mode, tab
 
 **Layout**:
-How the Chat TOC draws each Turn group, chosen by the person and kept across sessions: card (a header line and up to two lines per side), compact (one line per side), or timeline (the time in a left gutter beside a rule). It changes the drawing only, never which entries show.
+How the Chat TOC draws each Turn group, chosen by the person and kept across sessions: card (up to two lines per side, the time at the right of the User input), compact (one line per side, the time in a left column), or timeline (up to two lines per side, the time in a left column). Every Layout hangs the sides on a rail, a day's rule where the day changes. It changes the drawing only, never which entries show.
 _Avoid_: Theme, variant, style
 
 **Current position**:
@@ -37,5 +37,5 @@ The Turn group the person is looking at in the transcript: the one the topmost r
 _Avoid_: Active item, scroll-spy, selection
 
 **Jump target**:
-A temporary association from one side of a Turn group to the transcript row a jump scrolls to. The row need not have been drawn yet; it is good while Claude Code still lists it, and a side whose jump Claude Code refuses has no Jump target until the row is listed again. When that side's own row is shown but cannot be targeted, as with a slash command or `!` shell command, its Jump target is the nearest targetable row after it, or before it when none follows. A side known beforehand to have no Jump target, as a turn compacted away before the session was resumed, is drawn dim like a refused one.
+A temporary association from one side of a Turn group to the transcript row a jump scrolls to. The row need not have been drawn yet; it is good while Claude Code still lists it, and a side whose jump Claude Code refuses has no Jump target until the row is listed again. When that side's own row is shown but cannot be targeted, as with a slash command or `!` shell command, its Jump target is the nearest targetable row after it, or before it when none follows. A side known beforehand to have no Jump target, as a turn compacted away before the session was resumed, hangs on a hollow mark like a refused one.
 _Avoid_: Anchor, link

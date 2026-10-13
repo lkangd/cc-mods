@@ -83,7 +83,7 @@ def smoke(host, run, source):
         actual["openedUnasked"] = bool(re.search(r"ui\.open chat-toc chat-toc \(unasked[^)]*\): placed", text))
         top = h.pane_to_top(t)
         target = next(e for e in top.entries if e.user_text.startswith("T0000"))
-        t.click(top.left + 4, target.row + 1)
+        t.click(top.left + 4, target.user_row)
         rows = t.settle(quiet=1.0)
         ev.append(t.snap(f"{source} {host.version} after clicking T0000"))
         actual["clickJumped"] = "T0000 用户问题" in "\n".join(h.transcript_text(rows, top.left).splitlines()[:6])

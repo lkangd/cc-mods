@@ -63,6 +63,14 @@ def side_dim(t, p, row):
     return bool(shown) and all(c.fg == DIM for c in shown)
 
 
+def side_off(t, p, e, side):
+    """Whether a side is drawn as having no Jump target: a hollow mark, and a
+    User input's text dim (an Agent reply's always is)."""
+    if side == "agent":
+        return e.agent_off
+    return e.user_off and side_dim(t, p, e.user_row)
+
+
 def wheel_pane_until(t, pred, down=True, limit=80):
     col, row = h._wheel_point(t)
     for _ in range(limit):
@@ -94,7 +102,7 @@ def jump001(run):
         first = top.entries[0]
         actual["firstEntry"] = first.user_text
         # user side of turn 1
-        t.click(top.left + 4, first.row + 1)
+        t.click(top.left + 4, first.user_row)
         rows = t.settle(quiet=1.0)
         ev.append(t.snap("after clicking T0000 user side"))
         txt = h.transcript_text(rows, top.left)
@@ -103,7 +111,7 @@ def jump001(run):
         # agent side of turn 1
         p = pane_of(t)
         e = next(e for e in p.entries if "T0000" in e.user_text)
-        arow = e.row + 1 + len(e.user_lines)
+        arow = e.agent_row
         t.click(p.left + 4, arow)
         rows = t.settle(quiet=1.5)
         ev.append(t.snap("after clicking T0000 agent side"))
@@ -133,7 +141,7 @@ def jump002(run):
                                      ("shell command", "!echo T0012", ["echo T0012"])):
             p, e = wheel_pane_until(t, lambda p: next((e for e in p.entries if e.user_text.startswith(needle)), None))
             ev.append(t.snap(f"pane shows {needle}"))
-            t.click(p.left + 4, e.row + 1)
+            t.click(p.left + 4, e.user_row)
             rows = t.settle(quiet=1.0)
             ev.append(t.snap(f"after clicking {needle}"))
             txt = h.transcript_text(rows, p.left)
@@ -192,7 +200,7 @@ def jump002b(run):
                                            ("tools-only Agent side", "P08", "agent", ["TOP:Ran 2 shell commands", "P09 普通问题"])):
             p, e = wheel_pane_until(t, lambda p: next((e for e in p.entries if e.user_text.startswith(needle)
                                                        and (side == "user" or e.agent_head)), None))
-            row = e.row + 1 if side == "user" else e.row + 1 + len(e.user_lines)
+            row = e.user_row if side == "user" else e.agent_row
             t.click(p.left + 4, row)
             rows = t.settle(quiet=1.0)
             ev.append(t.snap(f"after clicking the {side} side of {needle}"))
@@ -253,9 +261,9 @@ def jump003(run):
         ev.append(t.snap("003 chat-toc swapped in, nothing pressed"))
         p = pane_of(t)
         e = next(o for o in p.entries if "J00" in o.user_text)
-        actual["dimBeforePress"] = side_dim(t, p, e.row + 1)
+        actual["dimBeforePress"] = side_off(t, p, e, "user")
         before = h.transcript_text(rows, p.left)
-        t.click(p.left + 4, e.row + 1)
+        t.click(p.left + 4, e.user_row)
         rows = t.settle(quiet=1.0)
         ev.append(t.snap("003 after clicking J00"))
         after = h.transcript_text(rows, p.left)
@@ -265,7 +273,7 @@ def jump003(run):
         p = pane_of(t)
         e = next(o for o in p.entries if "J00" in o.user_text)
         other = next(o for o in p.entries if "J01" in o.user_text)
-        actual["dim"] = side_dim(t, p, e.row + 1), side_dim(t, p, other.row + 1)
+        actual["dim"] = side_off(t, p, e, "user"), side_off(t, p, other, "user")
         actual["refusalShown"] = said
         actual["transcriptUnmoved"] = before == after
         time.sleep(6)
@@ -274,7 +282,7 @@ def jump003(run):
         actual["refusalGoneAfter6s"] = REFUSED not in "\n".join(rows)
         p = pane_of(t)
         e = next(o for o in p.entries if "J00" in o.user_text)
-        actual["dimAfter6s"] = side_dim(t, p, e.row + 1)
+        actual["dimAfter6s"] = side_off(t, p, e, "user")
         ok = (not actual["dimBeforePress"] and said and actual["transcriptUnmoved"] and actual["refusalGoneAfter6s"]
               and actual["dim"] == (True, False) and actual["dimAfter6s"])
     except h.ScenarioFailure as f:
@@ -286,9 +294,9 @@ def jump003(run):
         shutil.rmtree(plugin, ignore_errors=True)
     run.record("CT-JUMP-003", host=host.version, plugin=str(PLUGIN),
                fixture="4 turns compacted after the second, --resume, chat-toc swapped in after the start",
-               expected="J00 (compacted before the resume, unknown to a chat-toc that came later) is not dim before a "
-                        "press; clicking it says so at the bottom, dims that side only (J01 not), moves nothing; the "
-                        "saying goes after ~5 s and the side stays dim",
+               expected="J00 (compacted before the resume, unknown to a chat-toc that came later) is not marked before a "
+                        "press; clicking it says so at the bottom, puts that side only on a hollow mark with its prompt dim "
+                        "(J01 not), moves nothing; the saying goes after ~5 s and the side stays marked",
                actual=actual, result="pass" if ok else "fail", evidence=ev)
     return ok
 
@@ -336,10 +344,9 @@ def jump005(run):
         ev.append(t.snap("005 after resume, nothing pressed"))
         p = pane_of(t)
         entry = {k: next(e for e in p.entries if k in e.user_text) for k in ("K00", "K01", "K02", "K03")}
-        agent_row = lambda e: e.row + 1 + len(e.user_lines) + 1
-        jump["dimBeforePress"] = {k: [side_dim(t, p, e.row + 1), side_dim(t, p, agent_row(e))] for k, e in entry.items()}
+        jump["dimBeforePress"] = {k: [side_off(t, p, e, "user"), side_off(t, p, e, "agent")] for k, e in entry.items()}
         jump["noticeBeforePress"] = notice_cells(t)
-        t.click(p.left + 4, entry["K00"].row + 1)
+        t.click(p.left + 4, entry["K00"].user_row)
         began = time.monotonic()
         samples, seen = [], None
         while time.monotonic() - began < 6.5:
@@ -365,7 +372,7 @@ def jump005(run):
         # a turn after the compaction still jumps: no refusal said
         p = pane_of(t)
         e = next(o for o in p.entries if "K02" in o.user_text)
-        t.click(p.left + 4, e.row + 1)
+        t.click(p.left + 4, e.user_row)
         t.settle(quiet=1.0)
         ev.append(t.snap("005 after clicking K02"))
         jump["afterCompactionRefused"] = notice_cells(t) is not None
@@ -381,8 +388,8 @@ def jump005(run):
         world.remove()
     fixture = "4 turns, compacted after the second, --resume"
     run.record("CT-JUMP-005", host=host.version, plugin=str(PLUGIN), fixture=fixture,
-               expected="the two turns before the compaction are dim on both sides before anything is pressed, the two "
-                        "after not; a click on K00 says " + COMPACTED + "; a click on K02 jumps with nothing said",
+               expected="the two turns before the compaction hang on hollow marks on both sides, their prompts dim, before "
+                        "anything is pressed, the two after not; a click on K00 says " + COMPACTED + "; a click on K02 jumps with nothing said",
                actual=jump, result="pass" if ok_jump else "fail", evidence=ev)
     run.record("CT-UI-005", host=host.version, plugin=str(PLUGIN), fixture=fixture,
                expected=f"the ⚠ line is drawn in {WARNING} (the dark theme's warning); it flashes inverse 3 times, the "

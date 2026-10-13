@@ -27,6 +27,28 @@ async function controls(pane: Pane) {
     .map(b => ({ key: b.key, label: b.label }))
 }
 
+/* The filter Buttons' labels, the chosen one marked `*`: it is drawn at
+   full strength, the others dim. */
+async function filters(pane: Pane) {
+  return drawnButtons(await pane.drawn())
+    .filter(b => typeof b.key === 'string' && b.key.startsWith('f-'))
+    .map(b => (b.dimColor ? String(b.label) : `*${String(b.label)}`))
+}
+
+/* The tab rule under the filter row, as runs of one colour, across the
+   pane's 44 columns. */
+async function tabRule(pane: Pane) {
+  const runs: [string, unknown][] = []
+  let cells = 0
+  for (const t of await pane.findAll({ type: 'Text' })) {
+    if (cells >= 44) break
+    if (!/^[━─]+$/.test(t.text)) continue
+    runs.push([t.text, t.props.color])
+    cells += [...t.text].length
+  }
+  return runs
+}
+
 async function hotkeys(pane: Pane) {
   return (await pane.findAll({ type: 'Button' })).filter(b => !isEntryKey(b.key)).map(b => [b.key, b.props.hotkey, b.props.plain])
 }
@@ -38,16 +60,11 @@ async function session($: Engine, on: Parameters<typeof host>[0], stored: Record
   return world
 }
 
-test('the filter row shows all three filters, all chosen, and the Layout in use', async ($, on) => {
-  const world = await session($, on)
+test('the filter row shows the three filters by name, the chosen one at full strength, with their hotkeys', async ($, on) => {
+  await session($, on)
   const pane = await mountPane($)
 
-  expect(await controls(pane)).toEqual([
-    { key: 'f-all', label: '●全部' },
-    { key: 'f-user', label: '○用户' },
-    { key: 'f-agent', label: '○Agent' },
-    { key: 'layout', label: '布局:卡片' },
-  ])
+  expect(await filters(pane)).toEqual(['*全部', '用户', 'Agent'])
   expect(await hotkeys(pane)).toEqual([
     ['f-all', '1', true],
     ['f-user', '2', true],
@@ -56,18 +73,33 @@ test('the filter row shows all three filters, all chosen, and the Layout in use'
   ])
 })
 
+/* The host draws a plain Button with a hotkey as `1: 全部`: 7 cells, and
+   the filters stand 3 cells apart. */
+test('a rule under the filter row marks the chosen filter, heavy and in the highlight colour', async ($, on) => {
+  await session($, on)
+  const pane = await mountPane($)
+  const thin = (n: number): [string, unknown] => ['─'.repeat(n), 'subtle']
+  const heavy = (n: number): [string, unknown] => ['━'.repeat(n), 'suggestion']
+
+  expect(await tabRule(pane)).toEqual([heavy(7), thin(37)])
+  await pane.press({ key: 'f-user' })
+  expect(await tabRule(pane)).toEqual([thin(10), heavy(7), thin(27)])
+  await pane.press({ key: 'f-agent' })
+  expect(await tabRule(pane)).toEqual([thin(20), heavy(8), thin(16)])
+})
+
 test('choosing a filter redraws at once with only those sides, and is remembered', async ($, on) => {
   const world = await session($, on)
   const pane = await mountPane($)
 
   await pane.press({ key: 'f-user' })
-  expect((await controls(pane)).map(c => c.label).slice(0, 3)).toEqual(['○全部', '●用户', '○Agent'])
-  expect(await entryTexts(pane)).toEqual(['你 · 10月10日 09:05', 'CT-SYN first', '你 · 10月10日 09:07', '/tui', '你 · 10月10日 09:08', 'CT-SYN third'])
+  expect(await filters(pane)).toEqual(['全部', '*用户', 'Agent'])
+  expect(await entryTexts(pane)).toEqual(['CT-SYN first', '/tui', 'CT-SYN third'])
   expect(world.store.viewFilter).toBe('user')
 
   /* The Agent filter hides the local command's group, which has no Agent side. */
   await pane.press({ key: 'f-agent' })
-  expect(await entryTexts(pane)).toEqual(['↳', '  CT-SYN first answer', '↳', '  CT-SYN third answer'])
+  expect(await entryTexts(pane)).toEqual(['CT-SYN first answer', 'CT-SYN third answer'])
   expect(world.store.viewFilter).toBe('agent')
 })
 
@@ -77,17 +109,17 @@ test('the Layout Button goes from cards to compact to timeline and back, each re
   const layoutLabel = async () => (await controls(pane)).find(c => c.key === 'layout')?.label
 
   await pane.press({ key: 'layout' })
-  expect(await layoutLabel()).toBe('布局:紧凑')
+  expect(await layoutLabel()).toBe('布局 紧凑')
   expect(world.store.layout).toBe('compact')
-  expect((await entryTexts(pane))[0]).toBe('CT-SYN first'.padEnd(37) + '09:05')
+  expect((await entryTexts(pane))[0]).toBe('CT-SYN first')
 
   await pane.press({ key: 'layout' })
-  expect(await layoutLabel()).toBe('布局:时间轴')
+  expect(await layoutLabel()).toBe('布局 时间轴')
   expect(world.store.layout).toBe('timeline')
-  expect(await entryTexts(pane)).toEqual(['CT-SYN first', '↳ CT-SYN first answer', '/tui', 'CT-SYN third', '↳ CT-SYN third answer'])
+  expect(await entryTexts(pane)).toEqual(['CT-SYN first', 'CT-SYN first answer', '/tui', 'CT-SYN third', 'CT-SYN third answer'])
 
   await pane.press({ key: 'layout' })
-  expect(await layoutLabel()).toBe('布局:卡片')
+  expect(await layoutLabel()).toBe('布局 卡片')
   expect(world.store.layout).toBe('card')
 })
 
@@ -95,15 +127,17 @@ test('a new session draws with the filter and Layout chosen in an earlier one', 
   await session($, on, { viewFilter: 'agent', layout: 'timeline' })
   const pane = await mountPane($)
 
-  expect((await controls(pane)).map(c => c.label)).toEqual(['○全部', '○用户', '●Agent', '布局:时间轴'])
-  expect(await entryTexts(pane)).toEqual(['↳ CT-SYN first answer', '↳ CT-SYN third answer'])
+  expect(await filters(pane)).toEqual(['全部', '用户', '*Agent'])
+  expect((await controls(pane)).find(c => c.key === 'layout')?.label).toBe('布局 时间轴')
+  expect(await entryTexts(pane)).toEqual(['CT-SYN first answer', 'CT-SYN third answer'])
 })
 
 test('stored values chat-toc does not know draw all sides as cards', async ($, on) => {
   await session($, on, { viewFilter: 'everything', layout: 7 })
   const pane = await mountPane($)
 
-  expect((await controls(pane)).map(c => c.label)).toEqual(['●全部', '○用户', '○Agent', '布局:卡片'])
+  expect(await filters(pane)).toEqual(['*全部', '用户', 'Agent'])
+  expect((await controls(pane)).find(c => c.key === 'layout')?.label).toBe('布局 卡片')
 })
 
 test('a store that refuses the choice still switches, this time', async ($, on) => {
@@ -114,30 +148,7 @@ test('a store that refuses the choice still switches, this time', async ($, on) 
   await pane.press({ key: 'layout' })
   await pane.press({ key: 'f-agent' })
 
-  expect((await controls(pane)).map(c => c.label)).toEqual(['○全部', '○用户', '●Agent', '布局:紧凑'])
+  expect(await filters(pane)).toEqual(['全部', '用户', '*Agent'])
+  expect((await controls(pane)).find(c => c.key === 'layout')?.label).toBe('布局 紧凑')
   expect(world.store.layout).toBeUndefined()
-})
-
-test('the timeline draws its times and rail in a Text beside the Buttons, the card a blank gutter', async ($, on) => {
-  await session($, on, { layout: 'timeline' })
-  const pane = await mountPane($)
-
-  const gutters = (await pane.findAll({ type: 'Text' })).map(t => t.text).filter(s => s.includes('│'))
-  expect(gutters).toEqual(['09:05 │ ', '      │ ', '09:07 │ ', '09:08 │ ', '      │ '])
-})
-
-test('where the Layout Button does not fit beside the filter it goes on a row of its own', async ($, on) => {
-  const world = await session($, on)
-  const narrow = await $.ui.mount({
-    plugin: 'chat-toc',
-    surface: 'terminal',
-    component: 'Pane',
-    requestId: PANE,
-    viewport: { columns: 160, rows: 40, isFullscreen: true },
-    props: { title: '目录', isFocused: false, bodyColumns: 34, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
-  })
-  const tree = (await narrow.drawn()) as { children: { props: Record<string, unknown> }[] }
-
-  expect(tree.children[0]?.props.flexDirection).toBe('column')
-  expect((await controls(narrow)).map(c => c.key)).toEqual(['f-all', 'f-user', 'f-agent', 'layout'])
 })
