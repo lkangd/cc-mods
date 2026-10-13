@@ -1,0 +1,45 @@
+==== heavy-3 after the submits (44 rows)
+                                                                                                                             │                                          ✕
+  ⎿  Loaded                                                                                                                  │1: 全部   2: 用户   3: Agent
+  ⎿  Loaded                                                                                                                  │━━━━━━━─────────────────────────────────────
+  ⎿  Loaded                                                                                                                  │
+  ⎿  Loaded                                                                                                                  │├╴ 14 步 · T0103 回复： 第 1 行说明：模块
+                                                                                                                             ││  103 的检查结果正常，没有发现需要处理的问…
+⏺ T0106 回复：                                                                                                               ││
+  第 1 行说明：模块 106 的检查结果正常，没有发现需要处理的问题。                                                             │●  T0104 用户问题：请检查第 104 个模块 23:33
+  第 2 行说明：模块 106 的检查结果正常，没有发现需要处理的问题。                                                             ││  的状态， 并说明下一步该做什么。
+  第 3 行说明：模块 106 的检查结果正常，没有发现需要处理的问题。                                                             │├╴ 14 步 · T0104 回复： 第 1 行说明：模块
+  第 4 行说明：模块 106 的检查结果正常，没有发现需要处理的问题。                                                             ││  104 的检查结果正常，没有发现需要处理的问…
+                                                                                                                             ││
+⏺ chat-toc: reloaded (11 hooks: classic.SessionStart, session.start, classic.UserPromptSubmit, command.run, ui.close,        │●  T0105 用户问题：请检查第 105 个模块 23:42
+  session.append, turn.start, turn.complete, ui.scroll, ui.render, ui.focus)                                                 ││  的状态， 并说明下一步该做什么。
+                                                                                                                             │├╴ 14 步 · T0105 回复： 第 1 行说明：模块
+❯ CT-PERF 追加的合成 prompt 0                                                                                                ││  105 的检查结果正常，没有发现需要处理的问…
+  ⎿  Not logged in · Please run /login                                                                                       ││
+                                                                                                                             │●  T0106 用户问题：请检查第 106 个模块 23:50
+✻ Baked for 0s · done 6:21 PM                                                                                                ││  的状态， 并说明下一步该做什么。
+                                                                                                                             │├╴ 14 步 · T0106 回复： 第 1 行说明：模块
+❯ CT-PERF 追加的合成 prompt 1                                                                                                ││  106 的检查结果正常，没有发现需要处理的问…
+  ⎿  Not logged in · Please run /login                                                                                       │
+                                                                                                                             │─ 今天 · 10月13日 ──────────────────────────
+✻ Baked for 0s · done 6:21 PM                                                                                                │●  CT-PERF 追加的合成 prompt 0         18:21
+                                                                                                                             │├╴ 出错 · Not logged in · Please run /login
+❯ CT-PERF 追加的合成 prompt 2                                                                                                ││
+  ⎿  Not logged in · Please run /login                                                                                       │●  CT-PERF 追加的合成 prompt 1         18:21
+                                                                                                                             │├╴ 出错 · Not logged in · Please run /login
+✻ Sautéed for 0s · done 6:21 PM                                                                                              ││
+                                                                                                                             │●  CT-PERF 追加的合成 prompt 2         18:21
+❯ CT-PERF 追加的合成 prompt 3                                                                                                │├╴ 出错 · Not logged in · Please run /login
+  ⎿  Not logged in · Please run /login                                                                                       ││
+                                                                                                                             │●  CT-PERF 追加的合成 prompt 3         18:21
+✻ Brewed for 0s · done 6:21 PM                                                                                               │├╴ 出错 · Not logged in · Please run /login
+                                                                                                                             ││
+❯ CT-PERF 追加的合成 prompt 4                                                                                                │◉  CT-PERF 追加的合成 prompt 4         18:21
+  ⎿  Not logged in · Please run /login                                                                                       │┣╸ 出错 · Not logged in · Please run /login
+                                                                                                                             │────────────────────────────────────────────
+✻ Cooked for 0s · done 6:21 PM                                                                                               │112 轮                          l: 布局 卡片
+                                                                                                 Not logged in · Run /login  │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
