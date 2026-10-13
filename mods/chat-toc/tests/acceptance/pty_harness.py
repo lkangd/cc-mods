@@ -195,6 +195,27 @@ class _Screen:
         return self.run.snap(self.rows(), label)
 
 
+def screen_rows(screen, width=None) -> list[str]:
+    """pyte's `display`, read as a terminal shows it. A wide char leaves an
+    empty placeholder in the next cell; when the host overwrites the char's
+    first cell with a narrow one mid-frame, pyte keeps the placeholder and
+    its `display` raises IndexError, where a terminal shows a space."""
+    if width is None:
+        from wcwidth import wcwidth as width
+    rows = []
+    for y in range(screen.lines):
+        line, cells, is_wide = screen.buffer[y], [], False
+        for x in range(screen.columns):
+            if is_wide:
+                is_wide = False
+                continue
+            data = line[x].data
+            cells.append(data or " ")
+            is_wide = bool(data) and width(data[0]) == 2
+        rows.append("".join(cells).rstrip())
+    return rows
+
+
 class PyteTerminal(_Screen):
     def __init__(self, argv: list[str], env: dict, cwd: pathlib.Path, columns: int = 170, lines: int = 44,
                  run: "Run | None" = None) -> None:
@@ -267,7 +288,7 @@ class PyteTerminal(_Screen):
 
     def rows(self) -> list[str]:
         with self.lock:
-            return [row.rstrip() for row in self.screen.display]
+            return screen_rows(self.screen)
 
     def styles(self) -> list[list]:
         """Each row's cells (data, fg, bold, reverse): what read-screen cannot see, such as the highlight's colour."""
