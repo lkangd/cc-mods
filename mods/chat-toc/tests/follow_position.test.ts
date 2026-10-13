@@ -24,7 +24,7 @@ async function session($: Engine, on: Parameters<typeof host>[0]) {
   /* What Claude Code draws at a transcript site, beneath chat-toc's hooks. */
   on('ui.render', () => ({ type: 'Text', props: {}, children: ['drawn by Claude Code'] }))
   await start($, world)
-  const pane = await mountPane($, 12)
+  const pane = await mountPane($, 14)
   const drawn = new Map<string, { redraw: (props: unknown) => Promise<unknown> }>()
   /* A transcript site reporting where its row is in the view. */
   const report = async (component: 'UserMessage' | 'AssistantMessage', requestId: string, onScreen: Rows) => {
@@ -56,16 +56,24 @@ async function session($: Engine, on: Parameters<typeof host>[0]) {
   return { world, pane, prompts, replies, report, view }
 }
 
-/* The entries whose gutter is drawn in the theme's `suggestion`: the lit group's. */
+/* The entries whose rail is drawn lit (`◉`, `┣╸`, `┃` in the theme's
+   `suggestion`): the lit group's. */
 async function litKeys(pane: Pane): Promise<string[]> {
   const out: string[] = []
+  const isLitRail = (node: unknown): boolean => {
+    if (typeof node !== 'object' || node === null) return false
+    const el = node as { type?: string; props?: Record<string, unknown>; children?: unknown[] }
+    if (el.type === 'Button') return false
+    if (el.type === 'Text' && el.props?.color === 'suggestion' && /^[◉┣┃]/.test(String(el.children?.[0] ?? ''))) return true
+    return (el.children ?? []).some(isLitRail)
+  }
   const walk = (node: unknown) => {
     if (typeof node !== 'object' || node === null) return
     const el = node as { type?: string; props?: Record<string, unknown>; children?: unknown[] }
     const key = el.props?.key
     if (el.type === 'Box' && typeof key === 'string' && key.startsWith('row-')) {
-      const gutter = el.children?.[0] as { props?: Record<string, unknown> } | undefined
-      if (gutter?.props?.color === 'suggestion') out.push(key.slice('row-'.length))
+      if (isLitRail(el)) out.push(key.slice('row-'.length))
+      return
     }
     for (const child of el.children ?? []) walk(child)
   }
@@ -77,7 +85,7 @@ const prompts = async (pane: Pane) => (await entryTexts(pane)).filter(s => s.sta
 const saysPaused = async (pane: Pane) => (await pane.find({ type: 'Text', text: /暂停/ })) !== undefined
 
 async function scrollPane($: Engine, by: number) {
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by, bodyRows: 12, contentRows: 12, origin: { kind: 'person' } } as never)
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by, bodyRows: 14, contentRows: 14, origin: { kind: 'person' } } as never)
 }
 
 test('before the transcript reports where it is, nothing is lit and the window shows the newest', async ($, on) => {
@@ -159,7 +167,7 @@ test('the transcript redrawing the same view does not end the pause', async ($, 
 
 test('the pane holding the keyboard pauses following', async ($, on) => {
   const { pane, view } = await session($, on)
-  const props = { title: '目录', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 12 }, view: {} }
+  const props = { title: '目录', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 14 }, view: {} }
 
   await pane.redraw({ ...props, isFocused: true })
   expect(await saysPaused(pane)).toBe(true)
@@ -191,7 +199,7 @@ test('a change of position while the pane is a tab behind another ends the pause
   await view(14)
   await view(10)
   tab(true)
-  const back = await mountPane($, 12)
+  const back = await mountPane($, 14)
 
   expect(await saysPaused(back)).toBe(false)
   expect(await prompts(back)).toContain('CT-SYN prompt 10')
@@ -213,7 +221,7 @@ test('a Layout switch with no selection keeps the lit group in the window', asyn
 test('a switch with the focus ring on the filter row, where a hotkey finds it, keeps the lit group in the window', async ($, on) => {
   const { pane, view } = await session($, on)
   await view(10)
-  const props = { title: '目录', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 12 }, view: {} }
+  const props = { title: '目录', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 14 }, view: {} }
   await pane.redraw({ ...props, isFocused: true })
   await $.ui.focus({ component: 'Pane', requestId: PANE, element: 'f-user', origin: { kind: 'person' } } as never)
   await scrollPane($, -30)

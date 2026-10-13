@@ -151,7 +151,7 @@ def one_run(host: h.Host, kind: str, run: h.Run, n: int) -> dict:
         top, batches, secs = wheel_pane_to(t, True, lambda p: bool(p.entries) and "T0000" in p.entries[0].user_text)
         actual["paneToTop"] = {"batches": batches, "ticks": batches * 20, "s": secs}
         evidence.append(t.snap(f"{kind}-{n} pane at its top"))
-        t.click(top.left + 4, top.entries[0].row + 1)
+        t.click(top.left + 4, top.entries[0].user_row)
         rows = t.settle(quiet=1.0)
         reached_first = "T0000 用户问题" in "\n".join(h.transcript_text(rows, top.left).splitlines()[:6])
         actual["reachedFirst"] = reached_first
@@ -168,7 +168,7 @@ def one_run(host: h.Host, kind: str, run: h.Run, n: int) -> dict:
         actual["paneToEnd"] = {"batches": batches, "ticks": batches * 20, "s": secs}
         evidence.append(t.snap(f"{kind}-{n} pane at its end"))
         newest = next(e for e in end.entries if is_newest(e))
-        t.click(end.left + 4, newest.row + 1)
+        t.click(end.left + 4, newest.user_row)
         rows = t.settle(quiet=1.0)
         reached_last = last in h.transcript_text(rows, end.left)
         actual["reachedLast"] = reached_last

@@ -15,7 +15,8 @@ const REFUSED = '这一条当前没有显示在对话里，无法跳转'
 
 async function session($: Engine, on: Parameters<typeof host>[0]) {
   const t = transcript()
-  const asked = t.prompt('CT-SYN compacted away')
+  /* Long enough to fold: a refused side is dim on every line. */
+  const asked = t.prompt('CT-SYN compacted away, a prompt long enough to take two lines')
   t.reply([{ type: 'text', text: 'CT-SYN answer' }])
   t.prompt('CT-SYN later')
   const world = host(on, t.jsonl())
@@ -35,7 +36,7 @@ const saysRefused = async (pane: Awaited<ReturnType<typeof mountPane>>) =>
 test('nothing is dimmed before a jump is refused', async ($, on) => {
   const { pane } = await session($, on)
 
-  expect(await dimOf(pane)).toMatchObject({ 'g0.u': true, 'g0.u.1': false, 'g0.a.1': false, 'g1.u.1': false })
+  expect(await dimOf(pane)).toMatchObject({ 'g0.u': false, 'g0.u.1': false, 'g1.u': false })
   expect(await saysRefused(pane)).toBe(false)
 })
 
@@ -45,7 +46,7 @@ test('a refused side is said at the bottom and drawn dim, every line, the rest a
   await pane.press({ key: 'g0.u.1' })
 
   expect(await saysRefused(pane)).toBe(true)
-  expect(await dimOf(pane)).toMatchObject({ 'g0.u': true, 'g0.u.1': true, 'g0.a': true, 'g0.a.1': false, 'g1.u.1': false })
+  expect(await dimOf(pane)).toMatchObject({ 'g0.u': true, 'g0.u.1': true, 'g1.u': false })
 })
 
 test('the refusal goes after about five seconds; the side stays dim', async ($, on) => {
@@ -67,7 +68,7 @@ test('the next jump takes the refusal away', async ($, on) => {
 
   /* That jump was refused too: the bottom now speaks of it. */
   expect(await saysRefused(pane)).toBe(true)
-  expect(await dimOf(pane)).toMatchObject({ 'g0.u.1': true, 'g1.u.1': true })
+  expect(await dimOf(pane)).toMatchObject({ 'g0.u.1': true, 'g1.u': true })
 })
 
 test('moving the selection to another entry takes the refusal away', async ($, on) => {

@@ -8,9 +8,11 @@
 
 import type { TocWindow } from './window'
 
-/* The filter row's Buttons, as drawn left to right. */
+/* The controls around the entries, in the ring's order: the filter row's
+   Buttons left to right, the entries, then the footer's Layout Button. */
 export const FIRST_CONTROL = 'f-all'
-export const LAST_CONTROL = 'layout'
+export const FILTER_END = 'f-agent'
+export const LAYOUT_CONTROL = 'layout'
 
 export type RingMove =
   /* Let the ring land where the host moves it. */
@@ -55,21 +57,21 @@ export function ringMove(
   const was = entryAt(from, indexOf)
   const next = entryAt(to, indexOf)
   if (next === undefined) {
-    /* Down from the window's last entry wraps to the first Button: show
-       the entry after it instead, while there is one. */
-    if (to === FIRST_CONTROL && was?.index === window.end - 1 && window.end < keys.length) return { kind: 'reveal', index: window.end }
+    /* Down from the window's last entry goes on to the footer: show the
+       entry after it instead, while there is one. */
+    if (to === LAYOUT_CONTROL && was?.index === window.end - 1 && window.end < keys.length) return { kind: 'reveal', index: window.end }
     /* Up from the window's first entry goes on to the filter row: show the
        entry before it instead, while there is one. */
-    if (to === LAST_CONTROL && was?.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
+    if (to === FILTER_END && was?.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
     return { kind: 'accept' }
   }
   if (next.line === 0) return { kind: 'accept' }
   /* Down off an entry's first line onto its second: the next entry. */
   if (was?.index === next.index) {
     const after = next.index + 1
-    if (after < window.end) return { kind: 'land', key: keys[after] ?? FIRST_CONTROL }
+    if (after < window.end) return { kind: 'land', key: keys[after] ?? LAYOUT_CONTROL }
     if (after < keys.length) return { kind: 'reveal', index: after }
-    return { kind: 'land', key: FIRST_CONTROL }
+    return { kind: 'land', key: LAYOUT_CONTROL }
   }
   /* Up onto an entry's last line, or anything else onto a later line: that
      entry's first line. */

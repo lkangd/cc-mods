@@ -316,56 +316,64 @@ def forms_groups():
     return toc_verifier.expected_toc(pathlib.Path(out["path"]), tz=CST, now=NOW).groups
 
 
+SCREENS = [f"{view}-{host}.txt" for view in ("card", "compact", "timeline", "card-agent") for host in ("2.1.295", "2.1.287")]
+
+
 class PaneScreen(unittest.TestCase):
-    """Screens of the ticket-05 prototype (card layout) resuming the forms fixture."""
+    """Screens of the forms fixture resumed on each host, the Pane in each Layout
+    (card-agent: the card under the Agent filter), 170 columns by 44 rows."""
 
-    def test_reads_the_listed_entries_of_a_window(self):
-        pane = toc_verifier.parse_pane(screen("standin-card-2.1.295.txt"))
-        self.assertEqual(pane.left, 126)
-        self.assertEqual(pane.filter, "all")
+    def test_reads_the_entries_of_a_card_window(self):
+        pane = toc_verifier.parse_pane(screen("card-2.1.295.txt"))
+        self.assertEqual((pane.left, pane.filter, pane.layout, pane.footer), (126, "all", "卡片", "20 轮"))
         self.assertEqual([e.user_text for e in pane.entries], [
-            "F12 会被打断的 prompt", "F13 会出错的 prompt", "F14 只有工具没有文字回复", "F15 排队提交的 prompt",
-            "F16 压缩之前的最后一轮", "F17 压缩之后的第一轮", "F19 rewind 之后的新分支"])
-        f13 = pane.entries[1]
-        self.assertEqual((f13.user_head, f13.agent_head), ("你 · 10月9日 09:04", "出错 · 1 步"))
-        self.assertEqual(f13.agent_lines, ["API Error: Repeated 529 Overloaded error", "s"])
-        self.assertEqual(pane.entries[3].agent_head, "")
-        self.assertEqual([e.highlighted for e in pane.entries], [False] * 6 + [True])
-        self.assertEqual(pane.entries[0].row, 2)
+            "/review F07 main", "/model F08", "/tui F09", "!echo F10", "F11 派一个子 agent 去查", "F12 会被打断的 prompt",
+            "F13 会出错的 prompt", "F14 只有工具没有文字回复", "F15 排队提交的 prompt", "F16 压缩之前的最后一轮",
+            "F17 压缩之后的第一轮", "F19 rewind 之后的新分支"])
+        f13 = pane.entries[6]
+        self.assertEqual((f13.time, f13.agent_head), ("09:04", "出错 · 1 步"))
+        self.assertEqual(f13.agent_lines, ["API Error: Repeated 529", "Overloaded errors"])
+        self.assertEqual(pane.entries[1].agent_head, None)                  # /model: no agent side
+        self.assertEqual(pane.entries[8].agent_head, "")                    # F15: a reply, no steps
+        self.assertEqual([e.highlighted for e in pane.entries], [False] * 11 + [True])
+        self.assertEqual((pane.entries[0].user_row, pane.entries[0].agent_row), (4, 5))
 
-    def test_drops_an_entry_cut_off_at_the_top(self):
-        pane = toc_verifier.parse_pane(screen("standin-card-2.1.287.txt"))
-        self.assertTrue(pane.partial_top)
-        self.assertEqual(pane.entries[0].user_text, "F12 会被打断的 prompt")
-        self.assertEqual(len(pane.entries), 7)
+    def test_reads_the_time_column_of_compact_and_timeline(self):
+        compact = toc_verifier.parse_pane(screen("compact-2.1.295.txt"))
+        self.assertEqual(compact.layout, "紧凑")
+        self.assertEqual([(e.user_text, e.time) for e in compact.entries[:3]],
+                         [("F03 粘贴： 贴进来的一段文字 结束", "09:00"), ("（只有图片）", "09:01"), ("F05 没有时间戳的 prompt", "")])
+        timeline = toc_verifier.parse_pane(screen("timeline-2.1.295.txt"))
+        self.assertEqual((timeline.layout, timeline.entries[0].time), ("时间轴", "09:02"))
 
-    def test_reads_a_pane_without_a_filter_row(self):
-        # the ticket-17 tracer: entries straight under the 2.1.295 title row
-        pane = toc_verifier.parse_pane(screen("tracer-2.1.295.txt"))
-        self.assertIsNotNone(pane)
-        self.assertEqual(pane.filter, "all")
-        self.assertEqual(pane.entries[0].user_head, "你 · 10月9日 09:20")
-        self.assertEqual(pane.entries[0].user_text, "T0030 用户问题：请检查第 30 个模块的状态， 并说明下一步该做什么。")
-        self.assertEqual(pane.entries[-1].user_text[:5], "T0039")
+    def test_reads_the_filter_from_the_tab_rule(self):
+        pane = toc_verifier.parse_pane(screen("card-agent-2.1.295.txt"))
+        self.assertEqual(pane.filter, "agent")
+        self.assertTrue(all(not e.has_user and e.agent_head is not None for e in pane.entries))
+        self.assertEqual(pane.entries[0].agent_lines, ["F02 回复：收到多行输入。"])
 
-    def test_the_close_glyph_2_1_287_draws_on_the_first_row_is_not_text(self):
-        rows = screen("tracer-2.1.295.txt")[1:]                       # no title row on 2.1.287
-        rows[0] = rows[0] + " " * 23 + "✕"
+    def test_the_close_glyph_2_1_287_draws_on_the_filter_row_is_not_text(self):
+        pane = toc_verifier.parse_pane(screen("card-2.1.287.txt"))
+        self.assertEqual((pane.filter_row, pane.filter), (0, "all"))
+        self.assertEqual(pane.entries[0].user_text, "/review F07 main")
+
+    def test_reads_a_pane_without_its_filter_row(self):
+        rows = screen("card-2.1.295.txt")
+        rows[1] = rows[1][:126] + " " * 30                                   # the filter row, blanked
         pane = toc_verifier.parse_pane(rows)
-        self.assertEqual(pane.entries[0].user_head, "你 · 10月9日 09:20")
+        self.assertEqual(pane.entries[0].user_text, "/review F07 main")
 
     def test_no_pane_on_screen(self):
         self.assertIsNone(toc_verifier.find_pane(["❯ hello", "", "──────"]))
 
-    def test_a_window_that_matches_the_transcript(self):
-        for name in ("standin-card-2.1.295.txt", "standin-card-2.1.287.txt"):
+    def test_windows_that_match_the_transcript(self):
+        for name in SCREENS:
             with self.subTest(name):
                 diff = toc_verifier.compare_window(forms_groups(), toc_verifier.parse_pane(screen(name)))
                 self.assertTrue(diff["ok"], json.dumps(diff, ensure_ascii=False, indent=1))
-                self.assertEqual(diff["start"], 13)
 
     def test_a_wrong_agent_side_is_named_entry_by_entry(self):
-        rows = [r.replace("↳ 已中断 · 1 步", "↳ 1 步") for r in screen("standin-card-2.1.295.txt")]
+        rows = [r.replace("├╴ 已中断 · 1 步", "├╴ 1 步") for r in screen("card-2.1.295.txt")]
         diff = toc_verifier.compare_window(forms_groups(), toc_verifier.parse_pane(rows))
         self.assertFalse(diff["ok"])
         bad = [e for e in diff["entries"] if e["problems"]]
@@ -374,18 +382,34 @@ class PaneScreen(unittest.TestCase):
         self.assertIn("agentHead", bad[0]["problems"][0])
 
     def test_a_missing_entry_breaks_the_order(self):
-        rows = screen("standin-card-2.1.295.txt")
-        rows = [r for i, r in enumerate(rows) if not 12 <= i <= 15]   # F14's four lines
+        rows = screen("card-2.1.295.txt")
+        rows = [r for r in rows if "F14" not in r and "无文字回复" not in r]
         diff = toc_verifier.compare_window(forms_groups(), toc_verifier.parse_pane(rows))
         self.assertFalse(diff["ok"])
 
     def test_a_truncated_body_is_a_prefix_and_a_wrong_time_is_named(self):
-        rows = [r.replace("F16 压缩之前的最后一轮", "F16 压缩之…").replace("你 · 10月9日 09:07", "你 · 10月9日 09:08")
-                for r in screen("standin-card-2.1.295.txt")]
+        rows = [r.replace("F16 压缩之前的最后一轮              09:06", "F16 压缩之…                         09:08")
+                for r in screen("card-2.1.295.txt")]
         diff = toc_verifier.compare_window(forms_groups(), toc_verifier.parse_pane(rows))
         problems = [p for e in diff["entries"] for p in e["problems"]]
         self.assertEqual(len(problems), 1, problems)
-        self.assertIn("userHead", problems[0])
+        self.assertIn("time", problems[0])
+
+    def test_reads_a_hollow_mark_as_a_side_without_a_jump_target(self):
+        rows = [r.replace("●  F16", "○  F16").replace("├╴ F16 回复", "├┄ F16 回复") for r in screen("card-2.1.295.txt")]
+        pane = toc_verifier.parse_pane(rows)
+        f16 = next(e for e in pane.entries if e.user_text.startswith("F16"))
+        self.assertEqual((f16.user_off, f16.agent_off), (True, True))
+        self.assertEqual(sum(e.user_off or e.agent_off for e in pane.entries), 1)
+        self.assertTrue(toc_verifier.compare_window(forms_groups(), pane)["ok"])
+
+    def test_a_wrong_day_rule_is_named(self):
+        rows = screen("compact-2.1.295.txt")
+        rows[4] = rows[4][:126] + "─ 10月8日 " + "─" * 34                       # a rule above the first entry
+        diff = toc_verifier.compare_window(forms_groups(), toc_verifier.parse_pane(rows))
+        problems = [p for e in diff["entries"] for p in e["problems"]]
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("day", problems[0])
 
 
 if __name__ == "__main__":

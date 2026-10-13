@@ -48,7 +48,7 @@ import pty_harness as h  # noqa: E402
 import toc_verifier as v  # noqa: E402
 
 PLUGIN = HERE.parent.parent
-PAUSED = "暂停"
+PAUSED = "⏸ 暂停跟随"
 TURN = re.compile(r"T(\d{4})|模块 (\d+)")
 SITED = re.compile(r"^[❯⏺] T(\d{4}) |第 \d 行说明：模块 (\d+)")
 # the 300-turn fixture's last group, and the last line of its reply
@@ -111,7 +111,7 @@ def lit(p):
 
 
 def paused(p):
-    return any(PAUSED == n.strip() for n in p.notes)
+    return p.footer == PAUSED
 
 
 def settle(t, quiet):
@@ -181,7 +181,7 @@ def pos1(run):
             t.wheel(col, row, up=False, ticks=2, gap=0.05)
         else:
             raise h.ScenarioFailure("/tui of turn 27 never showed")
-        t.click(p.left + 4, e.row + 1)
+        t.click(p.left + 4, e.user_row)
         rows, p, s = look(t, quiet=1.5)
         ev.append(t.snap("after the jump to /tui"))
         actual["afterJump"] = s
@@ -367,7 +367,7 @@ def life6(run):
         i, e = next((i, e) for i, e in enumerate(p.entries) if not e.highlighted and turn_of(e.user_text) is not None
                     and e.user_text.startswith("T"))
         want = entry_turn(p, i)
-        t.click(p.left + 4, e.row + 1)
+        t.click(p.left + 4, e.user_row)
         rows, p, s = look(t, quiet=1.5)
         ev.append(t.snap(f"after jumping to T{want:04d}"))
         actual["jump"] = {"to": want, **s}

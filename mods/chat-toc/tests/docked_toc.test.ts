@@ -32,7 +32,7 @@ test('the /chat-toc command is registered and opens the pane', async ($, on) => 
   expect(ran).toBeDefined()
 })
 
-test('the pane lists each User input as a dim header and its first lines', async ($, on) => {
+test('the pane lists each side as plain Buttons, the Agent reply dim, a side lit together on hover', async ($, on) => {
   const t = transcript(new Date(2026, 9, 10, 9, 4).getTime())
   t.prompt('CT-SYN first prompt')
   t.reply([{ type: 'text', text: 'answer' }])
@@ -43,12 +43,9 @@ test('the pane lists each User input as a dim header and its first lines', async
   const pane = await mountPane($)
 
   expect(drawnButtons(await pane.drawn()).filter(b => isEntryKey(b.key))).toEqual([
-    { key: 'g0.u', label: '你 · 10月10日 09:05', plain: true, dimColor: true, hover: { scope: 'e-g0.u', inverse: true } },
-    { key: 'g0.u.1', label: 'CT-SYN first prompt', plain: true, dimColor: false, hover: { scope: 'e-g0.u', inverse: true } },
-    { key: 'g0.a', label: '↳', plain: true, dimColor: true, hover: { scope: 'e-g0.a', inverse: true } },
-    { key: 'g0.a.1', label: '  answer', plain: true, dimColor: false, hover: { scope: 'e-g0.a', inverse: true } },
-    { key: 'g1.u', label: '你 · 10月10日 09:07', plain: true, dimColor: true, hover: { scope: 'e-g1.u', inverse: true } },
-    { key: 'g1.u.1', label: 'CT-SYN second prompt', plain: true, dimColor: false, hover: { scope: 'e-g1.u', inverse: true } },
+    { key: 'g0.u', label: 'CT-SYN first prompt', plain: true, dimColor: false, hover: { scope: 'e-g0.u', color: 'suggestion' } },
+    { key: 'g0.a', label: 'answer', plain: true, dimColor: true, hover: { scope: 'e-g0.a', color: 'suggestion' } },
+    { key: 'g1.u', label: 'CT-SYN second prompt', plain: true, dimColor: false, hover: { scope: 'e-g1.u', color: 'suggestion' } },
   ])
 })
 
@@ -61,14 +58,14 @@ test('a blank line parts one turn group from the next, not the two sides of one'
   const world = host(on, t.jsonl())
   await start($, world)
 
-  /* The filter row, then two groups of two 2-line sides and one blank line between: 10 rows. */
-  const pane = await mountPane($, 10)
+  /* The head, a day's rule, two groups of two 1-line sides and one blank line between, the footer: 11 rows. */
+  const pane = await mountPane($, 11)
 
   expect((await entryTexts(pane)).filter(s => s.includes('CT-SYN'))).toEqual([
     'CT-SYN first prompt',
-    '  CT-SYN first answer',
+    'CT-SYN first answer',
     'CT-SYN second prompt',
-    '  CT-SYN second answer',
+    'CT-SYN second answer',
   ])
 })
 
@@ -82,20 +79,20 @@ test('a running turn shows in progress with its steps so far, and its count once
   const world = host(on, t.jsonl())
   await start($, world)
   const pane = await mountPane($)
-  const heads = async () => (await entryTexts(pane)).filter(s => s.startsWith('↳'))
+  const heads = async () => drawnButtons(await pane.drawn()).filter(b => /^g\d+\.a$/.test(String(b.key))).map(b => b.label)
 
   await $.turn.start({ text: 'CT-SYN working', turnId: 'turn-1' })
   const asked = t.prompt('CT-SYN working')
   world.file = t.jsonl()
   await appendRow($, asked)
   await world.clock.advance(300)
-  expect(await heads()).toEqual(['↳', '↳ 进行中'])
+  expect(await heads()).toEqual(['CT-SYN earlier answer', '进行中'])
 
   const call = t.reply([{ type: 'tool_use', id: 't1', name: 'Bash', input: {} }])
   world.file = t.jsonl()
   await appendRow($, call)
   await world.clock.advance(300)
-  expect(await heads()).toEqual(['↳', '↳ 进行中 · 1 步'])
+  expect(await heads()).toEqual(['CT-SYN earlier answer', '进行中 · 1 步'])
 
   t.toolResult('t1')
   const answer = t.reply([{ type: 'text', text: 'CT-SYN all done' }])
@@ -103,9 +100,9 @@ test('a running turn shows in progress with its steps so far, and its count once
   await appendRow($, answer)
   await $.turn.complete({ answer: 'CT-SYN all done', durationMs: 1, isAborted: false, turnId: 'turn-1', reason: 'answer' })
   /* Until the reply's row is read, the group does not claim it has none. */
-  expect(await heads()).toEqual(['↳', '↳ 进行中 · 1 步'])
+  expect(await heads()).toEqual(['CT-SYN earlier answer', '进行中 · 1 步'])
   await world.clock.advance(300)
-  expect(await heads()).toEqual(['↳', '↳ 1 步'])
+  expect(await heads()).toEqual(['CT-SYN earlier answer', '1 步 · CT-SYN all done'])
 })
 
 test('a turn that completes with every row already read stops showing in progress', async ($, on) => {
@@ -121,7 +118,7 @@ test('a turn that completes with every row already read stops showing in progres
   await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 'turn-1', reason: 'answer' })
   await world.clock.advance(300)
 
-  expect((await entryTexts(pane))).toContain('↳')
+  expect((await entryTexts(pane))).toContain('CT-SYN answered')
   expect((await entryTexts(pane)).some(s => s.includes('进行中'))).toBe(false)
 })
 
@@ -136,7 +133,7 @@ test("a subagent's turn does not end the main agent's", async ($, on) => {
   await world.clock.advance(2000)
 
   const pane = await mountPane($)
-  expect((await entryTexts(pane))).toContain('↳ 进行中 · 1 步')
+  expect((await entryTexts(pane))).toContain('进行中 · 1 步')
 })
 
 test('before the first message the file does not exist and the pane says so', async ($, on) => {

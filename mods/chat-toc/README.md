@@ -25,9 +25,9 @@ mods/chat-toc/
 │   ├── model.ts                 整份重组；只作测试判据，register 不用
 │   ├── source.ts                ≤4 MiB 整读与 4,000,000 B 分块读（sh dd+head / Windows PowerShell 5.1）
 │   ├── reader.ts                300 ms 尾随、读时合并的闸门
-│   ├── entries.ts               三种 Layout 与 View filter 的条目、时间格式、Agent 侧状态字
+│   ├── entries.ts               三种 Layout 与 View filter 的条目、日期分隔、时间格式、Agent 侧状态字
 │   ├── table.ts                 条目表：按组缓存条目，只在数据、宽度、过滤、Layout 变化时重建；组到条目查表
-│   ├── cells.ts                 终端单元宽度与折行
+│   ├── cells.ts                 终端单元宽度与折行（避头标点、英文词整体换行）
 │   ├── window.ts                Pane 自管的可见窗口
 │   ├── ring.ts                  宿主焦点环落在条目第一行、窗口两端的滚动
 │   ├── view.ts                  View filter / Layout 的 $.store 键、认不出时回默认
@@ -38,7 +38,9 @@ mods/chat-toc/
 │   ├── lifecycle.ts             关闭标记、重开时机、放置结果、状态栏文字
 │   ├── locate.ts                中途启用时推算 transcript 路径（宿主的项目目录命名规则）
 │   ├── rewind.ts                rewind 后按宿主的 messages 与文件对齐，找出不再持有的分组
-│   └── pane.tsx                 Pane 的绘制（过滤行、条目、底栏）
+│   ├── pane.tsx                 终端 Pane 的绘制（过滤行与页签线、时间轨上的条目、底栏）
+│   ├── desktop.tsx              Desktop / VS Code / 移动端的 Pane 绘制（按 e.surface 分出的另一棵树）
+│   └── minimap.ts               Desktop 上方每轮步数缩略条的 SVG
 └── tests/
     ├── *.test.ts                claude plugin test 套件
     ├── fixture.ts、host.ts      合成 transcript 构造器；test kit 之上的宿主替身

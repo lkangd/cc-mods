@@ -14,7 +14,7 @@
    The table's arrays are the cache's own and change with the next call: a
    table is good until then. */
 
-import { groupEntries, withoutTrailingGap } from './entries'
+import { entryRows, groupEntries, withoutTrailingGap } from './entries'
 import type { Entry, EntryOptions } from './entries'
 import type { TurnGroup } from './groups'
 
@@ -58,8 +58,9 @@ export function entryOfGroup(table: EntryTable, group: number): number | undefin
   return at === undefined ? undefined : Math.min(at, table.entries.length - 1)
 }
 
-/* The year matters: a time from another year shows it. */
-const shapeOf = (o: EntryOptions) => `${o.layout}|${o.filter}|${o.width}|${new Date(o.nowMs).getFullYear()}`
+/* The day matters: the day's rule says which day is today, and a time
+   from another year shows the year. */
+const shapeOf = (o: EntryOptions) => `${o.layout}|${o.filter}|${o.width}|${new Date(o.nowMs).toDateString()}`
 
 /* Whether two groups draw the same. */
 function drawsSame(a: TurnGroup, b: TurnGroup): boolean {
@@ -132,12 +133,12 @@ export function entryTable(cache: EntryCache, groups: readonly TurnGroup[], opti
       indexOf.set(entry.key, entries.length)
       entries.push(entry)
       keys.push(entry.key)
-      heights.push(entry.lines.length + (entry.gapAfter ? 1 : 0))
+      heights.push(entryRows(entries, entries.length - 1))
     }
   }
   withoutTrailingGap(entries)
   const end = entries.length - 1
-  if (end >= 0) heights[end] = entries[end]!.lines.length + (entries[end]!.gapAfter ? 1 : 0)
+  if (end >= 0) heights[end] = entryRows(entries, end)
   /* Groups gone from the list (a rewind's, a /clear's) are let go. */
   if (cache.byOpener.size > groups.length) {
     const openers = new Set(groups.map(g => g.openerUuid))

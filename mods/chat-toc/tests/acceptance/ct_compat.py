@@ -83,8 +83,8 @@ def inline(t):
         return None
     body = rows[top + 1:bottom]
     # 2.1.287 gives the inline Pane a few rows only: the window may show an
-    # Agent side ("↳") without its prompt's header
-    return body if any("你 ·" in row or "↳" in row for row in body) else None
+    # Agent side (its branch ├╴) without its prompt
+    return body if any(mark in row for row in body for mark in ("●  ", "◉  ", "├╴ ", "┣╸ ")) else None
 
 
 def no_pane(t):

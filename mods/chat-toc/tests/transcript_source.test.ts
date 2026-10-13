@@ -43,7 +43,8 @@ async function texts(pane: Pane): Promise<string[]> {
     for (const child of el.children ?? []) walk(child)
   }
   walk(await pane.drawn())
-  return out.filter(t => t.trim() !== '')
+  /* The tab rule and the footer's rule are chrome, not what the pane says. */
+  return out.filter(t => t.trim() !== '' && !/^[─━]+$/.test(t))
 }
 
 function offsetsOf(world: Host): number[] {
@@ -56,7 +57,7 @@ test('a transcript over 4 MiB is read in 4,000,000-byte chunks from byte offsets
   const world = host(on, t.jsonl())
   expect(bytesOf(t.jsonl()).length).toBeGreaterThan(4 * 1024 * 1024)
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await mountPane($, 40)
 
   expect(world.reads).toEqual([])
   expect(world.runs[0]?.argv).toEqual(['sh', '-c', DD, 'sh', '0', TRANSCRIPT, '4000000'])
@@ -112,7 +113,7 @@ test('a file that got smaller is read again from the start', async ($, on) => {
   t.prompt('CT-SYN old two')
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await mountPane($, 40)
 
   const shorter = transcript()
   const only = shorter.prompt('CT-SYN new')
@@ -125,7 +126,7 @@ test('a file that got smaller is read again from the start', async ($, on) => {
   const listed = await buttonTexts(pane)
   expect(listed).toContain('CT-SYN new')
   expect(listed).not.toContain('CT-SYN old one')
-  expect(listed.length).toBe(2)
+  expect(listed.length).toBe(1)
 })
 
 test('a transcript refused for permission lists nothing and says why at the bottom', async ($, on) => {
@@ -173,7 +174,8 @@ test('lines that are not rows are skipped and counted at the bottom of the pane'
 
   expect(await buttonTexts(pane)).toEqual(expect.arrayContaining(['CT-SYN one', 'CT-SYN two']))
   const drawn = await texts(pane)
-  expect(drawn[drawn.length - 1]).toBe('有 2 行无法识别，目录可能不完整')
+  /* Below the list, above the footer's count. */
+  expect(drawn.at(-2)).toBe('有 2 行无法识别，目录可能不完整')
 })
 
 test('a line longer than a chunk is skipped and counted, and the rows around it are listed', async ($, on) => {
@@ -188,7 +190,7 @@ test('a line longer than a chunk is skipped and counted, and the rows around it 
 
   expect(world.reads).toEqual([])
   const drawn = await texts(pane)
-  expect(drawn[drawn.length - 1]).toBe('有 1 行无法识别，目录可能不完整')
+  expect(drawn.at(-2)).toBe('有 1 行无法识别，目录可能不完整')
   expect(await buttonTexts(pane)).toEqual(expect.arrayContaining(['CT-SYN after the long line']))
 })
 
@@ -197,7 +199,7 @@ test('on Windows the chunks are read by Windows PowerShell 5.1 as base64, the pa
   const t = bigSession(prompts)
   const world = host(on, t.jsonl(), WINDOWS_TRANSCRIPT)
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await mountPane($, 40)
 
   const first = world.runs[0]
   expect(first?.argv.slice(0, 4)).toEqual(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command'])

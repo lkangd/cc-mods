@@ -423,7 +423,7 @@ def transcript_text(rows: list[str], pane_left: int) -> str:
 
 
 def _signature(pane) -> tuple:
-    return tuple((e.user_head, e.user_text, e.agent_head) for e in pane.entries) if pane else ()
+    return tuple((e.time, e.user_text, e.agent_head) for e in pane.entries) if pane else ()
 
 
 def _wheel_point(term) -> tuple[int, int]:
@@ -523,7 +523,7 @@ def smoke(host_version: str, plugin: pathlib.Path, terminal: str, out: pathlib.P
                 top = toc_verifier.parse_pane(term.rows())
             # a typed prompt: commands and !cmd jump to a neighbouring row instead
             target = next((e for e in top.entries if e.user_lines and e.user_lines[0][:1] not in "/!"), top.entries[0])
-            term.click(top.left + 4, target.row + 1)
+            term.click(top.left + 4, target.user_row)
             rows = term.settle(quiet=1.0)
             evidence.append(term.snap(f"after clicking the user side of {target.user_text[:5]}"))
             jumped = target.user_lines[0][:12] in transcript_text(rows, top.left)
