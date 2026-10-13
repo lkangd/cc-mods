@@ -1,0 +1,145 @@
+[
+ {
+  "ok": true,
+  "start": 0,
+  "entries": [
+   {
+    "index": 0,
+    "key": "57c9b2c0-ba7c-4a75-8d50-0f76293dc206",
+    "expected": {
+     "key": "57c9b2c0-ba7c-4a75-8d50-0f76293dc206",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:01",
+     "userText": "F02 合成问题 2",
+     "agentHead": "",
+     "lastText": "F02 合成回复 2",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 5,
+     "day": "10月9日",
+     "time": "09:01",
+     "userLines": [
+      "F02 合成问题 2"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "F02 合成回复 2"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 1,
+    "key": "e4daf1c3-cd8b-4e9c-b801-3ebbac7dc96b",
+    "expected": {
+     "key": "e4daf1c3-cd8b-4e9c-b801-3ebbac7dc96b",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:01",
+     "userText": "F03 合成问题 3",
+     "agentHead": "1 步",
+     "lastText": "F03 合成回复 3",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 8,
+     "day": null,
+     "time": "09:01",
+     "userLines": [
+      "F03 合成问题 3"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "F03 合成回复 3"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 2,
+    "key": "51927773-9be0-462c-924f-081438d727ff",
+    "expected": {
+     "key": "51927773-9be0-462c-924f-081438d727ff",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:01",
+     "userText": "FYY rewind 之后的一轮",
+     "agentHead": "",
+     "lastText": "FYY 新分支的回复",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 11,
+     "day": null,
+     "time": "09:01",
+     "userLines": [
+      "FYY rewind 之后的一轮"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "FYY 新分支的回复"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 3,
+    "key": "79f19122-b501-4ac4-b221-3efd6d61f3c2",
+    "expected": {
+     "key": "79f19122-b501-4ac4-b221-3efd6d61f3c2",
+     "kind": "prompt",
+     "day": "今天 · 10月13日",
+     "time": "18:01",
+     "userText": "F 分叉之后的合成 prompt",
+     "agentHead": "出错",
+     "lastText": "Not logged in · Please run /login",
+     "steps": 0,
+     "status": "error"
+    },
+    "actual": {
+     "row": 15,
+     "day": "今天 · 10月13日",
+     "time": "18:01",
+     "userLines": [
+      "F 分叉之后的合成 prompt"
+     ],
+     "agentHead": "出错",
+     "agentLines": [
+      "Not logged in · Please run /login"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": true
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 4,
+   "windowEntries": 4,
+   "start": 0,
+   "problems": 0,
+   "partialTop": false,
+   "notes": []
+  }
+ }
+]

@@ -1,0 +1,337 @@
+[
+ {
+  "ok": true,
+  "start": 0,
+  "entries": [
+   {
+    "index": 0,
+    "key": "d7e11b1b-7aa6-440d-8800-7596a28f5b37",
+    "expected": {
+     "key": "d7e11b1b-7aa6-440d-8800-7596a28f5b37",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:00",
+     "userText": "K00 合成问题 0",
+     "agentHead": "",
+     "lastText": "K00 合成回复 0",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 4,
+     "day": "10月9日",
+     "time": "09:00",
+     "userLines": [
+      "K00 合成问题 0"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "K00 合成回复 0"
+     ],
+     "running": false,
+     "userOff": true,
+     "agentOff": true,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 1,
+    "key": "6d9deeee-95da-4109-aeca-8c285efcea76",
+    "expected": {
+     "key": "6d9deeee-95da-4109-aeca-8c285efcea76",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:00",
+     "userText": "K01 合成问题 1",
+     "agentHead": "1 步",
+     "lastText": "K01 合成回复 1",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 7,
+     "day": null,
+     "time": "09:00",
+     "userLines": [
+      "K01 合成问题 1"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "K01 合成回复 1"
+     ],
+     "running": false,
+     "userOff": true,
+     "agentOff": true,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 2,
+    "key": "1ff7f212-16a5-41f4-9148-4c93bdb39a62",
+    "expected": {
+     "key": "1ff7f212-16a5-41f4-9148-4c93bdb39a62",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:00",
+     "userText": "K02 合成问题 2",
+     "agentHead": "",
+     "lastText": "K02 合成回复 2",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 10,
+     "day": null,
+     "time": "09:00",
+     "userLines": [
+      "K02 合成问题 2"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "K02 合成回复 2"
+     ],
+     "running": false,
+     "userOff": true,
+     "agentOff": true,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 3,
+    "key": "e4daf1c3-cd8b-4e9c-b801-3ebbac7dc96b",
+    "expected": {
+     "key": "e4daf1c3-cd8b-4e9c-b801-3ebbac7dc96b",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:01",
+     "userText": "K03 合成问题 3",
+     "agentHead": "1 步",
+     "lastText": "K03 合成回复 3",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 13,
+     "day": null,
+     "time": "09:01",
+     "userLines": [
+      "K03 合成问题 3"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "K03 合成回复 3"
+     ],
+     "running": false,
+     "userOff": true,
+     "agentOff": true,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 4,
+    "key": "d588ee38-06de-43b1-8405-383662f7c6f9",
+    "expected": {
+     "key": "d588ee38-06de-43b1-8405-383662f7c6f9",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:01",
+     "userText": "K04 合成问题 4",
+     "agentHead": "",
+     "lastText": "K04 合成回复 4",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 16,
+     "day": null,
+     "time": "09:01",
+     "userLines": [
+      "K04 合成问题 4"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "K04 合成回复 4"
+     ],
+     "running": false,
+     "userOff": true,
+     "agentOff": true,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 5,
+    "key": "51927773-9be0-462c-924f-081438d727ff",
+    "expected": {
+     "key": "51927773-9be0-462c-924f-081438d727ff",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:01",
+     "userText": "K05 合成问题 5",
+     "agentHead": "1 步",
+     "lastText": "K05 合成回复 5",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "day": null,
+     "time": "09:01",
+     "userLines": [
+      "K05 合成问题 5"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "K05 合成回复 5"
+     ],
+     "running": false,
+     "userOff": true,
+     "agentOff": true,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 6,
+    "key": "972c3d70-bdea-467e-b620-42d729c0047c",
+    "expected": {
+     "key": "972c3d70-bdea-467e-b620-42d729c0047c",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:02",
+     "userText": "K06 合成问题 6",
+     "agentHead": "",
+     "lastText": "K06 合成回复 6",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 22,
+     "day": null,
+     "time": "09:02",
+     "userLines": [
+      "K06 合成问题 6"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "K06 合成回复 6"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 7,
+    "key": "c61f665b-684f-4cd3-8e26-f256707198b5",
+    "expected": {
+     "key": "c61f665b-684f-4cd3-8e26-f256707198b5",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:02",
+     "userText": "K07 合成问题 7",
+     "agentHead": "1 步",
+     "lastText": "K07 合成回复 7",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 25,
+     "day": null,
+     "time": "09:02",
+     "userLines": [
+      "K07 合成问题 7"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "K07 合成回复 7"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 8,
+    "key": "7aa41c0e-ba86-4635-a954-78a4868f8b23",
+    "expected": {
+     "key": "7aa41c0e-ba86-4635-a954-78a4868f8b23",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:03",
+     "userText": "K08 合成问题 8",
+     "agentHead": "",
+     "lastText": "K08 合成回复 8",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 28,
+     "day": null,
+     "time": "09:03",
+     "userLines": [
+      "K08 合成问题 8"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "K08 合成回复 8"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 9,
+    "key": "537fdadb-97fb-4742-83b1-18bc060423b0",
+    "expected": {
+     "key": "537fdadb-97fb-4742-83b1-18bc060423b0",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:03",
+     "userText": "KYY rewind 之后的一轮",
+     "agentHead": "",
+     "lastText": "KYY 新分支的回复",
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 31,
+     "day": null,
+     "time": "09:03",
+     "userLines": [
+      "KYY rewind 之后的一轮"
+     ],
+     "agentHead": "",
+     "agentLines": [
+      "KYY 新分支的回复"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": true
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 10,
+   "windowEntries": 10,
+   "start": 0,
+   "problems": 0,
+   "partialTop": false,
+   "notes": []
+  }
+ }
+]
