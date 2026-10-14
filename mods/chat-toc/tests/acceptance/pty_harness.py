@@ -112,6 +112,9 @@ class World:
             "PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "TERM": "xterm-256color", "LANG": "en_US.UTF-8",
             "COLORTERM": "truecolor", "DISABLE_AUTOUPDATER": "1", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
         }
+        # chat-toc's words follow the locale (ticket 37); the verifier checks the
+        # Chinese ones, so the worlds say Chinese messages over an English LANG.
+        env["LC_MESSAGES"] = "zh_CN.UTF-8"
         if fullscreen:
             env["CLAUDE_CODE_NO_FLICKER"] = "1"
         else:

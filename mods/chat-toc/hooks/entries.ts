@@ -14,6 +14,7 @@
 import { textCells, wrapCells } from './cells'
 import type { TurnGroup } from './groups'
 import type { Layout, ViewFilter } from './view'
+import { text as words } from './text'
 
 /* A line of an entry; `aside`, on a card's first User input line, is the
    time the pane draws at the right of it. */
@@ -63,20 +64,20 @@ function timeOf(timestamp: string | undefined): Date | undefined {
   return Number.isNaN(at.getTime()) ? undefined : at
 }
 
-function dayOf(at: Date | undefined, now: Date): string {
+function dayOf(at: Date | undefined, now: Date, isTodaySaid: boolean): string {
   if (at === undefined) return ''
-  const day = `${at.getMonth() + 1}月${at.getDate()}日`
-  if (at.getFullYear() !== now.getFullYear()) return `${at.getFullYear()}年${day}`
-  return at.getMonth() === now.getMonth() && at.getDate() === now.getDate() ? `今天 · ${day}` : day
+  const day = words.monthDay(at.getMonth(), at.getDate())
+  if (at.getFullYear() !== now.getFullYear()) return words.withYear(day, at.getFullYear())
+  return isTodaySaid && at.getMonth() === now.getMonth() && at.getDate() === now.getDate() ? words.today(day) : day
 }
 
 const clockOf = (at: Date | undefined) => (at === undefined ? '' : `${pad2(at.getHours())}:${pad2(at.getMinutes())}`)
 
-/* A transcript timestamp's local day for the day's rule: `M月D日`, today
-   `今天 · M月D日`, another year's with the year; '' when there is none to
-   read. */
-export function dayLabel(timestamp: string | undefined, nowMs: number): string {
-  return dayOf(timeOf(timestamp), new Date(nowMs))
+/* A transcript timestamp's local day for the day's rule: `Oct 9` (`10月9日`),
+   today `Today · Oct 9` unless `isTodaySaid` is false, another year's with
+   the year; '' when there is none to read. */
+export function dayLabel(timestamp: string | undefined, nowMs: number, isTodaySaid = true): string {
+  return dayOf(timeOf(timestamp), new Date(nowMs), isTodaySaid)
 }
 
 /* A transcript timestamp's local `HH:MM`; '' when there is none to read. */
@@ -88,10 +89,10 @@ export function clockTime(timestamp: string | undefined): string {
    or ended in an error, each with the steps so far; otherwise the steps,
    and a note when there is no reply text. No steps, no count. */
 export function agentHeadOf(group: TurnGroup, isRunning: boolean): string {
-  const steps = group.steps > 0 ? `${group.steps} 步` : ''
-  const state = isRunning ? '进行中' : group.ending === 'interrupted' ? '已中断' : group.ending === 'error' ? '出错' : ''
+  const steps = group.steps > 0 ? words.steps(group.steps) : ''
+  const state = isRunning ? words.running : group.ending === 'interrupted' ? words.interrupted : group.ending === 'error' ? words.error : ''
   if (state) return [state, steps].filter(Boolean).join(' · ')
-  if (!group.reply) return [steps, '无文字回复'].filter(Boolean).join(' · ')
+  if (!group.reply) return [steps, words.noReply].filter(Boolean).join(' · ')
   return steps
 }
 
@@ -149,7 +150,7 @@ export function groupEntries(group: TurnGroup, i: number, isGroupRunning: boolea
   if (filter !== 'agent') sides.push('user')
   if (filter !== 'user' && (group.hasAgentReply || isGroupRunning)) sides.push('agent')
   const at = timeOf(group.timestamp)
-  const day = dayOf(at, new Date(nowMs))
+  const day = dayOf(at, new Date(nowMs), true)
   const clock = clockOf(at)
   return sides.map((side, n) => {
     const drawn = side === 'user' ? userSide(group, i, layout, room, clock) : agentSide(group, i, layout, room, isGroupRunning)

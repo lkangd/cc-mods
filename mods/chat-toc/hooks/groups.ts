@@ -4,6 +4,7 @@
    Agent reply. */
 
 import type { TranscriptRow } from './transcript'
+import { text as words } from './text'
 
 /* How the User input was given: a prompt (text or images), a slash command
    (a prompt-type one or a local one), or a `!` shell command. */
@@ -118,7 +119,7 @@ export function userTextOf(row: TranscriptRow, kind: InputKind): string {
   if (kind === 'shell') return `!${collapse(tagged(text, 'bash-input'))}`
   const shown = plainText(text)
   if (shown) return shown
-  return hasBlock(row.message?.content, 'image') ? '（只有图片）' : ''
+  return hasBlock(row.message?.content, 'image') ? words.imageOnly : ''
 }
 
 const isInterruption = (row: TranscriptRow) => row.type === 'user' && /^\s*\[Request interrupted by user/.test(rowText(row))

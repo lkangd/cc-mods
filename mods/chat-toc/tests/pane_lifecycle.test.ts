@@ -2,6 +2,10 @@ import { expect, test } from 'claude-code/testing'
 import { isClosedByPerson, reopensOn } from '../hooks/lifecycle'
 import { PANE, TRANSCRIPT, appendRow, drawHint, entryTexts, host, mountPane, readsOf, start } from './host'
 import { transcript } from './fixture'
+import { setLanguage } from '../hooks/text'
+
+/* These tests check the Chinese words (text.ts). */
+setLanguage('zh')
 
 /* The pane's lifecycle (spec §2): it opens on its own when a session starts,
    stays closed once the person closes it, comes back with /chat-toc, and
