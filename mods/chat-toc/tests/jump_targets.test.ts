@@ -1,7 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 import { currentChain } from '../hooks/chain'
 import { groupTurns } from '../hooks/groups'
-import { UNSCROLLABLE_TEXT, isUnscrollable, jumpTargetsOf } from '../hooks/jump'
+import { isUnscrollable, jumpTargetsOf } from '../hooks/jump'
+import { setLanguage, text as words } from '../hooks/text'
 import { newSites, noteSite, rowIndex } from '../hooks/sites'
 import type { Sites } from '../hooks/sites'
 import { parseTranscript } from '../hooks/transcript'
@@ -143,5 +144,6 @@ test('a surface that cannot scroll its transcript is told apart from a refused r
   expect(isUnscrollable('transcript not scrollable here')).toBe(true)
   expect(isUnscrollable('Error: transcript not scrollable here')).toBe(true)
   expect(isUnscrollable('no site draws that requestId')).toBe(false)
-  expect(UNSCROLLABLE_TEXT).toBe('Claude 应用暂不支持跳转到对话')
+  setLanguage('zh')
+  expect(words.unscrollable).toBe('Claude 应用暂不支持跳转到对话')
 })

@@ -15,7 +15,8 @@ import type { Entry } from './entries'
 import { MINIMAP_HEIGHT, minimapOf } from './minimap'
 import type { StripLabels } from './minimap'
 import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
-import { FILTERS, LAYOUT_NAMES, filterLabel, layoutLabel, layoutOf } from './view'
+import { FILTERS, filterLabel, layoutLabel, layoutName, layoutOf } from './view'
+import { text as words } from './text'
 import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
 
@@ -154,7 +155,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
   ))
   const filters = hasSvg ? (
     <Box position="relative" width={slots.reduce((a, b) => a + b, 0)} height={WELL_ROWS}>
-      {svg(wellSvg(FILTERS.map(f => filterLabel(f.filter)), slots, chosen), `筛选：${filterLabel(view.filter)}`, slots.reduce((a, b) => a + b, 0) * CELL_PX, WELL_ROWS * ROW_PX)}
+      {svg(wellSvg(FILTERS.map(f => filterLabel(f.filter)), slots, chosen), words.filterAlt(filterLabel(view.filter)), slots.reduce((a, b) => a + b, 0) * CELL_PX, WELL_ROWS * ROW_PX)}
       <Box position="absolute" top={0} left={0} flexDirection="row">
         {buttons}
       </Box>
@@ -166,7 +167,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
     'Select' in elements ? (
       <elements.Select
         key={LAYOUT_CONTROL}
-        options={LAYOUTS.map(l => ({ value: l, label: LAYOUT_NAMES[l] }))}
+        options={LAYOUTS.map(l => ({ value: l, label: layoutName(l) }))}
         value={view.layout}
         onSelect={value => void view.onLayout(layoutOf(value))}
       />
@@ -198,7 +199,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
     )
     rows.push(
       <Box key={`row-${entry.key}`} flexDirection="row">
-        {svg(rail.source, '轨道', rail.width, rail.height)}
+        {svg(rail.source, words.rail, rail.width, rail.height)}
         <Box flexDirection="column" flexShrink={1}>
           {entry.lines.map((l, n) =>
             l.aside === undefined ? (
@@ -218,7 +219,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
       if (dayRuleBefore(view.entries, i + 1) !== undefined) rows.push(<Text> </Text>)
       else {
         const gap = gapSvg(hasTime)
-        rows.push(<Box flexDirection="row">{svg(gap.source, '轨道', gap.width, ROW_PX)}</Box>)
+        rows.push(<Box flexDirection="row">{svg(gap.source, words.rail, gap.width, ROW_PX)}</Box>)
       }
     }
   }
@@ -233,7 +234,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
       <Box flexDirection="column">{rows}</Box>
       {view.alert === undefined ? null : <Text color="warning">{`⚠ ${view.alert.text}`}</Text>}
       {view.why === undefined ? null : <Text dimColor>{view.why}</Text>}
-      {strip === null && view.count !== undefined ? <Text dimColor>{`${view.count} 轮`}</Text> : null}
+      {strip === null && view.count !== undefined ? <Text dimColor>{words.turns(view.count)}</Text> : null}
     </Box>
   )
 }

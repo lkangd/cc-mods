@@ -17,12 +17,9 @@ import { drawDesktopPane } from './desktop'
 import { stripLabels } from './minimap'
 import type { TurnGroup } from './groups'
 import {
-  COMPACTED_TEXT,
   FLASHES,
   FLASH_MS,
   REFUSED_MS,
-  REFUSED_TEXT,
-  UNSCROLLABLE_TEXT,
   isUnscrollable,
   compactedSides,
   dimRefused,
@@ -33,10 +30,11 @@ import {
   sideKeyOf,
 } from './jump'
 import type { Refused } from './jump'
-import { DOCK_STATUS, carriesHistory, isClosedByPerson, placementFate, reopensOn } from './lifecycle'
-import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
+import { carriesHistory, isClosedByPerson, placementFate, reopensOn } from './lifecycle'
+import { PANE_COLUMNS, PANE_ID, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
 import { entryAt, pendingShown, ringMove } from './ring'
-import { UNLOCATED_TEXT, derivedTranscriptPath } from './locate'
+import { derivedTranscriptPath } from './locate'
+import { languageOf, setLanguage, text as words } from './text'
 import { rewoundFrom } from './rewind'
 import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
 import type { Layout, ViewFilter } from './view'
@@ -78,14 +76,7 @@ const compactedAt = atom({ plugin: 'chat-toc', key: 'compactedAt' } as const, nu
 type SourceState = 'unknown' | 'missing' | 'ok' | 'failed'
 
 /* Why nothing is listed, kept at the bottom of the pane while it holds. */
-const FAILURES: Record<FailReason, string> = {
-  denied: '没有权限读本会话的 transcript，目录无法显示',
-  error: '读不到本会话的 transcript，目录无法显示',
-}
-
-function unreadableText(lines: number): string {
-  return `有 ${lines} 行无法识别，目录可能不完整`
-}
+const failureText = (reason: FailReason): string => (reason === 'denied' ? words.denied : words.readError)
 
 /* What the reads so far made of the file. Module state: a hot reload starts
    it over, and `session.start` then reads again. */
@@ -235,6 +226,7 @@ const NO_ENTRIES: EntryTable = { entries: [], heights: [], keys: [], indexOf: ne
 const perf = newPerf()
 const loadedAt = perfNow()
 let isPerfAsked = false
+let isLanguageAsked = false
 let appendedAt: number | undefined
 let isListedNoted = false
 
@@ -257,6 +249,16 @@ function forget(): void {
   refusal = undefined
   placing = newPositioning()
   entryCache = newEntryCache()
+}
+
+/* The system's language, from the locale variables (text.ts). Asked once a
+   load, at the first start event, before any word is drawn or registered. */
+async function askLanguage($: EngineInterface): Promise<void> {
+  if (isLanguageAsked) return
+  isLanguageAsked = true
+  const read = (value: Promise<string | undefined>) => value.catch(() => undefined)
+  const [LC_ALL, LC_MESSAGES, LANG] = await Promise.all([read($.env.get('LC_ALL')), read($.env.get('LC_MESSAGES')), read($.env.get('LANG'))])
+  setLanguage(languageOf({ LC_ALL, LC_MESSAGES, LANG }))
 }
 
 async function askPerf($: EngineInterface): Promise<void> {
@@ -575,7 +577,7 @@ async function locate($: EngineInterface, cwd: string): Promise<void> {
 }
 
 function openPane($: EngineInterface, focus?: true) {
-  return $.ui.open({ id: PANE_ID, title: PANE_TITLE, columns: PANE_COLUMNS, ...(focus === undefined ? {} : { focus }) })
+  return $.ui.open({ id: PANE_ID, title: words.paneTitle, columns: PANE_COLUMNS, ...(focus === undefined ? {} : { focus }) })
 }
 
 function showStatus($: EngineInterface, text: string | undefined): void {
@@ -594,10 +596,10 @@ async function openUnasked($: EngineInterface): Promise<void> {
   }
   isOpenWanted = false
   if (await read($, isClosed)) return
-  if (!isFullscreen) return showStatus($, DOCK_STATUS.mainScreen)
+  if (!isFullscreen) return showStatus($, words.dock.mainScreen)
   const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
   const isPlaced = pane === undefined ? (await openPane($)).isPlaced : pane.isPlaced
-  if (!isPlaced) showStatus($, DOCK_STATUS.narrow)
+  if (!isPlaced) showStatus($, words.dock.narrow)
 }
 
 function autoOpen($: EngineInterface): Promise<void> {
@@ -634,7 +636,7 @@ async function withdraw($: EngineInterface): Promise<void> {
     await $.ui.close({ id: PANE_ID }).catch(() => undefined)
     if (withdrawals > 1) {
       parkedAt = columns ?? -1
-      return showStatus($, DOCK_STATUS.narrow)
+      return showStatus($, words.dock.narrow)
     }
     await autoOpen($)
   } finally {
@@ -662,10 +664,10 @@ async function jump($: EngineInterface, entry: Entry): Promise<void> {
       if (wasShown) await update($, rev, n => n + 1)
       return
     }
-    if (isUnscrollable(got.deny)) return sayRefusal($, entry.key, UNSCROLLABLE_TEXT)
+    if (isUnscrollable(got.deny)) return sayRefusal($, entry.key, words.unscrollable)
   }
   refused.set(key, { side: entry.side, opener: group.openerUuid, groupIndex: entry.groupIndex, why })
-  await sayRefusal($, entry.key, why === 'compacted' ? COMPACTED_TEXT : REFUSED_TEXT)
+  await sayRefusal($, entry.key, why === 'compacted' ? words.compacted : words.refused)
 }
 
 /* Says below the entries why a press did not jump, flashing, for a while. */
@@ -759,6 +761,7 @@ function sendRing($: EngineInterface, key: string, left = RING_RETRIES): void {
 
 export const register: Register = on => {
   on('classic.SessionStart', async ($, e, next) => {
+    await askLanguage($)
     /* A worked-out path may have come first: a resume onto the same file
        still carries history. */
     if ((await adoptPath($, e.transcript_path)) || carriesHistory(e.source)) await update($, isCarriedOver, () => carriesHistory(e.source))
@@ -777,7 +780,8 @@ export const register: Register = on => {
   })
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'chat-toc', description: '打开对话目录', immediate: true })
+    await askLanguage($)
+    await $.command.register({ name: 'chat-toc', description: words.commandDescription, immediate: true })
     await loadChoices($)
     await askPerf($)
     await locate($, e.cwd)
@@ -919,7 +923,7 @@ export const register: Register = on => {
     if (fate === 'docked' && (statusShown !== undefined || isAsked || withdrawals > 0)) $.clock.after(0, () => void settleDocked($).catch(() => undefined))
     if (fate === 'withdraw' && !isWithdrawing) $.clock.after(0, () => void withdraw($).catch(() => undefined))
     if (fate === 'asked-inline') {
-      const text = e.viewport?.isFullscreen === false ? DOCK_STATUS.askedMainScreen : DOCK_STATUS.askedNarrow
+      const text = e.viewport?.isFullscreen === false ? words.dock.askedMainScreen : words.dock.askedNarrow
       if (text !== statusShown) $.clock.after(0, () => showStatus($, text))
     }
     const isOk = source === 'ok'
@@ -930,9 +934,9 @@ export const register: Register = on => {
     const entries = dimRefused(table.entries, groups, refused)
     /* A resumed or forked session shows its history in the transcript
        before its own file is written; it is not without a conversation. */
-    const missing = isCarried ? NOT_WRITTEN_TEXT : EMPTY_TEXT
-    const notice = isUnlocated ? UNLOCATED_TEXT : source === 'missing' ? missing : isOk && entries.length === 0 ? EMPTY_TEXT : undefined
-    const why = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
+    const missing = isCarried ? words.notWritten : words.empty
+    const notice = isUnlocated ? words.unlocated : source === 'missing' ? missing : isOk && entries.length === 0 ? words.empty : undefined
+    const why = source === 'failed' ? failureText(failure) : isOk && reading.unreadable > 0 ? words.unreadable(reading.unreadable) : undefined
     const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
     const headRows = HEAD_ROWS
     const rows = e.props.scroll.bodyRows - headRows - FOOT_ROWS - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)

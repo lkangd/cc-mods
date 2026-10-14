@@ -8,6 +8,10 @@ import { entryOfGroup, entryTable, newEntryCache } from '../hooks/table'
 import type { Layout, ViewFilter } from '../hooks/view'
 import { transcript } from './fixture'
 import type { Builder, Row } from './fixture'
+import { setLanguage } from '../hooks/text'
+
+/* These tests check the Chinese words (text.ts). */
+setLanguage('zh')
 
 /* The pane's entry table: entries kept per group and the list rebuilt only
    when the groups, the width, the View filter or the Layout change, so a

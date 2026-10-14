@@ -66,7 +66,9 @@ export type Host = {
   refuseStore?: boolean
   /* Where the pane's focus ring went, and who moved it. */
   focuses: { element: string | undefined; origin: string }[]
-  /* The process environment `$.env.get` reads. */
+  /* The process environment `$.env.get` reads. LANG is Chinese unless a
+     test says otherwise: the suites before English (ticket 37) check the
+     Chinese words. */
   env: Record<string, string>
   /* The lines chat-toc logged, and where to. */
   logs: { text: string; to: string | undefined }[]
@@ -120,7 +122,7 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     store: { ...stored },
     focuses: [],
     statuses: [],
-    env: {},
+    env: { LANG: 'zh_CN.UTF-8' },
     logs: [],
     sessionId: 'synthetic-session',
     messages: [],

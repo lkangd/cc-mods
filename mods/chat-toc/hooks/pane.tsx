@@ -14,14 +14,10 @@ import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
 import { FILTERS, LAYOUT_HOTKEY, filterLabel, layoutLabel } from './view'
 import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
+import { text as words } from './text'
 
 export const PANE_ID = 'chat-toc'
-export const PANE_TITLE = '目录'
 export const PANE_COLUMNS = 44
-
-export const EMPTY_TEXT = '本会话还没有对话'
-/* For a resumed or forked session whose file is not written yet. */
-export const NOT_WRITTEN_TEXT = '本会话还没写进 transcript 文件，提交第一条消息后显示目录'
 
 /* 2.1.287 draws the pane's ✕ at the right end of the body's first row: the
    filter row keeps these cells free for it. */
@@ -42,7 +38,6 @@ const FILTER_GAP = 3
 export const HEAD_ROWS = 3
 /* The footer's rows: a rule, then the count or the pause and the Layout Button. */
 export const FOOT_ROWS = 2
-export const PAUSED_TEXT = '⏸ 暂停跟随'
 
 /* The tab rule under the filter row, as runs: heavy under the chosen
    filter's Button, thin elsewhere, across the body's width. */
@@ -210,11 +205,11 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
     drawnRows += (rule === undefined ? 0 : 1) + entry.lines.length + (hasGap ? 1 : 0)
   }
   const status = view.isPaused ? (
-    <Text color="warning">{PAUSED_TEXT}</Text>
+    <Text color="warning">{words.paused}</Text>
   ) : view.count === undefined ? (
     <Text> </Text>
   ) : (
-    <Text dimColor>{`${view.count} 轮`}</Text>
+    <Text dimColor>{words.turns(view.count)}</Text>
   )
   const whyLines = view.why === undefined ? 0 : view.why.split('\n').length
   const used = HEAD_ROWS + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + FOOT_ROWS

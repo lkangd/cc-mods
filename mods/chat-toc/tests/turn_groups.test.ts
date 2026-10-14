@@ -1,6 +1,10 @@
 import { expect, test } from 'claude-code/testing'
 import { tocModel } from '../hooks/model'
 import { transcript } from './fixture'
+import { setLanguage } from '../hooks/text'
+
+/* These tests check the Chinese words (text.ts). */
+setLanguage('zh')
 
 /* The Chat TOC lists one Turn group per User input on the current branch,
    in transcript order. */
