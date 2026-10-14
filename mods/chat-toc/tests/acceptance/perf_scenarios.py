@@ -261,14 +261,14 @@ def within(a: dict) -> bool:
 # ---------- the report's table ----------
 
 ROWS = [
-    ("首次出目录：TOC 比宿主 transcript 显示末轮晚", "≤ 4 s", "tocLagMs", "run", 1 / 1000, "s"),
-    ("启动时首次整份读取加重组（与宿主 resume 争抢，参考）", "—", "startWholeMs", "run", 1, "ms"),
-    ("空闲时整份读取加重组（热重载后）", "≤ 1 s", "idleWholeMs", "run", 1, "ms"),
-    ("增量读取，单次", "≤ 150 ms", "tailReadMs", "sample", 1, "ms"),
-    ("追加一行到目录模型更新", "≤ 1 s", "appendModelMs", "sample", 1, "ms"),
-    ("Pane 重画，插件自身计算", "≤ 16 ms", "paneOwnMs", "sample", 1, "ms"),
-    ("Pane 重画，含等宿主", "≤ 100 ms", "paneTotalMs", "sample", 1, "ms"),
-    ("Current position 每次计算", "≤ 2 ms", "positionMs", "sample", 1, "ms"),
+    ("First listing: the TOC after the host shows the last turn", "≤ 4 s", "tocLagMs", "run", 1 / 1000, "s"),
+    ("Whole read and regroup at start (contends with the host's resume; for reference)", "—", "startWholeMs", "run", 1, "ms"),
+    ("Whole read and regroup when idle (after a hot reload)", "≤ 1 s", "idleWholeMs", "run", 1, "ms"),
+    ("Incremental read, each", "≤ 150 ms", "tailReadMs", "sample", 1, "ms"),
+    ("An appended row to the TOC model update", "≤ 1 s", "appendModelMs", "sample", 1, "ms"),
+    ("Pane redraw, the plugin's own work", "≤ 16 ms", "paneOwnMs", "sample", 1, "ms"),
+    ("Pane redraw, waiting on the host included", "≤ 100 ms", "paneTotalMs", "sample", 1, "ms"),
+    ("Current position, each computation", "≤ 2 ms", "positionMs", "sample", 1, "ms"),
 ]
 
 
@@ -276,7 +276,7 @@ def table(dirs: list[pathlib.Path]) -> str:
     records = [json.loads(line) for d in dirs for line in (d / "run.jsonl").read_text().splitlines()
                if line.strip() and '"CT-PERF-001"' in line]
     combos = sorted({(r["host"], r["actual"]["fixture"]["kind"]) for r in records}, key=lambda c: (c[0], c[1] != "many"))
-    head = "| 项 | 阈值 | " + " | ".join(f"{host} {kind}" for host, kind in combos) + " |"
+    head = "| Item | Limit | " + " | ".join(f"{host} {kind}" for host, kind in combos) + " |"
     out = [head, "|" + "---|" * (2 + len(combos))]
     by = {c: [r for r in records if (r["host"], r["actual"]["fixture"]["kind"]) == c] for c in combos}
     for label, limit, key, scope, scale, unit in ROWS:
@@ -294,12 +294,12 @@ def table(dirs: list[pathlib.Path]) -> str:
     reached = []
     for c in combos:
         rs = by[c]
-        reached.append("是" if rs and all(r["actual"].get("reachedFirst") and r["actual"].get("reachedLast") for r in rs) else "否")
-    out.append("| 长会话连续滚动、跳转到首组和末组 | 必须能到达，不分页 | " + " | ".join(reached) + " |")
-    out.append("| 实际残留在屏记录（最多） | — | " + " | ".join(
+        reached.append("yes" if rs and all(r["actual"].get("reachedFirst") and r["actual"].get("reachedLast") for r in rs) else "no")
+    out.append("| Long session: continuous scrolling, jumps to the first and last groups | must reach, no paging | " + " | ".join(reached) + " |")
+    out.append("| On-screen records actually left (most) | — | " + " | ".join(
         str(max((r["actual"].get("onScreenRecordsMax") or 0) for r in by[c])) for c in combos) + " |")
-    out.append("| 运行次数（全部通过） | 3 | " + " | ".join(
-        f"{len(by[c])}（{sum(r['result'] == 'pass' for r in by[c])}）" for c in combos) + " |")
+    out.append("| Runs (all passed) | 3 | " + " | ".join(
+        f"{len(by[c])} ({sum(r['result'] == 'pass' for r in by[c])})" for c in combos) + " |")
     return "\n".join(out)
 
 

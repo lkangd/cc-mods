@@ -1,4 +1,4 @@
-# 用只收 label 的 Button 画三种 Layout
+# Draw the three Layouts with label-only Buttons
 
 Type: prototype
 Status: resolved
@@ -6,36 +6,36 @@ Blocked by:
 
 ## Question
 
-2.1.287 的 `Button` 只收 `label`（或单个字符串子节点），原型用多个 `Text` 子节点画的卡片条目在最低版本上会报错（见「实测长会话的读取与渲染开销」）。在 2.1.287 和当前版本上都能画、点得到、悬停反色的前提下，卡片 / 紧凑 / 时间轴三种 Layout 的条目怎么画：暗色的「你 · 时间」「↳ N 步」头行与正文能否分开着色（每行一个 Button、共用一个跳转，还是整条一个多行 label）；青色高亮竖条、时间轴的时间列和 `│` 放在 Button 外的 `Text` 里是否对齐；选择光标（宿主反色）与高亮还能否一眼分清；↑↓ 的 focus 落在哪个 Button 上。两个版本并排给使用者看，定下每种 Layout 的画法。
+On 2.1.287 a `Button` takes only a `label` (or a single string child), so the prototype's card entries drawn with several `Text` children error on the minimum version (see "Measure the cost of reading and drawing a long session"). On the premise that it draws, takes clicks and inverts on hover on both 2.1.287 and the current version, how are the entries of the Card / Compact / Timeline Layouts drawn: can the dim "you · time" and "↳ N steps" header lines be coloured apart from the body (one Button per line sharing one jump, or one multi-line label for the whole entry); do the cyan highlight bar, the Timeline's time column and `│`, put in a `Text` outside the Button, line up; can the selection cursor (the host's inverse) and the highlight still be told apart at a glance; on which Button does the ↑↓ focus land. Show the two versions side by side to the user and settle how each Layout is drawn.
 
 ## Answer
 
-**结论（使用者已确认，2026-10-09）：三种 Layout 都用「每行一个 Button」（S2）来画。每个条目侧的每一行各是一个 `plain` Button，内容是那一行的字符串，同一侧的所有 Button 共用一个跳转。悬停时用 hover scope 让整侧一起反色。高亮竖条、标记和时间列放在 Button 左边单独的 `Text` 里。** 这样在 2.1.287 和 2.1.295 上都能画、都点得到，而且卡片里的暗色头行得以保留。
+**Verdict (confirmed by the user, 2026-10-09): all three Layouts are drawn with "one Button per line" (S2). Each line of each entry side is its own `plain` Button whose content is that line's string, and all the Buttons of one side share one jump. On hover a hover scope inverts the whole side together. The highlight bar, markers and the time column go in a separate `Text` to the left of the Button.** This draws on both 2.1.287 and 2.1.295, takes clicks on both, and keeps the dim header line in the card.
 
-### 怎么试的
+### How it was tried
 
-原型 mod `toc-btn`（静态样本 7 组，不读 transcript），在 cmux 里左右并排：左边 2.1.287，右边 2.1.295，都是全屏布局，关掉本机其他插件，全程不调用模型。共试了 3 种画法 × 3 种 Layout，Pane 宽 44 与 81 列。九种组合在两个版本上都画得出来，没有被拒的 tree。
+The prototype mod `toc-btn` (7 static sample groups, no transcript read) ran in cmux side by side: 2.1.287 on the left and 2.1.295 on the right, both in the fullscreen layout, with the other local plugins turned off and no model call at all. 3 ways of drawing × 3 Layouts were tried, at Pane widths of 44 and 81 columns. All nine combinations drew on both versions, and no tree was refused.
 
-- **S1 整条一个 Button**：每侧一个多行 `label`。头行不能单独变暗，和正文同色。
-- **S2 每行一个 Button**（选中）：头行 Button 加 `dimColor`，正文 Button 用默认色。各行的 key 是 `<条目 key>` 和 `<条目 key>.<行号>`，`onPress` 相同，`hover: { scope: 'e-<条目 key>', inverse: true }`。
-- **S3 头行 Text + 正文 Button**：头行是暗色 `Text`，带同一个 hover scope；正文是一个多行 Button。
+- **S1 one Button for the whole entry**: one multi-line `label` per side. The header line cannot be dimmed on its own and has the body's colour.
+- **S2 one Button per line** (chosen): the header-line Button gets `dimColor` and the body Button uses the default colour. Each line's key is `<entry key>` and `<entry key>.<line number>`, with the same `onPress` and `hover: { scope: 'e-<entry key>', inverse: true }`.
+- **S3 header-line Text + body Button**: the header line is a dim `Text` carrying the same hover scope; the body is one multi-line Button.
 
-### 定下的画法（供实现与 `CT-UI-002` 引用）
+### The way of drawing settled on (for the implementation and `CT-UI-002` to cite)
 
-1. **每行一个 Button，同侧共用跳转**：卡片布局的头行（「你 · 时间」「↳ N 步」等）用 `dimColor`，正文用默认色。紧凑布局的 Agent 行、时间轴的 Agent 行整行 `dimColor`。被拒后淡化的一侧，所有行都 `dimColor`。
-2. **悬停整侧连亮**：同一侧的所有行共用一个 hover scope（`inverse`），指向任何一行，整侧一起反色。使用者选「一起亮」，不选只亮一行。scope 在 2.1.287 上也有效。
-3. **左侧栏在 Button 外**：每个条目画成一行 `Box`（row），左边是一个多行 `Text`，宽度统一（卡片和紧凑 2 列，时间轴 8 列：`HH:MM`、空格、`│`/`┃`、空格）；右边是一列 Button。两个版本都对齐。缩进（例如卡片 Agent 正文的两个空格）写在 Button 的文字里，不放进左侧栏，这样左侧栏宽度一致。
-4. **选择光标**：↑↓ 把焦点落在条目的第一行 Button（key 等于条目 key）。卡片落在头行，紧凑和时间轴落在唯一一行或第一行。宿主的反色光标与青色高亮竖条，使用者一眼能分清。
-5. **高亮不再加粗**：Button 没有 `bold`，原型 05 里「高亮组加粗」的写法取消。高亮只靠青色 `▌`、`●`、`┃`。
-6. **换行与截断由 mod 自己算**：每行先按单元宽度折好、截好（全角算 2 格，第 2 行末尾加 `…`），再交给 Button。Button 不会替我们换行。
-7. **View filter 这一行**：三个 `plain` Button，内容是单个字符串（`●全部`、`○用户`、`○Agent`），热键 1/2/3。在 2.1.287 上也能点、能用热键切换（使用者实测）。
+1. **One Button per line, one shared jump per side**: the Card layout's header lines ("you · time", "↳ N steps" and so on) use `dimColor` and the body uses the default colour. In the Compact layout and the Timeline, the Agent line is `dimColor` as a whole line. A side that dims after being refused has `dimColor` on all its lines.
+2. **Hover lights the whole side**: all lines of one side share one hover scope (`inverse`), and pointing at any line inverts the whole side. The user chose "light together" over lighting only one line. The scope also works on 2.1.287.
+3. **The left column is outside the Button**: each entry is drawn as a `Box` (row) line, with a multi-line `Text` on the left of uniform width (2 columns for Card and Compact, 8 columns for the Timeline: `HH:MM`, a space, `│`/`┃`, a space) and a column of Buttons on the right. Both versions line up. Indentation (for example the two spaces of the Card's Agent body) is written in the Button's text, not in the left column, so the left column keeps one width.
+4. **Selection cursor**: ↑↓ put the focus on the entry's first-line Button (key equal to the entry key). In the Card it lands on the header line; in Compact and the Timeline it lands on the only line or the first line. The user could tell the host's inverse cursor from the cyan highlight bar at a glance.
+5. **The highlight is no longer bold**: a Button has no `bold`, so the "highlighted group in bold" of prototype 05 is dropped. The highlight rests only on the cyan `▌`, `●` and `┃`.
+6. **Wrapping and truncation are done by the mod**: each line is first wrapped and cut by cell width (full-width counts 2 cells, the second line ends with `…`), then handed to the Button. A Button does not wrap for us.
+7. **The View filter row**: three `plain` Buttons whose content is a single string (`●All`, `○User`, `○Agent`), hotkeys 1/2/3. On 2.1.287 too they take clicks and switch by hotkey (tried by the user).
 
-### 其他观察
+### Other observations
 
-- 2.1.287 把 Pane 的 ✕ 画在内容第一行的右侧，会和过滤行同一行（「决定与其他停靠 Pane 共存的行为」已记）。过滤行右侧要留出约 3 列。
-- 原型里局部变量叫 `h` 会遮住 JSX 的全局 `h`，导致 `ui.render` 报 `h is not a function`。实现时不要用 `h` 作变量名。
-- 并排时每边不足 144 列，原型的 Pane 都用 `/bt` 手动打开；自动打开的落座规则不在本票范围内。
+- 2.1.287 draws the Pane's ✕ at the right of the first line of content, on the same line as the filter row ("Decide how to share the dock with other Panes" has noted it). About 3 columns have to be left at the right of the filter row.
+- A local variable named `h` in the prototype hid the JSX global `h`, so `ui.render` reported `h is not a function`. Do not use `h` as a variable name in the implementation.
+- Side by side, each side had under 144 columns, and the prototype's Pane was opened by hand with `/bt`; the placement rules for opening by itself are outside this ticket.
 
-### 资产
+### Assets
 
-[assets/15-buttons/](../assets/15-buttons/)：`toc-btn/` 是原型 mod。用 `claude --plugin-dir .scratch/chat-toc/assets/15-buttons/toc-btn` 启动，`/bt` 打开 Pane；Pane 聚焦后 `s` 切换画法、`v` 切换 Layout、`h` 移动高亮、`o` 切换连亮或单亮、`1`/`2`/`3` 切换过滤；也可用 `/bt s1|s2|s3|a|b|c|w <列数>`。
+[assets/15-buttons/](../assets/15-buttons/): `toc-btn/` is the prototype mod. Start it with `claude --plugin-dir .scratch/chat-toc/assets/15-buttons/toc-btn` and open the Pane with `/bt`; with the Pane focused, `s` switches the way of drawing, `v` the Layout, `h` moves the highlight, `o` switches between lighting together and lighting one line, and `1`/`2`/`3` switch the filter; `/bt s1|s2|s3|a|b|c|w <columns>` also works.

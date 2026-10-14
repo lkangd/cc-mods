@@ -1,30 +1,29 @@
-# 18: 独立 verifier 与 PTY 验收驱动
+# 18: The independent verifier and the PTY acceptance driver
 
-**What to build:** 搭好后续票共用的验收工具：一个不与插件共享实现的独立 verifier，直接沿 transcript 文件的对话链算出期望的 Turn group 序列，再与 Pane 实际列出的条目比对；一套 cmux 驱动的真实宿主 PTY 验收脚手架，能在隔离环境里以 2.1.287 与当前版本启动全屏会话、用合成 transcript `--resume`、点击、滚轮、发命令并读屏；以及合成 fixture 生成器（含 20 MiB 的 many 与 heavy 两种）。可以复用各决策票 assets 里的驱动、生成器与 pyte 读屏代码。
+**What to build:** Set up the acceptance tools the later tickets share: an independent verifier that shares no implementation with the plugin and works out the expected Turn group sequence straight from the transcript file's conversation chain, then compares it with the entries the Pane actually lists; a real-host PTY acceptance scaffold driven by cmux, able in an isolated environment to start a fullscreen session on 2.1.287 and on the current version, `--resume` a synthetic transcript, click, wheel, send commands and read the screen; and a synthetic fixture generator (including the two 20 MiB kinds, many and heavy). The drivers, generators and pyte screen-reading code in the decision tickets' assets can be reused.
 
-规格见 [chat-toc MVP](../spec.md) 「Testing Decisions」。
+For the spec see [chat-toc MVP](../spec.md) "Testing Decisions".
 
-**Blocked by:** 无（可以立即开始）
+**Blocked by:** None (can start at once)
 
 **Status:** resolved
 
-- [x] verifier 独立实现对话链（`parentUuid`、compact 边界改沿 `logicalParentUuid`）与开组规则，输出期望的条目序列
-- [x] verifier 能读取 Pane 实际列出的条目（读屏或插件导出的测试视图）并给出逐条差异
-- [x] PTY 驱动能在两个版本上以隔离配置（关掉本机其他插件）启动全屏会话、`--plugin-dir` 加载插件，支持点击、滚轮、键入命令、读屏与截屏存档
-- [x] 合成 fixture 生成器能产出普通 prompt、斜杠命令（两种行）、`!cmd`、compact、rewind 分支、子 agent、中断、出错、无时间戳等形态，以及 20 MiB 的 many（约 4400 轮）与 heavy（约 110 轮、大工具结果）
-- [x] 只用合成 prompt，不含真实会话内容；尽量不调用模型
-- [x] 每次运行产出可追溯的日志，字段能直接进入发布报告（场景 ID、预期、实际、结果、证据链接）
+- [x] The verifier independently implements the conversation chain (`parentUuid`, with the compaction boundary following `logicalParentUuid`) and the opening rules, and outputs the expected entry sequence
+- [x] The verifier can read the entries the Pane actually lists (by reading the screen or through a test view the plugin exports) and give a difference per entry
+- [x] The PTY driver can start a fullscreen session on both versions with an isolated configuration (the other local plugins turned off), load the plugin with `--plugin-dir`, and supports click, wheel, typing commands, reading the screen and archiving screenshots
+- [x] The synthetic fixture generator can produce plain prompts, slash commands (both kinds of rows), `!cmd`, compaction, a rewind branch, subagents, interruptions, errors, no timestamps and other forms, plus the 20 MiB many (about 4400 turns) and heavy (about 110 turns, large tool results)
+- [x] Only synthetic prompts, with no real conversation content; the model is called as little as possible
+- [x] Each run produces a traceable log whose fields can go straight into the release report (scenario ID, expected, actual, result, evidence link)
 
 ## Comments
 
-2026-10-10 实现于 `mods/chat-toc/tests/acceptance/`（分支 `chat-toc/18-harness`）：
+2026-10-10, implemented in `mods/chat-toc/tests/acceptance/` (branch `chat-toc/18-harness`):
 
-- `toc_verifier.py`：独立实现对话链与开组规则，输出期望条目；读卡片 Layout 的 Pane 窗口（`parse_pane`），逐条比对（`compare_window`），滚过整个列表后检查覆盖（`compare_windows`）。规格没写死的两处按字面取：出错轮的 API Error 文字算作末段；普通 prompt 没有任何 assistant 行时 Agent 侧显示「无文字回复」。
-- `transcript_fixture.py`：`forms`（规格点名的全部行形态）、`turns N`、`many`（20 MiB 约 4500 轮）、`heavy`（20 MiB 约 108 轮）；种子固定，逐字节可复现。
-- `pty_harness.py`：隔离的 HOME/CLAUDE_CONFIG_DIR（不登录、不加载本机插件、全屏），`Host("2.1.287")` 走 npx 缓存；pyte 与 cmux 两种终端；`Run` 写 `run.jsonl`（场景 ID、版本、OS、架构、fixture、预期、实际、结果、证据）与每屏截图到 `mods/chat-toc/build/pty-runs/`（gitignore）。
-- 单元测试 40 个（`python3 -m unittest`）。端到端用 05 号原型改成只收 label 的替身（只在 scratchpad，不提交）证明：pyte 下 2.1.287 与 2.1.295 的 `smoke`（40 轮，整列表 18 个窗口逐条一致，点击 T0000 跳转成功）都通过；cmux 下 2.1.287 通过。`forms` fixture 下 verifier 正确指出替身把 ✨ 算成 1 格导致的折行错位，其余形态全部一致。
-- 合入 17 号 tracer 后对真插件跑 `smoke`（pyte，2.1.287 与 2.1.295）：Pane 识别、整列表读取、点击 T0000 跳转都正常；verifier 报出 tracer 尚未做的部分（没有 Agent 侧；`system/local_command` 的 `/tui` 与 `!cmd` 没有开组，导致其后条目错位），留给 19 号票，判据现成。
-- 按 19 号票的取舍对齐 verifier：没有 assistant 行也没中断的组不画 Agent 侧；`[Image #n]` 去掉；只有代码块的输入显示代码本身（与规格不冲突）。另修 2.1.287 把 ✕ 画在内容第一行时被读成条目头的问题。
-- 合入 19 号后对真插件再跑（pyte，合成 `--resume`，不调用模型）：`turns` 40 轮在 2.1.287 与 2.1.295 都通过（整列表一致、点击 T0000 跳转成功）。`forms` 下 verifier 报出两处：compact 之前的组不显示（插件未沿 `logicalParentUuid`，属 21 号）；`✨`（U+2728）被插件 `hooks/cells.ts` 算成 1 格，宿主按 2 格折行，F02 的用户侧多出一行没有左栏的第 3 行（CT-TURN-003 的真缺陷）。去掉 compact 后其余形态两版全部一致。
-- 已知限制：cmux 下用 `cmux send` 发出的滚轮让替身 Pane 窗口来回跳，所以 cmux 默认不读整列表（`--whole-list` 可开）；整列表比对以 pyte 为准。cmux 分屏宽度不受控，不够 144 列时 smoke 用 `/chat-toc` 请求停靠。命令速查见共享笔记 `pty-harness.md`。
-
+- `toc_verifier.py`: independently implements the conversation chain and the opening rules and outputs the expected entries; reads the Card Layout's Pane window (`parse_pane`), compares entry by entry (`compare_window`), and after scrolling through the whole list checks coverage (`compare_windows`). Two points the spec does not pin down are taken literally: an errored turn's API Error text counts as the last text; a plain prompt with no assistant row at all shows "No text reply" on the Agent side.
+- `transcript_fixture.py`: `forms` (every row form the spec names), `turns N`, `many` (20 MiB, about 4500 turns), `heavy` (20 MiB, about 108 turns); fixed seeds, reproducible byte for byte.
+- `pty_harness.py`: an isolated HOME/CLAUDE_CONFIG_DIR (no login, no local plugins loaded, fullscreen), `Host("2.1.287")` goes through the npx cache; two terminals, pyte and cmux; `Run` writes `run.jsonl` (scenario ID, version, OS, architecture, fixture, expected, actual, result, evidence) and a screenshot of every screen to `mods/chat-toc/build/pty-runs/` (gitignored).
+- 40 unit tests (`python3 -m unittest`). End to end, with prototype 05 turned into a label-only stand-in (only in the scratchpad, not committed): under pyte, the `smoke` on 2.1.287 and on 2.1.295 (40 turns, 18 windows of the whole list agreeing entry by entry, a click on T0000 jumping successfully) both pass; under cmux, 2.1.287 passes. With the `forms` fixture the verifier correctly pointed out a wrap misalignment caused by the stand-in counting ✨ as 1 cell, and every other form agreed.
+- After merging the 17 tracer, `smoke` against the real plugin (pyte, 2.1.287 and 2.1.295): Pane recognition, whole-list reading and the click-on-T0000 jump all work; the verifier reports what the tracer has not yet done (no Agent side; the `/tui` of `system/local_command` and `!cmd` open no groups, which throws off the entries after them), left for ticket 19, with the criteria ready.
+- The verifier is aligned with ticket 19's trade-offs: a group with no assistant row and no interruption draws no Agent side; `[Image #n]` is removed; an input of only a code block shows the code itself (no conflict with the spec). Also fixed: on 2.1.287 the ✕ drawn on the first line of content was read as an entry header.
+- After merging 19, run again against the real plugin (pyte, synthetic `--resume`, no model call): `turns` 40 turns passes on both 2.1.287 and 2.1.295 (whole list agreeing, click-on-T0000 jump successful). Under `forms` the verifier reports two things: groups from before the compaction do not show (the plugin does not follow `logicalParentUuid`; that is 21); `✨` (U+2728) is counted by the plugin's `hooks/cells.ts` as 1 cell while the host wraps at 2 cells, so F02's user side gets an extra third line with no left column (a real defect for CT-TURN-003). With the compaction removed, every other form agrees on both versions.
+- Known limits: under cmux, the wheel sent with `cmux send` makes the stand-in Pane's window jump back and forth, so cmux does not read the whole list by default (`--whole-list` turns it on); the whole-list comparison goes by pyte. The cmux split width is not controlled, and with under 144 columns the smoke asks for docking with `/chat-toc`. A command cheat sheet is in the shared note `pty-harness.md`.

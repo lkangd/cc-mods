@@ -1,4 +1,4 @@
-# 决定与其他停靠 Pane 共存的行为
+# Decide how to share the dock with other Panes
 
 Type: prototype
 Status: resolved
@@ -6,32 +6,32 @@ Blocked by:
 
 ## Question
 
-`cc-plugin-diff` 等其他 mod 也打开停靠 Pane 时，宿主会把它们变成标签页。在本机实测两者同时启用后，需要决定：
-- 会话启动时 chat-toc 自动弹出，是否抢占前台标签；
-- 另一个 Pane 关闭后，chat-toc 如何回到前台；
-- 使用者关闭 chat-toc 后，与另一个 Pane 的「本会话已关闭」状态是否互相影响；
-- Current position 跟随与高亮在后台标签里是否照常更新。
+When other mods such as `cc-plugin-diff` also open a docked Pane, the host turns them into tabs. After measuring the two enabled together on this machine, decide:
+- when chat-toc opens by itself at session start, does it take the foreground tab;
+- after the other Pane closes, how does chat-toc return to the foreground;
+- after the person closes chat-toc, does the "closed for this session" state affect the other Pane, and does the other's affect chat-toc;
+- do the Current position following and the highlight update as usual in a background tab.
 
-结论供 `CT-COEX-001` 引用。
+The conclusion is for `CT-COEX-001` to cite.
 
 ## Answer
 
-**结论（使用者已确认）**：chat-toc 完全照宿主的标签规则走，不追踪、不抢夺别的插件的 Pane。
-- **自动弹出**：会话启动、`/clear` 或 `/resume` 后重开时，如果别的 Pane 已经开着，就照宿主规则放到前台，对方退为标签。不额外判断。
-- **前后台切换**：别的 Pane 中途打开把 chat-toc 挤到后台，或者它关闭后 chat-toc 回到前台，chat-toc 都不做任何事：不用 `focus` 抢回前台（会拿走键盘），也不提示。
-- **关闭状态**：各管各的。只有 `e.id === 'toc'` 且 `origin.kind === 'person'` 的 `ui.close` 才记「本会话已关闭」。别的 Pane 怎么关都不碰这个标记，关掉 chat-toc 也不影响对方。
-- **后台更新**：后台不画，数据层照常（transcript hook 照常算 Current position、写 `$.state`）。如果 Current position 在 chat-toc 不在前台时变了（`$.ui.panes()` 里 `isShown === false`），就撤销手动滚动造成的跟随暂停。这样回到前台的第一帧就会滚到当前高亮的组。
+**Verdict (confirmed by the user)**: chat-toc follows the host's tab rules entirely, and neither tracks nor takes over other plugins' Panes.
+- **Opening by itself**: at session start, or when reopening after `/clear` or `/resume`, if another Pane is already open, chat-toc goes to the foreground by the host's rule and the other becomes a tab. No extra check.
+- **Switching between foreground and background**: when another Pane opens midway and pushes chat-toc to the background, or closes and chat-toc returns to the foreground, chat-toc does nothing: it does not use `focus` to take the foreground back (that would take the keyboard), and it gives no notice.
+- **Closed state**: each keeps its own. Only a `ui.close` with `e.id === 'toc'` and `origin.kind === 'person'` records "closed for this session". However the other Pane is closed, this mark is not touched, and closing chat-toc does not affect the other.
+- **Background updates**: nothing is drawn in the background, but the data layer works as usual (the transcript hook still works out the Current position and writes `$.state`). If the Current position changes while chat-toc is not in the foreground (`isShown === false` in `$.ui.panes()`), the following pause caused by a manual scroll is cancelled. So the first frame after it returns to the foreground scrolls to the group now highlighted.
 
-**宿主事实（2.1.287 与 2.1.295 实测一致，170×44 全屏）**
-1. 新打开的 Pane 总在前台，不论是否由使用者请求、是否带 `focus`：别的插件由 timer 打开、`/diff`、`/clear` 后重开的 chat-toc 都是这样。
-2. 对已开但在后台的 id 再 `$.ui.open`：不带 `focus` 时不提前（只返回 `{isPlaced:true}`）；带 `focus` 且输入框为空时会提前，并拿走键盘。
-3. 前台 Pane 被关掉（插件 `close`，或使用者点 ✕）后，剩下的那个自动回到前台，第一帧就用最新的 `$.state` 画。点标签切换也一样，但点标签不给焦点。
-4. 后台标签完全不调 Pane 的 render hook（日志里「隐藏时的 render」都是变为显示后的第一帧，早于 500 ms 的 `panes()` 轮询记录）。
-5. dock 宽度跟随前台标签请求的 `columns`（TOC 44 / Other 50 / Diff 约 80）。chat-toc 的宽度只在它在前台时生效。
-6. `ui.open` / `ui.close` hook 能看到别的插件（包括内置 `diff`）的开关事件，带它们的 `id` 和 `origin`；`$.ui.panes()` 只列自己的。
-7. 只有一个 Pane 时不画标签行。2.1.295 在第 0 行画 ✕，2.1.287 把 ✕ 画在内容第一行的右侧。
-8. **新发现，影响「定稿兼容与验收契约」的 `CT-LIFE-002`**：`session.start` 在 `/clear` 时**不触发**（d.ts 原文 "never `/clear`"），实测也是这样。只在 `session.start` 里自动打开的话，`/clear` 后不会再弹出（`$.state` 确实被重置了）。实现时要 hook `classic.SessionStart`，在 `source` 为 `clear` 或 `resume` 时按同样条件（未被本会话关闭、`panes()` 里没有）打开。探针在两个版本上都验证可行，重开的 TOC 会到 Diff 前面。另外 `/clear` 也会把其他 `$.state` atom 重置为默认值（tick 归 0）。
+**Host facts (2.1.287 and 2.1.295 agreed, 170×44 fullscreen)**
+1. A newly opened Pane is always in the foreground, whether or not the person requested it and with or without `focus`: another plugin opening by a timer, `/diff`, and chat-toc reopened after `/clear` all behave this way.
+2. Opening again an id that is open but in the background with `$.ui.open`: without `focus` it is not brought forward (it only returns `{isPlaced:true}`); with `focus` and an empty prompt it is brought forward and takes the keyboard.
+3. After the foreground Pane is closed (the plugin's `close`, or the person's click on ✕), the remaining one returns to the foreground by itself and draws its first frame with the latest `$.state`. Clicking a tab to switch is the same, but a click on a tab does not give focus.
+4. A background tab does not call the Pane's render hook at all (the "render while hidden" entries in the log are all the first frame after it became shown, earlier than the record of the 500 ms `panes()` poll).
+5. The dock width follows the `columns` the foreground tab asked for (TOC 44 / Other 50 / Diff about 80). chat-toc's width takes effect only while it is in the foreground.
+6. The `ui.open` / `ui.close` hooks see other plugins' open and close events (the built-in `diff` included), with their `id` and `origin`; `$.ui.panes()` lists only its own.
+7. With only one Pane no tab row is drawn. 2.1.295 draws ✕ on row 0; 2.1.287 draws ✕ at the right of the first line of content.
+8. **A new finding, affecting `CT-LIFE-002` in "Finalise the compatibility and acceptance contract"**: `session.start` does **not** fire on `/clear` (the d.ts says "never `/clear`"), and the measurement agrees. If it opens by itself only in `session.start`, it does not pop up again after `/clear` (`$.state` really is reset). The implementation has to hook `classic.SessionStart` and, when `source` is `clear` or `resume`, open under the same conditions (not closed in this session, not in `panes()`). The probe verified it works on both versions, and the reopened TOC goes in front of Diff. Also, `/clear` resets other `$.state` atoms to their defaults (the tick goes back to 0).
 
-**未测**：Diff 在 Claude 首次编辑文件时的真自动打开要调用模型，没测；用 timer 打开的 Other（同属未请求的打开）代替，结果与 `/diff` 一致。
+**Not measured**: the real automatic opening of Diff when Claude first edits a file needs a model call and was not measured; Other opened by a timer (also an unrequested open) stood in for it, and the result matched `/diff`.
 
-**资产**：`assets/14-coexist/`。`toc-coex/` 是 chat-toc 的替身，在 `session.start` 和 `classic.SessionStart` 里自动打开，每 500 ms 写一次 `$.state` 并记 `isShown`；`other-coex/` 是会自己打开的另一个 dock Pane。`drv.py` 是私有 PTY 驱动，`run.sh` / `cmd.sh` / `scr.sh` / `seq.sh` 是驱动脚本，其中 `seq.sh` 是 2.1.287 的完整序列。`logs/seq-287.txt` 是每一步的前台标签截屏，`logs/toc-*.json` 是事件日志。
+**Assets**: `assets/14-coexist/`. `toc-coex/` is a stand-in for chat-toc, opening by itself in `session.start` and `classic.SessionStart`, writing `$.state` every 500 ms and logging `isShown`; `other-coex/` is another dock Pane that opens by itself. `drv.py` is a private PTY driver, `run.sh` / `cmd.sh` / `scr.sh` / `seq.sh` are driver scripts, of which `seq.sh` is the full sequence for 2.1.287. `logs/seq-287.txt` is a screen capture of the foreground tab at each step, and `logs/toc-*.json` are the event logs.

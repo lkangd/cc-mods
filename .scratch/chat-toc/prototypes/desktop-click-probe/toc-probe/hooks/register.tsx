@@ -47,7 +47,7 @@ function guessRuler(w: number): string {
 
 /* One entry as the design draws it: rail, node, bold prompt, a dim reply. */
 function rowSvg(w: number, lit: boolean): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="46" viewBox="0 0 ${w} 46"><style>.rail{fill:#bbb}.lit{fill:#5769f7}.u{fill:#1a1a1a}.a{fill:#888}@media (prefers-color-scheme: dark){.rail{fill:#555}.lit{fill:#b1b9f9}.u{fill:#f2f2f2}.a{fill:#8a8a8a}}</style><rect x="6" y="0" width="2" height="46" class="${lit ? 'lit' : 'rail'}"/><circle cx="7" cy="10" r="5" class="${lit ? 'lit' : 'rail'}"/><text x="22" y="14" font-size="13" font-weight="600" class="u" font-family="${FONT}">跑一遍 verify-startup.sh</text><text x="22" y="34" font-size="12" class="a" font-family="${FONT}">├ 3 步 · 门禁通过：plugin test 87 项</text></svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="46" viewBox="0 0 ${w} 46"><style>.rail{fill:#bbb}.lit{fill:#5769f7}.u{fill:#1a1a1a}.a{fill:#888}@media (prefers-color-scheme: dark){.rail{fill:#555}.lit{fill:#b1b9f9}.u{fill:#f2f2f2}.a{fill:#8a8a8a}}</style><rect x="6" y="0" width="2" height="46" class="${lit ? 'lit' : 'rail'}"/><circle cx="7" cy="10" r="5" class="${lit ? 'lit' : 'rail'}"/><text x="22" y="14" font-size="13" font-weight="600" class="u" font-family="${FONT}">Run verify-startup.sh</text><text x="22" y="34" font-size="12" class="a" font-family="${FONT}">├ 3 steps · gate passed: plugin test 87 items</text></svg>`
 }
 
 /* The segmented control's backdrop: a rounded well, the first of three
@@ -90,7 +90,7 @@ export const register: Register = on => {
     const guess = Math.max(240, Math.min(900, cols * 8 - 8))
     const head = (title: string, v: string) => (
       <Text bold>
-        {title} <Text color="suggestion">{`收到 ${count(v)} 次`}</Text>
+        {title} <Text color="suggestion">{`received ${count(v)}x`}</Text>
       </Text>
     )
     const md =
@@ -98,9 +98,9 @@ export const register: Register = on => {
         <ui.Markdown
           key="md"
           text={
-            '[跑一遍 verify-startup.sh](https://toc-probe.invalid/a1)\n\n' +
-            '**[把 0.1.2 的发布说明写一下](https://toc-probe.invalid/a2)**\n\n' +
-            '├ 3 步 · [门禁通过：plugin test 87 项](https://toc-probe.invalid/a3)'
+            '[Run verify-startup.sh](https://toc-probe.invalid/a1)\n\n' +
+            '**[Write the release notes for 0.1.2](https://toc-probe.invalid/a2)**\n\n' +
+            '├ 3 steps · [gate passed: plugin test 87 items](https://toc-probe.invalid/a3)'
           }
           onLinkPress={link => void pressed($, 'A', link.href)}
         />
@@ -112,11 +112,11 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column" gap={1}>
         <Text dimColor>{`surface ${e.surface} · bodyColumns ${cols} · viewport ${JSON.stringify(e.viewport ?? null)}`}</Text>
-        <Text>{`最近一次：${last ? `${last.variant} ${last.target}` : '还没有'}`}</Text>
-        <Text bold>{`K · 对话里的用户消息在屏幕上的位置（收到 ${seenSites.length} 条）`}</Text>
+        <Text>{`Last: ${last ? `${last.variant} ${last.target}` : 'none yet'}`}</Text>
+        <Text bold>{`K · where the conversation's user messages sit on screen (received ${seenSites.length})`}</Text>
         {seenSites.map(s => (
           <Box key={`k-${s.requestId}`} flexDirection="row" gap={1}>
-            <Button key={`l-${s.requestId}`} label="跳过去" onPress={() => scrollTo($, s.requestId)} />
+            <Button key={`l-${s.requestId}`} label="Jump there" onPress={() => scrollTo($, s.requestId)} />
             <Text dimColor wrap="truncate-end">{`${s.requestId.slice(0, 8)} ${new Date(s.at).toLocaleTimeString()}`}</Text>
           </Box>
         ))}
@@ -126,76 +126,76 @@ export const register: Register = on => {
           .map((p, i) => (
             <Text key={`lr-${i}`} color="warning" wrap="wrap">{`L ${p.target}`}</Text>
           ))}
-        <Text bold>尺子 1：标记宽 1000px，没给宽度</Text>
+        <Text bold>Ruler 1: 1000px of markup, no width given</Text>
         {svg(ruler(), 'ruler, 1000 px of markup')}
-        <Text bold>尺子 2：按 chat-toc 的猜法给宽度</Text>
+        <Text bold>Ruler 2: width given as chat-toc guesses it</Text>
         {svg(guessRuler(guess), `ruler at ${guess} px`, guess, 20)}
-        {head('I · 分段控件：底图 + 叠在上面的 plain 按钮（各 52 宽）', 'I')}
+        {head('I · Segmented control: backdrop + plain buttons laid over it (52 wide each)', 'I')}
         <Box position="relative" width={170} height={30}>
           {svg(segmentSvg(), 'segmented control', 170, 30)}
           <Box position="absolute" top={0} left={0} flexDirection="row" height={30} alignItems="center">
-            {['全部', '用户', 'Agent'].map((label, i) => (
+            {['All', 'User', 'Agent'].map((label, i) => (
               <Box key={`iw${i}`} width={52} marginLeft={i === 0 ? 3 : 0} justifyContent="center" flexDirection="row">
                 <Button key={`i${i}`} label={label} plain dimColor={i !== 0} onPress={() => pressed($, 'I', label)} />
               </Box>
             ))}
           </Box>
         </Box>
-        {head('J · Box 宽度单位：下面三条宽 10 / 100 / 200', 'J')}
+        {head('J · Box width unit: the three below are 10 / 100 / 200 wide', 'J')}
         <Box width={10} height={6} backgroundColor="suggestion" />
         <Box width={100} height={6} backgroundColor="suggestion" />
         <Box width={200} height={6} backgroundColor="suggestion" />
         <Box width={200} borderStyle="round" borderColor="suggestion">
-          <Text>宽 200 的边框盒</Text>
+          <Text>Bordered box, 200 wide</Text>
         </Box>
-        {head('A · Markdown 链接', 'A')}
+        {head('A · Markdown link', 'A')}
         {md}
-        {head('B · 按钮里放带样式的文字', 'B')}
+        {head('B · Styled text inside a button', 'B')}
         <Button key="b1" onPress={() => pressed($, 'B', 'b1')}>
-          <Text bold>跑一遍 verify-startup.sh</Text> <Text dimColor>├ 3 步 · 门禁通过</Text>
+          <Text bold>Run verify-startup.sh</Text> <Text dimColor>├ 3 steps · gate passed</Text>
         </Button>
         <Button key="b2" plain dimColor onPress={() => pressed($, 'B', 'b2 plain dim')}>
-          把 0.1.2 的发布说明写一下
+          Write the release notes for 0.1.2
         </Button>
-        {head('C · 图上盖一个透明按钮', 'C')}
+        {head('C · A transparent button over the picture', 'C')}
         <Box position="relative">
           {svg(rowSvg(guess, false), 'entry drawn as svg')}
           <Box position="absolute" top={0} left={0} right={0} bottom={0}>
             <Button key="c1" label="·" plain onPress={() => pressed($, 'C', 'c1')} />
           </Box>
         </Box>
-        {head('D · 时间做按钮，后面是图', 'D')}
+        {head('D · Time as a button, the picture after it', 'D')}
         <Box flexDirection="row" gap={1} alignItems="flex-start">
           <Button key="d1" label="09:12" plain onPress={() => pressed($, 'D', 'd1')} />
           {svg(rowSvg(Math.max(160, guess - 70), true), 'entry drawn as svg, lit')}
         </Box>
-        {head('E · plain 按钮里放粗体、换行、淡化', 'E')}
+        {head('E · Bold, line break and dim inside a plain button', 'E')}
         <Button key="e1" plain onPress={() => pressed($, 'E', 'e1')}>
-          <Text bold>跑一遍 verify-startup.sh</Text>
+          <Text bold>Run verify-startup.sh</Text>
           {'\n'}
-          <Text dimColor>├ 3 步 · 门禁通过</Text>
+          <Text dimColor>├ 3 steps · gate passed</Text>
         </Button>
         <Button key="e2" plain onPress={() => pressed($, 'E', 'e2')}>
-          <Text color="suggestion">当前位置：紫色的一条</Text>
+          <Text color="suggestion">Current position: the purple one</Text>
         </Button>
-        {head('F · plain 按钮里放很长的文字', 'F')}
+        {head('F · Very long text inside a plain button', 'F')}
         <Button key="f1" plain dimColor onPress={() => pressed($, 'F', 'f1')}>
-          {'├ 11 步 · 已改起点判断，新增 rewind_regroup.test.ts，2.1.287 和 2.1.295 的 claude plugin test 都通过了，另外把 gate_scenarios.py 里两处等待时间从 5 秒放宽到 8 秒，这样负载高的时候也不会误报超时'}
+          {'├ 11 steps · Changed the start-point check, added rewind_regroup.test.ts, claude plugin test passes on both 2.1.287 and 2.1.295, and also relaxed two waits in gate_scenarios.py from 5 seconds to 8 seconds so that high load does not cause false timeouts'}
         </Button>
-        {head('G · 竖轨用带背景色的窄 Box', 'G')}
+        {head('G · Vertical rail as a narrow Box with a background colour', 'G')}
         <Box flexDirection="row" gap={1}>
           <Button key="g0" label="09:05" plain dimColor onPress={() => pressed($, 'G', 'g0 time')} />
           <Box width={1} backgroundColor="suggestion" />
           <Box flexDirection="column" flexShrink={1}>
             <Button key="g1" plain onPress={() => pressed($, 'G', 'g1 user')}>
-              <Text bold>按你说的改，顺便补一个回归测试</Text>
+              <Text bold>Changed as you said, and added a regression test</Text>
             </Button>
             <Button key="g2" plain dimColor onPress={() => pressed($, 'G', 'g2 agent')}>
-              {'├ 11 步 · 已改起点判断，新增 rewind_regroup.test.ts，2.1.287 和 2.1.295 都通过'}
+              {'├ 11 steps · Changed the start-point check, added rewind_regroup.test.ts, passes on both 2.1.287 and 2.1.295'}
             </Button>
           </Box>
         </Box>
-        {head('H · 节点画成小图，文字是 plain 按钮', 'H')}
+        {head('H · Node drawn as a small picture, text as plain buttons', 'H')}
         <Box flexDirection="row" gap={1} alignItems="flex-start">
           <Button key="h0" label="09:06" plain dimColor onPress={() => pressed($, 'H', 'h0 time')} />
           {svg(nodeSvg(), 'node', 14, 40)}
@@ -204,7 +204,7 @@ export const register: Register = on => {
               <Text bold>/tui fullscreen</Text>
             </Button>
             <Button key="h2" plain dimColor onPress={() => pressed($, 'H', 'h2 agent')}>
-              {'├ 2 步 · 已切换到全屏布局'}
+              {'├ 2 steps · Switched to the fullscreen layout'}
             </Button>
           </Box>
         </Box>

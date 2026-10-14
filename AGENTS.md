@@ -1,3 +1,7 @@
+## Language
+
+Everything tracked in git is written in English: READMEs, docs, tickets and specs under `.scratch/`, the mods' user-facing text, code comments and commit messages. The exceptions are records of what happened, which stay as captured: release evidence under `mods/*/tests/evidence/` and probe captures under `.scratch/*/assets/`. A mod's user-facing text follows the system language, English by default, and its Chinese strings are part of the code. Talk to the user in Chinese. Handoffs in `docs/handoffs/` are local and stay in Chinese.
+
 ## Agent skills
 
 ### Issue tracker

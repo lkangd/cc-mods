@@ -1,4 +1,4 @@
-# 研究 cc-switch 对话目录的交互细节
+# Research the details of cc-switch's conversation contents
 
 Type: research
 Status: resolved
@@ -6,21 +6,21 @@ Blocked by:
 
 ## Question
 
-cc-switch（https://github.com/farion1231/cc-switch）会话详情页右侧「对话目录」的实现细节是什么：如何把消息分组成轮次、「N 步」怎么计数、Agent 侧取哪段文字、红点等状态标记的含义、「全部 / 对话 / 改动」切换各自过滤什么、当前位置竖线（scroll-spy）如何计算、点击后的滚动与高亮、截断规则、斜杠命令（如「运行了 /login」）与中断等特殊行的处理。只摘取对终端 Pane 有参考价值的交互规则，注明源码位置。
+What are the implementation details of the "conversation contents" on the right of cc-switch's (https://github.com/farion1231/cc-switch) session details page: how messages group into turns, how "N steps" is counted, which text the Agent side takes, what the red dot and other state marks mean, what each of the "All / Conversation / Changes" switches filters, how the current position bar (scroll-spy) is computed, scrolling and highlighting after a click, the truncation rules, and how special rows like slash commands (such as "ran /login") and interruptions are handled. Take only the interaction rules useful for a terminal Pane, noting where in the source they are.
 
 ## Answer
 
-研究文档在分支 `research/chat-toc-cc-switch-toc`（提交 90a38cd，不合并）的 `docs/research/chat-toc/03-cc-switch-toc.md`，依据 cc-switch commit `2db86e94da13365caae55bb08d09295e31500d21`。
+The research document is `docs/research/chat-toc/03-cc-switch-toc.md` on branch `research/chat-toc-cc-switch-toc` (commit 90a38cd, not merged), based on cc-switch commit `2db86e94da13365caae55bb08d09295e31500d21`.
 
-- **分组**：非注入、带文本/图片/斜杠命令的 user 消息开新轮；中断、`!cmd`、仅工具结果、`<local-command-*>` 并入当前轮。只有「有提问 / 有最终回复 / 有步骤 / 被中断」之一的轮进目录。
-- **N 步**：合并后的步骤数，工具、思考、过程文字、图片、中间事件各计 1；同一 MCP 连续成功 ≥2 次合并为 1 步；0 不显示。正文「执行过程 · N 步」只数工具，口径不一致。
-- **Agent 文字**：本轮最后一个 tool_call 之后的 Text 块；最后工具在所有文字之后则视为无最终回复。
-- **红点**：本轮中断或任一工具步骤 error/interrupted。空回复用斜体「已中断」或「没有回复」。
-- **全部/对话/改动**：只过滤正文，目录始终是全部轮；被过滤的轮点击静默无反应（反例）。
-- **scroll-spy**：每次渲染取视口顶下 8px 的虚拟行所属轮，距底 24px 内强制高亮末轮；左侧 2px 竖线加浅底。
-- **点击**：「你」跳提问；Agent 跳最终回复，没有则跳 Agent 侧首行、再退到轮首行；对齐视口顶并闪 2 秒焦点环；j/k 在轮间跳。
-- **截断**：去代码块、图片和 Markdown 记号、压缩空白后截 160 字符，CSS 限 2 行；仅图片显示「（只有图片）」。
-- **斜杠命令**：开新轮但目录不显示命令文字，无输出则不进目录（**与本 map「斜杠命令算 User input」的决定不同**，交给 Turn group 定义 ticket 处理）。
-- **长会话**：正文虚拟化，目录不虚拟化、全量渲染。
+- **Grouping**: a user message that is not injected and carries text, images or a slash command opens a new turn; interruptions, `!cmd`, tool results alone and `<local-command-*>` join the current turn. Only a turn with a question, a final reply, steps or an interruption goes into the contents.
+- **N steps**: the number of merged steps, a tool, thinking, process text, an image or an intermediate event counting 1 each; ≥2 consecutive successes of the same MCP merge into 1 step; 0 is not shown. The body's "process · N steps" counts tools only, so the two counts disagree.
+- **Agent text**: the Text blocks after the turn's last tool_call; a last tool after all the text means no final reply.
+- **Red dot**: the turn was interrupted, or any tool step errored or was interrupted. An empty reply says, in italics, "Interrupted" or "No reply".
+- **All / Conversation / Changes**: filter the body only; the contents always hold every turn; a click on a filtered-out turn silently does nothing (a counter-example).
+- **Scroll-spy**: each render takes the turn of the virtual row 8px below the viewport's top, and within 24px of the bottom forces the last turn; a 2px bar on the left with a light background.
+- **Click**: "you" jumps to the question; the Agent side to the final reply, or failing that the Agent side's first row, then the turn's first row; aligned to the viewport's top with a focus ring flashing for 2 seconds; j/k jump between turns.
+- **Truncation**: code blocks, images and Markdown marks removed and whitespace collapsed, then cut at 160 characters, CSS limiting it to 2 lines; images only show "(image only)".
+- **Slash commands**: open a new turn, but the contents do not show the command's text, and with no output it stays out of the contents (**unlike this map's decision that slash commands are User input**; left to the Turn group ticket).
+- **Long sessions**: the body is virtualised; the contents are not, rendered in full.
 
-对本 mod 的启示（研究者推论）：步数只用一种口径；被过滤或不可跳转的条目要可感知（如置灰）；截断按 CJK 双宽计算。
+What it suggests for this mod (the researcher's inference): one way to count steps only; entries filtered out or not jumpable must be perceptible (such as greyed); truncation must count CJK as double width.

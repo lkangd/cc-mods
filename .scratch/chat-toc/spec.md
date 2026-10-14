@@ -2,172 +2,173 @@
 
 Status: ready-for-agent
 
-> 由 [chat-toc 地图](map.md) 的 16 张决策票汇总而成。每条决定的依据与实测数字在对应票里，本文只写结论；括号里的票名指向出处。术语以 [`mods/chat-toc/CONTEXT.md`](../../mods/chat-toc/CONTEXT.md) 为准。
+> Summed up from the 16 decision tickets of the [chat-toc map](map.md). The grounds and measured numbers for each decision are in its ticket; this file holds only the conclusions, and the ticket names in parentheses point to the source. Terms follow [`mods/chat-toc/CONTEXT.md`](../../mods/chat-toc/CONTEXT.md). Words on screen are quoted in English; each has a Chinese twin in `mods/chat-toc/hooks/text.ts` (§7, Language).
 
 ## Problem Statement
 
-在 Claude Code 终端里进行长会话时，使用者看不到整段对话的形状：说过哪些话、Agent 每轮做了多少事、最后回了什么，都埋在不断增长的 transcript 里。想回到几十轮之前的某个 prompt 或某段回复，只能靠滚轮慢慢找。`/clear`、compact、rewind、resume 让「我现在看的是哪一轮」更难判断。
+In a long session in Claude Code's terminal, the person cannot see the shape of the whole conversation: what they said, how much the Agent did each turn and what it answered last are all buried in an ever-growing transcript. Getting back to a prompt or a reply dozens of turns ago means wheeling slowly to find it. `/clear`, compaction, rewind and resume make "which turn am I looking at" harder still.
 
-Claude Code 没有对话目录。公开的 mods API 也不直接提供这些：transcript 行只在被画出时才有可跳转的身份，没有时间戳，全屏 transcript 会虚拟化，rewind 没有事件，2.1.287 的 `Button` 只收 `label`。目录必须在这些边界之内做到准确：不能伪造时间或条目，不能静默地点了没反应，不能在高亮上误导人。
+Claude Code has no conversation contents. The public mods API does not give them directly either: a transcript row has a jumpable identity only while it is drawn, there are no timestamps, the fullscreen transcript is virtualised, a rewind raises no event, and 2.1.287's `Button` takes only `label`. The contents must be accurate within those limits: no invented times or entries, no click that silently does nothing, no misleading highlight.
 
 ## Solution
 
-chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，不依赖其他插件。
+chat-toc is a plugin of its own, its root at `mods/chat-toc/`, depending on no other plugin.
 
-它在交互式终端的全屏布局里，把一个 Pane 停靠在 transcript 右侧（`placement: 'dock'`）。这个 Pane 是**当前会话**的对话目录：每个条目是一个 Turn group（使用者的一次 User input 加上 Agent reply），按 Transcript 顺序排列。点击用户侧跳回该 prompt，点击 Agent 侧跳到本轮最后一段文字回复。青色高亮跟随 Current position，目录列表随之滚动。
+In the interactive terminal's fullscreen layout it docks a Pane to the right of the transcript (`placement: 'dock'`). The Pane is the **current session's** conversation contents: each entry is a Turn group (one User input of the person plus the Agent reply), in Transcript order. A click on the user side jumps back to that prompt; a click on the Agent side jumps to the turn's last text reply. A cyan highlight follows the Current position, and the list scrolls with it.
 
-数据来源是当前会话的 transcript 文件（`transcript_path`，格式未公开，这是对「只用公开 API」的唯一放宽），沿当前分支的对话链取行。插件不落盘、不建档案、不联网；`$.store` 只存 View filter 和 Layout 两个偏好。
+The data source is the current session's transcript file (`transcript_path`, format unpublished; the one relaxation of "public API only"), its rows taken along the current branch's conversation chain. The plugin writes nothing to disk, keeps no archive and never goes online; `$.store` holds only two preferences, the View filter and the Layout.
 
-支持矩阵：Claude Code `>=2.1.287`、交互式终端、全屏布局，OS 不限，`--plugin-dir` 与 marketplace 两种加载方式。自动弹出时不退回 inline 放置，不能停靠就在状态栏常驻说明；只有使用者用 `/chat-toc` 主动打开时，才照宿主的放置结果接受 inline。
+Support matrix: Claude Code `>=2.1.287`, an interactive terminal, the fullscreen layout, any OS, loaded by `--plugin-dir` or from the marketplace. Opening by itself never falls back to an inline placement; when it cannot dock, the status line keeps saying so. Only when the person opens it with `/chat-toc` is an inline placement accepted as the host gives it.
 
 ## User Stories
 
-1. 作为全屏终端里的使用者，我希望每次会话启动时目录自动停靠在右侧，以便不用记命令就能看到它。
-2. 作为不想看到目录的使用者，我希望点 ✕ 后本会话不再弹出，以便它不反复打扰我。
-3. 作为关掉过目录的使用者，我希望用 `/chat-toc` 随时重新打开并聚焦它，以便需要时找回。
-4. 作为开始新会话的使用者，我希望下一次会话（包括 `/clear`、`/resume` 之后）目录再次自动弹出，以便「关闭」只作用于当前会话。
-5. 作为终端太窄或没用全屏布局的使用者，我希望状态栏告诉我为什么没有目录、怎样才能看到，以便我不会以为插件坏了。
-6. 作为长会话的使用者，我希望每个条目显示「你 · 时间」和我输入的前 2 行，以便一眼认出是哪一轮。
-7. 作为使用者，我希望每轮的 Agent 侧显示「N 步」和最后一段文字回复的前 2 行，以便知道这一轮做了多少事、结论是什么。
-8. 作为在 Agent 工作时看目录的使用者，我希望最后一轮显示「进行中 · N 步」并实时增加步数，以便知道它还在跑。
-9. 作为使用者，我希望被中断或出错的轮显示「已中断」「出错」，没有文字回复的轮显示「无文字回复」，以便不把这些轮误当成正常完成。
-10. 作为使用斜杠命令和 `!cmd` 的使用者，我希望它们也各自成为条目，以便目录反映我在输入框里敲过的一切。
-11. 作为多次提交相同 prompt 的使用者，我希望每次提交都单独成为条目，以便目录不吞掉重复。
-12. 作为使用者，我希望时间取自 transcript 本身，读不到就不显示，以便我看到的时间永远是真的。
-13. 作为只想看自己说了什么（或只想看 Agent 回了什么）的使用者，我希望用「全部 / 用户 / Agent」三态过滤，并且这个选择跨会话记住。
-14. 作为对排版有偏好的使用者，我希望在卡片、紧凑、时间轴三种 Layout 之间切换，并且跨会话记住，以便目录符合我的阅读习惯。
-15. 作为使用者，我希望点击任意条目的用户侧就跳回那条 prompt，以便快速回到对话中的那个位置。
-16. 作为使用者，我希望点击 Agent 侧就跳到那一轮最后一段文字回复，以便直接看结论。
-17. 作为偏好键盘的使用者，我希望焦点在目录里时用 ↑↓ 选择、Enter 跳转，用 1/2/3 切过滤、`l` 切 Layout。
-18. 作为在 transcript 里滚动的使用者，我希望目录高亮我当前看的那一轮，并且目录自动滚到它，以便我始终知道自己在哪儿。
-19. 作为刚跳转过的使用者，我希望高亮停在我跳去的那一轮，直到我再次滚动，以便跳转有明确的反馈。
-20. 作为手动翻目录的使用者，我希望手动滚动时目录暂停跟随并显示「暂停」，在我下次滚动 transcript 时恢复，以便我翻目录时不被拽回去。
-21. 作为点到跳不过去的条目的使用者，我希望看到一行说明，并且这一侧随后变暗，以便知道不是我点错了。
-22. 作为 compact 过的使用者，我希望 compact 之前的条目照常显示，以便目录不因为压缩而丢失历史。
-23. 作为 rewind 过的使用者，我希望被抛弃的分支在下一次提交后从目录里消失，以便目录只反映当前分支。
-24. 作为 resume 一个长会话的使用者，我希望目录与该会话一致，并且能跳到从没画出过的早期轮次。
-25. 作为同时开着多个会话的使用者，我希望每个终端只显示自己的会话，以便不串台。
-26. 作为同时用 `/diff` 等其他停靠 Pane 的使用者，我希望 chat-toc 按宿主的标签规则共存，不抢焦点，以便不打断我在用的那个 Pane。
-27. 作为会话很长（20 MB 级 transcript）的使用者，我希望目录在几秒内出现、滚动和跳转都不卡、能到达首尾，以便长会话也能用。
-28. 作为隐私敏感的使用者，我希望插件不在任何地方保存我的 prompt 内容，以便它只是一个只读的视图。
-29. 作为 transcript 格式变化后的使用者，我希望目录告诉我「有 N 行无法识别」，以便知道目录可能不全。
-30. 作为想安装的使用者，我希望根 README 写清楚环境要求、安装、操作、限制，以便判断它适不适合我。
+1. As a person in a fullscreen terminal, I want the contents to dock on the right by themselves at each session start, so that I see them without remembering a command.
+2. As a person who does not want the contents, I want a click on ✕ to keep them from opening again this session, so that they do not keep bothering me.
+3. As a person who closed the contents, I want `/chat-toc` to reopen and focus them at any time, so that I can get them back when needed.
+4. As a person starting a new session, I want the next session (including after `/clear` and `/resume`) to open the contents by itself again, so that "close" applies only to the current session.
+5. As a person whose terminal is too narrow or not in the fullscreen layout, I want the status line to tell me why there are no contents and how to see them, so that I do not think the plugin is broken.
+6. As a person in a long session, I want each entry to show "you · time" and the first 2 lines of my input, so that I recognise the turn at a glance.
+7. As a person, I want each turn's Agent side to show "N steps" and the first 2 lines of the last text reply, so that I know how much the turn did and what it concluded.
+8. As a person watching the contents while the Agent works, I want the last turn to show "in progress · N steps" with the steps counting up live, so that I know it is still running.
+9. As a person, I want an interrupted or failed turn to say "Interrupted" or "Error", and a turn without a text reply to say "No text reply", so that I do not take them for normal completions.
+10. As a person using slash commands and `!cmd`, I want each to be an entry too, so that the contents reflect everything I typed in the prompt.
+11. As a person submitting the same prompt several times, I want each submission to be its own entry, so that the contents do not swallow repeats.
+12. As a person, I want times taken from the transcript itself and not shown when they cannot be read, so that the time I see is always true.
+13. As a person who wants to see only what I said (or only what the Agent answered), I want a three-state filter "All / User / Agent", remembered across sessions.
+14. As a person with a preference for layout, I want to switch between the Card, Compact and Timeline Layouts, remembered across sessions, so that the contents fit how I read.
+15. As a person, I want a click on any entry's user side to jump back to that prompt, so that I get back to that place in the conversation quickly.
+16. As a person, I want a click on the Agent side to jump to that turn's last text reply, so that I see the conclusion directly.
+17. As a person who prefers the keyboard, I want ↑↓ to select and Enter to jump with the focus in the contents, 1/2/3 to switch the filter and `l` to switch the Layout.
+18. As a person scrolling the transcript, I want the contents to highlight the turn I am viewing and scroll to it by themselves, so that I always know where I am.
+19. As a person who just jumped, I want the highlight to stay on the turn I jumped to until I scroll again, so that the jump has clear feedback.
+20. As a person paging through the contents by hand, I want following to pause and say so while I scroll them, and resume the next time I scroll the transcript, so that I am not dragged back while browsing.
+21. As a person who clicked an entry that cannot be jumped to, I want a line saying so, and that side dimmed afterwards, so that I know I did not misclick.
+22. As a person who compacted, I want entries from before the compaction still shown, so that the contents do not lose history to compaction.
+23. As a person who rewound, I want the branch thrown away to leave the contents after the next submit, so that the contents reflect only the current branch.
+24. As a person resuming a long session, I want the contents to match that session and to jump to early turns never drawn.
+25. As a person with several sessions open, I want each terminal to show only its own session, so that they do not mix.
+26. As a person also using `/diff` or another docked Pane, I want chat-toc to share the dock by the host's tab rules and not take the focus, so that it does not interrupt the Pane I am using.
+27. As a person with a very long session (a 20 MB-class transcript), I want the contents to appear within seconds, scroll and jump without stutter and reach both ends, so that long sessions work too.
+28. As a privacy-minded person, I want the plugin to keep my prompt text nowhere, so that it is only a read-only view.
+29. As a person after the transcript format changes, I want the contents to tell me "N lines not recognized", so that I know they may be incomplete.
+30. As a person deciding whether to install, I want the root README to state the requirements, install, controls and limits clearly, so that I can judge whether it suits me.
 
 ## Implementation Decisions
 
-### 1. 插件形态与支持矩阵
+### 1. Plugin form and support matrix
 
-- 插件根 `mods/chat-toc/`，`plugin.json` 的 `name` 为 `chat-toc`，首个版本 `0.1.0`。（定稿兼容与验收契约；决定首个版本的发布形态与文档）
-- 只用公开 mods API，唯一例外是读当前会话的 transcript 文件。宿主 API 事实以 `plugin-authoring` skill 写出的类型声明与 `~/.claude-code-docs/docs/plugins__mods__*.md` 为准。（地图 Notes）
-- 承诺 Claude Code `>=2.1.287`。所用原语在 2.1.287 上都有，字段与 2.1.295 相同；2.1.295 新增的 `ui.notify`、`ui.selection`、`ui.fault`、`prompt.*`、`AssistantMessage.isSummary` 都不用。插件清单没有声明宿主最低版本的字段，所以不做运行时版本检测，只在 README 写明。（在 Claude Code 2.1.287 上核对关键 API；定稿兼容与验收契约）
-- 实现时注意：`command.run` 的匹配器写 `{ command: 'chat-toc' }`，不是 `{ name }`；不要用 `h` 作局部变量名（会遮住 JSX 的 `h`）。（在 2.1.287 上核对关键 API；用只收 label 的 Button 画三种 Layout）
+- Plugin root `mods/chat-toc/`, `name` in `plugin.json` is `chat-toc`, first version `0.1.0`. (Finalise the compatibility and acceptance contract; Decide the first release's form and docs)
+- Public mods API only; the one exception is reading the current session's transcript file. Host API facts follow the type declarations the `plugin-authoring` skill writes and `~/.claude-code-docs/docs/plugins__mods__*.md`. (Map Notes)
+- Promises Claude Code `>=2.1.287`. Every primitive used is on 2.1.287 with the same fields as 2.1.295; 2.1.295's new `ui.notify`, `ui.selection`, `ui.fault`, `prompt.*` and `AssistantMessage.isSummary` are not used. The plugin manifest has no field for the host's minimum version, so there is no runtime version check, only the README's statement. (Check the key APIs on Claude Code 2.1.287; Finalise the compatibility and acceptance contract)
+- Note for the implementation: the `command.run` matcher is `{ command: 'chat-toc' }`, not `{ name }`; do not name a local variable `h` (it shadows JSX's `h`). (Check the key APIs on 2.1.287; Draw the three Layouts with label-only Buttons)
 
-### 2. Pane 生命周期
+### 2. Pane lifecycle
 
-- **自动打开**的时机：`session.start`（启动、热重载），以及 `classic.SessionStart` 且 `source` 为 `clear` 或 `resume` 时（`session.start` 在 `/clear` 时不触发）。三个条件都满足才打开：`viewport.isFullscreen` 为真；本会话没有被使用者关闭；`$.ui.panes()` 里还没有这个 Pane（热重载后 Pane 不会关，`session.start` 会再次触发）。（核实停靠 Pane 的生命周期与放置规则；决定与其他停靠 Pane 共存的行为）
-- **自动弹出不接受 inline**：只在全屏时自动打开；`isPlaced:false` 时 Pane 保持等待、不画，状态栏常驻说明原因和满足条件的方法（例如「需要全屏布局」「终端再宽一些」），条件满足、Pane 停靠后清除说明（`$.ui.status(undefined)`）。阈值由宿主决定（未请求时 ≥144 列，请求过后 110 列），插件不写死列数。（地图 Notes；CT-COMPAT-003）
-- **`/chat-toc` 时接受 inline**：使用者主动打开属于请求，宿主任意宽度都会放下 Pane，全屏下窄于 110 列（或非全屏）时放成 inline。这时照宿主的结果放，不关、不拦，状态栏照常说明怎样才能停靠。inline 形态下的排版、跟随与高亮不承诺。（2026-10-10 使用者确认）
-- **停靠后被改成 inline**：自动弹出或停靠着的 Pane，在终端变窄后被宿主改成 inline（`$.ui.panes()` 里 `placement` 不再是 `dock`）时，由插件关闭（`origin` 为 `plugin`，不记「已关闭」）并显示状态栏说明，条件恢复后按自动打开的规则再打开。只有使用者用 `/chat-toc` 在不能停靠时打开的那一次 inline 例外。宿主在停靠后变窄时的实际行为没有实测过，在 CT-COMPAT-003 验收时取样确认。（2026-10-10 使用者确认）
-- **关闭**：不设 `closeOnEscape`。只有 `e.id` 为本 Pane、`origin.kind === 'person'` 的 `ui.close` 才在 `$.state` 记「本会话已关闭」；别的 Pane 怎么关都不碰这个标记。`/clear`、`/resume` 时宿主会重置 `$.state`，所以之后会再次自动弹出，使用者已接受。（核实停靠 Pane 的生命周期与放置规则；原型验证停靠 TOC Pane 的外观与交互；决定与其他停靠 Pane 共存的行为）
-- **`/chat-toc`**：没有参数，注册时加 `immediate: true`。Pane 关着就打开；已经开着（在前台或后台标签）就提到前台并 `focus: true`。它从不关闭 Pane，关闭只有 ✕ 一个入口。对已开着的 id 再 open 时若不切换标签，就退化为只聚焦。`focus` 只在输入框为空时生效。（决定 Layout 的切换入口与默认值；核实停靠 Pane 的生命周期与放置规则）
-- **宽度**：用 `columns: 44` 请求宽度（取自原型，2026-10-10 使用者确认）；使用者调过的宽度优先。36–56 列都要可读。（原型验证停靠 TOC Pane 的外观与交互）
-- **与其他停靠 Pane 共存**：完全照宿主的标签规则——新打开的 Pane 总在前台，chat-toc 自动弹出时也一样；被别的 Pane 挤到后台、或对方关闭后回到前台，chat-toc 都不做任何事，不用 `focus` 抢回，也不提示。后台标签不调 Pane 的 render hook，数据层照常更新；如果 Current position 在 chat-toc 不在前台时（`$.ui.panes()` 的 `isShown === false`）变了，就撤销跟随暂停，回到前台的第一帧即跟随。（决定与其他停靠 Pane 共存的行为，供 CT-COEX-001）
+- **Opening by itself** happens at `session.start` (start, hot reload) and at `classic.SessionStart` with `source` `clear` or `resume` (`session.start` does not fire on `/clear`). It opens only when all three hold: `viewport.isFullscreen` is true; the person has not closed it this session; `$.ui.panes()` does not hold the Pane yet (after a hot reload the Pane stays open and `session.start` fires again). (Check the docked Pane's lifecycle and placement rules; Decide how to share the dock with other Panes)
+- **Opening by itself takes no inline placement**: it opens by itself only when fullscreen; on `isPlaced:false` the Pane keeps waiting, undrawn, and the status line keeps saying why and how to meet the condition (such as "needs the fullscreen layout", "a wider terminal"); once the condition is met and the Pane docks, the note clears (`$.ui.status(undefined)`). The threshold is the host's (≥144 columns unasked, 110 once asked); the plugin hard-codes no column count. (Map Notes; CT-COMPAT-003)
+- **`/chat-toc` takes inline**: the person opening it is an ask, so the host places the Pane at any width, inline when fullscreen and under 110 columns (or not fullscreen). It stays as the host placed it, neither closed nor blocked, and the status line still says how to get it docked. Layout, following and highlight in the inline form are not promised. (Confirmed by the user, 2026-10-10)
+- **Docked, then made inline**: when a Pane opened by itself or docked is made inline by the host as the terminal narrows (`placement` in `$.ui.panes()` is no longer `dock`), the plugin closes it (`origin` `plugin`, not marked closed) and shows the status line note, and opens it again by the opening-by-itself rules once the condition is back. The only exception is the inline Pane the person opened with `/chat-toc` while it could not dock. The host's real behaviour on narrowing after docking was not measured; CT-COMPAT-003's acceptance samples it. (Confirmed by the user, 2026-10-10)
+- **Closing**: no `closeOnEscape`. Only a `ui.close` with `e.id` this Pane and `origin.kind === 'person'` marks "closed for this session" in `$.state`; however other Panes close, the mark is left alone. The host resets `$.state` on `/clear` and `/resume`, so it opens by itself again afterwards, which the user accepted. (Check the docked Pane's lifecycle and placement rules; Prototype the docked TOC Pane's look and interaction; Decide how to share the dock with other Panes)
+- **`/chat-toc`**: no arguments, registered with `immediate: true`. A closed Pane opens; an open one (in a front or back tab) comes to the front with `focus: true`. It never closes the Pane; ✕ is the only way to close. Opening an id already open without a tab switch falls back to focusing only. `focus` works only with an empty prompt. (Decide the Layout switch's entry and default; Check the docked Pane's lifecycle and placement rules)
+- **Width**: asks for `columns: 44` (from the prototype; confirmed by the user, 2026-10-10); a width the person set wins. 36–56 columns must all read well. (Prototype the docked TOC Pane's look and interaction)
+- **Sharing the dock with other Panes**: fully by the host's tab rules: a newly opened Pane is always in front, chat-toc's own opening included; when another Pane pushes chat-toc back, or brings it forward on closing, chat-toc does nothing, takes nothing back with `focus` and gives no notice. A back tab's Pane render hook is not called, while the data layer updates as usual; if the Current position changed while chat-toc was not in front (`isShown === false` in `$.ui.panes()`), the follow pause is cancelled and the first frame back in front follows. (Decide how to share the dock with other Panes, for CT-COEX-001)
 
-### 3. 读取 transcript
+### 3. Reading the transcript
 
-- **路径**：取自 classic 事件的 `transcript_path`。新会话在第一条消息之前文件还不存在，这是正常状态，不是读取失败。（在 2.1.287 上核对关键 API）
-- **读取方式**：第一次读且文件 ≤4 MiB 时用 `$.fs.read`。其余情况用 `$.process.run` 从字节偏移分块读 4,000,000 B：
-  - macOS/Linux：`sh -c '{ dd bs=1 skip="$1" count=0 2>/dev/null; head -c "$3"; } < "$2"'`（`tail -c +N` 在 macOS 上太慢）；
-  - Windows：系统自带的 Windows PowerShell 5.1，用 `[IO.File]` 按偏移读，base64 输出；每块改读 3,000,000 B，因为 base64 使输出变为 4/3，4,000,000 B 编码后会超过 `$.process.run` 的 4 MiB stdout 上限被截断（实现 22 号票时发现，2026-10-11 使用者确认）。
-  - 每块截到最后一个换行，偏移加上保留部分的 UTF-8 字节数；文件变小就整份重读。单行超过一块（块里没有换行）时，按「无法识别的行」计数并跳过。
-  （实测长会话的读取与渲染开销；定义 Turn group 的划分与边界）
-- **触发与节流**：由 `session.append`（只看主循环，即没有 `agentId` 的行）和 `turn.complete` 触发；尾随 300 ms 读一次，正在读时合并成一次；`fs.stat` 大小没变就跳过；`turn.complete` 之后 +1.5 s 再查一次，兜住文件落后写入。不做周期轮询。（实测长会话的读取与渲染开销）
-- **对话链**：从最新的叶子行沿 `parentUuid` 回溯；遇到 compact 边界（`system/compact_boundary`，`parentUuid: null`）改沿 `logicalParentUuid`。rewind 抛弃的分支不在链上。子 agent 写在单独的文件里，不读。（定义 Turn group 的划分与边界）
-- **增量重组**：从新叶子往回走，碰到旧链末行，说明只在当前分支上增长，就保留旧链，从末组的开组行起重组；碰不到（rewind 的新分支、`/clear`）就整份重组。（实测长会话的读取与渲染开销）
-- **失败**：文件读失败或没权限时，不显示任何条目，底部常驻原因；不拿 `$.session.messages()` 拼一份冒充完整的目录。遇到无法识别的行就跳过，底部说明「有 N 行无法识别，目录可能不完整」，N 是实际计数。文件还不存在时，正文只有一行「本会话还没有对话」。（定稿兼容与验收契约 CT-DATA-001～003）
+- **Path**: from the classic events' `transcript_path`. A new session's file does not exist before the first message; that is a normal state, not a read failure. (Check the key APIs on 2.1.287)
+- **How it reads**: the first read of a file up to 4 MiB uses `$.fs.read`. Otherwise `$.process.run` reads 4,000,000 B chunks from a byte offset:
+  - macOS/Linux: `sh -c '{ dd bs=1 skip="$1" count=0 2>/dev/null; head -c "$3"; } < "$2"'` (`tail -c +N` is too slow on macOS);
+  - Windows: the built-in Windows PowerShell 5.1, reading by offset with `[IO.File]` and printing base64; chunks of 3,000,000 B instead, since base64 makes the output 4/3 as long and 4,000,000 B encoded would pass `$.process.run`'s 4 MiB stdout limit and be cut (found while implementing ticket 22; confirmed by the user, 2026-10-11).
+  - Each chunk is cut at its last newline and the offset moves by the kept part's UTF-8 bytes; a file that got smaller is read again whole. A single row longer than a chunk (no newline in the chunk) is counted as an unrecognized line and skipped.
+  (Measure the cost of reading and drawing a long session; Define the Turn group's split and edges)
+- **Triggers and throttling**: `session.append` (the main loop only, rows without `agentId`) and `turn.complete` trigger it; one read 300 ms trailing, reads merged while one runs; skipped when `fs.stat`'s size is unchanged; one more check 1.5 s after `turn.complete` to catch the file being written late. No periodic polling. (Measure the cost of reading and drawing a long session)
+- **Conversation chain**: from the newest leaf row back along `parentUuid`; at a compaction boundary (`system/compact_boundary`, `parentUuid: null`) along `logicalParentUuid` instead. A branch thrown away by a rewind is not on the chain. Subagents write separate files, which are not read. (Define the Turn group's split and edges)
+- **Incremental regrouping**: walking back from the new leaf, reaching the old chain's last row means the file only grew on the current branch, so the old chain is kept and regrouping starts from the last group's opening row; not reaching it (a rewind's new branch, `/clear`) means regrouping the whole file. (Measure the cost of reading and drawing a long session)
+- **Failure**: when the file cannot be read or permission is denied, no entry shows and the bottom keeps the reason; no list pieced together from `$.session.messages()` passes for the whole. Unrecognized lines are skipped and the bottom says "N lines not recognized; the contents may be incomplete", N the real count. While the file does not exist, the body is one line, "No conversation in this session yet". (Finalise the compatibility and acceptance contract, CT-DATA-001–003)
 
 ### 4. Turn group
 
-- **开新组**的行：`type:user`，不是 `isMeta`、`isCompactSummary` 或 tool_result，且是下列之一：
-  - `origin.kind: "human"` 的文本或图片（`promptSource` 为 `typed`、`queued`、`suggestion_accepted`）；
-  - 斜杠命令行（含 `<command-name>`；prompt 型命令带 `origin: human`，本地命令的 origin 为 null）；
-  - `<bash-input>`（`!cmd`）。
-  另外，`type: system, subtype: local_command` 中带 `<command-name>` 的行也开组，它的输出行归入该组。（定义 Turn group 的划分与边界；原型验证停靠 TOC Pane 的外观与交互）
-- **不开组、归入当前组**：task-notification、`<local-command-stdout|caveat>`、`<bash-stdout>`、`[Request interrupted by user…]`、compact 摘要、hook 与提醒（isMeta）。所以排队提交自成一组，后台任务通知、`/loop` 触发的 agent 工作并入前一组。
-- **用户侧文字**：斜杠命令还原成 `/name args`；`!` 行显示 `!cmd`；普通文本去掉代码块、图片与 Markdown 记号、`<pasted_content>` 标签，压缩空白；只有图片时写「（只有图片）」。
-- **时间**：取 User input 行的 `timestamp`（UTC ISO，转本地时间）。条目旁只写 `HH:MM`（卡片在用户侧首行右端，紧凑与时间轴在左栏）；日期写在日期分隔行里：「M月D日」，今天「今天 · M月D日」，不是今年的加年份。读不到就不显示，也不触发日期分隔，不伪造。（35 号票改版）
-- **步数**：本组内主循环 assistant 行里的 `tool_use` 块数。并行调用逐个计，一次子 agent 调用算 1 步，思考和中间文字不计，0 不显示。
-- **末段文字**：本组最后一个 `tool_use` 之后的 text 块；同一 `message.id` 的多个块拼成一段。
-- **Agent 侧状态**：
-  - 正常：「N 步」加末段前 2 行；
-  - 没有末段：「N 步 · 无文字回复」；
-  - 中断（组内有 `[Request interrupted by user` 行）：「已中断 · N 步」；
-  - 出错（组内最后一条 assistant 行带 `isApiErrorMessage`）：「出错 · N 步」，单个工具失败不标；
-  - 进行中：只对最后一组，用宿主的 `turn.start` 到 `turn.complete` 判断，显示「进行中 · N 步」，步数实时增加。
-- **只有用户侧的组**：本地斜杠命令和没有引起 agent 工作的 `!cmd` 只显示用户侧；View filter 选「Agent」时整组隐藏。
-- **生命周期**：compact 前的组照常显示；`/clear` 后宿主写新文件，目录清空重建，不画分隔线；rewind 后的下一次提交，被弃分支的组消失（rewind 本身没有事件，提交之前的窗口里旧条目可能还在，使用者已接受）；resume、fork 后按对话链重建。
+- Rows that **open a new group**: `type:user`, not `isMeta`, `isCompactSummary` or a tool_result, and one of:
+  - text or images with `origin.kind: "human"` (`promptSource` `typed`, `queued` or `suggestion_accepted`);
+  - a slash command row (with `<command-name>`; a prompt-type command carries `origin: human`, a local command's origin is null);
+  - `<bash-input>` (`!cmd`).
+  Also, a `type: system, subtype: local_command` row with `<command-name>` opens a group, and its output rows join it. (Define the Turn group's split and edges; Prototype the docked TOC Pane's look and interaction)
+- **Joining the current group, opening none**: task-notification, `<local-command-stdout|caveat>`, `<bash-stdout>`, `[Request interrupted by user…]`, the compaction summary, hooks and reminders (isMeta). So a queued submission is a group of its own, while background task notifications and agent work started by `/loop` join the group before them.
+- **User input text**: a slash command reads back as `/name args`; a `!` row shows `!cmd`; plain text loses code blocks, images, Markdown marks and `<pasted_content>` tags, with whitespace collapsed; an input of only images says "(image only)".
+- **Time**: the User input row's `timestamp` (UTC ISO, shown in local time). Beside an entry only `HH:MM` (Card: at the right end of the user side's first line; Compact and Timeline: in the left column); the day goes in the day's rule: "Oct 9", today "Today · Oct 9", another year's with the year. When it cannot be read, nothing shows and no day's rule is set off; nothing is invented. (Ticket 35's redesign)
+- **Steps**: the number of `tool_use` blocks in the group's main-loop assistant rows. Parallel calls count one each, one subagent call counts 1, thinking and text in between do not count, 0 shows nothing.
+- **Last text**: the text blocks after the group's last `tool_use`; several blocks of one `message.id` join into one.
+- **The Agent side's state**:
+  - normal: "N steps" plus the last text's first 2 lines;
+  - no last text: "N steps · No text reply";
+  - interrupted (an `[Request interrupted by user` row in the group): "Interrupted · N steps";
+  - error (the group's last assistant row carries `isApiErrorMessage`): "Error · N steps"; a single failed tool is not marked;
+  - in progress: the last group only, judged from the host's `turn.start` to `turn.complete`, showing "Running · N steps" with the steps counting up live.
+- **Groups with only a user side**: a local slash command and a `!cmd` that set no agent work going show only the user side; under the "Agent" View filter the whole group is hidden.
+- **Lifecycle**: groups before a compaction still show; after `/clear` the host writes a new file, and the contents empty and rebuild with no dividing line; after a rewind the next submit removes the thrown-away branch's groups (a rewind raises no event, so old entries may remain until that submit, which the user accepted); after resume or fork the contents rebuild along the conversation chain.
 
-### 5. Jump target 与跳转
+### 5. Jump target and jumping
 
-- **身份**：`ui.render` 的 `UserMessage`、`AssistantMessage`、`CommandOutput` 站点的 `e.requestId` 就是 transcript 行的 `uuid`（resume 后不变）。另外挂 `ToolGroup`（只读 `requestId` 和 `onScreen`，不改绘制）。`requestId` 为 `"placeholder"` 的一律忽略。render hook 是纯绘制，里面不能写 `$.state`。（实测 requestId 与 transcript 行身份的对应）
-- **`requestId` → 行的匹配**，按顺序：精确匹配 uuid；去掉 `collapsed-` 前缀再匹配；按 tool_use id 匹配（非折叠时走 `ToolUse`）；按前 24 位匹配（`ToolGroup` 的 id 有时是 `collapsed-<uuid 前 24 位>000000000000`）。跳转时用宿主给的那个 id，不用 uuid。热重载后宿主先重画在屏行、后读完 transcript，所以映射在每次读完 transcript 后重做，增量读取时只为新行补前缀表、重试之前没解析出来的 id。（原型验证停靠 TOC Pane 的外观与交互；实测长会话的读取与渲染开销）
-- **跳转目标**：用户侧是该组的开组行；Agent 侧是末段文字所在的行。Agent 侧没有末段（「无文字回复」、进行中还没有文字、中断）时，跳到本组最后一个可绘制行（`AssistantMessage` 或 `ToolGroup`），候选与被拒规则同兜底跳转；本组一个可绘制行都没有就按被拒处理（2026-10-10 使用者确认）。跳转只能由使用者发起（点击或 Enter）。`$.ui.scroll({ to: { requestId } })` 能跳到宿主消息列表里的任何一行，包括从没画出过的；直接跳转用 `block: 'start'`。（核实 transcript 行枚举与跳转原语；原型验证停靠 TOC Pane 的外观与交互）
-- **兜底跳转**：本地命令的回显行、prompt 型命令的输入行、`!cmd` 的行在屏上看得见，但没有可挂钩的站点。这些用户侧跳到对话链中**往后**最近的可绘制行（user prompt、带文字的 assistant 行、非空的本地命令输出、画出过的行），往后没有就往前找，用 `block: 'center'`，让原输入行留在目标上方看得见；被拒就换下一个候选，最多 3 个。这算作跳到了该 prompt，条目样式不区分。（决定没有 Jump target 的条目侧如何呈现与点击，经原型修订）
-- **被拒**：所有候选都被拒时（resume 前已被 compact 的行、rewind 残留），Pane 底部显示一行「这一条当前没有显示在对话里，无法跳转」，在下一次跳转、选择移动或约 5 秒后（`$.clock`）消失；这一侧随后淡化（所有行 `dimColor`），直到这一行重新被宿主列出。不事先淡化：虚拟化加热重载使「画出过没有」不能说明能不能跳。只陈述事实，不猜原因。（原型验证停靠 TOC Pane 的外观与交互，修订「决定没有 Jump target 的条目侧如何呈现与点击」）
+- **Identity**: the `e.requestId` of `ui.render`'s `UserMessage`, `AssistantMessage` and `CommandOutput` sites is the transcript row's `uuid` (unchanged after resume). `ToolGroup` is hooked too (reading only `requestId` and `onScreen`, drawing unchanged). A `requestId` of `"placeholder"` is always ignored. A render hook only draws and may not write `$.state`. (Measure how requestId maps to transcript rows)
+- **Matching a `requestId` to a row**, in order: the exact uuid; the uuid without a `collapsed-` prefix; the tool_use id (through `ToolUse` when not collapsed); the first 24 characters (a `ToolGroup` id is sometimes `collapsed-<the uuid's first 24>000000000000`). A jump uses the id the host gave, not the uuid. After a hot reload the host redraws the on-screen rows before the transcript is read, so the map is rebuilt after every transcript read; an incremental read only adds new rows to the prefix table and retries ids not yet resolved. (Prototype the docked TOC Pane's look and interaction; Measure the cost of reading and drawing a long session)
+- **Jump targets**: the user side's is the group's opening row; the Agent side's is the row holding the last text. When the Agent side has no last text ("No text reply", in progress with no text yet, interrupted), it jumps to the group's last drawable row (`AssistantMessage` or `ToolGroup`), with candidates and refusals as in the fallback jump; a group with no drawable row at all is treated as refused (confirmed by the user, 2026-10-10). Only the person starts a jump (a click or Enter). `$.ui.scroll({ to: { requestId } })` can reach any row in the host's message list, rows never drawn included; a direct jump uses `block: 'start'`. (Check the transcript row enumeration and jump primitives; Prototype the docked TOC Pane's look and interaction)
+- **Fallback jump**: a local command's echo row, a prompt-type command's input row and a `!cmd`'s rows show on screen but have no site to hook. These user sides jump to the nearest drawable row **after** them on the conversation chain (a user prompt, an assistant row with text, a non-empty local command output, a row drawn before), or before them when there is none after, with `block: 'center'` so the original input row stays in sight above the target; on a refusal the next candidate is tried, up to 3. This counts as jumping to that prompt, and the entry looks no different. (Decide how entry sides without a Jump target show and click, revised by the prototype)
+- **Refused**: when every candidate is refused (rows compacted before a resume, rows left by a rewind), the Pane's bottom shows one line, "This entry is not in the conversation view now; cannot jump to it", gone at the next jump, a move of the selection or after about 5 seconds (`$.clock`); the side then dims (every line `dimColor`) until the host lists that row again. Nothing dims in advance: with virtualisation and hot reloads, "drawn before or not" does not tell whether a jump works. It states the fact and guesses no cause. (Prototype the docked TOC Pane's look and interaction, revising "Decide how entry sides without a Jump target show and click")
 
-### 6. Current position 与跟随
+### 6. Current position and following
 
-- **定义**：视口顶部那一行所属的 Turn group；最后一个画出的行完整可见（`last === of - 1`）时强制末组；跳转成功后锁定在目标组。该行不属于任何组（compact 摘要、hook 提示等）时，归到它前面最近的一组；前面没有组就不高亮。（决定是否做当前位置高亮，经原型修订）
-- **计算**：只看 `UserMessage`、`AssistantMessage`、`CommandOutput`、`ToolGroup` 的在屏上报，`ToolUse` 不参与。全屏 transcript 是虚拟化的，被卸掉的行不一定再报 `onScreen: null`，所以：
-  - 报 `null` 的在屏记录直接删掉；
-  - 可绘制行（站点行和画出过的行）按对话顺序存成有序数组，只在读完 transcript 和有新行画出时重建；
-  - 把在屏行按对话顺序分段：两行之间只要夹着一个不在屏的可绘制行，就切开。只采信包含最近一次上报的那一段，取其中最靠前的行；夹没夹着用二分查找判断。
-  （原型验证停靠 TOC Pane 的外观与交互；实测长会话的读取与渲染开销）
-- **跳转后锁定**：跳转引起的重绘每次间隔不到 300 ms，期间保持锁定；重绘停下后，视口第一次变化就解锁，恢复按视口顶部计算。（原型验证停靠 TOC Pane 的外观与交互）
-- **重绘 Pane**：transcript render hook 比较新旧 Current position，只有真的变了才 `$.clock.after(0, () => update($, atom, …))` 写一个 `$.state` atom，然后照常 `return next(e)`；Pane 的 render hook 读这个 atom。不要在 render hook 里直接写、不要用 `Promise.then` 写（偶发被拒），不要无条件 `invalidate`（会自循环）。这个 atom 是本进程的派生值，不持久化。（实测 Pane 随 Current position 重绘的方式）
-- **TOC 跟随**：TOC 的滚动位置统一跟随高亮组（transcript 在底部时就停在最新）。使用者手动滚动 TOC，或 Pane 聚焦时，暂停跟随，底栏左边显示「⏸ 暂停跟随」；Current position 下一次变化时恢复跟随。滚动由插件自管：hook `ui.scroll` 返回 `{}` 自己维护偏移，不用 `$.ui.scroll({ to: 'end' })`（2.1.290 之前它会无限重绘）。（决定是否做当前位置高亮；核实停靠 Pane 的生命周期与放置规则）
-- 高亮与 ↑↓ 选择光标相互独立，可以落在不同组上。
+- **Definition**: the Turn group of the viewport's top row; the last group when the last drawn row is wholly visible (`last === of - 1`); locked on the target group after a successful jump. A row in no group (the compaction summary, a hook note) counts for the nearest group before it; with no group before it, nothing is highlighted. (Decide whether to highlight the current position, revised by the prototype)
+- **Computing it**: only the on-screen reports of `UserMessage`, `AssistantMessage`, `CommandOutput` and `ToolGroup`; `ToolUse` takes no part. The fullscreen transcript is virtualised, and an unmounted row does not always report `onScreen: null` again, so:
+  - an on-screen record reporting `null` is dropped;
+  - drawable rows (site rows and rows drawn before) are kept in conversation order in a sorted array, rebuilt only after a transcript read and when a new row is drawn;
+  - the on-screen rows are cut into runs in conversation order: any drawable row not on screen between two rows cuts them apart. Only the run holding the latest report is believed, and its first row taken; whether a row lies between is found by binary search.
+  (Prototype the docked TOC Pane's look and interaction; Measure the cost of reading and drawing a long session)
+- **Locked after a jump**: redraws caused by a jump come less than 300 ms apart, and the lock holds through them; once the redraws stop, the first change of the viewport unlocks it, and it goes back to the viewport's top. (Prototype the docked TOC Pane's look and interaction)
+- **Redrawing the Pane**: the transcript render hook compares the old and new Current position, and only on a real change writes a `$.state` atom with `$.clock.after(0, () => update($, atom, …))`, then `return next(e)` as usual; the Pane's render hook reads the atom. Do not write it in the render hook directly, nor from `Promise.then` (now and then refused), nor `invalidate` unconditionally (it loops on itself). The atom is a value derived in this process and not persisted. (Measure how the Pane redraws with the Current position)
+- **The TOC following**: the TOC's scroll position always follows the highlighted group (with the transcript at its bottom, it stays on the newest). Scrolling the TOC by hand, or the Pane being focused, pauses following, and the footer's left end shows "⏸ Not following"; it resumes at the Current position's next change. The plugin scrolls on its own: its `ui.scroll` hook returns `{}` and keeps the offset itself; no `$.ui.scroll({ to: 'end' })` (before 2.1.290 it redraws without end). (Decide whether to highlight the current position; Check the docked Pane's lifecycle and placement rules)
+- The highlight and the ↑↓ selection cursor are independent and can sit on different groups.
 
-### 7. Pane 外观与交互
+### 7. Pane look and interaction
 
-- **结构**，自上而下（35 号票改版，方案 C 主体 + 方案 A 的顶部与底栏）：过滤行（三个 View filter Button，最右留约 3 列给 2.1.287 画在内容第一行的 ✕）；页签线（选中 Button 正下方 `━`，`suggestion`；其余 `─`，`subtle`）；一行空白；条目列表；列表下方按需出现的说明（跳转被拒、数据源）；底栏固定在面板最下面：一行 `─`（`subtle`），下一行左边是 Turn group 数「N 轮」（淡化，不随 View filter 变）或暂停时的「⏸ 暂停跟随」（`warning`），右边是 Layout Button。2.1.287 的停靠 Pane 没有标题行，第 0 行就是正文；2.1.295 第 0 行是标题行，排版两版都要看。
-- **View filter**：三个 `plain` Button，label 只写名字 `全部`、`用户`、`Agent`，宿主画成 `1: 全部`；选中项不淡化，其余 `dimColor`，选中项由页签线标出；热键 1/2/3；默认「全部」；切换后立即重画；选择写进 `$.store`，跨会话全局记住，值认不出时回到「全部」。
-- **Layout**：默认卡片。唯一入口是底栏右端一个 `plain` Button，文字为「布局 卡片」「布局 紧凑」「布局 时间轴」（显示当前的，不显示下一种）；点击它或 Pane 聚焦时按 `l`，按卡片 → 紧凑 → 时间轴 → 卡片循环。选择立即写进 `$.store`，写入失败时本次仍然切换；值认不出时回到卡片。切换时以选中的组（有选择光标时）或 Current position 所在组为锚，切换后锚定组留在可见窗口内，跟随或暂停的状态不变。不提供命令参数，不用 `v`。焦点环的顺序是过滤 Button、条目、Layout Button。
-- **时间轨**：三种 Layout 都把条目挂在一条轨道上。用户侧首行是节点 `●`（`inactive`），Agent 侧首行是分支 `├╴`，续行和同一天的组间空行是 `│`（都是 `subtle`）；Current position 所在组变成 `◉`、`┣╸`、`┃`，连同时间用 `suggestion`。进行中的 Agent 侧在分支后加 `◐`（`claude`）。没有 Jump target 的一侧挂在空心记号上：用户侧 `○`、Agent 侧 `├┄`（`subtle`），用户侧文字淡化。日期变化处（含列表第一组）在组前画一行 `─ <日期> ───`，前一组的空行不画轨道。
-- **三种 Layout 的画法**：每个条目画成一个列 `Box`：日期分隔（如有）；一行 row，左边是时间列（紧凑与时间轴，6 列 `HH:MM `）和轨道列（每行一个 `Text`，3 列），进行中再加 2 列 `◐ `，右边是一列 Button；组间空行。条目一侧的**每一行**是一个 `plain` Button，内容是这一行的字符串，同侧所有行共用一个 `onPress`；key 为 `<条目 key>` 和 `<条目 key>.<行号>`；`hover: { scope: 'e-<条目 key>', color: 'suggestion' }`，悬停时整侧变色（指针正下方那一行仍由宿主反色）。
-  - **卡片**：没有时间列；用户侧最多 2 行，首行右端是 `HH:MM`（`Text`，淡化，首行留 6 列）；Agent 侧是「状态 · 末段文字」一段，整段 `dimColor`，最多 2 行。没有头行。
-  - **紧凑**：每侧一行，时间写在组里第一个显示的那一侧的时间列。
-  - **时间轴**：每侧最多 2 行，时间同紧凑。
-  - 换行和截断由插件自己算：按终端单元宽度折行（全角 2 格），闭合标点不出现在行首（把上一行最后一个字带下来），不超过 14 个字符的英文词与路径整体换行，折在空格处时丢掉那个空格；第 2 行（紧凑是第 1 行）末尾加 `…`。Button 不会替你换行。
-- **其他 surface**：`e.surface` 不是 `terminal` 时（Desktop、VS Code、移动端）画另一棵树（36 号票，按 Desktop 实测）：顶部是分段控件，槽与选中项的底块是 Svg（底块与宿主悬停框同大小），三个筛选是叠在上面的 plain Button，不带 hotkey；Layout 用不带 label 的 `Select`（没有 Select 的 surface 用 plain Button 循环）；有 `Svg` 时，列表上方一条缩略条，每个 Turn group 一根竖条，高度按步数，进行中组上色，下面一行写首组的日期时间、`N 轮`、末组时间，超过 120 组时一根竖条代表几组；条目沿用终端的折行，每行一个 plain Button（用户侧正常、Agent 侧淡化），左侧的时间、节点、分支、轨道、进行中记号是一张 Svg，高度为行数 × 19 px，组间空行与日期分隔也是 Svg。Box 的宽高在 Desktop 上按格计（一列约 8.2 px，一行约 19 px）。Desktop 拒绝插件滚动 transcript（`transcript not scrollable here`），也不报告 `onScreen`：不高亮、不暂停，按下条目时提示「Claude 应用暂不支持跳转到对话」，不把该侧记为被拒；宿主将来允许滚动时照常跳转。
-- **键盘**：Pane 聚焦时 ↑↓ 走宿主焦点环，焦点落在条目的第一行 Button（key 等于条目 key）；Enter 与点击相同；↑↓ 不跳过没有 Jump target 的条目。1/2/3 切 View filter，`l` 切 Layout（Pane 内热键只能挂在画出的 Button 上，只在聚焦时生效）。选择光标是宿主的反色，与 `suggestion` 色的高亮一眼能分清。插件不能绑定 Tab 或方向键。（决定 Layout 的切换入口与默认值；用只收 label 的 Button 画三种 Layout）
-- **长会话**：连续滚动、按需渲染、不分页。条目按组缓存（键是宽度、进行中、步数、状态、末段），只在数据、宽度、View filter、Layout 变化时重建条目表；高亮和光标在绘制时才叠加；只画可见窗口（一棵树最多画 100,000 字符）；组到条目的定位用表，不用 `findIndex`。（实测长会话的读取与渲染开销）
+- **Structure**, top to bottom (ticket 35's redesign, option C's body with option A's top and footer): the filter row (three View filter Buttons, leaving about 3 columns at the right for the ✕ 2.1.287 draws on the body's first row); the tab rule (`━` under the chosen Button, `suggestion`; `─` elsewhere, `subtle`); a blank row; the entry list; notes under the list when needed (a refused jump, the data source); the footer pinned to the panel's bottom: a `─` row (`subtle`), and under it on the left the number of Turn groups, "N turns" (dim, unchanged by the View filter), or while paused "⏸ Not following" (`warning`), and on the right the Layout Button. 2.1.287's docked Pane has no title row, so row 0 is the body; on 2.1.295 row 0 is the title row; check the layout on both.
+- **View filter**: three `plain` Buttons, the label only the name, `All`, `User`, `Agent`, drawn by the host as `1: All`; the chosen one at full strength, the others `dimColor`, the chosen one marked by the tab rule; hotkeys 1/2/3; "All" by default; redrawn at once on a switch; the choice written to `$.store` and remembered globally across sessions, a value not known reading as "All".
+- **Layout**: Card by default. The one entry is a `plain` Button at the footer's right end reading "Layout: Card", "Layout: Compact", "Layout: Timeline" (the one in use, not the next); a click on it, or `l` with the Pane focused, cycles Card → Compact → Timeline → Card. The choice is written to `$.store` at once, and a failed write still switches this time; a value not known reads as Card. A switch anchors on the selected group (with a selection cursor) or the Current position's group, the anchored group stays in the visible window afterwards, and following or pausing stays as it was. No command argument, no `v`. The focus ring's order is the filter Buttons, the entries, the Layout Button.
+- **Time rail**: all three Layouts hang entries on a rail. The user side's first line is a node `●` (`inactive`), the Agent side's first line a branch `├╴`, continuation lines and the gaps between groups on one day `│` (all `subtle`); the Current position's group becomes `◉`, `┣╸`, `┃`, in `suggestion` along with the time. An Agent side in progress adds `◐` (`claude`) after the branch. A side without a Jump target hangs on a hollow mark: `○` for the user side, `├┄` for the Agent side (`subtle`), the user side's text dim. Where the day changes (the list's first group included) a row `─ <day> ───` goes before the group, and the gap after the group before it draws no rail.
+- **How the three Layouts draw**: each entry is a column `Box`: the day's rule (if any); a row with the time column on the left (Compact and Timeline, 6 columns `HH:MM `) and the rail column (one `Text` per line, 3 columns), 2 more columns `◐ ` when running, and a column of Buttons on the right; the gap between groups. **Every line** of an entry's side is a `plain` Button holding that line's string, all lines of a side sharing one `onPress`; keys `<entry key>` and `<entry key>.<line>`; `hover: { scope: 'e-<entry key>', color: 'suggestion' }`, so the whole side changes colour on hover (the line right under the pointer is still drawn inverse by the host).
+  - **Card**: no time column; the user side up to 2 lines, `HH:MM` at the first line's right end (a dim `Text`, 6 columns kept on the first line); the Agent side one run "state · last text", all `dimColor`, up to 2 lines. No head line.
+  - **Compact**: one line a side, the time in the time column of the group's first side shown.
+  - **Timeline**: up to 2 lines a side, the time as in Compact.
+  - The plugin folds and truncates on its own: by terminal cell width (full-width characters take 2), closing punctuation never starts a line (the previous line's last character comes down with it), English words and paths up to 14 characters move down whole, and a fold at a space drops that space; the 2nd line (Compact: the 1st) ends with `…`. Button does not fold for you.
+- **Other surfaces**: when `e.surface` is not `terminal` (Desktop, VS Code, mobile), another tree is drawn (ticket 36, from Desktop measurements): a segmented control at the top, whose well and the chosen item's block are an Svg (the block the size of the host's hover box), with the three filters as plain Buttons over it, without hotkeys; the Layout in a `Select` without a label (a plain Button cycling it where there is no Select); where there is `Svg`, a strip over the list, one bar per Turn group, as tall as its steps, the running group coloured, and a line under it with the first group's day and time, `N turns` and the last group's time; past 120 groups a bar stands for several. Entries fold as on the terminal, each line a plain Button (the user side normal, the Agent side dim), and the time, node, branch, rail and running mark on the left are one Svg, its height the lines × 19 px; the gaps between groups and the day's rules are Svgs too. A Box's width and height count cells on Desktop (a column about 8.2 px, a row about 19 px). Desktop refuses the plugin's scrolls of the transcript (`transcript not scrollable here`) and does not report `onScreen`: no highlight, no pause; a press on an entry says "The Claude app cannot jump to the conversation yet" and does not mark that side refused; if the host allows scrolling later, jumps work as usual.
+- **Keyboard**: with the Pane focused, ↑↓ move along the host's focus ring, the focus landing on an entry's first-line Button (its key the entry key); Enter is the same as a click; ↑↓ do not skip entries without a Jump target. 1/2/3 switch the View filter and `l` the Layout (hotkeys in a Pane can only hang on a drawn Button, so they work only while focused). The selection cursor is the host's inverse, plainly told apart from the `suggestion` highlight. A plugin cannot bind Tab or the arrow keys. (Decide the Layout switch's entry and default; Draw the three Layouts with label-only Buttons)
+- **Long sessions**: continuous scrolling, rendering on demand, no paging. Entries are cached per group (keyed by width, running, steps, state and last text), and the entry table is rebuilt only when the data, width, View filter or Layout change; the highlight and the cursor are laid over at draw time; only the visible window is drawn (a tree draws at most 100,000 characters); a table, not `findIndex`, finds a group's entries. (Measure the cost of reading and drawing a long session)
+- **Language** (ticket 37): every word drawn or said follows the system language: Chinese when the first set of `LC_ALL`, `LC_MESSAGES` and `LANG` starts with `zh`, English otherwise. The host has no locale API, so the plugin reads those variables once a load, at the first start event. Both word tables are in `hooks/text.ts`.
 
-### 8. 隐私
+### 8. Privacy
 
-- 不落盘、不建档案、不联网、没有采集同意流程。`$.store` 只存 View filter 和 Layout。prompt 原文只出现在 Pane 的绘制里，不进 `$.store`、插件数据目录、日志、错误文本和发布报告。（定稿兼容与验收契约 CT-SEC-001）
+- Nothing written to disk, no archive, never online, no consent flow. `$.store` holds only the View filter and the Layout. Prompt text appears only in what the Pane draws, never in `$.store`, the plugin's data folder, logs, error texts or release reports. (Finalise the compatibility and acceptance contract, CT-SEC-001)
 
-### 9. 性能（CT-PERF-001 阈值）
+### 9. Performance (CT-PERF-001 limits)
 
-在参考机器（本机 macOS）上，用 20 MiB 的 many（4432 轮）和 heavy（111 轮、大工具结果）两种 fixture，两个版本各跑 3 次，取 p95（3 次时即最大值）：
+On the reference machine (this macOS machine), with two 20 MiB fixtures, many (4432 turns) and heavy (111 turns, large tool results), three runs per version, the p95 (with 3 runs, the largest):
 
-| 项 | 阈值 |
+| Item | Limit |
 |---|---|
-| 首次出目录：TOC 比宿主 transcript 显示末轮晚 | ≤ 4 s |
-| 空闲时整份读取加重组 | ≤ 1 s |
-| 增量读取，单次 | ≤ 150 ms |
-| 追加一行到目录模型更新 | ≤ 1 s |
-| Pane 重画，插件自身计算 | ≤ 16 ms |
-| Pane 重画，含等宿主 | ≤ 100 ms |
-| Current position 每次计算 | ≤ 2 ms；3000 条残留在屏记录下 ≤ 5 ms |
-| 长会话连续滚动、跳转到首组和末组 | 必须能到达，不分页 |
+| First listing: the TOC after the host shows the last turn | ≤ 4 s |
+| Whole read and regroup when idle | ≤ 1 s |
+| Incremental read, each | ≤ 150 ms |
+| An appended row to the TOC model update | ≤ 1 s |
+| Pane redraw, the plugin's own work | ≤ 16 ms |
+| Pane redraw, waiting on the host included | ≤ 100 ms |
+| Current position, each computation | ≤ 2 ms; ≤ 5 ms under 3000 stale on-screen records |
+| Long session: continuous scrolling, jumps to the first and last groups | must reach, no paging |
 
-这些是发布证据，不是对所有硬件的 SLA。（实测长会话的读取与渲染开销）
+These are release evidence, not an SLA for every machine. (Measure the cost of reading and drawing a long session)
 
-### 10. 发布与文档
+### 10. Release and docs
 
-- **版本与证据**：首版 `0.1.0`，`plugin.json` 和 marketplace 条目两处都写。证据放 `mods/chat-toc/tests/evidence/<版本>/`，一个版本一个目录，每次改版本号都在新目录里重跑完整 MUST 门禁，旧目录不改；报告记录被测的提交哈希。目录里放 `report.md`（含人工目检签字）、`report.json`、`marketplace.md`；两个 Claude Code 版本合在一份报告里，按版本分列。不建 CHANGELOG。（决定首个版本的发布形态与文档）
-- **marketplace 条目**：
+- **Version and evidence**: first version `0.1.0`, written both in `plugin.json` and in the marketplace entry. Evidence goes in `mods/chat-toc/tests/evidence/<version>/`, one folder per version; every version bump reruns the full MUST gate in a new folder, and old folders are not changed; the report records the hash of the commit under test. The folder holds `report.md` (with the visual check's sign-off), `report.json` and `marketplace.md`; both Claude Code versions go in one report, a column each. No CHANGELOG. (Decide the first release's form and docs)
+- **Marketplace entry**:
 
   ```json
   {
@@ -179,59 +180,59 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，不依赖其他
   }
   ```
 
-  不加 `category`/`tags`。
-- **发布动作**：插件代码可以先合进 main，但 marketplace 条目、根 README 一览表的一行和 chat-toc 一节、`evidence/0.1.0/` 要放在**同一个发布提交**里，在全部 MUST 通过后最后提交。不打 git tag。发布前用本地目录 marketplace 跑 CT-COMPAT-002 冒烟（两个版本）；推上去后从 `lkangd/cc-mods` 做一次安装级检查（添加、安装、版本号、enabled、Pane 弹出），结果补进 `marketplace.md`；失败就撤回发布提交。
-- **根 README**：开头改成「每个 mod 是独立插件，互不依赖、不共享代码与数据，可以同时启用」；一览表新增 `chat-toc | 0.1.0 | 在对话右侧停靠当前会话的目录，点击跳回任意一轮`；新增 chat-toc 一节，依次是：作用、环境要求（`>=2.1.287`、交互式终端、全屏、终端足够宽、**不需要** `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS`、OS 不限但只在 macOS 实测）、安装（二选一不同时启用）、快速开始、操作（表格）、显示规则、数据与隐私、卸载（含残留 `$.store` 文件位置）、已知限制（即下文 Out of Scope 中的「不承诺」八条，改写成面向使用者的话）、开发（链接与 0.1.0 通过结果）。用界面上的字，不用 Turn group、Current position 等内部术语。
-- **`mods/chat-toc/README.md`**：只写开发者内容：链接到根 README 和 `CONTEXT.md`；目录结构；本地加载；`claude plugin test` 的跑法；cmux PTY 验收；证据目录约定；发布清单（两个版本跑全部 MUST → 本地目录 marketplace 冒烟 → 人工目检签字 → 发布提交 → GitHub 安装级检查 → 失败就撤回）。
+  No `category`/`tags`.
+- **Releasing**: the plugin code may go into main first, but the marketplace entry, the root README table's row and the chat-toc section, and `evidence/0.1.0/` go into **one release commit**, committed last once every MUST passes. No git tag. Before the release, run the CT-COMPAT-002 smoke from a local folder marketplace (both versions); after pushing, run an install-level check from `lkangd/cc-mods` (add, install, version, enabled, the Pane opening) and add the result to `marketplace.md`; withdraw the release commit on failure.
+- **Root README**: opens with "each mod is its own plugin; none depends on another or shares code or data, and they can be enabled together"; the table gains `chat-toc | 0.1.0 | Docks the current session's contents beside the conversation; a click jumps back to any turn`; a new chat-toc section, in order: what it does, requirements (`>=2.1.287`, an interactive terminal, fullscreen, a wide enough terminal, `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` **not** needed, any OS but tested on macOS only), install (one of two, never both), getting started, controls (a table), what it shows, data and privacy, uninstall (with where the leftover `$.store` file is), known limits (the eight "not promised" items under Out of Scope below, rewritten for users), development (links and the 0.1.0 passing results). In the words on screen, not internal terms like Turn group or Current position.
+- **`mods/chat-toc/README.md`**: developer content only: links to the root README and `CONTEXT.md`; the folder layout; loading it locally; how to run `claude plugin test`; cmux PTY acceptance; the evidence folder's conventions; the release checklist (every MUST on both versions → local folder marketplace smoke → visual check sign-off → release commit → GitHub install-level check → withdraw on failure).
 
 ## Testing Decisions
 
-1. **规范等级与门禁**（定稿兼容与验收契约）
-   - MUST 是发布阻断：任一场景失败、缺失、跳过，或没有可追溯证据，都不能发布。「明确降级」的替代路径本身也是 MUST。「不承诺」必须事先写进 README 或界面提示。
-   - 每次发布在本机 macOS 上分别用 2.1.287 和当时的当前版本跑一遍全部 MUST；完整场景用 `--plugin-dir`，marketplace 只跑 CT-COMPAT-002 冒烟。报告记录 OS 和架构，只作样本。
-   - 场景 ID 格式 `CT-<组>-NNN`；完整清单（COMPAT 001–003、DATA 001–006、TURN 001–005、LIFE 001–006、UI 001–003、JUMP 001–003、POS 001–003、PERF 001、SEC 001、COEX 001）以「定稿兼容与验收契约」§4 为准，本文不复写。
+1. **Levels and the gate** (Finalise the compatibility and acceptance contract)
+   - MUST blocks a release: any scenario that fails, is missing, is skipped or has no traceable evidence stops it. A "stated fallback"'s alternative path is itself a MUST. "Not promised" must be written into the README or the on-screen notes beforehand.
+   - Each release runs every MUST on this macOS machine, once on 2.1.287 and once on the current version of the day; full scenarios under `--plugin-dir`, the marketplace only for the CT-COMPAT-002 smoke. The report records the OS and architecture, as a sample only.
+   - Scenario IDs are `CT-<group>-NNN`; the full list (COMPAT 001–003, DATA 001–006, TURN 001–005, LIFE 001–006, UI 001–003, JUMP 001–003, POS 001–003, PERF 001, SEC 001, COEX 001) follows "Finalise the compatibility and acceptance contract" §4 and is not repeated here.
 
-2. **第一层：自动化测试（`claude plugin test`）**
-   - 用 `claude plugin test` 和 `claude-code/testing` test kit 触发事件、给宿主调用打桩、检查绘制结果；纯函数用同一套件的普通 `test()`。只要求在当前版本上通过。
-   - 覆盖：开组规则（含 `system/local_command`、`!cmd`、不开组的各种行）；对话链取行（compact 边界、rewind 分支）；步数与末段；`requestId` 到行的四级匹配；Current position 的连续段算法与二分查找；兜底跳转的候选顺序；分块边界（包括跨 4 MiB 块的半行、单行超过一块）；增量重组与整份重组逐组一致；`$.store` 记忆与认不出的值回退；截断与单元宽度。
-   - Linux 与 Windows 的分块读取：只用 `$.process.run` 替身核对命令构造与输出解析。
+2. **Layer one: automated tests (`claude plugin test`)**
+   - `claude plugin test` and the `claude-code/testing` test kit fire events, stub host calls and check what is drawn; pure functions use plain `test()` in the same suite. Only the current version must pass.
+   - Covered: the group-opening rules (including `system/local_command`, `!cmd` and the rows that open none); taking rows along the conversation chain (compaction boundaries, rewind branches); steps and the last text; the four-step `requestId` → row match; the Current position's run algorithm and binary search; the fallback jump's candidate order; chunk edges (including a half row across a 4 MiB chunk and a row longer than a chunk); incremental and whole regrouping agreeing group by group; `$.store` memory and the fallback for a value not known; truncation and cell widths; the words in both languages.
+   - Chunked reads on Linux and Windows: only the command built and the output parsed, checked against a `$.process.run` stand-in.
 
-3. **第二层：真实宿主 PTY 验收（cmux 驱动）**
-   - 覆盖弹出与关闭、停靠阈值与状态栏、点击和 Enter 跳转、高亮锁定、`/clear`、compact、rewind、resume、fork、热重载、与 `/diff` 共存、20 MiB fixture 的性能。
-   - 合成 transcript 用 `--resume` 打开，尽量不调用模型；只用合成 prompt，不含真实会话内容。可沿用各票 `assets/` 里的 fixture 生成器与 pyte 驱动。
+3. **Layer two: PTY acceptance in the real host (driven by cmux)**
+   - Covers opening and closing, the dock threshold and the status line, click and Enter jumps, the highlight lock, `/clear`, compaction, rewind, resume, fork, hot reload, sharing the dock with `/diff`, and performance on 20 MiB fixtures.
+   - Synthetic transcripts are opened with `--resume`, calling a model as little as possible; synthetic prompts only, no real conversation content. The fixture generators and pyte drivers in the tickets' `assets/` can be reused.
 
-4. **一致性判据：独立 verifier**
-   - 直接沿 transcript 文件的对话链算出期望的 Turn group 序列，再与 Pane 实际列出的条目比对。生命周期与分支类场景都以它为判据，不与插件共享实现。
+4. **The consistency oracle: an independent verifier**
+   - Works out the expected Turn group sequence straight from the transcript file's conversation chain and compares it with the entries the Pane lists. Lifecycle and branch scenarios are all judged by it, sharing no code with the plugin.
 
-5. **第三层：人工目检**
-   - 只看三种 Layout 的观感，以及青色高亮和反色光标能否分清。在 `report.md` 里签字，不是 MUST。
+5. **Layer three: a visual check**
+   - Only how the three Layouts look, and whether the cyan highlight and the inverse cursor tell apart. Signed in `report.md`; not a MUST.
 
-6. **发布报告**
-   - 字段：插件版本、Claude Code 版本、OS、架构、fixture、场景 ID、预期、实际、结果、证据链接；另记被测提交哈希。位置与文件见 Implementation Decisions §10。
+6. **The release report**
+   - Fields: plugin version, Claude Code version, OS, architecture, fixture, scenario ID, expected, actual, result, evidence links; plus the hash of the commit under test. Where it goes and its files: Implementation Decisions §10.
 
 ## Out of Scope
 
-**不在本 MVP 内**（地图 Out of scope）：
+**Not in this MVP** (the map's Out of scope):
 
-- 持久档案、跨会话历史、采集同意。
-- inline 放置（输入框上方）作为自动弹出的降级形态（`/chat-toc` 主动打开时宿主放成 inline 除外）。
-- Desktop、VS Code、JetBrains、移动端等非终端表面。
-- 子 agent（sidechain）内容进 TOC。
-- cc-switch 顶部的搜索、导出、「改动」视图。
+- A persistent archive, cross-session history, consent to collect.
+- An inline placement (above the prompt) as a fallback for opening by itself (except when the person opens it with `/chat-toc` and the host places it inline).
+- Desktop, VS Code, JetBrains, mobile and other non-terminal surfaces.
+- Subagent (sidechain) content in the TOC.
+- cc-switch's search, export and "changes" view at the top.
 
-**不承诺**（写进 README 已知限制；定稿兼容与验收契约 §5 及其后续修订）：
+**Not promised** (written into the README's known limits; Finalise the compatibility and acceptance contract §5 and its later revisions):
 
-1. Claude Code `<2.1.287`：不检测、不提示；也不承诺非全屏布局下的 inline 放置。Desktop 上不能跳转、没有 Current position（宿主限制，见 anthropics/claude-code#100610），观感由使用者在 Claude 应用里目检；VS Code、移动端的绘制只经过元素树测试；不支持 JetBrains。
-2. Linux 与 Windows 只经过命令构造测试，未在真实系统上验收；Windows 只用 Windows PowerShell 5.1。
-3. transcript 文件格式未公开，宿主改格式后目录可能显示不全，由 CT-DATA-003 提示。
-4. 不保证能跳到 rewind 被弃的分支，也不保证能跳到 resume 前已被 compact 的行。
-5. rewind 之后、下一次提交之前，目录可能仍显示被弃的条目。
-6. 人工目检项（Layout 观感、颜色能否分清）不是发布阻断。
-7. 不对所有硬件承诺固定的延迟 SLA；CT-PERF 阈值只是参考机器上的发布证据。
-8. `/chat-toc` 在不能停靠时打开的 inline 形态：排版、跟随与高亮未经验收。
+1. Claude Code `<2.1.287`: no check, no notice; nor an inline placement outside the fullscreen layout. On Desktop no jumps and no Current position (a host limit, see anthropics/claude-code#100610), how it looks checked by the user in the Claude app; VS Code and mobile drawing covered by element-tree tests only; JetBrains not supported.
+2. Linux and Windows are covered only by tests of the commands built, not accepted on real systems; Windows uses only Windows PowerShell 5.1.
+3. The transcript file format is unpublished; if the host changes it the contents may show only in part, as CT-DATA-003 says.
+4. Jumps into a branch thrown away by a rewind, or to rows compacted before a resume, are not guaranteed.
+5. After a rewind and before the next submit, the contents may still show the thrown-away entries.
+6. The visual check (how the Layouts look, whether the colours tell apart) does not block a release.
+7. No fixed latency SLA for every machine; the CT-PERF limits are release evidence on the reference machine only.
+8. The inline form `/chat-toc` opens where it cannot dock: layout, following and highlight not accepted.
 
 ## Further Notes
 
-- **参考实现**：官方内置 mod `cc-plugin-diff`（anthropics/claude-code@e47cc82 `mods/diff/`）的自动弹出、记住关闭、只在 dock 时自动打开、自管滚动，形状与 chat-toc 几乎一致。交互参考 cc-switch 的「对话目录」，但不照搬它的斜杠命令隐藏、混合步数口径和过滤后点击静默无反应。
-- **原型与探针**：各票的原型 mod、驱动脚本、fixture 生成器在 `.scratch/chat-toc/assets/` 下，可直接复用为 PTY 验收素材；原型分支 `prototype/chat-toc-pane` 与 `research/chat-toc-*` 分支不合并。
-- **CT-COMPAT-003 的修订**：自动弹出时不出现 inline；`/chat-toc` 在不能停靠时出现 inline Pane 并列出条目；停靠后变窄被改成 inline 时插件关掉 Pane、状态栏说明、条件恢复后再自动打开。见「定稿兼容与验收契约」的后续修订。
+- **Reference implementation**: the official built-in mod `cc-plugin-diff` (anthropics/claude-code@e47cc82 `mods/diff/`) opens by itself, remembers a close, opens by itself only when docked and scrolls on its own, almost the same shape as chat-toc. The interaction follows cc-switch's "conversation contents", but not its hidden slash commands, mixed step counts or silent clicks under a filter.
+- **Prototypes and probes**: the tickets' prototype mods, driver scripts and fixture generators are under `.scratch/chat-toc/assets/`, reusable as PTY acceptance material; the prototype branch `prototype/chat-toc-pane` and the `research/chat-toc-*` branches are not merged.
+- **CT-COMPAT-003's revision**: no inline when opening by itself; `/chat-toc` where it cannot dock shows an inline Pane listing the entries; when a docked Pane is made inline by narrowing, the plugin closes it, the status line says why, and it opens by itself again once the condition is back. See the later revisions of "Finalise the compatibility and acceptance contract".

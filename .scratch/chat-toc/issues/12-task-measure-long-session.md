@@ -1,4 +1,4 @@
-# 实测长会话的读取与渲染开销
+# Measure the cost of reading and drawing a long session
 
 Type: task
 Status: resolved
@@ -6,96 +6,96 @@ Blocked by:
 
 ## Question
 
-在本机 Claude Code 当前版本上，用合成的 20 MB 级 transcript（几千个 Turn group）实测以下各项，并据此提出 `CT-PERF-001` 的 p95 阈值，经使用者确认：
-- 首次解析并出目录的耗时；
-- 按偏移增量分块读取的耗时（4 MiB 块，含 macOS `tail`/`head` 路径）；
-- 重读的触发与节流方式（turn 事件、文件 `stat` 变化），以及进行中的轮连续追加时的开销；
-- Pane 只画可见窗口时每次重画的耗时；
-- Current position 的连续段计算在几千行在屏记录下的耗时。
+On the local Claude Code's current version, use a synthetic 20 MB-class transcript (thousands of Turn groups) to measure the items below, and from them propose the p95 thresholds for `CT-PERF-001`, to be confirmed by the user:
+- the time to first parse and produce the contents;
+- the time of incremental reads in chunks by offset (4 MiB chunks, including the macOS `tail`/`head` path);
+- how a reread is triggered and throttled (turn events, changes in the file's `stat`), and the cost while a running turn keeps appending;
+- the time of each redraw when the Pane draws only the visible window;
+- the time of the Current position's contiguous-run computation over thousands of on-screen records.
 
-参考样本：原型在 300 轮、1.5 MB 上测得整份读取加解析 9–49 ms、冷启动 376 ms、每次重画约 7.5 ms（见「原型验证停靠 TOC Pane 的外观与交互」）。
+Reference sample: on 300 turns and 1.5 MB the prototype measured 9–49 ms for a whole read plus parse, 376 ms for a cold start, and about 7.5 ms a redraw (see "Prototype the docked TOC Pane's look and interaction").
 
 ## Answer
 
-**结论：20 MB 级 transcript 在两个版本上都够快，前提是换掉原型的四处做法：分块读取改用 `dd` 定位加 `head`，文件只增长时只重组末组，条目按组缓存、只画可见窗口，Current position 改用二分查找。`CT-PERF-001` 的阈值按下表定，使用者已确认（2026-10-09）。** 另外两项实测发现：macOS 的 `tail -c +N` 很慢；2.1.287 的 `Button` 只收 `label`，原型的卡片条目在最低版本上直接报错。后者升格为新票「用只收 label 的 Button 画三种 Layout」。
+**Verdict: a 20 MB-class transcript is fast enough on both versions, provided four things in the prototype are replaced: chunked reads use `dd` to position plus `head`; when the file only grows, only the last group is regrouped; entries are cached per group and only the visible window is drawn; the Current position uses a binary search. The `CT-PERF-001` thresholds are set as in the table below, and the user confirmed them (2026-10-09).** Two more findings: macOS `tail -c +N` is slow; and on 2.1.287 `Button` takes only `label`, so the prototype's card entries simply error on the minimum version. The latter was raised to a new ticket, "Draw the three Layouts with label-only Buttons".
 
-### 怎么测的
+### How it was measured
 
-- 探针 mod `toc-perf`，从原型改出，把各段耗时记进日志。资产在 [assets/12-long-session/](../assets/12-long-session/)：探针源码、fixture 生成器 `gen12.py`、追加器 `append12.py`、无头 PTY 驱动 `drv.py`（pyte）、`bench12.py`、汇总脚本 `agg12.py`、`results.jsonl`、`summary.jsonl`、逐次日志 `logs/`。
-- 本机 macOS，Claude Code 2.1.295 和 npm 装的 2.1.287。用 `--resume` 打开合成会话，170×44 全屏，关掉本机全部插件，全程不调用模型。
-- 两种 fixture，都是 20 MiB：
-  - **many**：4432 轮，2.5 万行，用来压组数；
-  - **heavy**：111 轮，8 千行，工具结果 1–200 KB，带 attachment 行。形状照本机最大的真实 transcript（20 MiB、7615 行、11 个 prompt）。
-- 每次运行的步骤：冷启动 resume，滚 transcript 上下各 150 格，滚 TOC 160 格，跳到第 1 组，快速下滚 400 格留下残留的在屏记录，`cpstress 3000`，`panestress`，空闲时整份重读，外部追加 3 轮（每轮 10 步、每 150 ms 一行），跳到末组。
-- 推荐方案每个版本每种 fixture 跑 3 次。原型方案（整表重建、线性 Current position、`tail|head`、整份重组）每个版本每种 fixture 跑 1 次作对照。外部追加没有宿主事件，探针改用 300 ms 一次的 `stat` 轮询触发。
+- The probe mod `toc-perf`, adapted from the prototype, logs the time of each stage. The assets are in [assets/12-long-session/](../assets/12-long-session/): the probe source, the fixture generator `gen12.py`, the appender `append12.py`, the headless PTY driver `drv.py` (pyte), `bench12.py`, the summary script `agg12.py`, `results.jsonl`, `summary.jsonl` and the per-run logs `logs/`.
+- Local macOS, Claude Code 2.1.295 and 2.1.287 installed with npm. The synthetic session was opened with `--resume`, 170×44 fullscreen, all local plugins turned off, no model call at all.
+- Two fixtures, both 20 MiB:
+  - **many**: 4432 turns, 25 thousand rows, to stress the group count;
+  - **heavy**: 111 turns, 8 thousand rows, tool results of 1–200 KB, with attachment rows. Its shape follows the largest real transcript on this machine (20 MiB, 7615 rows, 11 prompts).
+- Steps of each run: cold start with resume, scroll the transcript 150 notches up and down, scroll the TOC 160 notches, jump to the first group, wheel down 400 notches quickly to leave stale on-screen records, `cpstress 3000`, `panestress`, a whole reread while idle, append 3 turns from outside (10 steps each, one row every 150 ms), jump to the last group.
+- The recommended approach ran 3 times per version per fixture. The prototype approach (whole table rebuild, linear Current position, `tail|head`, whole regroup) ran once per version per fixture as a comparison. An external append has no host event, so the probe is triggered by a `stat` poll every 300 ms.
 
-### 结果（推荐方案）
+### Results (recommended approach)
 
-| 指标 | 2.1.295 | 2.1.287 | 原型方案 |
+| Metric | 2.1.295 | 2.1.287 | Prototype approach |
 |---|---|---|---|
-| TOC 比宿主 transcript 晚出现 | 0.44–1.11 s | 0.57–2.78 s | 1.11–2.17 s |
-| 启动时首次读取加解析（与宿主 resume 争抢） | 0.48–1.44 s | 0.64–2.59 s | 1.15–2.12 s |
-| 空闲时整份读取 20 MB | 0.20–0.52 s | 0.21–0.70 s | 1.01–1.93 s |
-| 单块 `dd`+`head`（4,000,000 B，空闲，中位） | 24–29 ms | 26–30 ms | `tail\|head` 164–281 ms |
-| 解析（JSON.parse 全部行） | 17–61 ms | 27–85 ms | 同 |
-| 整份重组：链加分组 | many 62–146 ms，heavy 5–11 ms | many 66–126 ms，heavy 5–119 ms | 同 |
-| 增量读取，单次 p50 / p95 | 25–35 / 65–68 ms | 30–31 / 67–70 ms | 31–94 / 64–199 ms |
-| 其中只续接末组的重组 p95 | 0.25–0.58 ms | 0.38–0.49 ms | 整份重组 11–142 ms |
-| 外部追加一行到目录模型更新，p50 / p95 | 约 150 / 300 ms | 约 157 / 302 ms | 同（受 300 ms 触发周期主导） |
-| Pane 重画，插件自身计算 p95 | 0.9–3.6 ms | 1.3–3.4 ms | 4.2–66 ms |
-| Pane 重画，含等宿主（`read`、`$.store.get`）p95 | 14–44 ms | 29–38 ms | 29–362 ms |
-| Current position 每次计算 p95 | 0.03–0.13 ms | 0.03–0.15 ms | 0.4–2.1 ms |
-| 3000 条残留在屏记录下 p50 / p95 | 0.5 / ≤1 ms（heavy 0.07） | 0.5 / 0.8 ms | 10–16 / 17–32 ms |
-| transcript render hook 每次 p95 | 0.06–0.2 ms | 0.07–0.2 ms | 0.4–1.9 ms |
-| 空闲 `fs.stat` p50 / p95 | 0.4–0.5 / 9–16 ms | 0.5–0.6 / 13–17 ms | 同 |
+| TOC appears later than the host's transcript | 0.44–1.11 s | 0.57–2.78 s | 1.11–2.17 s |
+| First read plus parse at start (competing with the host's resume) | 0.48–1.44 s | 0.64–2.59 s | 1.15–2.12 s |
+| Whole 20 MB read while idle | 0.20–0.52 s | 0.21–0.70 s | 1.01–1.93 s |
+| One `dd`+`head` chunk (4,000,000 B, idle, median) | 24–29 ms | 26–30 ms | `tail\|head` 164–281 ms |
+| Parse (JSON.parse of all rows) | 17–61 ms | 27–85 ms | same |
+| Whole regroup: chain plus grouping | many 62–146 ms, heavy 5–11 ms | many 66–126 ms, heavy 5–119 ms | same |
+| Incremental read, single, p50 / p95 | 25–35 / 65–68 ms | 30–31 / 67–70 ms | 31–94 / 64–199 ms |
+| Of which regroup that only continues the last group, p95 | 0.25–0.58 ms | 0.38–0.49 ms | whole regroup 11–142 ms |
+| External append of a row to the contents model updating, p50 / p95 | about 150 / 300 ms | about 157 / 302 ms | same (dominated by the 300 ms trigger period) |
+| Pane redraw, the plugin's own computation, p95 | 0.9–3.6 ms | 1.3–3.4 ms | 4.2–66 ms |
+| Pane redraw, including waiting for the host (`read`, `$.store.get`), p95 | 14–44 ms | 29–38 ms | 29–362 ms |
+| Current position, each computation, p95 | 0.03–0.13 ms | 0.03–0.15 ms | 0.4–2.1 ms |
+| With 3000 stale on-screen records, p50 / p95 | 0.5 / ≤1 ms (heavy 0.07) | 0.5 / 0.8 ms | 10–16 / 17–32 ms |
+| Transcript render hook, each, p95 | 0.06–0.2 ms | 0.07–0.2 ms | 0.4–1.9 ms |
+| Idle `fs.stat`, p50 / p95 | 0.4–0.5 / 9–16 ms | 0.5–0.6 / 13–17 ms | same |
 
-- 两个版本上，跳到第 1 组、跳到末组都能到达（虚拟化的 transcript 也一样）；`ui.scroll` 本身 36–236 ms。增量结果每次都与整份重组逐组一致（verify 全部为真），无法识别的行为 0。
-- 启动时的长尾来自与宿主争抢：前 1–2 块常在 0.2–1 s，之后的块回到 20–50 ms。2.1.287 尤其明显，heavy 有两次各 2.6 s。
-- Pane 总耗时的 p95 主要花在等宿主（`read(atom)`、`$.store.get`），不是插件自己的计算；缓存命中时自身计算接近 0。缓存未命中时的最长一次是 many 下 98–102 ms（数据变化后第一次重画）。
-- 关于「2.1.295 用 label 画」：对照的 1 次运行与子节点画法的数字在同一区间。
+- On both versions, jumping to the first group and to the last group both arrive (also with a virtualised transcript); `ui.scroll` itself takes 36–236 ms. The incremental result agreed with the whole regroup group by group every time (verify all true), and unrecognized rows were 0.
+- The long tail at start comes from competing with the host: the first 1–2 chunks are often 0.2–1 s, and later chunks go back to 20–50 ms. It is most visible on 2.1.287, where heavy had two runs of 2.6 s each.
+- The p95 of the Pane's total time goes mostly to waiting for the host (`read(atom)`, `$.store.get`), not to the plugin's own computation; on a cache hit its own computation is close to 0. The longest cache miss was 98–102 ms under many (the first redraw after the data changed).
+- On "2.1.295 drawing with label": the 1 comparison run was in the same range as the numbers of the child-node way of drawing.
 
-### 定下的实现做法（供规格引用）
+### The implementation settled on (for the spec to cite)
 
-1. **读取**：
-   - 第一次读，且文件不超过 4 MiB 时，用 `$.fs.read`；
-   - 其余情况在 macOS/Linux 用 `sh -c '{ dd bs=1 skip="$1" count=0 2>/dev/null; head -c "$3"; } < "$2"'` 从字节偏移读 4,000,000 B。`dd` 对可定位的输入只做 lseek，所以很快；`head` 接着同一个文件描述符读。输出与 `tail -c +N | head -c M` 逐字节相同。
-   - 每块截到最后一个换行，偏移加上保留部分的 UTF-8 字节数；文件变小时整份重读。
-   - 单行超过一块（无换行）的情况没测：规格里按「无法识别的行」计数（`CT-DATA-003`），并跳过这一行。
-   - Windows 仍按「定义 Turn group 的划分与边界」的 PowerShell 5.1 做法，只做命令构造测试。
-2. **重组**：从新叶子往回走，碰到旧链末行，说明文件只在当前分支上增长：保留旧链，从末组的开组行起重组。碰不到时（rewind 的新分支、`/clear`）整份重组。`requestId` 映射也只为新行补前缀表、重试之前没解析出来的 id。
-3. **触发与节流**（使用者选定）：
-   - `session.append`（只看主循环，没有 `agentId` 的行）和 `turn.complete` 触发；
-   - 尾随 300 ms 读一次，正在读时合并成一次；
-   - `fs.stat` 大小没变就跳过；
-   - `turn.complete` 后在 +1.5 s 再查一次，兜住文件落后写入；
-   - 不做周期轮询。
-4. **Pane**：
-   - 条目按组缓存（键是宽度、进行中、步数、状态、末段），只在数据、宽度、View filter、Layout 变化时重建条目表；
-   - 高亮和光标在绘制时才叠加；
-   - 只画可见窗口；组到条目的定位用表，不用 `findIndex`。
-5. **Current position**：在屏记录报 `null` 就删掉，不留着当 off；可绘制行（站点行和画出过的行）的有序数组在读完和新行画出时才重建；相邻两个在屏行之间有没有可绘制行，用二分查找判断。结果与原型算法一致（cpstress 两种算法选出的组相同）。
+1. **Reading**:
+   - The first read, when the file is no larger than 4 MiB, uses `$.fs.read`;
+   - otherwise on macOS/Linux, read 4,000,000 B from the byte offset with `sh -c '{ dd bs=1 skip="$1" count=0 2>/dev/null; head -c "$3"; } < "$2"'`. For a seekable input `dd` only does an lseek, so it is fast; `head` then reads on from the same file descriptor. The output is byte for byte the same as `tail -c +N | head -c M`.
+   - Each chunk is cut at the last newline, and the offset advances by the UTF-8 bytes of the part kept; when the file shrinks, reread the whole file.
+   - A single row longer than a chunk (no newline) was not measured: the spec counts it as an "unrecognized line" (`CT-DATA-003`) and skips that row.
+   - Windows still follows the PowerShell 5.1 way in "Define the Turn group's split and edges", with only command-construction tests.
+2. **Regrouping**: walk back from the new leaf; if it meets the old chain's last row, the file only grew on the current branch: keep the old chain and regroup from the last group's opening row. If it does not meet it (a rewind's new branch, `/clear`), regroup the whole file. The `requestId` map likewise adds the prefix table only for the new rows and retries the ids that did not resolve before.
+3. **Trigger and throttle** (chosen by the user):
+   - `session.append` (main loop only, rows without an `agentId`) and `turn.complete` trigger a read;
+   - read once after a trailing 300 ms, merged into one when a read is running;
+   - skip when the `fs.stat` size did not change;
+   - after `turn.complete`, check once more at +1.5 s, to catch a file that is written late;
+   - no periodic polling.
+4. **Pane**:
+   - Entries are cached per group (the key is width, running, steps, state, last text), and the entry table is rebuilt only when the data, width, View filter or Layout change;
+   - the highlight and the cursor are overlaid only at draw time;
+   - only the visible window is drawn; the group-to-entry lookup uses a table, not `findIndex`.
+5. **Current position**: an on-screen record that reports `null` is deleted, not kept as off; the ordered array of drawable rows (site rows and rows that have been drawn) is rebuilt only after a read and when a new row is drawn; whether a drawable row lies between two adjacent on-screen rows is judged with a binary search. The result agrees with the prototype algorithm (cpstress picked the same groups with both algorithms).
 
-### `CT-PERF-001` 阈值（使用者确认的宽松档，约为最差实测的 1.4 倍）
+### `CT-PERF-001` thresholds (the looser tier the user confirmed, about 1.4 times the worst measured)
 
-在参考机器（本机 macOS）上，用 20 MiB 的 many 和 heavy 两种 fixture，两个版本各跑 3 次，取 p95（3 次时即最大值）：
+On the reference machine (this macOS machine), with the 20 MiB many and heavy fixtures, 3 runs per version, taking p95 (the maximum with 3 runs):
 
-| 项 | 阈值 |
+| Item | Threshold |
 |---|---|
-| 首次出目录：TOC 出现的时刻比宿主 transcript 显示末轮的时刻晚 | ≤ 4 s |
-| 空闲时整份读取加重组（重读或 resume） | ≤ 1 s |
-| 增量读取，单次 | ≤ 150 ms |
-| 追加一行到目录模型更新 | ≤ 1 s |
-| Pane 重画，插件自身计算 | ≤ 16 ms |
-| Pane 重画，含等宿主 | ≤ 100 ms |
-| Current position 每次计算 | ≤ 2 ms；3000 条残留在屏记录下 ≤ 5 ms |
-| 长会话连续滚动、跳转能到达首组和末组 | 必须，不分页 |
+| First contents: the moment the TOC appears is later than the moment the host's transcript shows the last turn by | ≤ 4 s |
+| Whole read plus regroup while idle (reread or resume) | ≤ 1 s |
+| Incremental read, single | ≤ 150 ms |
+| Appending a row to the contents model updating | ≤ 1 s |
+| Pane redraw, the plugin's own computation | ≤ 16 ms |
+| Pane redraw, including waiting for the host | ≤ 100 ms |
+| Current position, each computation | ≤ 2 ms; with 3000 stale on-screen records ≤ 5 ms |
+| Continuous scrolling and jumps in a long session reach the first and the last group | Must, no paging |
 
-这些阈值只是发布证据，不是对所有硬件的 SLA（见「定稿兼容与验收契约」的不承诺清单）。
+These thresholds are release evidence only, not an SLA for all hardware (see the not-promised list in "Finalise the compatibility and acceptance contract").
 
-### 实测发现
+### Findings
 
-- **macOS 的 `tail -c +N` 很慢**：每 4 MB 约 140–260 ms，换成 `dd` 定位加 `head` 后为 16–48 ms。这改动了 map Notes 与「定义 Turn group 的划分与边界」里的 `tail`/`head` 口径。
-- **2.1.287 的 `Button` 只收 `label` 或一个字符串子节点**：原型用多个 `Text` 子节点画卡片，在 2.1.287 上报 `JSX element <Button> needs a label`，Pane 整个画不出来。2.1.295 允许子节点。
-  - 多行 `label` 在 2.1.287 上能画；高亮竖条放在 `Button` 旁边单独的 `Text` 里可行。代价是同一个条目里不能再分暗色头行和正文。
-  - 已升格为新票「用只收 label 的 Button 画三种 Layout」，它挡住「决定 Layout 的切换入口与默认值」。
-- 本机 `/tp` 是内置 `/teleport`，插件注册会被拒。正式命令 `/chat-toc` 不受影响。
+- **macOS `tail -c +N` is slow**: about 140–260 ms per 4 MB, and 16–48 ms after switching to `dd` to position plus `head`. This changes the `tail`/`head` wording in the map Notes and in "Define the Turn group's split and edges".
+- **On 2.1.287, `Button` takes only a `label` or one string child**: the prototype drew cards with several `Text` children, which on 2.1.287 reports `JSX element <Button> needs a label`, and the Pane cannot be drawn at all. 2.1.295 allows children.
+  - A multi-line `label` draws on 2.1.287; a highlight bar in a separate `Text` beside the `Button` works. The cost is that one entry can no longer have a dim header line and a body.
+  - Raised to the new ticket "Draw the three Layouts with label-only Buttons", which blocks "Decide the Layout switch's entry and default".
+- `/tp` on this machine is the built-in `/teleport`, so a plugin registering it is refused. The real command `/chat-toc` is not affected.

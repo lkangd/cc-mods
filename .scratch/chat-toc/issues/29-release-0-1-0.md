@@ -1,25 +1,25 @@
-# 29: 0.1.0 发布门禁与发布
+# 29: The 0.1.0 release gate and release
 
-**What to build:** chat-toc 0.1.0 在两个 Claude Code 版本上通过全部 MUST，带着可追溯的证据出现在 marketplace 和根 README 里，并在发布后从 GitHub 安装验证一次。
+**What to build:** chat-toc 0.1.0 passes every MUST on two Claude Code versions, appears in the marketplace and the root README with traceable evidence, and is verified once by installing from GitHub after release.
 
-规格见 [chat-toc MVP](../spec.md) §10 与「Testing Decisions」。
+For the spec, see [chat-toc MVP](../spec.md) §10 and "Testing Decisions".
 
-**Blocked by:** 27（长会话性能）、28（用户文档与开发文档）
+**Blocked by:** 27 (Long-session performance), 28 (User docs and developer docs)
 
 **Status:** resolved
 
-- [ ] 证据目录（按插件版本）含 `report.md`（含人工目检签字）、`report.json`（插件版本、Claude Code 版本、OS、架构、fixture、场景 ID、预期、实际、结果、证据链接、提交哈希）、`marketplace.md`
-- [x] 2.1.287 与当时的当前版本各跑一遍「定稿兼容与验收契约」全部 MUST，零失败零缺失零跳过（CT-COMPAT-001 等）
-- [x] CT-SEC-001：合成唯一标记 prompt 只出现在 Pane 绘制里，不出现在 `$.store`、插件数据目录、日志、错误文本、发布报告
-- [x] 发布前用本地目录 marketplace 在两个版本上跑 CT-COMPAT-002 冒烟
-- [ ] 人工目检签字（三种 Layout 观感、高亮与光标可分清），不阻断
-- [x] marketplace 条目（`chat-toc`、`./mods/chat-toc`、英文描述、`0.1.0`、`chat-toc contributors`，无 category/tags）、根 README 那一行与那一节、证据目录在同一个发布提交里，不打 tag
-- [x] 推上去后从 `lkangd/cc-mods` 做安装级检查（添加、安装、版本、enabled、Pane 弹出），结果补进 `marketplace.md`；失败就撤回发布提交
+- [ ] The evidence directory (per plugin version) holds `report.md` (including the manual visual check sign-off), `report.json` (plugin version, Claude Code version, OS, architecture, fixture, scenario ID, expected, actual, result, evidence link, commit hash) and `marketplace.md`
+- [x] 2.1.287 and the then-current version each run every MUST of "Finalise the compatibility and acceptance contract", with zero failures, zero missing, zero skipped (CT-COMPAT-001 and so on)
+- [x] CT-SEC-001: the synthetic unique-marker prompt appears only in the Pane's drawing, not in `$.store`, the plugin data directory, logs, error text or the release report
+- [x] Before release, run the CT-COMPAT-002 smoke on both versions with a local directory marketplace
+- [ ] Manual visual check sign-off (how the three Layouts look, the highlight and the cursor can be told apart); does not block
+- [x] The marketplace entry (`chat-toc`, `./mods/chat-toc`, English description, `0.1.0`, `chat-toc contributors`, no category/tags), the root README row and section, and the evidence directory are in the same release commit; no tag
+- [x] After pushing, run an install-level check from `lkangd/cc-mods` (add, install, version, enabled, Pane appears) and add the result to `marketplace.md`; if it fails, revert the release commit
 
 ## Comments
 
-- 2026-10-11：被测提交 `a83f74c`（之后插件代码没有改动）。`tests/acceptance/release_gate.py` 在 2.1.287 与 2.1.295 上以 `--plugin-dir` 跑全部 32 个 MUST：各 32/32 通过，92 条记录，零失败零缺失零跳过；`claude plugin validate` 两版通过，两版 `tsc` 干净，`claude plugin test` 210 个通过；CT-PERF-001 两版两种 fixture 各 3 次都在阈值内；证据里没有 CT-SEC-001 标记。原来没有脚本的场景补在 `gate_scenarios.py`（CT-TURN-004 的「进行中 · N 步」用 `fake_api.py` 本机替身跑一轮真实的带工具步骤的 turn，不调用模型）与 `ct_marketplace.py`。
-- 第一轮门禁里 2.1.287 的 CT-UI-003 失败一次，原因在检查本身（把宿主焦点环的起点写死、没算 `/tui` 只有用户一侧），改检查后（`a83f74c`）整套门禁与性能重跑。
-- 本地目录 marketplace 冒烟两版通过。发布提交 `066d082` 后，从 GitHub 的安装级检查两版都失败：仓库默认分支不是 main，`marketplace add lkangd/cc-mods` 克隆到的 marketplace 里没有 chat-toc；按规则撤回（`abd2e8b`）。使用者把默认分支改成 main 后重新发布（`b3396e6`，内容相同），安装级检查两版通过，见 `mods/chat-toc/tests/evidence/0.1.0/marketplace.md`。
-- 人工目检签字（三种 Layout 观感、青色高亮与反色光标可分清）未勾，证据目录那一项也因此未勾（`report.md`、`report.json`、`marketplace.md` 都已在，只差 `report.md` 里的签字）：留给使用者，在 `report.md` 的「人工目检（待使用者签字）」一节；不阻断发布。
-- 2026-10-12：0.1.0 的人工目检不再签。30 号票把高亮从固定青色改成主题的 `suggestion`，观感已变，签字并入 0.1.1 的证据目录（使用者在 grilling 中确认）。上面两个未勾项因此保留不勾。
+- 2026-10-11: the commit under test is `a83f74c` (the plugin code did not change after it). `tests/acceptance/release_gate.py` ran all 32 MUSTs on 2.1.287 and 2.1.295 with `--plugin-dir`: 32/32 passed on each, 92 records, zero failures, zero missing, zero skipped; `claude plugin validate` passed on both versions, `tsc` is clean on both, `claude plugin test` passed 210; CT-PERF-001 stayed within the thresholds on both versions, 3 runs for each of the two fixtures; the evidence holds no CT-SEC-001 marker. The scenarios that had no script are added in `gate_scenarios.py` (CT-TURN-004's "Running · N steps" runs one real turn with tool steps using the local stand-in `fake_api.py`, without calling a model) and `ct_marketplace.py`.
+- In the first gate round, CT-UI-003 failed once on 2.1.287. The cause was in the check itself (it hard-coded the start of the host's focus ring and did not allow for `/tui` having only a user side). After the check was changed (`a83f74c`), the whole gate and the performance runs were repeated.
+- The local directory marketplace smoke passed on both versions. After the release commit `066d082`, the install-level check from GitHub failed on both versions: the repository's default branch was not main, so the marketplace cloned by `marketplace add lkangd/cc-mods` had no chat-toc; per the rule, the release was reverted (`abd2e8b`). The user changed the default branch to main and the release was published again (`b3396e6`, same content); the install-level check passed on both versions, see `mods/chat-toc/tests/evidence/0.1.0/marketplace.md`.
+- The manual visual check sign-off (how the three Layouts look, whether the cyan highlight and the inverse cursor can be told apart) is not ticked, and the evidence directory item is not ticked either (`report.md`, `report.json` and `marketplace.md` are all there; only the sign-off in `report.md` is missing): left to the user, in the section "Manual visual check (awaiting the user's sign-off)" of `report.md`; it does not block the release.
+- 2026-10-12: the manual visual check for 0.1.0 is no longer signed. Ticket 30 changes the highlight from fixed cyan to the theme's `suggestion`, so the look has changed; the sign-off moves into the 0.1.1 evidence directory (the user confirmed in the grilling). The two unticked items above therefore stay unticked.

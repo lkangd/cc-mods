@@ -1,4 +1,4 @@
-# 原型验证停靠 TOC Pane 的外观与交互
+# Prototype the docked TOC Pane's look and interaction
 
 Type: prototype
 Status: resolved
@@ -6,51 +6,51 @@ Blocked by: 01, 02, 03, 04, 08, 09, 10, 11
 
 ## Question
 
-在真实终端里做一个粗糙的 chat-toc Pane，验证：Turn group 卡片的排版（「你 · 时间」、2 行截断、「N 步」与状态）在常见停靠宽度下是否可读；三态 View filter 的样式与点击/键盘操作；点击与 Enter 跳转是否落到正确行；Current position 高亮与 ↑↓ 选择光标的样式能否一眼区分、TOC 跟随高亮滚动与手动滚动暂停的手感；自动弹出、关闭后保持关闭、`/chat-toc` 重开、宽度不足时状态栏说明；几百轮长会话的滚动是否流畅。产出可交互原型与观察记录。另请确认：「本会话已关闭」标记在 `/clear`、`/resume` 后会被宿主重置、目录会再次自动弹出，这是否可接受。另需实测（来自「决定没有 Jump target 的条目侧如何呈现与点击」）：兜底跳转用 `block: 'center'` 时，原输入行是否留在屏上；`ToolGroup` 的 `collapsed-<前缀>` 能否唯一对上 uuid，非折叠显示时是否改走 `ToolUse`，补挂后 transcript hook 多跑多少；全屏 transcript 是否虚拟化（离屏的行是否都被画出），这决定没被画出的条目能否事先淡化；淡化样式与 Pane 底部说明行的可读性。
+Build a rough chat-toc Pane in a real terminal and check: whether the Turn group card's layout ("you · time", 2-line truncation, "N steps" and the state) reads well at common dock widths; the three-state View filter's style and its click and keyboard use; whether click and Enter jumps land on the right row; whether the Current position highlight and the ↑↓ selection cursor tell apart at a glance, and how the TOC following the highlight and pausing on a manual scroll feel; opening by itself, staying closed after a close, reopening with `/chat-toc`, the status line note when too narrow; whether a session of a few hundred turns scrolls smoothly. Produce an interactive prototype and observation notes. Also confirm: the host resets the "closed for this session" mark on `/clear` and `/resume`, so the contents open by themselves again; is that acceptable? Also measure (from "Decide how entry sides without a Jump target show and click"): with a fallback jump at `block: 'center'`, does the original input row stay on screen; does a `ToolGroup`'s `collapsed-<prefix>` match a uuid uniquely, does a non-collapsed display go through `ToolUse` instead, and how much more does the transcript hook run once it is hooked too; is the fullscreen transcript virtualised (are rows off screen all drawn), which decides whether entries never drawn can dim in advance; how readable the dim style and the note line at the Pane's bottom are.
 
 ## Answer
 
-**结论：停靠 TOC Pane 的外观与交互可行，使用者逐项试过都通过。三种布局都保留，做成可切换的功能。实测改掉了三条前面的决定：取消「事先淡化」；Current position 只采信连续的在屏行，跳转后锁定在目标组；本地命令按 `system/local_command` 行开组。** 原型是 mod `chat-toc-proto`，在本机 Claude Code 2.1.295 的本会话里热重载试用；另用 cmux 全屏 workspace 跑了一份 300 轮的合成 transcript。
+**Verdict: the docked TOC Pane's look and interaction work; the user tried each item and all passed. All three layouts are kept, made switchable. Measurements changed three earlier decisions: "dim in advance" is dropped; the Current position believes only contiguous on-screen rows and locks on the target group after a jump; a local command opens a group by its `system/local_command` row.** The prototype is the mod `chat-toc-proto`, tried hot-reloaded in this session on the local Claude Code 2.1.295; a 300-turn synthetic transcript also ran in a fullscreen cmux workspace.
 
-- 原型（不合并）：本地分支 `prototype/chat-toc-pane`（e6f96a1）的 `prototypes/chat-toc/05-toc-pane/`。同一份内容也在 [assets/05-prototype/](../assets/05-prototype/)：mod 源码、[观察记录](../assets/05-prototype/notes.md)、cmux 驱动脚本、合成 transcript 生成器、逐次日志。
+- Prototype (not merged): `prototypes/chat-toc/05-toc-pane/` on the local branch `prototype/chat-toc-pane` (e6f96a1). The same content is in [assets/05-prototype/](../assets/05-prototype/): the mod's source, the [observation notes](../assets/05-prototype/notes.md), the cmux driver script, the synthetic transcript generator and the per-run logs.
 
-### 使用者确认的外观与交互
+### Look and interaction the user confirmed
 
-1. **布局**：卡片（「你 · 时间」+ 2 行原文，「↳ N 步」+ 2 行回复，左侧 `▌` 标高亮）、紧凑（每侧一行，`●` 标高亮）、时间轴（左侧时间 + `│`，高亮时变青色 `┃`）三种都保留，由使用者切换，跨会话记在 `$.store`。原型的切换入口是底栏 `‹ ›`、Pane 聚焦时的热键 `v` 和 `/chat-toc a|b|c`，正式入口留给规格。56、44、36 列宽下都可读。
-2. **View filter**：顶部 `●全部 ○用户 ○Agent`，Pane 聚焦时也可按 1/2/3；切换后立即重画。
-3. **高亮与选择光标**：选择光标用宿主的反色，高亮用青色竖线或圆点，一眼就能分开。
-4. **跟随与暂停**：手动滚动 TOC 后暂停跟随（底栏显示「暂停」），Current position 下一次变化时恢复跟随，手感对。
-5. **生命周期**：会话开始时自动打开；✕ 关掉后本会话保持关闭；`/chat-toc` 能重新打开；`/clear`、`/resume` 后宿主重置「已关闭」标记、目录再次自动弹出，**使用者接受**。终端不够宽时 `isPlaced:false`，Pane 保持等待，状态栏说明原因。
-6. **跳转后锁定高亮**（修订「决定是否做当前位置高亮」）：跳转成功后，高亮直接落在目标组上。跳转引起的重绘每次间隔不到 300 ms，期间保持锁定；重绘停下后视口第一次变化就解锁，恢复按视口顶部计算。原因是兜底跳转用 `center`，视口顶部是上面的组。使用者评价「得劲了」。
+1. **Layouts**: Card ("you · time" + 2 lines of the original, "↳ N steps" + 2 lines of the reply, `▌` on the left marking the highlight), Compact (one line a side, `●` marking the highlight) and Timeline (time on the left + `│`, turning to a cyan `┃` when highlighted) are all kept, switched by the person and remembered across sessions in `$.store`. The prototype switched with `‹ ›` in the footer, the hotkey `v` with the Pane focused, and `/chat-toc a|b|c`; the real entry is left to the spec. Readable at 56, 44 and 36 columns.
+2. **View filter**: `●All ○User ○Agent` at the top, also 1/2/3 with the Pane focused; redrawn at once on a switch.
+3. **Highlight and selection cursor**: the selection cursor is the host's inverse, the highlight a cyan bar or dot, plainly told apart.
+4. **Following and pausing**: a manual scroll of the TOC pauses following (the footer says "paused"), and following resumes at the Current position's next change; it feels right.
+5. **Lifecycle**: opens by itself at the session's start; closed with ✕ it stays closed for the session; `/chat-toc` reopens it; after `/clear` and `/resume` the host resets the "closed" mark and the contents open by themselves again, **which the user accepts**. When the terminal is not wide enough, `isPlaced:false`: the Pane keeps waiting and the status line says why.
+6. **The highlight locked after a jump** (revising "Decide whether to highlight the current position"): after a successful jump the highlight lands straight on the target group. Redraws caused by the jump come less than 300 ms apart, and the lock holds through them; once they stop, the first change of the viewport unlocks it and it goes back to the viewport's top. The reason: a fallback jump uses `center`, so the viewport's top is the group above. The user's verdict: "feels right now".
 
-### 实测得到的宿主事实（2.1.295）
+### Host facts measured (2.1.295)
 
-- **本地斜杠命令**（例如 `/chat-toc`）在 transcript 里记成 `type:system, subtype:local_command` 行，`content` 含 `<command-name>`，在对话链上；输出也是同类的 system 行。`/clear` 本身仍是 user 行。「定义 Turn group 的划分与边界」的开组规则漏掉了这种行。
-- **`ToolGroup` 的 `requestId`** 有时是 `collapsed-<完整 uuid>`，有时是 `collapsed-<uuid 前 24 位>000000000000`；按前 24 位匹配能唯一对上。非折叠显示时走 `ToolUse`，`requestId` 是 tool_use id。`UserMessage`、`AssistantMessage`、`CommandOutput` 的 `requestId` 都等于 uuid。
-- **全屏 transcript 是虚拟化的**：resume 300 轮后只画最后约 20–25 轮，滚动或跳转到哪里，哪里附近才画出来。行被卸掉时**不一定**再报 `onScreen: null`，残留的「在屏」值会把 Current position 钉在旧位置。早先本会话里「跳到 B 却高亮 A」也是这个原因，和置顶 prompt 条无关。
-- **`$.ui.scroll({ requestId })`** 能跳到宿主消息列表里的任意一行，包括从没画出过的（`drawn:false` 也返回 `{}`）。只有不在列表里的行才会被拒，比如 resume 前被 compact 的行、rewind 残留。
-- **热重载**后宿主只重画当时在屏的行，而且先于 transcript 读入；`requestId` 的映射必须在每次读完 transcript 后重做。
-- **兜底跳转用 `center`** 时，回显行（`❯ /tui`）留在目标行正上方，看得见。
-- **置顶 prompt 条**：不需要「只露 1 行不计」的规则。去掉后，直接跳转和逐格滚动的高亮都对上屏幕第 1 行所属的组。
+- **A local slash command** (such as `/chat-toc`) is a `type:system, subtype:local_command` row in the transcript, its `content` holding `<command-name>`, on the conversation chain; its output is a system row of the same kind. `/clear` itself is still a user row. "Define the Turn group's split and edges"' opening rules missed this row.
+- **`ToolGroup`'s `requestId`** is sometimes `collapsed-<the whole uuid>`, sometimes `collapsed-<the uuid's first 24>000000000000`; matching on the first 24 characters is unique. A non-collapsed display goes through `ToolUse`, its `requestId` the tool_use id. The `requestId` of `UserMessage`, `AssistantMessage` and `CommandOutput` always equals the uuid.
+- **The fullscreen transcript is virtualised**: after resuming 300 turns only the last 20–25 or so are drawn, and rows are drawn around wherever a scroll or jump goes. An unmounted row does **not always** report `onScreen: null` again, and the stale "on screen" values pin the Current position to an old place. The earlier "jumped to B but A lit" in this session had the same cause, nothing to do with the pinned prompt bar.
+- **`$.ui.scroll({ requestId })`** can jump to any row in the host's message list, rows never drawn included (`drawn:false` still returns `{}`). Only rows not in the list are refused, such as rows compacted before a resume and rows left by a rewind.
+- **After a hot reload** the host redraws only the rows on screen then, before the transcript is read; the `requestId` map must be rebuilt after every transcript read.
+- **A fallback jump with `center`** leaves the echo row (`❯ /tui`) in sight right above the target row.
+- **The pinned prompt bar**: no "a single visible line does not count" rule is needed. Without it, both direct jumps and notch-by-notch scrolling light the group of the screen's first line.
 
-### 由此修订的决定
+### Decisions revised as a result
 
-- **取消 B 类「事先淡化」**（修订「决定没有 Jump target 的条目侧如何呈现与点击」第 3 条）：虚拟化加热重载，「画出过没有」不能说明能不能跳。所有条目照常显示，一律先跳；被拒后才把这一侧淡化，并在 Pane 底部说明。说明的措辞和消失规则沿用原第 4 条。
-- **兜底跳转**（修订原第 1 条）：本地命令、prompt 型命令和 `!cmd` 的用户侧，都跳到对话链中**往后**最近的可绘制行（user prompt、带文字的 assistant 行、非空的本地命令输出、画出过的行），往后没有就往前找，用 `center`。被拒就换下一个候选（原型最多试 3 次）。
-- **Current position 的计算**（修订「决定是否做当前位置高亮」第 2、3 条的实现）：
-  - 只看 `UserMessage`、`AssistantMessage`、`CommandOutput`、`ToolGroup` 的在屏上报，`ToolUse` 不参与。
-  - 把在屏行按对话顺序分段：两行之间只要夹着一个不在屏的可绘制行，就切开；只采信包含最近一次上报的那一段，取其中最靠前的行。
-  - 最后一个画出的行完整在屏时，强制末组；跳转后的锁定见上文第 6 条。
-- **`requestId` → 行**：先精确匹配 uuid，再去掉 `collapsed-` 前缀，再按 tool_use id，最后按前 24 位匹配。跳转时用宿主给的那个 id，不用 uuid。
-- **开组规则**（补充「定义 Turn group 的划分与边界」）：`system/local_command` 中带 `<command-name>` 的行开组；它的输出行归入该组。贴入内容的 `<pasted_content>` 标签显示时去掉。
+- **"Dim in advance" for class B is dropped** (revising item 3 of "Decide how entry sides without a Jump target show and click"): with virtualisation and hot reloads, "drawn before or not" does not tell whether a jump works. Every entry shows as usual and is always tried first; only once refused does the side dim, with a note at the Pane's bottom. The note's wording and when it goes follow the original item 4.
+- **Fallback jump** (revising the original item 1): the user sides of local commands, prompt-type commands and `!cmd` all jump to the nearest drawable row **after** them on the conversation chain (a user prompt, an assistant row with text, a non-empty local command output, a row drawn before), or before them when there is none after, with `center`. On a refusal the next candidate is tried (up to 3 in the prototype).
+- **Computing the Current position** (revising the implementation of items 2 and 3 of "Decide whether to highlight the current position"):
+  - Only the on-screen reports of `UserMessage`, `AssistantMessage`, `CommandOutput` and `ToolGroup`; `ToolUse` takes no part.
+  - The on-screen rows are cut into runs in conversation order: any drawable row not on screen between two rows cuts them apart; only the run holding the latest report is believed, and its first row taken.
+  - When the last drawn row is wholly on screen, the last group; the lock after a jump is item 6 above.
+- **`requestId` → row**: first the exact uuid, then without the `collapsed-` prefix, then the tool_use id, last the first 24 characters. A jump uses the id the host gave, not the uuid.
+- **Opening rules** (adding to "Define the Turn group's split and edges"): a `system/local_command` row with `<command-name>` opens a group; its output rows join it. Pasted content's `<pasted_content>` tags are dropped from what shows.
 
-### 性能样本（合成 300 轮、1.5 MB）
+### Performance sample (synthetic, 300 turns, 1.5 MB)
 
-- 整份读取加解析：冷启动 376 ms，之后每次 9–49 ms。本会话的真实 transcript 约 1.6 MB，每次 13–20 ms。
-- Pane 只画可见窗口，每次重画约 7.5 ms（连续滚轮期间 139 次共 1040 ms）。连续滚轮 180 格后，高亮与屏幕顶行一致。
-- 20 MB 级文件的首次解析与增量读取没有测，留在「长会话的渲染与性能」。
+- Whole read and parse: 376 ms cold, 9–49 ms each after. This session's real transcript, about 1.6 MB, takes 13–20 ms each.
+- The Pane draws only the visible window, about 7.5 ms a redraw (139 redraws, 1040 ms in all, during continuous wheeling). After 180 notches of continuous wheeling the highlight matches the screen's top row.
+- First parse and incremental reads of 20 MB-class files were not measured; left to "rendering and performance of long sessions".
 
-### 其他
+### Other
 
-- 测试中有一次误操作：`/exit` 没生效，重启命令被当成 prompt 提交，触发了一次 Haiku 调用（没有调用工具）。合成 transcript 与测试 workspace 都已删除。
-- 术语：`mods/chat-toc/CONTEXT.md` 修订 Current position、Jump target，新增 Layout。
+- One mistake during testing: `/exit` did not take, and the restart command was submitted as a prompt, setting off one Haiku call (no tools called). The synthetic transcript and the test workspace are deleted.
+- Terms: `mods/chat-toc/CONTEXT.md` revises Current position and Jump target, and adds Layout.

@@ -1,37 +1,37 @@
-# 32: 跳不了的条目事先变灰，提示更醒目
+# 32: Entries that cannot be jumped to grey out in advance, with a clearer notice
 
-**What to build:** 能事先判定跳不了的条目一出现就画成淡化色，不用使用者逐个去点；按下被拒时的提示要醒目，出现时短暂闪烁。
+**What to build:** Entries that can be known in advance to be unjumpable are drawn dimmed as soon as they appear, so the person need not click them one by one; when a press is refused, the notice is eye-catching and flashes briefly when it appears.
 
-**Blocked by:** 无
+**Blocked by:** none
 
 **Status:** done
 
-## 问题
+## Problem
 
-使用者反馈：有些条目跳不了，但没点之前是白色的，点了才在底部出现「这一条当前没有显示在对话里，无法跳转」；这条提示是 `dimColor` 小字，不够显眼。
+The user reported: some entries cannot be jumped to, but they are white until clicked; only after a click does "This entry is not in the conversation view now; cannot jump to it" appear at the bottom; this notice is small `dimColor` text and not noticeable enough.
 
-## 已定的决定（2026-10-12 grilling）
+## Decisions made (grilling, 2026-10-12)
 
-- **事先判定**只针对「resume 前被 compact 掉的行」，按文件规则：本进程的会话以 `resume` 启动（`fork` 实现时实测，行为相同就一并纳入），启动那一刻对话链上最后一个 compact 边界之前的条目一律画淡化色（与现有被拒淡化同一样式，即主题的 `inactive`）。
-- resume 来的会话里中途启用插件时，拿不到启动来源，不做事先判定，沿用「按下被拒再变灰」。
-- 灰色条目仍可点击、可被键盘选中（`CT-UI-003` 已要求 ↑↓ 不跳过淡化条目）；按下照样尝试 `$.ui.scroll`，被拒才出提示；宿主重新列出该行时恢复正常色（现有逻辑）。
-- **提示样式**：位置仍在面板底部；文字前加 `⚠`，用主题键 `warning` 着色；出现时反色闪 3 下（约 150 ms 亮、150 ms 暗，共约 1 秒），之后常亮；总时长仍 5 秒，跳转成功或选择移开时清掉（现有逻辑）。不改到条目下方。
-- **提示文字按原因区分**：
-  - 事先判定为 compact 前的条目：「⚠ 这一条在压缩之前，恢复会话后无法跳转」
-  - 其他被宿主拒绝的情况：「⚠ 这一条当前没有显示在对话里，无法跳转」
-- 面板上不加常驻说明行。
+- **Deciding in advance** applies only to "rows compacted away before a resume", by the file's rules: when this process's session started with `resume` (`fork` to be measured at implementation; if it behaves the same, include it), entries before the last compaction boundary on the conversation chain at the moment of startup are all drawn dimmed (the same style as the existing dimming on refusal, that is, the theme's `inactive`).
+- When the plugin is enabled mid-session in a session that came from a resume, the start source is not available, so no advance decision is made, and "grey out once a press is refused" stays.
+- A grey entry can still be clicked and chosen with the keyboard (`CT-UI-003` already requires ↑↓ not to skip dimmed entries); a press still tries `$.ui.scroll`, and the notice appears only when it is refused; when the host lists the row again, it returns to the normal colour (the existing logic).
+- **Notice style**: the position stays at the bottom of the pane; `⚠` goes before the text, coloured with the theme key `warning`; when it appears it flashes in inverse 3 times (about 150 ms bright, 150 ms dark, about 1 second in all), then stays on; the total time is still 5 seconds, and it is cleared when a jump succeeds or the selection moves away (the existing logic). It does not move below the entry.
+- **The notice text depends on the reason**:
+  - An entry decided in advance to be before a compaction: "⚠ This entry was compacted before the session resumed; cannot jump to it"
+  - Any other case where the host refuses: "⚠ This entry is not in the conversation view now; cannot jump to it"
+- No standing note line on the pane.
 
-## 步骤
+## Steps
 
-- [x] 实测 `fork` 是否与 `resume` 一样拒绝 compact 边界之前的行
-- [x] 测试先行：事先判定的纯函数（resume/非 resume、无 compact、多次 compact、启动后又 compact 的行不受影响）
-- [x] 测试先行：提示的绘制（`warning` 色、`⚠`、闪烁的帧序列、两种文字）
-- [x] 实现
-- [x] 验收契约：新增 `CT-JUMP-005`（resume 后 compact 之前的条目一出现就是灰色，按下后显示对应文字）、`CT-UI-005`（提示 `warning` 色、带 `⚠`、出现时反色闪 3 下后常亮、5 秒后消失，pyte 按时间点抽帧）；`CT-JUMP-003` 随之核对措辞
-- [x] `CONTEXT.md` 的 Jump target 补一句：可事先判定为不可跳的条目，画成淡化色
-- [x] 两版宿主 PTY 验收
+- [x] Measure whether `fork` refuses rows before a compaction boundary just as `resume` does
+- [x] Test first: the pure function for the advance decision (resume/non-resume, no compaction, several compactions, rows compacted after startup are not affected)
+- [x] Test first: drawing the notice (`warning` colour, `⚠`, the frame sequence of the flash, the two texts)
+- [x] Implement
+- [x] Acceptance contract: add `CT-JUMP-005` (after a resume, entries before the compaction are grey as soon as they appear, and a press shows the matching text) and `CT-UI-005` (the notice has the `warning` colour and `⚠`, flashes in inverse 3 times when it appears and then stays on, and disappears after 5 seconds; pyte samples frames at time points); `CT-JUMP-003` has its wording checked to match
+- [x] Add one sentence to the Jump target in `CONTEXT.md`: an entry that can be decided in advance to be unjumpable is drawn dimmed
+- [x] PTY acceptance on the host's two versions
 
 ## Comments
 
-- 2026-10-12 spike（两版一致）：普通会话里 prompt、斜杠命令、`!` 命令、中断轮、只有工具调用的回复都能跳；被拒的只有 resume 前被 compact 的行（边界前全拒、边界后全可跳）和 rewind 被弃的行（由 33 号票处理）。live `/compact` 不 resume 时，compact 前的行仍可跳。没有不移动视图就能探测某行是否被列出的办法（非本人发起的 scroll 先被拒为 `not person-initiated`）。宿主主题有 `warning`、`error`；`TextProps` 有 `bold`、`inverse`（2.1.287 运行时未验）。
-- 2026-10-12 实现（分支 `chat-toc/32-unjumpable-dim-and-notice`）：fork 实测（两版）——`--fork-session` 的文件从最后一个 compact 边界开始，不含边界之前的条目，所以事先判定只看 `resume`。`classic.SessionStart` 的 source 为 `resume` 时把 `$.state` 的 `compactedAt` 置为待定，下一次读到行时记下链上最后一个 compact 边界；边界之前、所有跳转候选都在边界之前的一侧以 `why: 'compacted'` 放进被拒表（与按下被拒同一套淡化与恢复逻辑），存在 `$.state` 里所以热重载后还在。提示单独一行：`⚠` + `warning` 色，`inverse` 按 150 ms 一档闪 3 下。PTY：`jump_scenarios.py 005` 两版都通过（`CT-JUMP-005`、`CT-UI-005`），`inverse` 在 2.1.287 上生效；改动后 `CT-JUMP-003` 在当前版本复跑通过。
+- 2026-10-12 spike (the two versions agree): in an ordinary session, prompts, slash commands, `!` commands, interrupted turns and replies that have only tool calls can all be jumped to; the ones refused are only the rows compacted before a resume (all refused before the boundary, all jumpable after it) and the rows a rewind threw away (handled by ticket 33). With a live `/compact` and no resume, rows before the compaction can still be jumped to. There is no way to probe whether a row is listed without moving the view (a scroll not initiated by the person is first refused as `not person-initiated`). The host theme has `warning` and `error`; `TextProps` has `bold` and `inverse` (not verified at runtime on 2.1.287).
+- 2026-10-12 implementation (branch `chat-toc/32-unjumpable-dim-and-notice`): fork measured (both versions): the file of `--fork-session` starts at the last compaction boundary and holds no entries before the boundary, so the advance decision looks only at `resume`. When the source of `classic.SessionStart` is `resume`, `compactedAt` in `$.state` is set to pending; the next time rows are read, the last compaction boundary on the chain is recorded; a side before the boundary, whose jump candidates are all before the boundary, is put into the refused table with `why: 'compacted'` (the same dimming and recovery logic as a refusal on press), kept in `$.state` so it survives a hot reload. The notice is a line of its own: `⚠` + the `warning` colour, with `inverse` flashing 3 times in steps of 150 ms. PTY: `jump_scenarios.py 005` passes on both versions (`CT-JUMP-005`, `CT-UI-005`), and `inverse` takes effect on 2.1.287; after the change, `CT-JUMP-003` was rerun on the current version and passes.

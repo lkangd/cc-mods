@@ -1,40 +1,40 @@
-# 25: View filter、三种 Layout 与键盘
+# 25: View filter, three Layouts and the keyboard
 
-**What to build:** 使用者能用「全部 / 用户 / Agent」过滤目录，在卡片、紧凑、时间轴三种 Layout 之间切换，两个选择都跨会话记住；焦点在 Pane 内时全程可用键盘操作。
+**What to build:** The person can filter the contents by All / User / Agent and switch between the Card, Compact and Timeline Layouts, with both choices remembered across sessions; with the focus in the Pane, everything can be done from the keyboard.
 
-规格见 [chat-toc MVP](../spec.md) §7。
+Spec: [chat-toc MVP](../spec.md) §7.
 
-**Blocked by:** 19（完整的开组规则与 Agent reply）
+**Blocked by:** 19 (The full grouping rules and the Agent reply)
 
 **Status:** resolved
 
-- [x] 过滤行左边三个 `plain` Button `●全部`/`○用户`/`○Agent`，热键 1/2/3，切换后立即重画；选「Agent」时只有用户侧的组整组隐藏
-- [x] 过滤行右端「布局:<当前 Layout>」按钮，点击或按 `l` 按卡片 → 紧凑 → 时间轴循环；最右留约 3 列给 2.1.287 的 ✕
-- [x] 紧凑：每侧一行、Agent 行整行 `dimColor`、青色 `●` 高亮；时间轴：左栏 8 列 `HH:MM`+`│`、高亮变青色 `┃`、Agent 行整行 `dimColor`；左栏在 Button 外的 `Text` 里，两版都对齐
-- [x] 高亮不加粗，只靠青色标记
-- [x] View filter 与 Layout 写进 `$.store`，跨进程记住；写入失败本次仍切换；值认不出时回到「全部」与卡片（CT-UI-001、CT-UI-002）
-- [x] 切换 Layout 时以选中组为锚（Current position 已落地时，无选择光标则以它所在组为锚），锚定组留在可见窗口内，跟随或暂停状态不变；只改绘制，不改显示哪些条目
-- [x] ↑↓ 走宿主焦点环、焦点落在条目第一行 Button，不跳过淡化条目；Enter 与点击相同（CT-UI-003）
-- [x] 36、44、56 列宽下三种 Layout 都可读，两个版本截屏存档供人工目检
+- [x] Three `plain` Buttons at the left of the filter row, `●All`/`○User`/`○Agent`, hotkeys 1/2/3, redrawn at once on a switch; with "Agent" chosen, a group that has only a user side is hidden whole
+- [x] A "Layout: <current Layout>" button at the right end of the filter row; a click or the `l` key cycles Card → Compact → Timeline; about 3 columns are left at the far right for 2.1.287's ✕
+- [x] Compact: one line a side, the Agent line wholly `dimColor`, a cyan `●` highlight; Timeline: a left column of 8 columns `HH:MM` + `│`, the highlight turning to a cyan `┃`, the Agent line wholly `dimColor`; the left column sits in a `Text` outside the Button, aligned on both versions
+- [x] The highlight is not bold; only the cyan mark carries it
+- [x] The View filter and the Layout are written to `$.store` and remembered across processes; if a write fails the switch still happens this time; an unrecognized value falls back to "All" and Card (CT-UI-001, CT-UI-002)
+- [x] A Layout switch anchors on the selected group (once the Current position has landed, with no selection cursor it anchors on its group), the anchor group stays inside the visible window, and the following or paused state is unchanged; only the drawing changes, not which entries show
+- [x] ↑↓ walk the host's focus ring, the focus landing on the entry's first-line Button, not skipping dimmed entries; Enter is the same as a click (CT-UI-003)
+- [x] All three Layouts read well at 36, 44 and 56 columns, with screenshots of both versions archived for the human visual check
 
 ## Comments
 
-**2026-10-11 实现（分支 `chat-toc/25-filter-layouts`）**
+**2026-10-11 implementation (branch `chat-toc/25-filter-layouts`)**
 
-- 代码：`hooks/view.ts`（两个选择、`$.store` 键 `viewFilter`/`layout`、认不出回默认）、`hooks/entries.ts` 的 `entriesOf(groups, { layout, filter, width, nowMs, isRunning })`（三种 Layout 与过滤；`cardEntries` 保留为卡片全部的简写）、`hooks/pane.tsx`（过滤行、三种左栏 `gutterOf`、`litGroup`）、`hooks/ring.ts`（焦点环规则）、`hooks/window.ts` 的 `topRevealing`。
-- **Current position 锚还没做**：24 未落地，切换时只以选择光标所在组为锚；没有光标、窗口被手动滚过时以窗口顶部那组为锚；窗口跟随最新时继续跟随。24 落地后在 `register.tsx` 的 `anchorForSwitch` 里加「无光标则用 Current position 所在组」。高亮同理：`drawPane` 已收 `litGroup`（卡片青色 `▌`、紧凑青色 `●`、时间轴整栏青色加 `┃`，都不加粗），目前恒为 `undefined`，由 24 填。光标锚在跟随状态下若锚定组不在跟随窗口内，只能把窗口停在锚上（等于暂停跟随）；Pane 聚焦时本来就暂停，影响不大。
-- **↑↓ 的实测（两个版本一致）**：插件只画可见窗口、树不超出时，宿主的 ↑↓ 在**每个** Button 之间走（卡片的正文行也是 Button），到最后一个再按 ↓ 绕回第一个（过滤行的 `1:`），Tab 还会停在 ✕。所以 hook `ui.focus`（`ring.ts`）：落到某条目第 2 行起的 Button 时，从本条目第一行往下就改落下一条目的第一行，否则改落该条目第一行；在窗口最后一条往下（落到第 2 行或绕回 `f-all`）、窗口第一条往上（落到「布局」）时拒绝这一步、把窗口挪一条，再 `$.ui.focus` 到新露出的条目。点击正文行不会移动焦点环（实测），所以不会被误判成「往下」。
-- 宿主不把插件自己的 `$.ui.focus` 交给本插件的 `ui.focus` hook，所以光标位置在 `focusKey` 里自己记。切换 Layout/过滤后宿主按「第几个 Button」保留焦点环，会落到正文行；所以重画后约 60 ms 再把它放回选中条目（`REFOCUS_MS`）。
-- 测试工具：插件的 `$.ui.focus` 到不了测试的 `on('ui.focus')`（报 no implementation），与 `ui.scroll` 一样；光标最终落点放在 PTY 验收，单测只验 `ringMove` 纯函数和窗口移动。`tests/host.ts` 现在自带 `$.store`（`world.store`、`world.refuseStore`）和 `world.focuses`。
-- **过滤行宽度**：宿主把带热键的 `plain` Button 画成 `1: ●全部`，比票 13 估计的宽：`1: ●全部 2: ○用户 3: ○Agent` 27 列，`l: 布局:时间轴` 14 列，加 ✕ 3 列共 45 列。放不下时「布局」按钮单独占过滤行下面一行、靠右（`filterRows`）。实测：44 列下卡片/紧凑一行放得下，时间轴两行；36 列三种都两行；56 列都一行。
-- 紧凑的用户行：prompt 截成一行，右端 `HH:MM`（没有时间就不写，prompt 占满）；Agent 行 `↳ 状态 · 末段`。时间轴每侧最多 2 行，Agent 侧同样是 `↳ 状态 · 末段` 折行，左栏只在用户侧第一行写时间。卡片与时间轴组间空一行，紧凑不空。
-- 另修（协调者转来，CT-TURN-003）：`cells.ts` 把 Emoji_Presentation 的 BMP 字符（✨ U+2728、✅、⭐、⚡、⌛ 等）算 2 格，与宿主一致；另补了 1F004、1F0CF、1F18E、1F191–1F19A、1F200–1F2FF。测试在 `card_entries.test.ts`。
-- 验证：`claude plugin test mods/chat-toc` 132 通过；两个版本 `plugin validate` 通过；tsc 对 2.1.287、2.1.295 声明都无错。PTY（pyte，隔离配置、未登录，没有调用模型）：两个版本的 harness smoke 通过；`assets/25-layouts/` 下 `capture.py`（三种 Layout × 36/44/56 × 两版本，外加用户/Agent 过滤）、`check_screens.py`（核对每张截屏的 Layout、过滤、宽度，30 张全部 ok）、`probe.py`（按键序列，`keys-*.txt` 是两个版本 ↑↓ 走条目、窗口两端滚动、绕回过滤行的记录）、`remember.py`（选「Agent」与紧凑后退出再开仍记得；把 store 文件改成认不出的值后回到全部与卡片，`remember-*.txt`）。截屏在 `assets/25-layouts/screens/<版本>-<列宽>/`，供人工目检；青色高亮要等 24。
+- Code: `hooks/view.ts` (the two choices, the `$.store` keys `viewFilter`/`layout`, falling back to the default when unrecognized), `entriesOf(groups, { layout, filter, width, nowMs, isRunning })` in `hooks/entries.ts` (the three Layouts and the filter; `cardEntries` stays as shorthand for Card with All), `hooks/pane.tsx` (the filter row, the three left columns `gutterOf`, `litGroup`), `hooks/ring.ts` (the focus ring rules), and `topRevealing` in `hooks/window.ts`.
+- **The Current position anchor is not done yet**: 24 had not landed, so a switch anchors only on the group of the selection cursor; with no cursor and the window scrolled by hand it anchors on the group at the window's top; when the window follows the newest it keeps following. After 24 lands, add "with no cursor use the Current position's group" in `anchorForSwitch` in `register.tsx`. The highlight is the same: `drawPane` already takes `litGroup` (Card a cyan `▌`, Compact a cyan `●`, Timeline the whole column cyan plus `┃`, none bold), and for now it is always `undefined`, to be filled by 24. If, while following, the cursor's anchor group is not inside the following window, the window can only stop on the anchor (equivalent to pausing the following); the Pane is paused while focused anyway, so the effect is small.
+- **Measured ↑↓ (the same on both versions)**: when the plugin draws only the visible window and the tree does not overflow, the host's ↑↓ walk between **every** Button (a card's body lines are Buttons too), and after the last one a further ↓ wraps to the first (the filter row's `1:`); Tab also stops on ✕. So `ui.focus` is hooked (`ring.ts`): when the focus lands on a Button from an entry's 2nd line on, a step down from the entry's first line lands on the next entry's first line instead, otherwise it lands on that entry's first line; a step down from the window's last entry (landing on a 2nd line or wrapping to `f-all`) or a step up from the window's first entry (landing on the Layout button) is refused, the window is moved by one entry, and `$.ui.focus` then goes to the newly revealed entry. A click on a body line does not move the focus ring (measured), so it is not mistaken for a "step down".
+- The host does not hand the plugin's own `$.ui.focus` to this plugin's `ui.focus` hook, so the cursor position is recorded in `focusKey` by the plugin itself. After a Layout/filter switch the host keeps the focus ring by "which Button number", so it lands on a body line; the focus is therefore put back on the selected entry about 60 ms after the redraw (`REFOCUS_MS`).
+- Test tooling: the plugin's `$.ui.focus` does not reach the test's `on('ui.focus')` (it reports no implementation), the same as `ui.scroll`; the cursor's final landing is left to the PTY acceptance, and unit tests check only the pure function `ringMove` and the window moves. `tests/host.ts` now carries its own `$.store` (`world.store`, `world.refuseStore`) and `world.focuses`.
+- **Filter row width**: the host draws a `plain` Button with a hotkey as `1: ●All`, wider than ticket 13 estimated: `1: ●All 2: ○User 3: ○Agent` takes 27 columns, `l: Layout: Timeline` 14, plus 3 for ✕ makes 45 (measured with the Chinese labels of the time, `1: ●全部 2: ○用户 3: ○Agent` and `l: 布局:时间轴`). When it does not fit, the Layout button takes its own line below the filter row, right-aligned (`filterRows`). Measured: at 44 columns Card/Compact fit on one line and Timeline takes two; at 36 columns all three take two; at 56 columns all take one.
+- Compact's user line: the prompt cut to one line, `HH:MM` at the right end (when there is no time it is not written and the prompt takes the full width); the Agent line is `↳ state · last text`. Timeline has at most 2 lines a side, the Agent side the same `↳ state · last text` wrapped, and the left column writes the time only on the user side's first line. Card and Timeline leave a blank line between groups, Compact does not.
+- Also fixed (passed on by the coordinator, CT-TURN-003): `cells.ts` counts BMP characters with Emoji_Presentation (✨ U+2728, ✅, ⭐, ⚡, ⌛ and so on) as 2 cells, as the host does; it also adds 1F004, 1F0CF, 1F18E, 1F191–1F19A and 1F200–1F2FF. The tests are in `card_entries.test.ts`.
+- Verification: `claude plugin test mods/chat-toc` 132 pass; `plugin validate` passes on both versions; tsc has no errors against the 2.1.287 and 2.1.295 declarations. PTY (pyte, isolated config, not logged in, no model call): the harness smoke passes on both versions; under `assets/25-layouts/`, `capture.py` (three Layouts × 36/44/56 × two versions, plus the User/Agent filters), `check_screens.py` (checks each screenshot's Layout, filter and width; all 30 ok), `probe.py` (key sequences; `keys-*.txt` are the records of ↑↓ walking the entries, scrolling at the window's ends and wrapping to the filter row on both versions), `remember.py` (after choosing "Agent" and Compact, quitting and opening again still remembers; after editing the store file to an unrecognized value it returns to All and Card, `remember-*.txt`). The screenshots are in `assets/25-layouts/screens/<version>-<columns>/` for the human visual check; the cyan highlight waits for 24.
 
-**2026-10-11 代码审查修正（分支 `chat-toc/review-fixes`）**
+**2026-10-11 code review fixes (branch `chat-toc/review-fixes`)**
 
-- 去掉固定的 `REFOCUS_MS = 60`，改成照 prompt-history 的做法：切换或窗口挪动后记下「欠着的」焦点环目标 `pendingRing`，由真正画出该条目的那一次绘制发出（`ring.ts` 的 `pendingShown`），`$.clock.after(0)` 发送；被拒最多重试 3 次、间隔 50 ms；发送前焦点环已经被人挪走（`ring !== key`）就不发。`ui.focus` 的窗口两端滚动（reveal）也走同一条路。
-- 实测 2.1.287 切到时间轴时，发送当时被接受，但宿主等新帧排好后又按「第几个 Button」把焦点环放回正文行（与 prompt-history 记的 2.1.290 现象相同）。所以加了一次确认：发出后 150 ms 内要一次重画（没有就自己要一次），那次绘制再发一遍。
-- 热键 1/2/3/l 不会把焦点环挪到过滤行（两个版本都用调试日志确认过）；焦点刚进入 Pane、焦点环停在过滤行按钮上时按热键，锚是 Current position 所在组（没有高亮时用窗口顶部那组），与规格一致，`follow_position.test.ts` 加了测试。
-- 窗口位置的纯计算移到 `window.ts` 的 `topOfDrawing`（返回 `{top, refocusKey}`），锚是可辨识联合 `SwitchAnchor`（`by: 'ring' | 'lit' | 'top'`）。
-- PTY：新脚本 `assets/25-layouts/ring_check.py`（三种 Layout 来回切换、过滤切换、窗口两端滚动后焦点环的落点），2.1.287 与 2.1.295 全部 ok；`capture.py` + `check_screens.py` 30 张截屏 ok。
+- The fixed `REFOCUS_MS = 60` is removed and replaced by prompt-history's approach: after a switch or a window move, the "owed" focus ring target `pendingRing` is recorded, sent by the very draw that really draws that entry (`pendingShown` in `ring.ts`), and sent with `$.clock.after(0)`; a refusal is retried up to 3 times at 50 ms intervals; if the focus ring has already been moved away by the person before sending (`ring !== key`) it is not sent. The window-end scrolling of `ui.focus` (reveal) takes the same route.
+- Measured on 2.1.287 when switching to Timeline: the send was accepted at that moment, but after the new frame was laid out the host put the focus ring back on a body line again by "which Button number" (the same as the 2.1.290 behaviour prompt-history recorded). So one confirmation was added: within 150 ms after sending a redraw is needed (asked for if there is none), and that draw sends again.
+- The hotkeys 1/2/3/l do not move the focus ring to the filter row (confirmed with the debug log on both versions); when a hotkey is pressed with the focus just entering the Pane and the focus ring on a filter row button, the anchor is the Current position's group (the group at the window's top when there is no highlight), as the spec says, and `follow_position.test.ts` gained a test.
+- The pure computation of the window position moved to `topOfDrawing` in `window.ts` (returning `{top, refocusKey}`), and the anchor is a discriminated union `SwitchAnchor` (`by: 'ring' | 'lit' | 'top'`).
+- PTY: a new script `assets/25-layouts/ring_check.py` (where the focus ring lands after switching the three Layouts back and forth, switching the filter, and scrolling at the window's ends), all ok on 2.1.287 and 2.1.295; `capture.py` + `check_screens.py` 30 screenshots ok.
