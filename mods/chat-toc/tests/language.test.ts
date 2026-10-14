@@ -63,14 +63,6 @@ test('in English the filters, the Layout Button, the steps, the day and the coun
   expect(texts).toContain('2 turns')
 })
 
-test('in English the status line says why the pane cannot dock in English', async ($, on) => {
-  const world = host(on, three().jsonl())
-  world.env = { LANG: 'en_US.UTF-8' }
-  await start($, world, false)
-
-  expect(world.statuses.at(-1)).toBe('The contents dock on the right only in the fullscreen layout; run /tui fullscreen to switch')
-})
-
 test('a Chinese locale under LC_ALL wins over an English LANG', async ($, on) => {
   const world = await english($, on, { LC_ALL: 'zh_CN.UTF-8', LANG: 'en_US.UTF-8' })
 

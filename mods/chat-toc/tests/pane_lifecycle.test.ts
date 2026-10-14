@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { isClosedByPerson, reopensOn } from '../hooks/lifecycle'
+import { hidesPane, isClosedByPerson, reopensOn } from '../hooks/lifecycle'
 import { PANE, TRANSCRIPT, appendRow, drawHint, entryTexts, host, mountPane, readsOf, start } from './host'
 import { transcript } from './fixture'
 import { setLanguage } from '../hooks/text'
@@ -24,6 +24,13 @@ test("only the person closing chat-toc's own pane keeps it closed", () => {
   expect(isClosedByPerson({ id: PANE, origin: { kind: 'plugin' } })).toBe(false)
   expect(isClosedByPerson({ id: PANE, origin: { kind: 'unload' } })).toBe(false)
   expect(isClosedByPerson({ id: 'diff', origin: { kind: 'person' } })).toBe(false)
+})
+
+test("every close of chat-toc's pane but an unload takes it off screen, so the band offers it again", () => {
+  expect(hidesPane({ id: PANE, origin: { kind: 'person' } })).toBe(true)
+  expect(hidesPane({ id: PANE, origin: { kind: 'plugin' } })).toBe(true)
+  expect(hidesPane({ id: PANE, origin: { kind: 'unload' } })).toBe(false)
+  expect(hidesPane({ id: 'diff', origin: { kind: 'person' } })).toBe(false)
 })
 
 test('the pane opens again for a session started by /clear or /resume, not for a compaction or a fork', () => {
