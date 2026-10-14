@@ -1,0 +1,15 @@
+{
+  "name": "chat-toc-local",
+  "owner": {
+    "name": "lkangd"
+  },
+  "description": "chat-toc copied from the working tree, for local checks in Claude Desktop and the terminal",
+  "plugins": [
+    {
+      "name": "chat-toc",
+      "source": "./chat-toc",
+      "description": "chat-toc from the working tree",
+      "version": "0.1.3"
+    }
+  ]
+}
