@@ -1,4 +1,0 @@
-{
-  "description": "Prototype Prompt Trail scrolling, focus, navigation and ambiguity handling",
-  "modules": ["./register.tsx"]
-}

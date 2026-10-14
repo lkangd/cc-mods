@@ -12,7 +12,7 @@ Claude Code 没有对话目录。公开的 mods API 也不直接提供这些：t
 
 ## Solution
 
-chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-history 互不依赖、不共享代码和数据，可以同时启用。
+chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，不依赖其他插件。
 
 它在交互式终端的全屏布局里，把一个 Pane 停靠在 transcript 右侧（`placement: 'dock'`）。这个 Pane 是**当前会话**的对话目录：每个条目是一个 Turn group（使用者的一次 User input 加上 Agent reply），按 Transcript 顺序排列。点击用户侧跳回该 prompt，点击 Agent 侧跳到本轮最后一段文字回复。青色高亮跟随 Current position，目录列表随之滚动。
 
@@ -57,7 +57,7 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-hist
 
 ### 1. 插件形态与支持矩阵
 
-- 插件根 `mods/chat-toc/`，`plugin.json` 的 `name` 为 `chat-toc`，首个版本 `0.1.0`。与 prompt-history 不共享代码，需要的部分各写一份。（定稿兼容与验收契约；决定首个版本的发布形态与文档）
+- 插件根 `mods/chat-toc/`，`plugin.json` 的 `name` 为 `chat-toc`，首个版本 `0.1.0`。（定稿兼容与验收契约；决定首个版本的发布形态与文档）
 - 只用公开 mods API，唯一例外是读当前会话的 transcript 文件。宿主 API 事实以 `plugin-authoring` skill 写出的类型声明与 `~/.claude-code-docs/docs/plugins__mods__*.md` 为准。（地图 Notes）
 - 承诺 Claude Code `>=2.1.287`。所用原语在 2.1.287 上都有，字段与 2.1.295 相同；2.1.295 新增的 `ui.notify`、`ui.selection`、`ui.fault`、`prompt.*`、`AssistantMessage.isSummary` 都不用。插件清单没有声明宿主最低版本的字段，所以不做运行时版本检测，只在 README 写明。（在 Claude Code 2.1.287 上核对关键 API；定稿兼容与验收契约）
 - 实现时注意：`command.run` 的匹配器写 `{ command: 'chat-toc' }`，不是 `{ name }`；不要用 `h` 作局部变量名（会遮住 JSX 的 `h`）。（在 2.1.287 上核对关键 API；用只收 label 的 Button 画三种 Layout）
@@ -179,9 +179,9 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-hist
   }
   ```
 
-  不加 `category`/`tags`，不提与 prompt-history 的关系。
+  不加 `category`/`tags`。
 - **发布动作**：插件代码可以先合进 main，但 marketplace 条目、根 README 一览表的一行和 chat-toc 一节、`evidence/0.1.0/` 要放在**同一个发布提交**里，在全部 MUST 通过后最后提交。不打 git tag。发布前用本地目录 marketplace 跑 CT-COMPAT-002 冒烟（两个版本）；推上去后从 `lkangd/cc-mods` 做一次安装级检查（添加、安装、版本号、enabled、Pane 弹出），结果补进 `marketplace.md`；失败就撤回发布提交。
-- **根 README**：开头改成「每个 mod 是独立插件，互不依赖、不共享代码与数据，可以同时启用」；一览表新增 `chat-toc | 0.1.0 | 在对话右侧停靠当前会话的目录，点击跳回任意一轮`；新增与 prompt-history 同级的 chat-toc 一节，开头一句写两者的区别（chat-toc 什么都不保存、只显示当前会话；prompt-history 保存 prompt 原文档案；两者可以同时启用，一个在输入框上方，一个停靠在右侧），然后依次是：作用、环境要求（`>=2.1.287`、交互式终端、全屏、终端足够宽、**不需要** `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS`、OS 不限但只在 macOS 实测）、安装（二选一不同时启用）、快速开始、操作（表格）、显示规则、数据与隐私、卸载（含残留 `$.store` 文件位置）、已知限制（即下文 Out of Scope 中的「不承诺」八条，改写成面向使用者的话）、开发（链接与 0.1.0 通过结果）。用界面上的字，不用 Turn group、Current position 等内部术语。
+- **根 README**：开头改成「每个 mod 是独立插件，互不依赖、不共享代码与数据，可以同时启用」；一览表新增 `chat-toc | 0.1.0 | 在对话右侧停靠当前会话的目录，点击跳回任意一轮`；新增 chat-toc 一节，依次是：作用、环境要求（`>=2.1.287`、交互式终端、全屏、终端足够宽、**不需要** `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS`、OS 不限但只在 macOS 实测）、安装（二选一不同时启用）、快速开始、操作（表格）、显示规则、数据与隐私、卸载（含残留 `$.store` 文件位置）、已知限制（即下文 Out of Scope 中的「不承诺」八条，改写成面向使用者的话）、开发（链接与 0.1.0 通过结果）。用界面上的字，不用 Turn group、Current position 等内部术语。
 - **`mods/chat-toc/README.md`**：只写开发者内容：链接到根 README 和 `CONTEXT.md`；目录结构；本地加载；`claude plugin test` 的跑法；cmux PTY 验收；证据目录约定；发布清单（两个版本跑全部 MUST → 本地目录 marketplace 冒烟 → 人工目检签字 → 发布提交 → GitHub 安装级检查 → 失败就撤回）。
 
 ## Testing Decisions
@@ -213,7 +213,7 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-hist
 
 **不在本 MVP 内**（地图 Out of scope）：
 
-- 持久档案、跨会话历史、采集同意（prompt-history 的职责）。
+- 持久档案、跨会话历史、采集同意。
 - inline 放置（输入框上方）作为自动弹出的降级形态（`/chat-toc` 主动打开时宿主放成 inline 除外）。
 - Desktop、VS Code、JetBrains、移动端等非终端表面。
 - 子 agent（sidechain）内容进 TOC。
@@ -232,6 +232,6 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-hist
 
 ## Further Notes
 
-- **参考实现**：官方内置 mod `cc-plugin-diff`（anthropics/claude-code@e47cc82 `mods/diff/`）的自动弹出、记住关闭、只在 dock 时自动打开、自管滚动，形状与 chat-toc 几乎一致。交互参考 cc-switch 的「对话目录」，但不照搬它的斜杠命令隐藏、混合步数口径和过滤后点击静默无反应。prompt-history 的 `$.ui.scroll({ to: { requestId } })` 跳转可借鉴，不抽公共库。
+- **参考实现**：官方内置 mod `cc-plugin-diff`（anthropics/claude-code@e47cc82 `mods/diff/`）的自动弹出、记住关闭、只在 dock 时自动打开、自管滚动，形状与 chat-toc 几乎一致。交互参考 cc-switch 的「对话目录」，但不照搬它的斜杠命令隐藏、混合步数口径和过滤后点击静默无反应。
 - **原型与探针**：各票的原型 mod、驱动脚本、fixture 生成器在 `.scratch/chat-toc/assets/` 下，可直接复用为 PTY 验收素材；原型分支 `prototype/chat-toc-pane` 与 `research/chat-toc-*` 分支不合并。
 - **CT-COMPAT-003 的修订**：自动弹出时不出现 inline；`/chat-toc` 在不能停靠时出现 inline Pane 并列出条目；停靠后变窄被改成 inline 时插件关掉 Pane、状态栏说明、条件恢复后再自动打开。见「定稿兼容与验收契约」的后续修订。

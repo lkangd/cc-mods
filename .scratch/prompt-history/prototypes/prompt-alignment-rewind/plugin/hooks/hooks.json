@@ -1,4 +1,0 @@
-{
-  "description": "Record prompt alignment and rewind event ordering for the Prompt Trail prototype",
-  "modules": ["./register.ts"]
-}

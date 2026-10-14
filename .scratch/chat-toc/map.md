@@ -7,7 +7,7 @@ chat-toc MVP 的功能、交互、兼容与验收决策全部落定，足以直�
 ## Notes
 
 - 后续交互与产物使用中文；提交说明用英文。
-- 独立插件根是 `mods/chat-toc/`；与 prompt-history 完全独立：不互相依赖、不共享代码与数据，可同时启用。可借鉴 prompt-history 的做法（如 `$.ui.scroll({ to: { requestId } })` 跳转），但不抽公共库。
+- 独立插件根是 `mods/chat-toc/`，不依赖其他插件。
 - 只用公开的 Claude Code mods API，不依赖宿主未公开行为；唯一例外是读当前会话的 transcript 文件（格式未公开），它是 TOC 的数据来源。分块读大文件时 macOS/Linux 用系统 `dd` 定位加 `head`（`tail -c +N` 在 macOS 上太慢），Windows 用自带的 Windows PowerShell 5.1。最低版本 Claude Code `>=2.1.287`（mods 在终端正式默认开启的版本，`CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` 自此被忽略）；本机版本（当前 2.1.295，会随时升级）只是实测样本，不是版本锁。
 - 目标表面：交互式终端的全屏布局，Pane 停靠在 transcript 右侧（`placement: 'dock'`）。自动弹出不接受 inline 放置，不能停靠时在状态栏常驻说明原因与满足条件的方法；唯一例外是使用者用 `/chat-toc` 主动打开时，宿主放成 inline 就照放（inline 形态不承诺，见规格）。
 - 数据范围：一切以当前会话的 transcript 文件为准（当前分支的对话链），`$.session.messages()` 只作补充；不落盘、不建档案、无采集同意流程。只收主对话循环，子 agent 不进 TOC；`/clear` 后随新会话重建目录、不画分隔线；compact 前的条目照常显示；rewind 被弃的分支不显示。
@@ -16,7 +16,7 @@ chat-toc MVP 的功能、交互、兼容与验收决策全部落定，足以直�
 - 每次会话启动自动打开；使用者关闭后本会话保持关闭，`/chat-toc` 重新打开，下次会话再自动弹出。
 - 点击用户侧跳到该 prompt，点击 Agent 侧跳到本轮最后一段文字回复；焦点在 Pane 内时 ↑↓ 选择、Enter 跳转。跳转成功后高亮锁在目标组，直到视口下一次变化；TOC 滚动跟随 Current position；长会话连续滚动、可按需渲染，不分页。
 - 交互参考 cc-switch（https://github.com/farion1231/cc-switch）会话详情右侧的「对话目录」。
-- 宿主 API 事实以 `plugin-authoring` skill 写出的类型声明与 `~/.claude-code-docs/docs/plugins__mods__*.md` 为准；PTY 验收可用 cmux 驱动（见 prompt-history 的做法）。
+- 宿主 API 事实以 `plugin-authoring` skill 写出的类型声明与 `~/.claude-code-docs/docs/plugins__mods__*.md` 为准；PTY 验收可用 cmux 驱动。
 - 领域术语见 [`CONTEXT.md`](../../mods/chat-toc/CONTEXT.md)。
 
 ## Decisions so far
@@ -44,7 +44,7 @@ chat-toc MVP 的功能、交互、兼容与验收决策全部落定，足以直�
 
 ## Out of scope
 
-- 持久档案、跨会话历史、采集同意（prompt-history 的职责）。
+- 持久档案、跨会话历史、采集同意。
 - inline 放置（输入框上方）作为自动弹出的降级形态（`/chat-toc` 主动打开时宿主放成 inline 除外）。
 - Desktop、VS Code、JetBrains、移动端等非终端表面。
 - 子 agent（sidechain）内容进 TOC。
