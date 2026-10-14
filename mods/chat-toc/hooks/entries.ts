@@ -114,11 +114,6 @@ function agentText(group: TurnGroup, isRunning: boolean): string {
   return [agentHeadOf(group, isRunning), group.reply?.text ?? ''].filter(Boolean).join(' · ')
 }
 
-/* A side's whole text, unfolded, for a surface that wraps it itself. */
-export function sideText(group: TurnGroup, side: 'user' | 'agent', isRunning: boolean): string {
-  return side === 'user' ? group.userText : agentText(group, isRunning)
-}
-
 function userSide(group: TurnGroup, i: number, layout: Layout, room: number, clock: string): Side {
   const lines = layout === 'compact' ? 1 : BODY_LINES
   const time = layout === 'card' ? clock : ''

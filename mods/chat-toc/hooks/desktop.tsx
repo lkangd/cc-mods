@@ -1,108 +1,227 @@
 /* Drawing the pane on Claude Code Desktop and the other remote surfaces,
-   which lay out and wrap text themselves: the filters as buttons, the
-   chosen one primary; the Layout as a select (a button that cycles it
-   where the surface has none); a strip of bars over the list; each side one
-   button holding its whole text, beside its time and node; the day's rule,
-   the refusal and the count as text. The window over the entries is the
-   terminal's, so the tree stays bounded. Buttons take only a label, as
-   2.1.287 has them. */
+   from what the desktop was measured to draw (ticket 36). A plain Button is
+   one line of bare text there, dim or not, pressable, nothing more; so each
+   line of an entry is one, the lines folded as the terminal folds them. All
+   that only decorates is an Svg: the filters' well and lit slot under three
+   plain Buttons, the strip of bars, and beside each entry its time, node or
+   branch and rail, as tall as its lines, so the rails of neighbours meet.
+   A Box's width and height count cells there, as on the terminal. The
+   desktop reports no Current position: nothing is lit, nothing pauses. */
 
 import type { ElementTable, RenderElement } from 'claude-code'
-import { dayRuleBefore } from './entries'
+import { textCells } from './cells'
+import { GUTTER, RUNNING_MARK, dayRuleBefore } from './entries'
 import type { Entry } from './entries'
 import { MINIMAP_HEIGHT, minimapOf } from './minimap'
-import { PAUSED_TEXT } from './pane'
+import type { StripLabels } from './minimap'
 import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
 import { FILTERS, LAYOUT_NAMES, filterLabel, layoutLabel, layoutOf } from './view'
 import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
 
+/* A cell's width and a row's height on the desktop, in CSS px. */
+export const CELL_PX = 8.2
+export const ROW_PX = 19
+
 const LAYOUTS: readonly Layout[] = ['card', 'compact', 'timeline']
-/* The most of a side's text a button carries. */
-const MOST_TEXT = 300
+const TIME_CELLS = 6
+/* The rail's cells: the terminal's gutter without a time column. */
+const RAIL_CELLS = GUTTER.card
+const FONT = "-apple-system,BlinkMacSystemFont,'SF Pro Text','PingFang SC',sans-serif"
+/* The cells a filter's slot adds around its label. */
+const SLOT_PAD = 4
+const WELL_ROWS = 2
 
 export type DesktopView = {
   entries: readonly Entry[]
   window: TocWindow
   layout: Layout
   filter: ViewFilter
-  litGroup: number | undefined
-  /* A side's whole text, unfolded. */
-  textOf: (entry: Entry) => string
   /* The steps of each Turn group the list holds, for the strip of bars. */
   steps: readonly number[]
   runningGroup: number | undefined
+  stripLabels: StripLabels
   notice: string | undefined
   alert: { text: string; isInverse: boolean } | undefined
   why: string | undefined
   count: number | undefined
-  isPaused: boolean
   bodyColumns: number
   onPress: (entry: Entry) => Promise<void>
   onFilter: (filter: ViewFilter) => Promise<void>
   onLayout: (layout?: Layout) => Promise<void>
 }
 
-const cut = (text: string) => ([...text].length > MOST_TEXT ? [...text].slice(0, MOST_TEXT - 1).join('') + '…' : text)
+const xml = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c)
+const px = (n: number) => Math.round(n * 10) / 10
+
+const svgOf = (w: number, h: number, style: string, body: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${px(w)}" height="${h}" viewBox="0 0 ${px(w)} ${h}"><style>${style}</style>${body}</svg>`
+
+/* The rail's colours: the rail, a node's ring, the time, a hollow mark. */
+const RAIL_STYLE =
+  '.l{fill:#d3d2cd}.n{fill:none;stroke:#8f8e89;stroke-width:1.5}.o{fill:none;stroke:#b8b7b2;stroke-width:1.2;stroke-dasharray:2 2}' +
+  '.t{fill:#8a8985}.r{fill:#d77757;animation:p 1.4s ease-in-out infinite}@keyframes p{50%{opacity:.35}}' +
+  '@media (prefers-color-scheme: dark){.l{fill:#41413e}.n{stroke:#a3a29d}.o{stroke:#5d5c58}.t{fill:#8f8e89}}' +
+  '@media (prefers-reduced-motion: reduce){.r{animation:none}}'
+
+/* A label's width in the desktop's 13 px system font, roughly: a CJK
+   character a full em, other characters a little over half. */
+const labelPx = (label: string) => [...label].reduce((w, ch) => w + (textCells(ch) === 2 ? 13 : 7.4), 0)
+
+/* The filters' well and the chosen one's pill, under the three plain
+   Buttons. The pill is the size and shape of the box the desktop draws
+   under a hovered Button, centred where the label is, so a hover over the
+   chosen one meets it and a hover elsewhere reads as the same pill. */
+function wellSvg(labels: readonly string[], slots: readonly number[], chosen: number): string {
+  const w = slots.reduce((a, b) => a + b, 0) * CELL_PX
+  const h = WELL_ROWS * ROW_PX
+  const centre = (slots.slice(0, chosen).reduce((a, b) => a + b, 0) + (slots[chosen] ?? 0) / 2) * CELL_PX
+  const pill = labelPx(labels[chosen] ?? '') + 16
+  return svgOf(
+    w,
+    h,
+    '.w{fill:#ecebe6}.p{fill:#ffffff}@media (prefers-color-scheme: dark){.w{fill:#2c2c2a}.p{fill:#3f3f3c}}',
+    `<rect class="w" x="0" y="3" width="${px(w)}" height="${h - 6}" rx="8"/><rect class="p" x="${px(centre - pill / 2)}" y="${h / 2 - 11}" width="${px(pill)}" height="22" rx="5"/>`,
+  )
+}
+
+/* Beside an entry: its time on its first line where the Layout has a time
+   column, the rail down all its lines, on the first line a ring for a User
+   input or a branch for an Agent reply (hollow and dashed with no Jump
+   target), and a running reply's mark. The first entry under the window's
+   top or a day's rule starts its rail at its ring. */
+function railSvg(entry: Entry, hasTime: boolean, isStart: boolean): { source: string; width: number; height: number } {
+  const cells = (hasTime ? TIME_CELLS : 0) + RAIL_CELLS + (entry.isRunning ? RUNNING_MARK : 0)
+  const width = cells * CELL_PX
+  const height = entry.lines.length * ROW_PX
+  const x = (hasTime ? TIME_CELLS * CELL_PX : 0) + 6
+  const cy = ROW_PX / 2
+  const isOff = entry.isOff === true
+  const parts: string[] = []
+  if (hasTime && entry.time !== '') parts.push(`<text class="t" x="0" y="${cy + 4}" font-size="12" font-family="${FONT}">${xml(entry.time)}</text>`)
+  const top = isStart && entry.side === 'user' ? cy : 0
+  parts.push(`<rect class="l" x="${px(x - 0.75)}" y="${top}" width="1.5" height="${height - top}"/>`)
+  if (entry.side === 'user') {
+    parts.push(`<circle class="l" cx="${px(x)}" cy="${cy}" r="5"/>`)
+    parts.push(`<circle class="${isOff ? 'o' : 'n'}" cx="${px(x)}" cy="${cy}" r="4"/>`)
+  } else {
+    parts.push(isOff ? `<rect class="o" x="${px(x)}" y="${cy}" width="9" height="0.1"/>` : `<rect class="l" x="${px(x)}" y="${cy - 0.75}" width="9" height="1.5"/>`)
+  }
+  if (entry.isRunning) {
+    const mx = (hasTime ? TIME_CELLS * CELL_PX : 0) + RAIL_CELLS * CELL_PX + 6
+    parts.push(`<circle class="r" cx="${px(mx)}" cy="${cy}" r="4.5"/>`)
+  }
+  return { source: svgOf(width, height, RAIL_STYLE, parts.join('')), width, height }
+}
+
+/* A blank row between Turn groups: the rail goes on through it. */
+function gapSvg(hasTime: boolean): { source: string; width: number } {
+  const width = (RAIL_CELLS + (hasTime ? TIME_CELLS : 0)) * CELL_PX
+  const x = (hasTime ? TIME_CELLS * CELL_PX : 0) + 6
+  return { source: svgOf(width, ROW_PX, RAIL_STYLE, `<rect class="l" x="${px(x - 0.75)}" y="0" width="1.5" height="${ROW_PX}"/>`), width }
+}
+
+/* A day's rule across the body: the day, dim, then a thin line. */
+function ruleSvg(day: string, width: number): string {
+  const end = textCells(day) * 6.4 + 10
+  return svgOf(
+    width,
+    ROW_PX,
+    RAIL_STYLE,
+    `<text class="t" x="0" y="${ROW_PX / 2 + 4}" font-size="12" font-family="${FONT}">${xml(day)}</text><rect class="l" x="${px(end)}" y="${ROW_PX / 2}" width="${px(Math.max(0, width - end))}" height="1"/>`,
+  )
+}
 
 export function drawDesktopPane(elements: ElementTable, view: DesktopView): RenderElement {
   const { Box, Text, Button } = elements
-  const filters = (
-    <Box flexDirection="row" gap={1}>
-      {FILTERS.map(f => (
-        <Button
-          key={f.filter === 'all' ? FIRST_CONTROL : `f-${f.filter}`}
-          label={filterLabel(f.filter)}
-          variant={f.filter === view.filter ? 'primary' : 'secondary'}
-          hotkey={f.hotkey}
-          onPress={() => view.onFilter(f.filter)}
-        />
-      ))}
+  const hasSvg = 'Svg' in elements
+  const svg = (source: string, alt: string, width: number, height: number) =>
+    'Svg' in elements ? <elements.Svg source={source} alt={alt} width={px(width)} height={height} /> : null
+  const width = Math.round(view.bodyColumns * CELL_PX)
+  const slots = FILTERS.map(f => textCells(filterLabel(f.filter)) + SLOT_PAD)
+  const chosen = Math.max(0, FILTERS.findIndex(f => f.filter === view.filter))
+  const buttons = FILTERS.map((f, i) => (
+    <Box key={`slot-${f.filter}`} width={slots[i]} height={WELL_ROWS} justifyContent="center" alignItems="center">
+      <Button
+        key={f.filter === 'all' ? FIRST_CONTROL : `f-${f.filter}`}
+        plain
+        dimColor={f.filter !== view.filter}
+        onPress={() => view.onFilter(f.filter)}
+      >
+        {filterLabel(f.filter)}
+      </Button>
     </Box>
+  ))
+  const filters = hasSvg ? (
+    <Box position="relative" width={slots.reduce((a, b) => a + b, 0)} height={WELL_ROWS}>
+      {svg(wellSvg(FILTERS.map(f => filterLabel(f.filter)), slots, chosen), `筛选：${filterLabel(view.filter)}`, slots.reduce((a, b) => a + b, 0) * CELL_PX, WELL_ROWS * ROW_PX)}
+      <Box position="absolute" top={0} left={0} flexDirection="row">
+        {buttons}
+      </Box>
+    </Box>
+  ) : (
+    <Box flexDirection="row">{buttons}</Box>
   )
   const layoutControl =
     'Select' in elements ? (
       <elements.Select
         key={LAYOUT_CONTROL}
-        label="布局"
         options={LAYOUTS.map(l => ({ value: l, label: LAYOUT_NAMES[l] }))}
         value={view.layout}
         onSelect={value => void view.onLayout(layoutOf(value))}
       />
     ) : (
-      <Button key={LAYOUT_CONTROL} label={layoutLabel(view.layout)} variant="secondary" onPress={() => view.onLayout()} />
+      <Button key={LAYOUT_CONTROL} plain onPress={() => view.onLayout()}>
+        {layoutLabel(view.layout)}
+      </Button>
     )
-  const width = Math.max(240, Math.min(900, view.bodyColumns * 8 - 8))
   const strip =
-    'Svg' in elements && view.steps.length > 0
+    hasSvg && view.steps.length > 0
       ? (() => {
-          const map = minimapOf(view.steps, view.litGroup, view.runningGroup, width)
-          return <elements.Svg source={map.source} alt={map.alt} width={width} height={MINIMAP_HEIGHT} />
+          const map = minimapOf(view.steps, view.runningGroup, width, view.stripLabels)
+          return svg(map.source, map.alt, width, MINIMAP_HEIGHT)
         })()
       : null
+  const hasTime = view.layout !== 'card'
   const rows: RenderElement[] = []
   for (let i = view.window.start; i < view.window.end; i++) {
     const entry = view.entries[i]
     if (!entry) continue
-    const isLit = entry.groupIndex === view.litGroup
     const rule = dayRuleBefore(view.entries, i)
-    if (rule !== undefined) rows.push(<Text dimColor>{rule}</Text>)
-    const time = view.layout === 'card' ? (entry.lines[0]?.aside ?? '') : entry.time
-    const node = entry.side === 'user' ? (entry.isOff ? '○' : isLit ? '◉' : '●') : entry.isOff ? '┄' : isLit ? '┣' : '├'
+    if (rule !== undefined) rows.push(hasSvg ? svg(ruleSvg(rule, width), rule, width, ROW_PX)! : <Text dimColor>{rule}</Text>)
+    const press = () => view.onPress(entry)
+    const rail = railSvg(entry, hasTime, i === view.window.start || rule !== undefined)
+    const line = (text: string, n: number, dim: boolean) => (
+      <Button key={n === 0 ? entry.key : `${entry.key}.${n}`} plain dimColor={dim} onPress={press}>
+        {text || ' '}
+      </Button>
+    )
     rows.push(
-      <Box key={`row-${entry.key}`} flexDirection="row" gap={1}>
-        {isLit ? <Text color="suggestion">{time.padEnd(5)}</Text> : <Text dimColor>{time.padEnd(5)}</Text>}
-        {isLit ? <Text color="suggestion">{node}</Text> : <Text dimColor>{node}</Text>}
-        {entry.isRunning ? <Text color="claude">◐</Text> : null}
-        <Button key={entry.key} label={cut(view.textOf(entry))} dimColor={entry.lines[0]?.dim === true} onPress={() => view.onPress(entry)} />
+      <Box key={`row-${entry.key}`} flexDirection="row">
+        {svg(rail.source, '轨道', rail.width, rail.height)}
+        <Box flexDirection="column" flexShrink={1}>
+          {entry.lines.map((l, n) =>
+            l.aside === undefined ? (
+              line(l.text, n, l.dim)
+            ) : (
+              <Box flexDirection="row" width={view.bodyColumns - RAIL_CELLS} justifyContent="space-between">
+                {line(l.text, n, l.dim)}
+                <Text dimColor>{l.aside}</Text>
+              </Box>
+            ),
+          )}
+        </Box>
       </Box>,
     )
+    const hasGap = entry.gapAfter && i < view.window.end - 1
+    if (hasGap) {
+      if (dayRuleBefore(view.entries, i + 1) !== undefined) rows.push(<Text> </Text>)
+      else {
+        const gap = gapSvg(hasTime)
+        rows.push(<Box flexDirection="row">{svg(gap.source, '轨道', gap.width, ROW_PX)}</Box>)
+      }
+    }
   }
-  const status = view.isPaused ? (
-    <Text color="warning">{PAUSED_TEXT}</Text>
-  ) : view.count === undefined ? null : (
-    <Text dimColor>{`${view.count} 轮`}</Text>
-  )
   return (
     <Box flexDirection="column" gap={1}>
       <Box flexDirection="row" justifyContent="space-between" alignItems="center">
@@ -114,7 +233,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
       <Box flexDirection="column">{rows}</Box>
       {view.alert === undefined ? null : <Text color="warning">{`⚠ ${view.alert.text}`}</Text>}
       {view.why === undefined ? null : <Text dimColor>{view.why}</Text>}
-      {status}
+      {strip === null && view.count !== undefined ? <Text dimColor>{`${view.count} 轮`}</Text> : null}
     </Box>
   )
 }

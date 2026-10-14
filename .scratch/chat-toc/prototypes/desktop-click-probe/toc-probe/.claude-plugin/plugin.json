@@ -1,0 +1,1 @@
+{ "name": "toc-probe", "version": "0.0.1", "description": "Throwaway desktop click probe for chat-toc", "types": "./types/index.d.ts" }

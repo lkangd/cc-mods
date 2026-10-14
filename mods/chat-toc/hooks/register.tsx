@@ -13,8 +13,8 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderViewport } from 'claude-code'
 import type { Entry } from './entries'
-import { sideText } from './entries'
 import { drawDesktopPane } from './desktop'
+import { stripLabels } from './minimap'
 import type { TurnGroup } from './groups'
 import {
   COMPACTED_TEXT,
@@ -22,6 +22,8 @@ import {
   FLASH_MS,
   REFUSED_MS,
   REFUSED_TEXT,
+  UNSCROLLABLE_TEXT,
+  isUnscrollable,
   compactedSides,
   dimRefused,
   jumpTargetsOf,
@@ -660,10 +662,16 @@ async function jump($: EngineInterface, entry: Entry): Promise<void> {
       if (wasShown) await update($, rev, n => n + 1)
       return
     }
+    if (isUnscrollable(got.deny)) return sayRefusal($, entry.key, UNSCROLLABLE_TEXT)
   }
   refused.set(key, { side: entry.side, opener: group.openerUuid, groupIndex: entry.groupIndex, why })
+  await sayRefusal($, entry.key, why === 'compacted' ? COMPACTED_TEXT : REFUSED_TEXT)
+}
+
+/* Says below the entries why a press did not jump, flashing, for a while. */
+async function sayRefusal($: EngineInterface, key: string, text: string): Promise<void> {
   const n = ++refusals
-  refusal = { key: entry.key, n, text: why === 'compacted' ? COMPACTED_TEXT : REFUSED_TEXT, at: await $.clock.now() }
+  refusal = { key, n, text, at: await $.clock.now() }
   /* Each step of the flash is drawn. */
   for (let step = 1; step <= FLASHES * 2; step++) {
     $.clock.after(step * FLASH_MS, () => {
@@ -978,12 +986,9 @@ export const register: Register = on => {
         ? drawPane($.ui.resolve(e), { ...shared, bodyRows: e.props.scroll.bodyRows, onLayout: () => chooseLayout($) })
         : drawDesktopPane($.ui.resolve(e), {
             ...shared,
-            textOf: entry => {
-              const group = groups[entry.groupIndex]
-              return group === undefined ? '' : sideText(group, entry.side, entry.isRunning)
-            },
             steps: isOk ? groups.map(g => g.steps) : [],
             runningGroup: isRunningNow ? groups.length - 1 : undefined,
+            stripLabels: stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs),
             onLayout: to => chooseLayout($, to),
           })
     if (perf.isOn) {

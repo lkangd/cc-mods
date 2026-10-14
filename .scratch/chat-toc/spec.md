@@ -139,7 +139,7 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-hist
   - **紧凑**：每侧一行，时间写在组里第一个显示的那一侧的时间列。
   - **时间轴**：每侧最多 2 行，时间同紧凑。
   - 换行和截断由插件自己算：按终端单元宽度折行（全角 2 格），闭合标点不出现在行首（把上一行最后一个字带下来），不超过 14 个字符的英文词与路径整体换行，折在空格处时丢掉那个空格；第 2 行（紧凑是第 1 行）末尾加 `…`。Button 不会替你换行。
-- **其他 surface**：`e.surface` 不是 `terminal` 时（Desktop、VS Code、移动端）画另一棵树：三个筛选 Button（选中的 `variant="primary"`）；Layout 用 `Select`（没有 Select 的 surface 用 Button 循环）；有 `Svg` 时，列表上方一条缩略条，每个 Turn group 一根竖条，高度按步数，当前组与进行中组上色，Svg 内自带 `prefers-color-scheme` 与 `prefers-reduced-motion`，超过 120 组时一根竖条代表几组；每侧一个 Button，label 是不折行的整段文字（最多 300 字），左边是时间与节点 `Text`；日期分隔、跳转被拒说明、轮数或暂停用 `Text`。条目窗口沿用终端的窗口逻辑，保证一棵树有界。Button 只用 label（2.1.287 的类型）。只经过 test kit 的元素树测试。
+- **其他 surface**：`e.surface` 不是 `terminal` 时（Desktop、VS Code、移动端）画另一棵树（36 号票，按 Desktop 实测）：顶部是分段控件，槽与选中项的底块是 Svg（底块与宿主悬停框同大小），三个筛选是叠在上面的 plain Button，不带 hotkey；Layout 用不带 label 的 `Select`（没有 Select 的 surface 用 plain Button 循环）；有 `Svg` 时，列表上方一条缩略条，每个 Turn group 一根竖条，高度按步数，进行中组上色，下面一行写首组的日期时间、`N 轮`、末组时间，超过 120 组时一根竖条代表几组；条目沿用终端的折行，每行一个 plain Button（用户侧正常、Agent 侧淡化），左侧的时间、节点、分支、轨道、进行中记号是一张 Svg，高度为行数 × 19 px，组间空行与日期分隔也是 Svg。Box 的宽高在 Desktop 上按格计（一列约 8.2 px，一行约 19 px）。Desktop 拒绝插件滚动 transcript（`transcript not scrollable here`），也不报告 `onScreen`：不高亮、不暂停，按下条目时提示「Claude 应用暂不支持跳转到对话」，不把该侧记为被拒；宿主将来允许滚动时照常跳转。
 - **键盘**：Pane 聚焦时 ↑↓ 走宿主焦点环，焦点落在条目的第一行 Button（key 等于条目 key）；Enter 与点击相同；↑↓ 不跳过没有 Jump target 的条目。1/2/3 切 View filter，`l` 切 Layout（Pane 内热键只能挂在画出的 Button 上，只在聚焦时生效）。选择光标是宿主的反色，与 `suggestion` 色的高亮一眼能分清。插件不能绑定 Tab 或方向键。（决定 Layout 的切换入口与默认值；用只收 label 的 Button 画三种 Layout）
 - **长会话**：连续滚动、按需渲染、不分页。条目按组缓存（键是宽度、进行中、步数、状态、末段），只在数据、宽度、View filter、Layout 变化时重建条目表；高亮和光标在绘制时才叠加；只画可见窗口（一棵树最多画 100,000 字符）；组到条目的定位用表，不用 `findIndex`。（实测长会话的读取与渲染开销）
 
@@ -221,7 +221,7 @@ chat-toc 是一个独立插件，插件根在 `mods/chat-toc/`，与 prompt-hist
 
 **不承诺**（写进 README 已知限制；定稿兼容与验收契约 §5 及其后续修订）：
 
-1. Claude Code `<2.1.287`：不检测、不提示；也不承诺非全屏布局下的 inline 放置。Desktop、VS Code、移动端的绘制只经过元素树测试，观感由使用者在应用里目检；不支持 JetBrains。
+1. Claude Code `<2.1.287`：不检测、不提示；也不承诺非全屏布局下的 inline 放置。Desktop 上不能跳转、没有 Current position（宿主限制，见 anthropics/claude-code#100610），观感由使用者在 Claude 应用里目检；VS Code、移动端的绘制只经过元素树测试；不支持 JetBrains。
 2. Linux 与 Windows 只经过命令构造测试，未在真实系统上验收；Windows 只用 Windows PowerShell 5.1。
 3. transcript 文件格式未公开，宿主改格式后目录可能显示不全，由 CT-DATA-003 提示。
 4. 不保证能跳到 rewind 被弃的分支，也不保证能跳到 resume 前已被 compact 的行。

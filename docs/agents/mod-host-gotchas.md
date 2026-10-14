@@ -49,3 +49,14 @@ Install into a scratch dir, never globally: `npm install --prefix <dir> @anthrop
 - Slice pyte rows by cell column, not char index: CJK text shifts character offsets.
 - Rewind without a model: Esc Esc on the empty composer, Up to the prompt, Enter, Enter (restore), then backspaces to clear the restored prompt.
 - The shell is fish: `$var` with spaces does not word-split. Drive loops from Python.
+
+## Claude Code Desktop
+
+Measured in the Claude app (Claude Code 2.1.295, macOS, 2026-10-14) with a probe mod (`.scratch/chat-toc/prototypes/desktop-click-probe/`). The types do not say any of this.
+
+- `$.ui.scroll({ to: { requestId } })` to a transcript row answers `{ deny: "transcript not scrollable here" }`, every row, every time (anthropics/claude-code#100610). A mod cannot jump the transcript on Desktop.
+- `UserMessage`'s `ui.render` comes once per message as it is drawn, with `onScreen: null`, and not again on scroll: no viewport position, so no Current position.
+- A `plain` Button draws as one line of bare text: no chrome, a hover box under the pointer (the host's, cannot be turned off), repeated clicks each count. It honours `dimColor` only; `bold`, `color` and line breaks in `Text` children are dropped; overflow truncates with `…`. A non-plain Button is a grey native button and draws its `hotkey` as a badge.
+- A `Markdown` with `onLinkPress` hands link clicks to the plugin, drawn as accent-coloured links; a quick second click is swallowed as a double-click.
+- A Box's `width`/`height` count cells, as on the terminal: one column ≈ 8.2 px, one row ≈ 19 px. A Box with `borderStyle` always spans the row.
+- `Svg` draws at its `width`/`height` in CSS px; without a width it is scaled down to the slot. Clicks on it never reach the plugin, and an absolutely placed Button over it covers only its own label. `prefers-color-scheme` inside it follows the app's dark mode.

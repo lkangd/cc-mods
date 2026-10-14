@@ -23,7 +23,7 @@ Claude Code 的 mod 合集。每个 mod 是独立插件，位于 `mods/<mod 名>
 
 - macOS 15.x，Apple Silicon（arm64）
 - Claude Code `>= 2.1.290`（`claude --version` 查看）
-- 交互式终端。Claude Code Desktop（以及 VS Code、移动端）里会用各自的按钮和下拉框画同样的目录，但只在终端里验收过（见[已知限制](#已知限制-1)）；不支持 JetBrains
+- 交互式终端；不支持 Desktop、VS Code、JetBrains、移动端
 - 启动时设置 `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`（function hooks 仍是 early access）
 
 不满足时插件不记录任何内容，`/prompt-history status` 会显示原因。
@@ -120,7 +120,7 @@ claude --plugin-dir /path/to/cc-mods/mods/prompt-history
 ### 环境要求
 
 - Claude Code `>= 2.1.287`（`claude --version` 查看）
-- 交互式终端。Claude Code Desktop（以及 VS Code、移动端）里会用各自的按钮和下拉框画同样的目录，但只在终端里验收过（见[已知限制](#已知限制-1)）；不支持 JetBrains
+- 交互式终端。Claude Code Desktop（以及 VS Code、移动端）里能看目录，但点击不能跳转：Claude 应用目前不允许插件滚动对话（见[已知限制](#已知限制-1)）；不支持 JetBrains
 - 全屏布局：运行 `/tui fullscreen` 切换
 - 终端足够宽：能不能停靠由 Claude Code 决定。2.1.287 与 2.1.295 实测：自动停靠要 144 列以上，用 `/chat-toc` 打开要 110 列以上
 - **不需要** `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS`
@@ -227,7 +227,7 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 ### 已知限制
 
 - Claude Code 低于 `2.1.287` 时，插件不检测、不提示。非全屏布局下不自动出现。
-- Claude Code Desktop、VS Code 和移动端里的目录（按钮、排版下拉框、每轮步数的缩略条）只经过 `claude plugin test` 的元素树测试，没有在这些应用里验收；JetBrains 不支持。
+- Claude Code Desktop 里的目录只能看，不能跳转：Claude 应用对插件的每次滚动都回答 `transcript not scrollable here`，也不告诉插件对话滚到了哪里，所以不高亮当前位置；点击条目时底部提示「Claude 应用暂不支持跳转到对话」。已在 [anthropics/claude-code#100610](https://github.com/anthropics/claude-code/issues/100610) 跟进。Desktop 的观感在 Claude 应用里目检过；VS Code 和移动端只经过元素树测试；JetBrains 不支持。
 - 只在 macOS 上真实验收过。Linux 与 Windows 只验证过读大文件时生成的命令，没在真机上跑；Windows 只用系统自带的 Windows PowerShell 5.1。
 - transcript 的文件格式不是公开的。Claude Code 改了格式后，目录可能显示不全，底部会说明有几行无法识别。
 - 会话中途启用时，transcript 的位置是按 Claude Code 未公开的目录命名规则推算的；规则变了，目录要等你下一次提交才出现。
