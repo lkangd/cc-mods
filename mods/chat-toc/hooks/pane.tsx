@@ -34,8 +34,8 @@ const controlCells = (label: string) => textCells(`x: ${label}`)
 /* The cells between two filter Buttons. */
 const FILTER_GAP = 3
 
-/* The head's rows: the filter row, the tab rule, a blank line. */
-export const HEAD_ROWS = 3
+/* The head's rows: the filter row, the tab rule. */
+export const HEAD_ROWS = 2
 /* The footer's rows: a rule, then the count or the pause and the Layout Button. */
 export const FOOT_ROWS = 2
 
@@ -95,8 +95,6 @@ export type PaneView = {
   why: string | undefined
   /* The Turn groups the list holds, for the footer; undefined says none. */
   count: number | undefined
-  /* Whether following the transcript is paused. */
-  isPaused: boolean
   /* The body's rows: the footer sits on the last two. */
   bodyRows: number
   onPress: (entry: Entry) => Promise<void>
@@ -136,7 +134,6 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
           <Text color={run.isChosen ? 'suggestion' : 'subtle'}>{run.text}</Text>
         ))}
       </Box>
-      <Text> </Text>
     </Box>
   )
   const rows: RenderElement[] = []
@@ -204,9 +201,7 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
     )
     drawnRows += (rule === undefined ? 0 : 1) + entry.lines.length + (hasGap ? 1 : 0)
   }
-  const status = view.isPaused ? (
-    <Text color="warning">{words.paused}</Text>
-  ) : view.count === undefined ? (
+  const status = view.count === undefined ? (
     <Text> </Text>
   ) : (
     <Text dimColor>{words.turns(view.count)}</Text>

@@ -11,6 +11,13 @@ export function isClosedByPerson(e: PaneCloseInput): boolean {
   return e.id === PANE_ID && e.origin.kind === 'person'
 }
 
+/* A close that takes chat-toc's pane off screen while the plugin stays:
+   the person's, or any but an unload. The band above the prompt then
+   offers it again. */
+export function hidesPane(e: PaneCloseInput): boolean {
+  return e.id === PANE_ID && e.origin.kind !== 'unload'
+}
+
 /* `classic.SessionStart` sources that begin another conversation in this
    process, which `session.start` does not hear of: the pane opens again for
    it. A compaction continues the same one. */
@@ -23,14 +30,4 @@ export function reopensOn(source: string): boolean {
    written at its first submit). */
 export function carriesHistory(source: string): boolean {
   return source === 'resume' || source === 'fork'
-}
-
-export type Placement = 'dock' | 'inline'
-
-/* What a drawing of the pane at `placement` asks of chat-toc: docked, the
-   status line clears; inline, it is kept only when /chat-toc asked for it
-   while it could not dock, and otherwise withdrawn to wait for the room. */
-export function placementFate(placement: Placement, isInlineAsked: boolean): 'docked' | 'asked-inline' | 'withdraw' {
-  if (placement === 'dock') return 'docked'
-  return isInlineAsked ? 'asked-inline' : 'withdraw'
 }

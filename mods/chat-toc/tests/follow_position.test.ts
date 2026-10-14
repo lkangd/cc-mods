@@ -82,7 +82,6 @@ async function litKeys(pane: Pane): Promise<string[]> {
 }
 
 const prompts = async (pane: Pane) => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN prompt'))
-const saysPaused = async (pane: Pane) => (await pane.find({ type: 'Text', text: /暂停/ })) !== undefined
 
 async function scrollPane($: Engine, by: number) {
   await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by, bodyRows: 14, contentRows: 14, origin: { kind: 'person' } } as never)
@@ -139,17 +138,14 @@ test('with the last drawn row wholly in view the last group is lit', async ($, o
   expect(await litKeys(pane)).toEqual(['g19.u', 'g19.a'])
 })
 
-test('scrolling the pane pauses following and says so; the next change of position follows again', async ($, on) => {
+test('scrolling the pane pauses following; the next change of position follows again', async ($, on) => {
   const { pane, view } = await session($, on)
   await view(10)
-  expect(await saysPaused(pane)).toBe(false)
 
   await scrollPane($, -30)
   expect(await prompts(pane)).not.toContain('CT-SYN prompt 10')
-  expect(await saysPaused(pane)).toBe(true)
 
   await view(12)
-  expect(await saysPaused(pane)).toBe(false)
   expect(await prompts(pane)).toContain('CT-SYN prompt 12')
   expect(await litKeys(pane)).toEqual(['g12.u', 'g12.a'])
 })
@@ -161,7 +157,6 @@ test('the transcript redrawing the same view does not end the pause', async ($, 
 
   await view(10)
 
-  expect(await saysPaused(pane)).toBe(true)
   expect(await prompts(pane)).not.toContain('CT-SYN prompt 10')
 })
 
@@ -170,16 +165,13 @@ test('the pane holding the keyboard pauses following', async ($, on) => {
   const props = { title: '目录', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 14 }, view: {} }
 
   await pane.redraw({ ...props, isFocused: true })
-  expect(await saysPaused(pane)).toBe(true)
 
   /* The highlight still moves; the window does not. */
   await view(3)
-  expect(await saysPaused(pane)).toBe(true)
   expect(await prompts(pane)).not.toContain('CT-SYN prompt 3')
 
   /* Given the keyboard back, the position moved meanwhile: it follows. */
   await pane.redraw({ ...props, isFocused: false })
-  expect(await saysPaused(pane)).toBe(false)
   expect(await prompts(pane)).toContain('CT-SYN prompt 3')
   expect(await litKeys(pane)).toEqual(['g3.u', 'g3.a'])
 })
@@ -201,7 +193,6 @@ test('a change of position while the pane is a tab behind another ends the pause
   tab(true)
   const back = await mountPane($, 14)
 
-  expect(await saysPaused(back)).toBe(false)
   expect(await prompts(back)).toContain('CT-SYN prompt 10')
 })
 
@@ -215,7 +206,6 @@ test('a Layout switch with no selection keeps the lit group in the window', asyn
 
   const texts = await entryTexts(pane)
   expect(texts.some(s => s.includes('CT-SYN prompt 10'))).toBe(true)
-  expect(await saysPaused(pane)).toBe(true)
 })
 
 test('a switch with the focus ring on the filter row, where a hotkey finds it, keeps the lit group in the window', async ($, on) => {

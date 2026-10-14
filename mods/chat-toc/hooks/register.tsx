@@ -11,7 +11,7 @@
    this file, so every call on `$` is made here or in one of them. */
 
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderViewport } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
 import type { Entry } from './entries'
 import { drawDesktopPane } from './desktop'
 import { stripLabels } from './minimap'
@@ -30,11 +30,13 @@ import {
   sideKeyOf,
 } from './jump'
 import type { Refused } from './jump'
-import { carriesHistory, isClosedByPerson, placementFate, reopensOn } from './lifecycle'
+import { carriesHistory, hidesPane, isClosedByPerson, reopensOn } from './lifecycle'
 import { PANE_COLUMNS, PANE_ID, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
 import { entryAt, pendingShown, ringMove } from './ring'
 import { derivedTranscriptPath } from './locate'
 import { languageOf, setLanguage, text as words } from './text'
+import type { BandCounts } from './text'
+import { drawBand } from './band'
 import { rewoundFrom } from './rewind'
 import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
 import type { Layout, ViewFilter } from './view'
@@ -69,7 +71,7 @@ const transcriptPath = atom({ plugin: 'chat-toc', key: 'transcriptPath' } as con
 const rev = atom({ plugin: 'chat-toc', key: 'rev' } as const, 0)
 const isClosed = atom({ plugin: 'chat-toc', key: 'isClosed' } as const, false)
 const isCarriedOver = atom({ plugin: 'chat-toc', key: 'isCarriedOver' } as const, false)
-const isInlineAsked = atom({ plugin: 'chat-toc', key: 'isInlineAsked' } as const, false)
+const isPaneHidden = atom({ plugin: 'chat-toc', key: 'isPaneHidden' } as const, false)
 const currentPosition = atom({ plugin: 'chat-toc', key: 'currentPosition' } as const, null as number | null)
 const compactedAt = atom({ plugin: 'chat-toc', key: 'compactedAt' } as const, null as string | null)
 
@@ -109,22 +111,6 @@ let positionDrawn: number | undefined
    events at once (a process started with --resume raises both) find the
    first one's pane and open one. */
 let opening: Promise<void> = Promise.resolve()
-/* The terminal's layout, as its drawings say it (fixed for the process);
-   undefined until one is drawn, and an unasked open waits for it. */
-let isFullscreen: boolean | undefined
-let isOpenWanted = false
-/* The status line as last set; null after a load, when what the host shows
-   is not known. */
-let statusShown: string | undefined | null = null
-/* Withdrawals since the pane last docked, so a pane the host keeps seating
-   inline is not withdrawn and reopened without end: the second one leaves
-   it closed until the terminal's width changes (`parkedAt`, the width it
-   was left at), when it opens again unasked. */
-let withdrawals = 0
-let isWithdrawing = false
-let parkedAt: number | undefined
-/* The terminal's width, as its drawings last said it. */
-let columns: number | undefined
 
 /* The person's choices, read from `$.store` at each `session.start`. */
 let filter: ViewFilter = 'all'
@@ -355,24 +341,6 @@ function sawSite($: EngineInterface, component: SiteComponent, requestId: string
   if (report.isPlaced) place($)
 }
 
-/* The terminal's layout, as a drawing on it says; the first word of it
-   lets an open that waited for it go ahead. */
-function sawViewport($: EngineInterface, viewport: RenderViewport | undefined): void {
-  if (viewport === undefined) return
-  columns = viewport.columns
-  const said = viewport.isFullscreen
-  if (said !== undefined && said !== isFullscreen) {
-    isFullscreen = said
-    if (isOpenWanted) $.clock.after(0, () => void autoOpen($))
-  }
-  /* A pane left closed after a second withdrawal: the width changed, so it
-     opens again by the auto-open rule, as the status line promised. */
-  if (parkedAt !== undefined && viewport.columns !== parkedAt) {
-    parkedAt = undefined
-    $.clock.after(0, () => void autoOpen($))
-  }
-}
-
 /* One chunk of the file at `offset`, as text. */
 async function runChunk($: EngineInterface, path: string, offset: number): Promise<string> {
   const command = chunkCommand(path, offset)
@@ -580,26 +548,15 @@ function openPane($: EngineInterface, focus?: true) {
   return $.ui.open({ id: PANE_ID, title: words.paneTitle, columns: PANE_COLUMNS, ...(focus === undefined ? {} : { focus }) })
 }
 
-function showStatus($: EngineInterface, text: string | undefined): void {
-  if (text === statusShown) return
-  statusShown = text
-  $.ui.status(text)
-}
-
-/* Opens the pane unasked, in the fullscreen layout only, unless the person
-   closed it in this session or it is open already, as it stays across a hot
-   reload. While it cannot dock the status line says why. */
+/* Opens the pane unasked, unless the person closed it in this session or it
+   is open already, as it stays across a hot reload. Where and whether it is
+   drawn is the host's call: it is kept however the host places it. While it
+   waits undrawn the band above the prompt offers it, as after a close. */
 async function openUnasked($: EngineInterface): Promise<void> {
-  if (isFullscreen === undefined) {
-    isOpenWanted = true
-    return
-  }
-  isOpenWanted = false
   if (await read($, isClosed)) return
-  if (!isFullscreen) return showStatus($, words.dock.mainScreen)
   const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
   const isPlaced = pane === undefined ? (await openPane($)).isPlaced : pane.isPlaced
-  if (!isPlaced) showStatus($, words.dock.narrow)
+  await update($, isPaneHidden, () => !isPlaced)
 }
 
 function autoOpen($: EngineInterface): Promise<void> {
@@ -612,36 +569,16 @@ function autoOpen($: EngineInterface): Promise<void> {
    unlike an open of chat-toc's own. It never closes it. */
 async function openAsked($: EngineInterface): Promise<void> {
   await update($, isClosed, () => false)
-  await update($, isInlineAsked, () => true)
-  await openPane($, true)
+  const opened = await openPane($, true)
+  if (opened.isPlaced) await update($, isPaneHidden, () => false)
 }
 
-/* Docked: nothing to explain, and a later inline is the terminal narrowing. */
-async function settleDocked($: EngineInterface): Promise<void> {
-  withdrawals = 0
-  parkedAt = undefined
-  showStatus($, undefined)
-  if (await read($, isInlineAsked)) await update($, isInlineAsked, () => false)
-}
-
-/* The host turned the docked pane inline: closed (not the person's close,
-   so not kept closed) and opened again unasked, to wait undrawn for the
-   room to dock, the status line saying so meanwhile. Seated inline again
-   before it docked, it stays closed until the width next changes. */
-async function withdraw($: EngineInterface): Promise<void> {
-  if (isWithdrawing) return
-  isWithdrawing = true
-  try {
-    withdrawals += 1
-    await $.ui.close({ id: PANE_ID }).catch(() => undefined)
-    if (withdrawals > 1) {
-      parkedAt = columns ?? -1
-      return showStatus($, words.dock.narrow)
-    }
-    await autoOpen($)
-  } finally {
-    isWithdrawing = false
-  }
+/* The band's counts, once the file is read: the listed turns and the
+   agent's steps across them. */
+function bandCounts(): BandCounts | undefined {
+  if (source !== 'ok') return undefined
+  const groups = shownGroups()
+  return { turns: groups.length, steps: groups.reduce((sum, g) => sum + g.steps, 0) }
 }
 
 /* Only ever called from a press: the host moves the transcript only for
@@ -809,8 +746,8 @@ export const register: Register = on => {
     const closed = await next(e)
     if (isClosedByPerson(e)) {
       await update($, isClosed, () => true).catch(() => undefined)
-      showStatus($, undefined)
     }
+    if (hidesPane(e)) await update($, isPaneHidden, () => true).catch(() => undefined)
     return closed
   })
 
@@ -849,12 +786,18 @@ export const register: Register = on => {
     return {}
   })
 
-  /* The hint line is drawn from the start and again after every change of
-     width: where chat-toc learns the layout, which the start events lack. */
   on('ui.render', { component: 'PromptHint', surface: 'terminal' }, ($, e, next) => {
-    sawViewport($, e.viewport)
     checkRewindSoon($)
     return next(e)
+  })
+
+  /* While the pane is not on screen, waiting undrawn or closed, one line
+     above the prompt counts the conversation; a press is the person's open,
+     which the host seats at any width. A survey holds the band first. */
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    await read($, rev)
+    if (e.props.hasSurvey || !(await read($, isPaneHidden))) return next(e)
+    return drawBand($.ui.resolve(e), { counts: bandCounts(), onOpen: () => openAsked($) })
   })
 
   /* The arrows walk the host's focus ring Button by Button; this keeps it
@@ -882,13 +825,11 @@ export const register: Register = on => {
   })
 
   /* The transcript's rows, read and never redrawn: which requestId each is
-     drawn under, and where it is on screen. The terminal's say its layout
-     too, should they come before the hint line. */
+     drawn under, and where it is on screen. */
   for (const component of SITE_COMPONENTS) {
     /* The matcher wants one component's type; every site's props carry
        `onScreen` alike, so the first stands for all four. */
     on('ui.render', { component: component as 'UserMessage' }, ($, e, next) => {
-      if (e.surface === 'terminal') sawViewport($, e.viewport)
       sawSite($, component, e.requestId, e.props.onScreen)
       return next(e)
     })
@@ -899,8 +840,9 @@ export const register: Register = on => {
     /* What the drawing needs of the host first; the rest is its own work. */
     await read($, rev)
     const position = (await read($, currentPosition)) ?? undefined
-    const isAsked = await read($, isInlineAsked)
     const isCarried = await read($, isCarriedOver)
+    /* Drawn: whatever waited is seated. A drawing writes nothing, so after. */
+    if (await read($, isPaneHidden)) $.clock.after(0, () => void update($, isPaneHidden, () => false).catch(() => undefined))
     const nowMs = await $.clock.now()
     const awaited = perfNow()
     const wasFocused = isPaneFocused
@@ -918,14 +860,6 @@ export const register: Register = on => {
     }
     const isHeld = isPaused || isPaneFocused
     positionDrawn = position
-    /* A drawing writes nothing, so what its placement asks is done after. */
-    const fate = placementFate(e.props.placement, isAsked)
-    if (fate === 'docked' && (statusShown !== undefined || isAsked || withdrawals > 0)) $.clock.after(0, () => void settleDocked($).catch(() => undefined))
-    if (fate === 'withdraw' && !isWithdrawing) $.clock.after(0, () => void withdraw($).catch(() => undefined))
-    if (fate === 'asked-inline') {
-      const text = e.viewport?.isFullscreen === false ? words.dock.askedMainScreen : words.dock.askedNarrow
-      if (text !== statusShown) $.clock.after(0, () => showStatus($, text))
-    }
     const isOk = source === 'ok'
     const width = e.props.bodyColumns
     const wasTable = entryCache.table
@@ -981,7 +915,6 @@ export const register: Register = on => {
       alert,
       why,
       count: isOk && groups.length > 0 ? groups.length : undefined,
-      isPaused: isHeld,
       onPress: (entry: Entry) => jump($, entry),
       onFilter: (chosen: ViewFilter) => chooseFilter($, chosen),
     }

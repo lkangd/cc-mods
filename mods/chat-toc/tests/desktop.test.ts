@@ -116,9 +116,3 @@ test('each entry hangs on a drawn rail as tall as its lines; the day is a drawn 
   expect(all3.some(s => s.alt === '今天 · 10月10日' && s.source.includes('>今天 · 10月10日<'))).toBe(true)
 })
 
-test('the desktop has no Current position: focusing the pane neither pauses nor says so', async ($, on) => {
-  await start($, host(on, three().jsonl()))
-  const pane = await desktopPane($, true)
-
-  expect(JSON.stringify(await pane.drawn())).not.toContain('暂停跟随')
-})

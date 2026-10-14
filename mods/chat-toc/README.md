@@ -87,7 +87,6 @@ claude plugin validate mods/chat-toc             # current version
 
 - 2.1.287's test kit has no bottom for `session.append`, so the tests that rely on it run on the current version only.
 - The test kit hands neither the plugin's `$.ui.scroll` of the transcript nor its own `$.ui.focus` to the test's hooks (it says no implementation), and cannot press the person's ✕. Jumps, where the focus lands and the person's close are tested on pure functions; their real effect is checked in PTY acceptance.
-- A test that expects the pane to open by itself must draw the prompt hint first (`start()` in `tests/host.ts` does it; when firing the start events by hand, call `drawHint($)`), because whether the layout is fullscreen is known only from drawing `PromptHint`.
 - To type-check against 2.1.295 or another newer version, write a tsconfig outside the plugin that includes the `types/claude-code.d.ts` the `plugin-authoring` skill writes and `mods/chat-toc/{types,hooks,tests}`.
 
 The acceptance tools' own unit tests (verifier, fixture generator, driver) use the standard library only:

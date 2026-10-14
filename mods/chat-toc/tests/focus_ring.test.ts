@@ -102,7 +102,7 @@ test('down past the window scrolls it one entry and puts the ring there', async 
   const world = host(on, t.jsonl())
   await start($, world)
   /* The head, three 1-line prompts with their gaps, the footer. */
-  const pane = await mountPane($, 11)
+  const pane = await mountPane($, 10)
   const prompts = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN'))
 
   await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
@@ -167,7 +167,7 @@ test('switching the Layout of a scrolled window keeps its top group at the top',
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await mountPane($, 11)
+  const pane = await mountPane($, 10)
 
   await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
   await pane.press({ key: 'layout' })
