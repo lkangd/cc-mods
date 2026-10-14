@@ -6,8 +6,6 @@ chat-toc 是一个 Claude Code 插件：在全屏终端里把当前会话的对�
 - 领域术语（Transcript、Turn group、User input、Agent reply、View filter、Layout、Current position、Jump target）见 [`CONTEXT.md`](CONTEXT.md)。代码和本文件用这些术语；面向使用者的文字一律用界面上的字。
 - 规格与票据：`.scratch/chat-toc/spec.md`、`.scratch/chat-toc/issues/`。
 
-与 prompt-history 互不依赖、不共享代码和数据；需要的部分各写一份，不抽公共库。
-
 ## 目录结构
 
 ```text
