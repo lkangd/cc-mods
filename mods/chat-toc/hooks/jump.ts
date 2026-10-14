@@ -36,6 +36,10 @@ export const MAX_TRIES = 3
 export const REFUSED_TEXT = '这一条当前没有显示在对话里，无法跳转'
 /* Said instead for a side known refused as compacted before a resume. */
 export const COMPACTED_TEXT = '这一条在压缩之前，恢复会话后无法跳转'
+/* Said when the surface cannot scroll its transcript at all, as Claude
+   Code Desktop answers (2.1.295): no row is refused, nothing is dimmed. */
+export const UNSCROLLABLE_TEXT = 'Claude 应用暂不支持跳转到对话'
+export const isUnscrollable = (deny: string) => deny.includes('transcript not scrollable here')
 /* How long it stays, unless a jump or a move of the selection clears it. */
 export const REFUSED_MS = 5000
 /* As it appears it flashes inverse this many times, lit and unlit this

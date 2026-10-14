@@ -1,13 +1,13 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import { PANE, drawnButtons, host, isEntryKey, start } from './host'
+import { ROW_PX } from '../hooks/desktop'
 import { transcript } from './fixture'
 
-/* The pane on Claude Code Desktop (and the other remote surfaces): the
-   same list drawn with the surface's own controls. The filters are buttons,
-   the chosen one primary; the Layout a select; a strip of bars, one per
-   Turn group, above the list; each side one button holding its whole text,
-   which the surface wraps. */
+/* The pane on Claude Code Desktop (and the other remote surfaces), drawn
+   with what the desktop was measured to draw (ticket 36): a plain Button is
+   one line of bare text, so every line of an entry is one; what only
+   decorates (the rail, the strip, the filters' well) is an Svg. */
 
 function three() {
   const t = transcript(new Date(2026, 9, 10, 9, 4).getTime())
@@ -21,13 +21,13 @@ function three() {
   return t
 }
 
-function desktopPane($: Engine) {
+function desktopPane($: Engine, isFocused = false) {
   return $.ui.mount({
     plugin: 'chat-toc',
     surface: 'desktop',
     component: 'Pane',
     requestId: PANE,
-    props: { title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+    props: { title: '目录', isFocused, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
   } as never)
 }
 
@@ -46,25 +46,30 @@ async function all(pane: Pane, type: string): Promise<Node[]> {
   return out
 }
 
-test('the filters are buttons, the chosen one primary', async ($, on) => {
+const svgs = async (pane: Pane) => (await all(pane, 'Svg')).map(s => ({ alt: String(s.props?.alt), source: String(s.props?.source), height: s.props?.height }))
+
+test('the filters are plain buttons over a drawn well, the chosen one not dim; no hotkeys', async ($, on) => {
   await start($, host(on, three().jsonl()))
   const pane = await desktopPane($)
 
-  const filters = (await all(pane, 'Button')).filter(b => String(b.props?.key).startsWith('f-'))
-  expect(filters.map(b => [b.props?.key, b.props?.label, b.props?.variant])).toEqual([
-    ['f-all', '全部', 'primary'],
-    ['f-user', '用户', 'secondary'],
-    ['f-agent', 'Agent', 'secondary'],
+  const filters = drawnButtons(await pane.drawn()).filter(b => String(b.key).startsWith('f-'))
+  expect(filters.map(b => [b.key, b.plain, b.dimColor === true])).toEqual([
+    ['f-all', true, false],
+    ['f-user', true, true],
+    ['f-agent', true, true],
   ])
+  expect((await all(pane, 'Button')).some(b => b.props?.hotkey !== undefined)).toBe(false)
+  expect((await svgs(pane)).some(s => s.alt === '筛选：全部')).toBe(true)
 })
 
-test('the Layout is a select of the three, and picking one switches and is remembered', async ($, on) => {
+test('the Layout is a select of the three without a label, and picking one switches and is remembered', async ($, on) => {
   const world = host(on, three().jsonl())
   await start($, world)
   const pane = await desktopPane($)
 
   const select = (await all(pane, 'Select'))[0]
   expect(select?.props?.value).toBe('card')
+  expect(select?.props?.label).toBeUndefined()
   expect(select?.props?.options).toEqual([
     { value: 'card', label: '卡片' },
     { value: 'compact', label: '紧凑' },
@@ -76,32 +81,44 @@ test('the Layout is a select of the three, and picking one switches and is remem
   expect(world.store.layout).toBe('timeline')
 })
 
-test('a strip of bars stands above the list, one per Turn group', async ($, on) => {
+test('a strip of bars stands above the list, one per Turn group, the first day and time, the count and the last time under it', async ($, on) => {
   await start($, host(on, three().jsonl()))
   const pane = await desktopPane($)
 
-  const svg = (await all(pane, 'Svg'))[0]
-  expect(svg?.props?.alt).toBe('3 轮，每轮一根竖条，高度按步数')
-  expect((String(svg?.props?.source).match(/<rect /g) ?? []).length).toBe(3)
+  const strip = (await svgs(pane)).find(s => s.alt.startsWith('3 轮'))
+  expect(strip).toBeDefined()
+  expect((strip!.source.match(/<rect class="[brl]"/g) ?? []).length).toBe(3)
+  expect(strip!.source).toContain('>10月10日 09:05<')
+  expect(strip!.source).toContain('>3 轮<')
+  expect(strip!.source).toMatch(/>09:\d\d<\/text><\/svg>$/)
 })
 
-test('each side is one button with its whole text, unfolded; the Agent reply says its state first', async ($, on) => {
+test('every line of an entry is a plain button, the user side at full strength, the agent side dim', async ($, on) => {
   await start($, host(on, three().jsonl()))
   const pane = await desktopPane($)
 
-  expect(drawnButtons(await pane.drawn()).filter(b => isEntryKey(b.key)).map(b => [b.key, b.label])).toEqual([
-    ['g0.u', 'CT-SYN first, a prompt long enough that a terminal pane would fold it onto a second line'],
-    ['g0.a', '1 步 · CT-SYN first answer'],
-    ['g1.u', '/tui'],
-    ['g2.u', 'CT-SYN third'],
-    ['g2.a', 'CT-SYN third answer'],
-  ])
+  const lines = drawnButtons(await pane.drawn()).filter(b => isEntryKey(b.key))
+  expect(lines.map(b => b.key)).toEqual(['g0.u', 'g0.u.1', 'g0.a', 'g1.u', 'g2.u', 'g2.a'])
+  expect(lines.every(b => b.plain === true)).toBe(true)
+  expect(lines.map(b => b.dimColor === true)).toEqual([false, false, true, false, false, true])
+  const texts = (await pane.findAll({ type: 'Button' })).filter(b => isEntryKey(b.key)).map(b => b.text)
+  expect(texts[0]).toContain('CT-SYN first')
+  expect(texts[2]).toBe('1 步 · CT-SYN first answer')
 })
 
-test("the day's rule and the count are said as text", async ($, on) => {
+test('each entry hangs on a drawn rail as tall as its lines; the day is a drawn rule', async ($, on) => {
   await start($, host(on, three().jsonl()))
   const pane = await desktopPane($)
 
-  expect(await pane.find({ type: 'Text', text: '今天 · 10月10日' })).toBeDefined()
-  expect(await pane.find({ type: 'Text', text: '3 轮' })).toBeDefined()
+  const all3 = await svgs(pane)
+  const rails = all3.filter(s => s.alt === '轨道')
+  expect(rails.map(s => s.height)).toEqual([2 * ROW_PX, ROW_PX, ROW_PX, ROW_PX, ROW_PX, ROW_PX, ROW_PX])
+  expect(all3.some(s => s.alt === '今天 · 10月10日' && s.source.includes('>今天 · 10月10日<'))).toBe(true)
+})
+
+test('the desktop has no Current position: focusing the pane neither pauses nor says so', async ($, on) => {
+  await start($, host(on, three().jsonl()))
+  const pane = await desktopPane($, true)
+
+  expect(JSON.stringify(await pane.drawn())).not.toContain('暂停跟随')
 })
