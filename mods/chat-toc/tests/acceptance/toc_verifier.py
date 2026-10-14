@@ -160,7 +160,7 @@ def _tag(text: str, name: str) -> str:
 
 
 def clean_prompt(text: str) -> str:
-    """Spec §4 用户侧文字: no code blocks, images, Markdown marks or pasted_content tags; one space between words.
+    """Spec §4 User input text: no code blocks, images, Markdown marks or pasted_content tags; one space between words.
     As ticket 19 reads it, `[Image #n]` placeholders are images too, and a prompt
     that is only code blocks shows the code. (Which single * or _ count as marks
     does not matter here: the diff ignores them.)"""
@@ -257,7 +257,7 @@ def turn_groups(chain: list[dict], tz=None, now: datetime.datetime | None = None
         if row.get("type") != "assistant":
             continue
         group.has_agent = True
-        # 出错 means the group's last assistant row is an API error; its text
+        # 出错 (error) means the group's last assistant row is an API error; its text
         # still counts as text after the last tool_use.
         if row.get("isApiErrorMessage"):
             if group.status != "interrupted":

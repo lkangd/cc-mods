@@ -262,7 +262,7 @@ def report(args) -> int:
     (out / "report.json").write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n")
     perf_dirs = [p.parent for p in args.gate.glob("*/runs/perf-*/run.jsonl")]
     perf = subprocess.run([sys.executable, str(HERE / "perf_scenarios.py"), "table", *map(str, perf_dirs)],
-                          capture_output=True, text=True).stdout.strip() if perf_dirs else "（没有 CT-PERF-001 运行）"
+                          capture_output=True, text=True).stdout.strip() if perf_dirs else "(no CT-PERF-001 runs)"
     (out / "report.md").write_text(markdown(data, perf), encoding="utf-8")
     print(f"overall {overall}: {counts}, missing {len(missing)}, gates failing {[g['name'] for g in bad_gates]}, leaks {len(leaks)}")
     return 0 if overall == "pass" else 1
@@ -270,46 +270,52 @@ def report(args) -> int:
 
 def markdown(d: dict, perf: str) -> str:
     i, versions = d["identity"], d["versions"]
-    lines = [f"# chat-toc {i['pluginVersion']} 发布证据", "",
-             f"**结论：{'通过' if d['overall'] == 'pass' else '未通过'}**（`--plugin-dir` 下 {len(MUST)} 个 MUST 场景 × "
-             f"{len(versions)} 个 Claude Code 版本；失败 {d['counts']['fail']}、缺失 {d['counts']['missing']}、跳过 "
-             f"{d['counts']['skip']}；证据里 CT-SEC-001 标记泄漏 {len(d['leaks'])} 处）", "",
-             "## 被测对象与环境", ""]
+    lines = [f"# chat-toc {i['pluginVersion']} release evidence", "",
+             f"**Verdict: {'pass' if d['overall'] == 'pass' else 'fail'}** ({len(MUST)} MUST scenarios under `--plugin-dir` × "
+             f"{len(versions)} Claude Code versions; {d['counts']['fail']} failed, {d['counts']['missing']} missing, "
+             f"{d['counts']['skip']} skipped; {len(d['leaks'])} CT-SEC-001 marker leaks in the evidence)", "",
+             "## What was tested, and where", ""]
     lines += [f"- {k}: `{v}`" if not isinstance(v, list) else f"- {k}: `{', '.join(v)}`" for k, v in i.items()]
-    lines += ["", "只用合成 prompt；transcript 都是 `tests/acceptance/transcript_fixture.py` 生成的或在隔离世界里新提交的。"
-              "本机路径换成了 `<repo>`、`<home>`、`<tmp>`、`<npx>`。", "", "## 自动化门禁", "",
-              "| 门禁 | 结果 | 说明 | 日志 |", "| --- | --- | --- | --- |"]
+    lines += ["", "Synthetic prompts only: every transcript was made by `tests/acceptance/transcript_fixture.py` or freshly submitted "
+              "in an isolated world. Local paths are replaced by `<repo>`, `<home>`, `<tmp>`, `<npx>`.", "", "## Automated gates", "",
+              "| Gate | Result | Detail | Log |", "| --- | --- | --- | --- |"]
     for g in d["gates"]:
         log = f"[log]({g['link']})" if g["link"] else ""
         lines.append(f"| {g['name']} | {g['outcome']} | {g['detail'] or ''} | {log} |")
-    lines += ["", "## MUST 场景（定稿兼容与验收契约 §4 及其后续修订）", "",
-              "每格是该版本上这个场景 ID 的记录数与结果（一个 ID 可以有多条记录，例如 CT-COMPAT-003 的五种情形）。", "",
-              "| 场景 | " + " | ".join(versions) + " |", "|---|" + "---|" * len(versions)]
+    lines += ["", "## MUST scenarios (the compatibility and acceptance contract §4 and its later revisions)", "",
+              "Each cell is that scenario ID's records on that version and their result (one ID can have several records, "
+              "such as CT-COMPAT-003's five cases).", "",
+              "| Scenario | " + " | ".join(versions) + " |", "|---|" + "---|" * len(versions)]
     for sid in MUST:
         cells = []
         for v in versions:
             c = d["coverage"][sid].get(v)
-            cells.append("**缺失**" if not c else ("通过" if not c["fail"] and not c["skip"] else "**未通过**")
-                         + f"（{c['pass']}/{c['pass'] + c['fail'] + c['skip']}）" if c else "**缺失**")
+            cells.append("**missing**" if not c else ("pass" if not c["fail"] and not c["skip"] else "**fail**")
+                         + f" ({c['pass']}/{c['pass'] + c['fail'] + c['skip']})" if c else "**missing**")
         lines.append(f"| {sid} | " + " | ".join(cells) + " |")
-    lines += ["", "## CT-PERF-001（20 MiB，两种 fixture × 两个版本 × 3 次，取各次 p95 中最差的）", "", perf, "",
-              "## 人工目检（待使用者签字）", "",
-              "> 不是发布阻断项（契约 §3、§5）。实现者没有签这一项：请使用者看下面的截屏（以及在自己的终端里实际看一次），"
-              "确认三种 Layout（卡片、紧凑、时间轴）的观感，以及高亮（主题的 `suggestion` 色）与反色选择光标能一眼分清，然后在本节填写。", "",
-              "- 本次发布门禁重新截的屏（被测提交、两个版本、36/44/56 列，每组：卡片、紧凑、时间轴、卡片+只看用户、卡片+只看 Agent）："
-              "`signoff/<版本>-<列宽>/`", "- 25 号票当时的截屏：`.scratch/chat-toc/assets/25-layouts/screens/`（2.1.287 与 2.1.295，36/44/56 列）",
-              "- 高亮色与反色在文本截屏里看不出；颜色由 CT-UI-003（高亮 `▌` 是 dark 主题的 `suggestion`、不反色；"
-              "选择光标反色，二者不在同一行）与 CT-UI-004（四种主题下高亮与淡化各是该主题的解析值）自动核对，观感仍需真人看。", "",
-              "| 项 | 结论 | 签字 | 日期 |", "| --- | --- | --- | --- |",
-              "| 三种 Layout 的观感 | 待填 | 待使用者签字 | |", "| 高亮与反色选择光标能分清 | 待填 | 待使用者签字 | |", "",
-              "## 各场景记录", ""]
+    lines += ["", "## CT-PERF-001 (20 MiB, two fixtures × two versions × 3 runs, the worst p95 of the runs)", "", perf, "",
+              "## Visual check (awaiting the user's sign-off)", "",
+              "> Not a release blocker (contract §3, §5). The implementer does not sign it: the user looks at the screens below "
+              "(and once in their own terminal), confirms how the three Layouts (Card, Compact, Timeline) look and that the "
+              "highlight (the theme's `suggestion` colour) and the inverse selection cursor tell apart at a glance, then fills in "
+              "this section.", "",
+              "- Screens taken again by this release gate (the commit under test, both versions, 36/44/56 columns; each set: "
+              "Card, Compact, Timeline, Card + User only, Card + Agent only): `signoff/<version>-<columns>/`",
+              "- Ticket 25's screens: `.scratch/chat-toc/assets/25-layouts/screens/` (2.1.287 and 2.1.295, 36/44/56 columns)",
+              "- Colour and inverse do not show in text screens; CT-UI-003 checks the colours (the highlight `▌` is the dark "
+              "theme's `suggestion`, not inverse; the selection cursor is inverse, never on the same line) and CT-UI-004 (under "
+              "four themes the highlight and the dim are each that theme's resolved values); how it looks still needs a person.", "",
+              "| Item | Verdict | Signed | Date |", "| --- | --- | --- | --- |",
+              "| How the three Layouts look | to fill | awaiting the user | |",
+              "| Highlight and selection cursor tell apart | to fill | awaiting the user | |", "",
+              "## Records by scenario", ""]
     for r in sorted(d["records"], key=lambda r: (MUST.index(r["scenario"]) if r["scenario"] in MUST else 999,
                                                   r["claudeCodeVersion"], r["name"])):
         links = ", ".join(f"[{pathlib.Path(e).name}]({e})" for e in r["evidence"][:6])
-        more = f" 等 {len(r['evidence'])} 个" if len(r["evidence"]) > 6 else ""
+        more = f" and {len(r['evidence']) - 6} more" if len(r["evidence"]) > 6 else ""
         lines += [f"### {r['name']} · {r['claudeCodeVersion']} · {r['result']}", "",
-                  f"- fixture: {r['fixture']}", f"- 预期: {r['expected']}", f"- 实际: `{short(r['actual'], 400)}`",
-                  f"- 证据: {links}{more}" if links else "- 证据: 见 report.json", ""]
+                  f"- fixture: {r['fixture']}", f"- expected: {r['expected']}", f"- actual: `{short(r['actual'], 400)}`",
+                  f"- evidence: {links}{more}" if links else "- evidence: see report.json", ""]
     return "\n".join(lines) + "\n"
 
 

@@ -159,7 +159,7 @@ class TurnGroups(unittest.TestCase):
 
 
 class UserTextEdgeCases(unittest.TestCase):
-    # ticket 19's reading of 「去掉代码块、图片与 Markdown 记号」
+    # ticket 19's reading of "leave out code blocks, images and Markdown marks"
     def test_image_placeholders_go_and_a_code_only_prompt_shows_its_code(self):
         t = Rows()
         t.prompt("看 [Image #1] 这张图")
@@ -251,7 +251,7 @@ class AgentSide(unittest.TestCase):
         ])
 
     def test_an_api_error_text_is_the_last_text_of_its_group(self):
-        # spec §4: 末段文字 is the text after the last tool_use; the error row's text is one
+        # spec §4: the last text is the text after the last tool_use; the error row's text is one
         t = Rows()
         t.prompt("出错")
         t.tool()
