@@ -66,6 +66,7 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 | --- | --- |
 | Click your input in an entry (from the `●` line) | Jumps to that input, at the top of the screen. A slash command or `!` command jumps to the row right after it and keeps the input row in sight |
 | Click the Agent's reply in an entry (from the `├╴` line) | Jumps to the turn's last text reply; without one, to the last thing the turn drew |
+| Click a block in the row of blocks under the filters | Jumps to that turn, as clicking its entry does. One block per turn, as tall as the steps the Agent took; with more turns than the pane is wide, a block stands for several and jumps to the first of them. The block of the turn you are on is the bright one. Hidden with fewer than two turns or in a very short pane |
 | Wheel over the contents | Scrolls the contents by entries and pauses following |
 | `Ctrl+X` then `Tab`; or `/chat-toc` with an empty prompt | Moves the focus into the contents |
 | `↑` `↓` (focus in the contents) | Moves the selection one at a time (your input and the Agent's reply count one each); the selected line is inverse. Entries that cannot be jumped to can be selected too |

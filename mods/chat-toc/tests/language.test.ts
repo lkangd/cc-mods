@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { PANE, drawnButtons, entryTexts, host, isEntryKey, mountPane, start } from './host'
+import { PANE, drawnButtons, entryTexts, host, isControlKey, mountPane, start } from './host'
 import type { Host } from './host'
 import { transcript } from './fixture'
 import { languageOf } from '../hooks/text'
@@ -55,7 +55,7 @@ test('in English the filters, the Layout Button, the steps, the day and the coun
   await english($, on, { LANG: 'en_US.UTF-8' })
   const pane = await mountPane($)
 
-  const controls = drawnButtons(await pane.drawn()).filter(b => !isEntryKey(b.key))
+  const controls = drawnButtons(await pane.drawn()).filter(b => isControlKey(b.key))
   expect(controls.map(b => b.label)).toEqual(['All', 'User', 'Agent', 'Layout: Card'])
   expect(await entryTexts(pane)).toContain('1 step · CT-SYN first answer')
   const texts = (await pane.findAll({ type: 'Text' })).map(t => t.text)

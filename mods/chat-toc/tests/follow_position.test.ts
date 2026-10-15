@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { PANE, entryTexts, host, mountPane, start } from './host'
+import { PANE, drawnButtons, entryTexts, host, isBarKey, mountPane, start } from './host'
 import { transcript } from './fixture'
 
 /* CT-POS-001..003, CT-COEX-001: the pane lights the group the transcript
@@ -12,7 +12,7 @@ type Pane = Awaited<ReturnType<typeof mountPane>>
 type Rows = { first: number; last: number; of: number } | null
 
 /* Twenty groups, each a prompt and a reply. */
-async function session($: Engine, on: Parameters<typeof host>[0]) {
+async function session($: Engine, on: Parameters<typeof host>[0], rows = 14) {
   const t = transcript()
   const prompts: string[] = []
   const replies: string[] = []
@@ -24,7 +24,7 @@ async function session($: Engine, on: Parameters<typeof host>[0]) {
   /* What Claude Code draws at a transcript site, beneath chat-toc's hooks. */
   on('ui.render', () => ({ type: 'Text', props: {}, children: ['drawn by Claude Code'] }))
   await start($, world)
-  const pane = await mountPane($, 14)
+  const pane = await mountPane($, rows)
   const drawn = new Map<string, { redraw: (props: unknown) => Promise<unknown> }>()
   /* A transcript site reporting where its row is in the view. */
   const report = async (component: 'UserMessage' | 'AssistantMessage', requestId: string, onScreen: Rows) => {
@@ -266,4 +266,19 @@ test('a view holding only standalone tool rows, such as file edits, lights their
   await site('ToolUse', edits[2]!, tool(edits[2]!, 0, 9))
 
   expect(await litKeys(pane)).toEqual(['g1.u', 'g1.a'])
+})
+
+test('the Minimap\'s cell of the lit group is the only one not dim, and moves with the view', async ($, on) => {
+  /* One row more than the rest: the Minimap takes three of them. */
+  const { pane, view } = await session($, on, 18)
+  const bright = async () =>
+    drawnButtons(await pane.drawn())
+      .filter(b => isBarKey(b.key))
+      .flatMap(b => (b.dimColor === false ? [b.key] : []))
+
+  expect(await bright()).toEqual([])
+  await view(4)
+  expect(await bright()).toEqual(['m.4'])
+  await view(11)
+  expect(await bright()).toEqual(['m.11'])
 })

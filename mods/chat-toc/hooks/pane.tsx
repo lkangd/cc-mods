@@ -7,6 +7,8 @@
    every colour beside it is a `Text`'s. */
 
 import type { ElementTable, RenderElement } from 'claude-code'
+import { BAR_ROWS, barKey } from './bars'
+import type { Bar } from './bars'
 import { textCells } from './cells'
 import { GUTTER, dayRuleBefore, entryRows } from './entries'
 import type { Entry } from './entries'
@@ -97,6 +99,13 @@ export type PaneView = {
   count: number | undefined
   /* The body's rows: the footer sits on the last two. */
   bodyRows: number
+  /* The Minimap's cells; none draws no Minimap. */
+  bars: readonly Bar[]
+  /* The cell holding the Current position; undefined lights none. */
+  litBar: number | undefined
+  /* The times under the cells, and the spaces between them. */
+  barLabels: { left: string; right: string; gap: number }
+  onBar: (cell: number) => Promise<void>
   onPress: (entry: Entry) => Promise<void>
   onFilter: (filter: ViewFilter) => Promise<void>
   onLayout: () => Promise<void>
@@ -136,6 +145,21 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
       </Box>
     </Box>
   )
+  const hasBars = view.bars.length > 0
+  const barRows = hasBars ? (
+    <Box flexDirection="column">
+      <Box flexDirection="row">
+        {view.bars.map((bar, cell) => (
+          <Button key={barKey(cell)} plain dimColor={cell !== view.litBar} onPress={() => view.onBar(cell)}>
+            {bar.glyph}
+          </Button>
+        ))}
+        {view.bars.length < view.bodyColumns ? <Text color="subtle">{'▁'.repeat(view.bodyColumns - view.bars.length)}</Text> : null}
+      </Box>
+      <Text dimColor>{`${view.barLabels.left}${' '.repeat(view.barLabels.gap)}${view.barLabels.right}` || ' '}</Text>
+      <Text> </Text>
+    </Box>
+  ) : null
   const rows: RenderElement[] = []
   let drawnRows = 0
   const hasTimeColumn = view.layout !== 'card'
@@ -207,11 +231,12 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
     <Text dimColor>{words.turns(view.count)}</Text>
   )
   const whyLines = view.why === undefined ? 0 : view.why.split('\n').length
-  const used = HEAD_ROWS + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + FOOT_ROWS
+  const used = HEAD_ROWS + (hasBars ? BAR_ROWS : 0) + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + FOOT_ROWS
   const spare = Math.max(0, view.bodyRows - used)
   return (
     <Box flexDirection="column">
       {head}
+      {barRows}
       {view.notice === undefined ? null : <Text dimColor>{view.notice}</Text>}
       {rows}
       {view.alert === undefined ? null : (

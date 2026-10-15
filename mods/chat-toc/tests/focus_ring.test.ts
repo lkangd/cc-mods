@@ -53,6 +53,19 @@ test('at either end of the list the host wraps as it does', () => {
   expect(ringMove(KEYS, INDEX, all, 'g0.u', 'f-agent')).toEqual({ kind: 'accept' })
 })
 
+test('the Minimap\'s cells are stepped over: down from the filter row to the first entry in view, up from an entry to the filter row', () => {
+  expect(move('f-agent', 'm.0')).toEqual({ kind: 'land', key: 'g0.a' })
+  expect(move(undefined, 'm.3')).toEqual({ kind: 'land', key: 'g0.a' })
+  /* Up from the window's first entry, with entries above it: bring one in. */
+  expect(move('g0.a', 'm.3')).toEqual({ kind: 'reveal', index: 0 })
+  const all = { start: 0, end: 5, maxStart: 0 }
+  expect(ringMove(KEYS, INDEX, all, 'g0.u', 'm.3')).toEqual({ kind: 'land', key: 'f-agent' })
+  /* No entries: up from the Layout Button goes to the filter row. */
+  expect(ringMove([], new Map(), { start: 0, end: 0, maxStart: 0 }, 'layout', 'm.3')).toEqual({ kind: 'land', key: 'f-agent' })
+  /* No entries: down from the filter row goes to the footer. */
+  expect(ringMove([], new Map(), { start: 0, end: 0, maxStart: 0 }, 'f-agent', 'm.0')).toEqual({ kind: 'land', key: 'layout' })
+})
+
 test('a ring move waiting for its entry is sent by the drawing whose window shows it', () => {
   /* Entries 1 to 3 are in view. */
   expect(pendingShown('g2.u', INDEX, WINDOW)).toBe('g2.u')

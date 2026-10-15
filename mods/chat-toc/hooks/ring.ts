@@ -6,6 +6,7 @@
    into a step from entry to entry, and past either end of the window into a
    scroll of it, so the arrows reach every entry. */
 
+import { isBarKey } from './bars'
 import type { TocWindow } from './window'
 
 /* The controls around the entries, in the ring's order: the filter row's
@@ -46,7 +47,7 @@ export function pendingShown(pending: string | undefined, indexOf: ReadonlyMap<s
 
 /* The host moving the ring from `from` (where it was; undefined when the
    pane just took the keyboard) to `to` (undefined for one of the host's own
-   stops). `keys[i]` is entry i's key, `indexOf` the table back. */
+   stops, or a Minimap cell). `keys[i]` is entry i's key, `indexOf` the table back. */
 export function ringMove(
   keys: readonly string[],
   indexOf: ReadonlyMap<string, number>,
@@ -56,6 +57,18 @@ export function ringMove(
 ): RingMove {
   const was = entryAt(from, indexOf)
   const next = entryAt(to, indexOf)
+  /* The Minimap's cells are for the pointer: the ring steps over them,
+     from the filter row down to the first entry in the window, from an
+     entry up to the filter row. */
+  if (isBarKey(to)) {
+    if (was === undefined) {
+      /* Up from the Layout Button, with no entry to land on, goes on to the filter row. */
+      if (from === LAYOUT_CONTROL) return { kind: 'land', key: FILTER_END }
+      return { kind: 'land', key: keys[window.start] !== undefined && window.start < window.end ? keys[window.start]! : LAYOUT_CONTROL }
+    }
+    if (was.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
+    return { kind: 'land', key: FILTER_END }
+  }
   if (next === undefined) {
     /* Down from the window's last entry goes on to the footer: show the
        entry after it instead, while there is one. */
