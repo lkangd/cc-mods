@@ -28,6 +28,7 @@ mods/chat-toc/
 │   ├── table.ts                 the entry table: entries cached per group, rebuilt only when the data, width, filter or Layout change; group-to-entry lookup
 │   ├── cells.ts                 terminal cell widths and folding (no closing punctuation at a line's start, English words kept whole)
 │   ├── window.ts                the Pane's own visible window
+│   ├── bars.ts                  the terminal Minimap: a one-cell Button per Turn group, blocks by steps, buckets past the width, the press target, the hide rule
 │   ├── ring.ts                  the host's focus ring on an entry's first line, scrolling at the window's ends
 │   ├── view.ts                  the View filter / Layout $.store keys, the default for a value not known
 │   ├── sites.ts                 transcript site records and the four-step requestId → row match
@@ -118,7 +119,7 @@ Every start is in a temporary HOME and `CLAUDE_CONFIG_DIR`: onboarding done, the
 | CT-LIFE-007 | `$PY mods/chat-toc/tests/acceptance/ct_mid_session.py --host 2.1.287 --host current [--scenario cli\|ui]` (installs from a folder marketplace set up in the run folder, disabled first, then enabled mid-session from the CLI and from the `/plugin` screen) |
 | CT-LIFE-003, 004, 005, 008, CT-DATA-006 | `$PY mods/chat-toc/tests/acceptance/chain_scenarios.py --host 2.1.287 [--only life-003,...]` |
 | CT-JUMP-001–003, 005, CT-UI-005 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003 005]` (005 also records CT-UI-005: the notice line's inverse and foreground read about every 30 ms) |
-| CT-POS-001–003, CT-COEX-001, CT-LIFE-006 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6]` (coex runs `git init` on a repository with changes in a temporary project, so `/diff` opens) |
+| CT-POS-001–003, CT-COEX-001, CT-LIFE-006, CT-MAP-001 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6 map1]` (coex runs `git init` on a repository with changes in a temporary project, so `/diff` opens) |
 | CT-PERF-001 (20 MiB many/heavy, 3 runs each) | `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py run 2.1.287 many --runs 3` (then `heavy`, `current`); the release report's table: `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py table <run folder>...`. The Current position and the entry table under 3000 stale on-screen records are measured in `tests/long_session.test.ts` (`claude plugin test` prints `CT-PERF` lines) |
 | CT-COMPAT-001, CT-DATA-001–005, CT-TURN-001–005, CT-UI-001–003, CT-SEC-001 | `$PY mods/chat-toc/tests/acceptance/gate_scenarios.py --host 2.1.287 [--only compat-001,data-002,forms,turn-004-live,ui-003,sec-001,...]` |
 | CT-COMPAT-002 (marketplace smoke) | `$PY mods/chat-toc/tests/acceptance/ct_marketplace.py --host 2.1.287 --host current --source local\|github` (`local` is this repository's folder, run before a release; `github` is `lkangd/cc-mods`, the install-level check after it) |

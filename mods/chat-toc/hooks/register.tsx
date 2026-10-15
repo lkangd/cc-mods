@@ -14,6 +14,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 import type { Entry } from './entries'
 import { drawDesktopPane } from './desktop'
+import { BAR_ROWS, barKey, barLabels, barOfGroup, barTarget, barsOf, hasBars } from './bars'
 import { stripLabels } from './minimap'
 import type { TurnGroup } from './groups'
 import {
@@ -584,7 +585,7 @@ function bandCounts(): BandCounts | undefined {
 /* Only ever called from a press: the host moves the transcript only for
    the person's own input. Tries the side's targets in order; when the host
    refuses them all, says so at the bottom for a while and dims the side. */
-async function jump($: EngineInterface, entry: Entry): Promise<void> {
+async function jump($: EngineInterface, entry: Pick<Entry, 'groupIndex' | 'side' | 'key'>): Promise<void> {
   const group = reading.groups[entry.groupIndex]
   if (!group) return
   const key = sideKeyOf(group, entry.side)
@@ -869,11 +870,16 @@ export const register: Register = on => {
     /* A resumed or forked session shows its history in the transcript
        before its own file is written; it is not without a conversation. */
     const missing = isCarried ? words.notWritten : words.empty
-    const notice = isUnlocated ? words.unlocated : source === 'missing' ? missing : isOk && entries.length === 0 ? words.empty : undefined
+    const notice = isUnlocated ? words.unlocated : source === 'missing' ? missing : isOk && groups.length === 0 ? words.empty : undefined
     const why = source === 'failed' ? failureText(failure) : isOk && reading.unreadable > 0 ? words.unreadable(reading.unreadable) : undefined
     const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
     const headRows = HEAD_ROWS
-    const rows = e.props.scroll.bodyRows - headRows - FOOT_ROWS - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
+    const listRows = e.props.scroll.bodyRows - headRows - FOOT_ROWS - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
+    /* The Minimap's cells: a group with no Jump target is one the host
+       refused or a compaction took. */
+    const isOff = (g: number) => refused.has(sideKeyOf(groups[g] as TurnGroup, 'user'))
+    const bars = isOk && hasBars(groups.length, listRows) ? barsOf(groups.map(g => g.steps), width, isOff) : []
+    const rows = listRows - (bars.length === 0 ? 0 : BAR_ROWS)
     const drawnEntries = { heights: table.heights, rows, keys: table.keys, indexOf: table.indexOf }
     const kept = anchor
     anchor = undefined
@@ -920,7 +926,18 @@ export const register: Register = on => {
     }
     const drawn =
       e.surface === 'terminal'
-        ? drawPane($.ui.resolve(e), { ...shared, bodyRows: e.props.scroll.bodyRows, onLayout: () => chooseLayout($) })
+        ? drawPane($.ui.resolve(e), {
+            ...shared,
+            bodyRows: e.props.scroll.bodyRows,
+            bars,
+            litBar: barOfGroup(bars, position),
+            barLabels: barLabels(stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs), width),
+            onBar: (cell: number) => {
+              const bar = bars[cell]
+              return bar === undefined ? Promise.resolve() : jump($, { groupIndex: barTarget(bar, isOff), side: 'user', key: barKey(cell) })
+            },
+            onLayout: () => chooseLayout($),
+          })
         : drawDesktopPane($.ui.resolve(e), {
             ...shared,
             steps: isOk ? groups.map(g => g.steps) : [],

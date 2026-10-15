@@ -1,6 +1,7 @@
 /* A stand-in for Claude Code beneath chat-toc: the transcript file, the
    clock, the panes, and a record of what chat-toc asked of them. */
 
+import { isBarKey } from '../hooks/bars'
 import { mock } from 'claude-code/testing'
 import type { Engine, MockClock } from 'claude-code/testing'
 import type { On, PaneOpenArgs, UiPane } from 'claude-code'
@@ -31,6 +32,11 @@ export function drawnButtons(tree: unknown): DrawnButton[] {
 
 /* Entry Buttons are keyed `g<group>.<side>[.<line>]`; the filter row's are not. */
 export const isEntryKey = (key: unknown) => typeof key === 'string' && /^g\d+\./.test(key)
+
+export { isBarKey }
+
+/* The filter row's and the footer's Buttons: neither an entry's nor a cell. */
+export const isControlKey = (key: unknown) => !isEntryKey(key) && !isBarKey(key)
 
 /* The text of every entry Button drawn, in order. */
 export async function entryTexts(pane: { findAll: (q: { type: string }) => Promise<{ key: string | undefined; text: string }[]> }) {

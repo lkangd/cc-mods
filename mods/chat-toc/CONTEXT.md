@@ -32,6 +32,10 @@ _Avoid_: Mode, tab
 How the Chat TOC draws each Turn group, chosen by the person and kept across sessions: card (up to two lines per side, the time at the right of the User input), compact (one line per side, the time in a left column), or timeline (up to two lines per side, the time in a left column). Every Layout hangs the sides on a rail, a day's rule where the day changes. It changes the drawing only, never which entries show.
 _Avoid_: Theme, variant, style
 
+**Minimap**:
+The row at the top of the Chat TOC on the terminal that draws the whole Transcript at a glance: one cell per Turn group, as tall as the steps its Agent reply took, the Current position's cell the one not dimmed. Pressing a cell jumps to its Turn group as pressing that group's entry does; when a cell stands for several Turn groups, to the first of them that has a Jump target. It always shows every Turn group, whatever the View filter, and is left out when there is too little room or fewer than two Turn groups.
+_Avoid_: Chart, sparkline, strip, graph
+
 **Current position**:
 The Turn group the person is looking at in the transcript: the one the topmost row in view belongs to, or the last Turn group once the end of the Transcript is fully in view. Right after a jump it is the jumped-to Turn group, until the transcript view next moves. It follows the transcript view, not the person's selection in the Chat TOC.
 _Avoid_: Active item, scroll-spy, selection

@@ -1,7 +1,7 @@
 """PTY acceptance of the Current position, CT-POS-001..003, CT-COEX-001 and
 CT-LIFE-006, on one Claude Code version.
 
-usage: python position_scenarios.py <host-version> [pos1 pos2 pos3 coex life6]
+usage: python position_scenarios.py <host-version> [pos1 pos2 pos3 coex life6 map1]
 
 Run with the pyte venv (see requirements.txt). No model calls: every
 session is the synthetic `turns` transcript opened with --resume, in the
@@ -31,6 +31,10 @@ command, at no site chat-toc hooks, so a view whose top shows only those
 rows lights the next group with a sited row: the checks read the top group
 by the first prompt or reply line from row 1 down (`sitedTop`), and record
 the plain first line naming a turn too (`top`).
+- map1 (CT-MAP-001, ticket 38): the Minimap's row under the tab rule has a
+  block per group; at the end only the last cell is not dim; a click on a
+  cell jumps the transcript to that group (its prompt in view), lights that
+  group's entry, and moves the one undimmed cell there.
 - life6: a hot reload (the module edited under --plugin-dir); the lit group
   is right after the next wheel, and a jump lands and lights its group.
 """
@@ -383,7 +387,59 @@ def life6(run):
                   "lands its prompt at the top and lights its group", actual, ok, ev)
 
 
-SCENARIOS = {"pos1": pos1, "pos2": pos2, "pos3": pos3, "coex": coex, "life6": life6}
+BLOCKS = "▁▂▃▄▅▆▇█"
+MAP_TURNS = 30
+
+
+def bar_cells(t, rows, p):
+    """The Minimap's cells under the tab rule: (column, block, dim), with the
+    row they are on; the row is the one under the tab rule, made of blocks."""
+    y = p.filter_row + 2
+    styles = t.styles()
+    cells = []
+    for x, char in v._cells(rows[y]):
+        if x < p.left:
+            continue
+        # the baseline past the last group is a dim-edge Text, not a cell: another colour
+        if char not in BLOCKS or styles[y][x][1] not in ("999999", "default"):
+            break
+        cells.append((x, char, styles[y][x][1] == "999999"))
+    return y, cells
+
+
+def map1(run):
+    host, world, fx, t = launch(run, turns=MAP_TURNS)
+    actual, ev, ok = {}, [], True
+    try:
+        rows, p, s = look(t)
+        y, cells = bar_cells(t, rows, p)
+        ev.append(t.snap("at the end"))
+        bright = [i for i, c in enumerate(cells) if not c[2]]
+        actual["cells"], actual["brightAtEnd"] = len(cells), bright
+        ok = len(cells) == MAP_TURNS and bright == [MAP_TURNS - 1]
+        # (turn 7 is a /tui, a centred fallback jump; turns 8 and 21 are prompts)
+        for target in (8, 21):
+            t.click(cells[target][0], y)
+            rows, p, s = look(t, quiet=1.5)
+            ev.append(t.snap(f"after a click on cell {target}"))
+            y, cells = bar_cells(t, rows, p)
+            bright = [i for i, c in enumerate(cells) if not c[2]]
+            # the pointer rests on the cell clicked, drawn inverse: it is the bright one
+            actual[f"click{target}"] = {"top": s["top"], "sitedTop": s["sitedTop"], "lit": s["lit"], "bright": bright}
+            ok = ok and s["lit"] == [target] and s["top"] in (target, target - 1) and bright == [target]
+    except h.ScenarioFailure as f:
+        ok, actual["failure"] = False, str(f)
+        ev.append(t.snap("failure"))
+    finally:
+        t.close()
+        world.remove()
+    return record(run, "CT-MAP-001", host,
+                  f"a block per group under the tab rule, only the last cell undimmed at the end; a click on a cell jumps to its group "
+                  f"(its prompt at the top), lights its entry and moves the undimmed cell there", actual, ok, ev,
+                  fixture=f"turns {MAP_TURNS}")
+
+
+SCENARIOS = {"pos1": pos1, "pos2": pos2, "pos3": pos3, "coex": coex, "life6": life6, "map1": map1}
 
 
 def main():
