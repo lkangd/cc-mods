@@ -28,6 +28,10 @@ Host and test-kit behaviour that the `plugin-authoring` skill does not state, me
 - A docked Pane sits in a host Box filled with the theme key `composerSidebarBackground` (2.1.295: `rgb(38,38,38)` under dark, `rgb(245,245,245)` under light); an inline Pane has no fill, so it shows the terminal's own background. A theme value must be a concrete colour (rgb, hex, `ansi256(n)`, `ansi:<name>`), never "the terminal's default", and the close-mark row and the blank last row are the host's, so a mod cannot make the dock match the transcript: only a theme whose `composerSidebarBackground` equals the terminal's background does.
 - A Button's `hover` may restyle the label (`{ scope, color: 'suggestion' }`) instead of inverting it, but the line right under the pointer is still drawn inverse by the host.
 - `$.ui.mount({ surface: 'desktop', component: 'Pane', ... })` mounts a Pane on the desktop table in the test kit (Svg, Select, Button `variant`); `ui.select({ key, value })` drives a Select. 2.1.287's kit types `Mounted` without `select`: cast in the test, run the suite on the current host.
+- `$.prompt.fill` (2.1.287 and 2.1.295): needs no press (a timer, `command.run`, even `session.start` fill the box); lands while a turn runs (Enter then queues it); under a dialog answers `refusal: 'dialog'` and drops the text for good. It moves the keyboard from a focused Pane to the composer. A filled `!cmd` stays a prompt (no bash mode; Enter sends it to the model); a filled `/command args` runs on Enter. A hook's own refusal reaches the caller with no `refusal`.
+- A plugin's own `prompt.fill` and `ui.copy` hooks are skipped when its call comes from a press closure or a timer, but run when the call is made inside one of its hooks (`command.run`, `session.start`).
+- `$.ui.copy` on the terminal answers `isCopied: true` whether or not anything was copied: with no `pbcopy` on `PATH`, a 2 MB text writes no OSC 52 and still reads true. With `pbcopy` it copies 16 MB; OSC 52 is written too, up to about 100 KB.
+- A mouse click presses a Pane Button without moving the keyboard out of the composer; only Ctrl+X Tab (or `open({ focus })`) gives the Pane the keys.
 - `--debug-file <path>` logs module reloads, `session.start settled`, and `ui.open <mod> … (unasked|asked, N columns): placed|waits …`: model-free evidence of what the plugin did.
 
 ## Test kit (`claude plugin test`)
@@ -51,6 +55,7 @@ Install into a scratch dir, never globally: `npm install --prefix <dir> @anthrop
 - The host draws `dimColor` as the theme's `inactive` foreground, not SGR 2: `999999` under dark (the harness's world), `666666` under light, `white`/`brightblack` under dark-ansi/light-ansi. A hovered entry is drawn inverse: move the pointer off before checking colours.
 - Slice pyte rows by cell column, not char index: CJK text shifts character offsets.
 - Rewind without a model: Esc Esc on the empty composer, Up to the prompt, Enter, Enter (restore), then backspaces to clear the restored prompt.
+- `settle()` never goes quiet while the spinner turns: snap a running turn with a short timeout. A `fake_api.py` turn that reads a file outside the project raises a permission dialog: point `read_path` inside it.
 - The shell is fish: `$var` with spaces does not word-split. Drive loops from Python.
 
 ## Claude Code Desktop
@@ -62,4 +67,5 @@ Measured in the Claude app (Claude Code 2.1.295, macOS, 2026-10-14) with a probe
 - A `plain` Button draws as one line of bare text: no chrome, a hover box under the pointer (the host's, cannot be turned off), repeated clicks each count. It honours `dimColor` only; `bold`, `color` and line breaks in `Text` children are dropped; overflow truncates with `…`. A non-plain Button is a grey native button and draws its `hotkey` as a badge.
 - A `Markdown` with `onLinkPress` hands link clicks to the plugin, drawn as accent-coloured links; a quick second click is swallowed as a double-click.
 - A Box's `width`/`height` count cells, as on the terminal: one column ≈ 8.2 px, one row ≈ 19 px. A Box with `borderStyle` always spans the row.
+- `$.prompt.fill` answers `isFilled: true` and `$.prompt.read()` reads the text, yet the app's composer sometimes does not show it (a second press, or nothing, for a timer's fill). `$.ui.copy` reaches the clipboard for small texts and answers `no-clipboard` at 2 MB (2026-10-15, `.scratch/chat-toc-0.2/assets/02-fill-copy/`).
 - `Svg` draws at its `width`/`height` in CSS px; without a width it is scaled down to the slot. Clicks on it never reach the plugin, and an absolutely placed Button over it covers only its own label. `prefers-color-scheme` inside it follows the app's dark mode.
