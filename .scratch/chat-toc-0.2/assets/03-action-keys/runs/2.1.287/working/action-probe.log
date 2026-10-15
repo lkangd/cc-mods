@@ -1,0 +1,12 @@
+0.1s session.start version=[object Object]
+2.6s open action-probe {"isPlaced":true}
+5.2s turn.start
+8.8s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+8.8s PRESS noise in pane (surface=terminal, working=true, renders={"band":6,"pane":1})
+11.0s ui.press hook: {"plugin":"action-probe","element":"presession","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+11.0s PRESS presession in pane (surface=terminal, working=true, renders={"band":6,"pane":1})
+13.2s ui.press hook: {"plugin":"action-probe","element":"band-debug","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+13.2s PRESS band-debug in band (surface=terminal, working=true, renders={"band":6,"pane":1})
+15.4s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+15.4s PRESS noise in pane (surface=terminal, working=true, renders={"band":6,"pane":1})
+30.4s turn.complete

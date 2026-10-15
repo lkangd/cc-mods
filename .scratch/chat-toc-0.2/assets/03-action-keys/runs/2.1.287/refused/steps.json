@@ -1,0 +1,28 @@
+[
+ {
+  "step": "open-bad",
+  "presses": [],
+  "log": [
+   "2.6s open action-probe-bad {\"isPlaced\":true}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-reserved",
+  "presses": [],
+  "log": [
+   "5.2s open action-probe-reserved {\"isPlaced\":true}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "0:action-probe-reserved"
+  ]
+ }
+]

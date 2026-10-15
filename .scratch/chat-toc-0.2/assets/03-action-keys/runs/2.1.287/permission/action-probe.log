@@ -1,0 +1,4 @@
+0.1s session.start version=[object Object]
+2.5s open action-probe {"isPlaced":true}
+5.0s turn.start
+23.9s turn.complete

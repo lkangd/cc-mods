@@ -22,6 +22,7 @@ Every decision on seven additions to chat-toc is settled, enough to sum up into 
 
 - [Find whether a forked session's transcript leads back to its parent](issues/01-research-fork-parent-transcript.md): only through unpublished fields: `/branch` writes `forkedFrom`, `--fork-session` leaves only the undocumented row `session_id` and the boundary's `logicalParentUuid`; the parent may be in another projects folder or deleted; no mods API names it, and parent-only rows have no Jump target.
 - [Probe how prompt.fill and ui.copy behave](issues/02-task-probe-fill-and-copy.md): fill works anywhere but under a dialog (dropped, not deferred), needs no press, moves the keyboard to the composer, and never enters bash mode for `!cmd`; on Desktop it answers `isFilled: true` yet sometimes does not show. Copy reaches the clipboard (terminal to 16 MB, Desktop refuses 2 MB); `isCopied: true` proves nothing on the terminal.
+- [Probe whether a Button's action can serve as a global key](issues/03-task-probe-button-action-keys.md): yes on the terminal, but only through an action the person binds themselves (a borrowed, unrelated name such as `app:toggleDiffNoiseFilter`; no plugin namespace, no default key, bare keys never), pressed with the composer focused, during a turn and under `/model`, not under a permission prompt; only while the Button is mounted (not a back-tab Pane, not a collapsed band, where the chord's second key leaks into the composer); the press does not say it came from a chord. Desktop not measured.
 
 ## Not yet specified
 

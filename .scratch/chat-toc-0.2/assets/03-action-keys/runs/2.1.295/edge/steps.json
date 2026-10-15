@@ -1,0 +1,214 @@
+[
+ {
+  "step": "open-pane",
+  "presses": [],
+  "log": [
+   "2.2s open action-probe {\"isPlaced\":true}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "focus-pane",
+  "presses": [],
+  "log": [
+   "4.8s focus {\"deny\":\"that site does not hold the keyboard\"}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "pane-focused-noise (ctrl+x p)",
+  "presses": [
+   "6.9s PRESS noise in pane (surface=terminal, working=false, renders={\"band\":6,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "6.9s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "pane-focused-presession (meta+j)",
+  "presses": [
+   "8.7s PRESS presession in pane (surface=terminal, working=false, renders={\"band\":6,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "8.7s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"presession\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "pane-focused-banddebug (ctrl+x b)",
+  "presses": [
+   "10.5s PRESS band-debug in band (surface=terminal, working=false, renders={\"band\":6,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "10.5s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-debug\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "pane-focused-digit-8",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ 8"
+  ],
+  "ring": []
+ },
+ {
+  "step": "pane-focused-digit-7",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ 87"
+  ],
+  "ring": []
+ },
+ {
+  "step": "esc",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ 87"
+  ],
+  "ring": []
+ },
+ {
+  "step": "close-pane",
+  "presses": [],
+  "log": [
+   "18.6s closed"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "band-collapsed",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "band-collapsed-noise (ctrl+x p)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ p"
+  ],
+  "ring": []
+ },
+ {
+  "step": "band-collapsed-banddebug (ctrl+x b)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ pb"
+  ],
+  "ring": []
+ },
+ {
+  "step": "band-collapsed-digit-7",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ pb7"
+  ],
+  "ring": []
+ },
+ {
+  "step": "band-expanded",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-pane-at-100-columns",
+  "presses": [],
+  "log": [
+   "32.0s open action-probe {\"isPlaced\":true}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "inline-noise (ctrl+x p)",
+  "presses": [
+   "34.1s PRESS noise in pane (surface=terminal, working=false, renders={\"band\":13,\"pane\":2})"
+  ],
+  "log": [],
+  "press_event": [
+   "34.1s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "inline-presession (meta+j)",
+  "presses": [
+   "36.0s PRESS presession in pane (surface=terminal, working=false, renders={\"band\":13,\"pane\":2})"
+  ],
+  "log": [],
+  "press_event": [
+   "35.9s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"presession\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "inline-banddebug (ctrl+x b)",
+  "presses": [
+   "37.9s PRESS band-debug in band (surface=terminal, working=false, renders={\"band\":13,\"pane\":2})"
+  ],
+  "log": [],
+  "press_event": [
+   "37.8s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-debug\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ }
+]

@@ -1,0 +1,4 @@
+2026-10-15T09:19:14.479Z [WARN] ui.render (Pane): a hook returned a tree that does not validate (Button "bad" action "chattoc:previousTurn" is not one of the engine's keybinding actions (app:cycleDiffBase, app:diffFileListDown)); drawing the engine's own
+2026-10-15T09:19:14.480Z [DEBUG] [hooks] $.ui.log: ui.render (Pane) refused: Button "bad" action "chattoc:previousTurn" is not one of the engine's keybinding actions (app:cycleDiffBase, app:diffFileListDown); the engine drew its own
+2026-10-15T09:19:16.991Z [WARN] ui.render (Pane): a hook returned a tree that does not validate (Button "reserved" action "app:interrupt" is the engine's alone: its key cannot be rebound (ctrl+c, ctrl+d)); drawing the engine's own
+2026-10-15T09:19:16.991Z [DEBUG] [hooks] $.ui.log: ui.render (Pane) refused: Button "reserved" action "app:interrupt" is the engine's alone: its key cannot be rebound (ctrl+c, ctrl+d); the engine drew its own

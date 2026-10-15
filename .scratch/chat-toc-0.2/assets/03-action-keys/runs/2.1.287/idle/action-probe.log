@@ -1,0 +1,58 @@
+0.3s session.start version=[object Object]
+3.7s ui.press hook: {"plugin":"action-probe","element":"band-noise","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+3.7s PRESS band-noise in band (surface=terminal, working=false, renders={"band":2})
+7.3s ui.press hook: {"plugin":"action-probe","element":"band-debug","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+7.3s PRESS band-debug in band (surface=terminal, working=false, renders={"band":2})
+9.5s ui.press hook: {"plugin":"action-probe","element":"band-seven","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+9.6s PRESS band-seven in band (surface=terminal, working=false, renders={"band":2})
+15.7s open action-probe {"isPlaced":true}
+17.8s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+17.8s PRESS noise in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+19.6s ui.press hook: {"plugin":"action-probe","element":"presession","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+19.6s PRESS presession in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+21.5s ui.press hook: {"plugin":"action-probe","element":"repl","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+21.5s PRESS repl in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+23.3s ui.press hook: {"plugin":"action-probe","element":"panenext","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+23.3s PRESS panenext in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+28.8s ui.press hook: {"plugin":"action-probe","element":"footer","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+28.8s PRESS footer in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+30.6s ui.press hook: {"plugin":"action-probe","element":"diffback","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+30.6s PRESS diffback in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+34.3s ui.press hook: {"plugin":"action-probe","element":"band-debug","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+34.3s PRESS band-debug in band (surface=terminal, working=false, renders={"band":5,"pane":1})
+36.8s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+36.8s PRESS noise in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+38.6s ui.press hook: {"plugin":"action-probe","element":"presession","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+38.6s PRESS presession in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+42.9s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+42.9s PRESS noise in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+44.8s ui.press hook: {"plugin":"action-probe","element":"band-debug","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+44.8s PRESS band-debug in band (surface=terminal, working=false, renders={"band":5,"pane":1})
+46.6s ui.press hook: {"plugin":"action-probe","element":"band-seven","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+46.6s PRESS band-seven in band (surface=terminal, working=false, renders={"band":5,"pane":1})
+50.5s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+50.5s PRESS noise in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+52.3s ui.press hook: {"plugin":"action-probe","element":"presession","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+52.3s PRESS presession in pane (surface=terminal, working=false, renders={"band":5,"pane":1})
+54.2s ui.press hook: {"plugin":"action-probe","element":"band-debug","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+54.2s PRESS band-debug in band (surface=terminal, working=false, renders={"band":5,"pane":1})
+62.4s open action-probe-2 {"isPlaced":true}
+64.5s ui.press hook: {"plugin":"action-probe","element":"noise2","component":"Pane","requestId":"action-probe-2","surface":"terminal"} keys=plugin,element,component,requestId,surface
+64.5s PRESS noise2 in pane2 (surface=terminal, working=false, renders={"band":7,"pane":1,"pane2":1})
+71.8s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+71.8s PRESS noise in pane (surface=terminal, working=false, renders={"band":7,"pane":2,"pane2":1})
+73.6s ui.press hook: {"plugin":"action-probe","element":"presession","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+73.6s PRESS presession in pane (surface=terminal, working=false, renders={"band":7,"pane":2,"pane2":1})
+75.9s closed2
+78.4s closed
+80.5s ui.press hook: {"plugin":"action-probe","element":"band-noise","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+80.5s PRESS band-noise in band (surface=terminal, working=false, renders={"band":12,"pane":3,"pane2":1})
+84.2s ui.press hook: {"plugin":"action-probe","element":"band-debug","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+84.2s PRESS band-debug in band (surface=terminal, working=false, renders={"band":12,"pane":3,"pane2":1})
+86.5s open action-probe {"isPlaced":true}
+91.2s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+91.2s PRESS noise in pane (surface=terminal, working=false, renders={"band":15,"pane":4,"pane2":1})
+93.0s ui.press hook: {"plugin":"action-probe","element":"presession","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+93.0s PRESS presession in pane (surface=terminal, working=false, renders={"band":15,"pane":4,"pane2":1})
+98.5s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+98.5s PRESS noise in pane (surface=terminal, working=false, renders={"band":15,"pane":5,"pane2":1})
