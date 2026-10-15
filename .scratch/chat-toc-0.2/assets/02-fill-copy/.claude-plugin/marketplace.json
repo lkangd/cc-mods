@@ -1,0 +1,9 @@
+{
+  "name": "fill-probe-local",
+  "owner": { "name": "lkangd" },
+  "description": "Throwaway: how prompt.fill and ui.copy behave",
+  "plugins": [
+    { "name": "fill-probe", "source": "./fill-probe", "description": "Fill and copy buttons in a pane", "version": "0.0.1" },
+    { "name": "fill-watch", "source": "./fill-watch", "description": "Logs what another mod's prompt.fill and ui.copy hooks see", "version": "0.0.1" }
+  ]
+}

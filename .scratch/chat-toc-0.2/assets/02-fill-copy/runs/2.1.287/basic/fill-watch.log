@@ -1,0 +1,21 @@
+6.2s prompt.fill saw {"text":"FILL-R","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+10.9s prompt.fill saw {"text":"FILL-R","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+14.4s prompt.fill saw {"text":"+FILL-A","mode":"append","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+18.3s prompt.fill saw {"text":"<I>","mode":"insert","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+21.5s prompt.fill saw {"text":"<I>","mode":"insert","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+24.6s prompt.fill saw {"text":"L1 first line\nL2 second line\n```js\nx()\n```","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+27.8s prompt.fill saw {"text":"/compact keep notes","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+30.9s prompt.fill saw {"text":"!echo hi","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+34.1s prompt.fill saw {"text":"a​b\u0007c\u001b[31md","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+37.6s prompt.fill saw {"text":"","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+50.1s prompt.fill saw {"text":"/fillprobe log","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+57.7s prompt.fill saw {"text":"!echo hi","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+65.0s prompt.fill saw {"text":"CMD TEXT","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+75.4s prompt.fill saw {"text":"FILL-LATE","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+79.0s ui.copy saw {"chars":32,"head":"COPY-PROBE 短文 😀\nsecond line\tt","surface":"terminal"} -> {"value":{"isCopied":true}}
+82.3s ui.copy saw {"chars":14,"head":"COPY-NOSURFACE","surface":"terminal"} -> {"value":{"isCopied":true}}
+85.7s ui.copy saw {"chars":100000,"head":"0123456789abcdef0123456789abcd","surface":"terminal"} -> {"value":{"isCopied":true}}
+89.0s ui.copy saw {"chars":2000000,"head":"0123456789abcdef0123456789abcd","surface":"terminal"} -> {"value":{"isCopied":true}}
+92.4s ui.copy saw {"chars":16000000,"head":"0123456789abcdef0123456789abcd","surface":"terminal"} -> {"value":{"isCopied":true}}
+101.7s ui.copy saw {"chars":9,"head":"COPY-LATE","surface":"terminal"} -> {"value":{"isCopied":true}}
+105.9s ui.copy saw {"chars":8,"head":"CMD COPY","surface":"terminal"} -> {"value":{"isCopied":true}}

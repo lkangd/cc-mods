@@ -1,0 +1,6 @@
+2.6s open {"isPlaced":true}
+6.7s turn.start
+10.7s fill replace: result={"isFilled":true,"text":"FILL-R","cursor":6} before={"text":"","cursor":0} after={"text":"FILL-R","cursor":6}
+13.2s copy small (32 chars, surface=terminal): result={"isCopied":true} in 14ms
+18.2s fill append: result={"isFilled":true,"text":"QUEUED+FILL-A","cursor":13} before={"text":"QUEUED","cursor":6} after={"text":"QUEUED+FILL-A","cursor":13}
+32.0s turn.complete

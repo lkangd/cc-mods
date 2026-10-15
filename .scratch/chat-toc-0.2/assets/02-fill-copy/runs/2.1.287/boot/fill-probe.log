@@ -1,0 +1,3 @@
+0.1s own prompt.fill hook saw {"text":"BOOT-FILL","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+0.1s fill at session.start: result={"isFilled":true,"text":"BOOT-FILL","cursor":9} before={"text":"","cursor":0} after={"text":"BOOT-FILL","cursor":9}
+3.1s fill boot+3s: result={"isFilled":true,"text":"BOOT-FILL-3S","cursor":12} before={"text":"BOOT-FILL","cursor":9} after={"text":"BOOT-FILL-3S","cursor":12}

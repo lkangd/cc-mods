@@ -1,0 +1,7 @@
+2.1s open {"isPlaced":true}
+5.7s read {"text":"","cursor":0}
+7.2s fill replace: result={"isFilled":true,"text":"FILL-R","cursor":6} before={"text":"","cursor":0} after={"text":"FILL-R","cursor":6}
+10.4s read {"text":"","cursor":0}
+14.2s fill empty: result={"isFilled":true,"text":"","cursor":0} before={"text":"","cursor":0} after={"text":"","cursor":0}
+19.5s turn.start
+19.8s turn.complete

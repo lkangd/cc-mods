@@ -1,0 +1,12 @@
+[
+ {
+  "step": "rewritten-by-watch",
+  "composer": [
+   "❯ L1 FIRST LINE",
+   "  L2 SECOND LINE",
+   "  ```JS",
+   "  X()",
+   "  ```"
+  ]
+ }
+]

@@ -1,0 +1,27 @@
+2.3s open {"isPlaced":true}
+6.2s fill replace: result={"isFilled":true,"text":"FILL-R","cursor":6} before={"text":"","cursor":0} after={"text":"FILL-R","cursor":6}
+10.9s fill replace: result={"isFilled":true,"text":"FILL-R","cursor":6} before={"text":"DRAFT","cursor":5} after={"text":"FILL-R","cursor":6}
+14.4s fill append: result={"isFilled":true,"text":"DRAFT+FILL-A","cursor":12} before={"text":"DRAFT","cursor":5} after={"text":"DRAFT+FILL-A","cursor":12}
+18.4s fill insert: result={"isFilled":true,"text":"DRA<I>FT","cursor":6} before={"text":"DRAFT","cursor":3} after={"text":"DRA<I>FT","cursor":6}
+21.5s fill insert: result={"isFilled":true,"text":"<I>","cursor":3} before={"text":"","cursor":0} after={"text":"<I>","cursor":3}
+24.7s fill multiline: result={"isFilled":true,"text":"L1 first line\nL2 second line\n```js\nx()\n```","cursor":42} before={"text":"","cursor":0} after={"text":"L1 first line\nL2 second line\n```js\nx()\n```","cursor":42}
+27.8s fill slash: result={"isFilled":true,"text":"/compact keep notes","cursor":19} before={"text":"","cursor":0} after={"text":"/compact keep notes","cursor":19}
+30.9s fill bang: result={"isFilled":true,"text":"!echo hi","cursor":8} before={"text":"","cursor":0} after={"text":"!echo hi","cursor":8}
+34.1s fill invisible: result={"isFilled":true,"text":"abc[31md","cursor":8} before={"text":"","cursor":0} after={"text":"abc[31md","cursor":8}
+37.6s fill empty: result={"isFilled":true,"text":"","cursor":0} before={"text":"DRAFT","cursor":5} after={"text":"","cursor":0}
+50.1s own prompt.fill hook saw {"text":"/fillprobe log","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+50.1s fill from command: result={"isFilled":true,"text":"/fillprobe log","cursor":14} before={"text":"","cursor":0} after={"text":"/fillprobe log","cursor":14}
+57.7s fill bang: result={"isFilled":true,"text":"!echo hi","cursor":8} before={"text":"","cursor":0} after={"text":"!echo hi","cursor":8}
+59.6s turn.start
+59.7s turn.complete
+65.0s own prompt.fill hook saw {"text":"CMD TEXT","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+65.0s fill from command: result={"isFilled":true,"text":"CMD TEXT","cursor":8} before={"text":"","cursor":0} after={"text":"CMD TEXT","cursor":8}
+75.4s fill delayed: result={"isFilled":true,"text":"FILL-LATE","cursor":9} before={"text":"DRAFT","cursor":5} after={"text":"FILL-LATE","cursor":9}
+79.0s copy small (32 chars, surface=terminal): result={"isCopied":true} in 3ms
+82.3s copy nosurface (14 chars, surface=unset): result={"isCopied":true} in 2ms
+85.7s copy 100k (100000 chars, surface=terminal): result={"isCopied":true} in 30ms
+89.0s copy 2m (2000000 chars, surface=terminal): result={"isCopied":true} in 11ms
+92.4s copy 16m (16000000 chars, surface=terminal): result={"isCopied":true} in 101ms
+101.7s copy delayed (9 chars, surface=unset): result={"isCopied":true} in 9ms
+105.9s own ui.copy hook saw 8 chars surface=terminal -> {"value":{"isCopied":true}}
+105.9s copy from command (8 chars, surface=unset): result={"isCopied":true} in 23ms

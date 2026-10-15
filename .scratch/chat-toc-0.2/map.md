@@ -21,6 +21,7 @@ Every decision on seven additions to chat-toc is settled, enough to sum up into 
 <!-- one line per closed ticket -->
 
 - [Find whether a forked session's transcript leads back to its parent](issues/01-research-fork-parent-transcript.md): only through unpublished fields: `/branch` writes `forkedFrom`, `--fork-session` leaves only the undocumented row `session_id` and the boundary's `logicalParentUuid`; the parent may be in another projects folder or deleted; no mods API names it, and parent-only rows have no Jump target.
+- [Probe how prompt.fill and ui.copy behave](issues/02-task-probe-fill-and-copy.md): fill works anywhere but under a dialog (dropped, not deferred), needs no press, moves the keyboard to the composer, and never enters bash mode for `!cmd`; on Desktop it answers `isFilled: true` yet sometimes does not show. Copy reaches the clipboard (terminal to 16 MB, Desktop refuses 2 MB); `isCopied: true` proves nothing on the terminal.
 
 ## Not yet specified
 

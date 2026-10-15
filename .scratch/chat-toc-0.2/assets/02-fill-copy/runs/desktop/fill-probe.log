@@ -1,0 +1,50 @@
+3.1s open {"isPlaced":true}
+16.4s open {"isPlaced":true}
+47.1s fill replace: result={"isFilled":true,"text":"FILL-R","cursor":6} before={"text":"","cursor":0} after={"text":"FILL-R","cursor":6}
+53.8s fill replace: result={"isFilled":true,"text":"FILL-R","cursor":6} before={"text":"","cursor":0} after={"text":"FILL-R","cursor":6}
+55.3s fill append: result={"isFilled":true,"text":"FILL-R+FILL-A","cursor":13} before={"text":"FILL-R","cursor":6} after={"text":"FILL-R+FILL-A","cursor":13}
+55.8s fill append: result={"isFilled":true,"text":"FILL-R+FILL-A+FILL-A","cursor":20} before={"text":"FILL-R+FILL-A","cursor":13} after={"text":"FILL-R+FILL-A+FILL-A","cursor":20}
+59.8s fill replace: result={"isFilled":true,"text":"FILL-R","cursor":6} before={"text":"FILL-R+FILL-A+FILL-A","cursor":20} after={"text":"FILL-R","cursor":6}
+85.2s fill append: result={"isFilled":true,"text":"DRAFT+FILL-A","cursor":12} before={"text":"DRAFT","cursor":5} after={"text":"DRAFT+FILL-A","cursor":12}
+98.8s fill insert: result={"isFilled":true,"text":"DR<I>AFT+FILL-A","cursor":5} before={"text":"DRAFT+FILL-A","cursor":2} after={"text":"DR<I>AFT+FILL-A","cursor":5}
+107.6s fill multiline: result={"isFilled":true,"text":"L1 first line\nL2 second line\n```js\nx()\n```","cursor":42} before={"text":"DR<I>AFT+FILL-A","cursor":5} after={"text":"L1 first line\nL2 second line\n```js\nx()\n```","cursor":42}
+107.9s fill multiline: result={"isFilled":true,"text":"L1 first line\nL2 second line\n```js\nx()\n```","cursor":42} before={"text":"L1 first line\nL2 second line\n```js\nx()\n```","cursor":42} after={"text":"L1 first line\nL2 second line\n```js\nx()\n```","cursor":42}
+114.8s fill slash: result={"isFilled":true,"text":"/compact keep notes","cursor":19} before={"text":"L1 first line\nL2 second line\n```js\nx()\n```","cursor":42} after={"text":"/compact keep notes","cursor":19}
+115.0s fill slash: result={"isFilled":true,"text":"/compact keep notes","cursor":19} before={"text":"/compact keep notes","cursor":19} after={"text":"/compact keep notes","cursor":19}
+119.0s fill bang: result={"isFilled":true,"text":"!echo hi","cursor":8} before={"text":"/compact keep notes","cursor":19} after={"text":"!echo hi","cursor":8}
+136.9s fill bang: result={"isFilled":true,"text":"!echo hi","cursor":8} before={"text":"","cursor":0} after={"text":"!echo hi","cursor":8}
+137.6s fill bang: result={"isFilled":true,"text":"!echo hi","cursor":8} before={"text":"!echo hi","cursor":8} after={"text":"!echo hi","cursor":8}
+200.7s copy small (32 chars, surface=desktop): result={"isCopied":true} in 6ms
+201.4s copy small (32 chars, surface=desktop): result={"isCopied":true} in 4ms
+201.6s copy small (32 chars, surface=desktop): result={"isCopied":true} in 2ms
+229.3s copy 2m (2000000 chars, surface=desktop): result={"isCopied":false,"reason":"no-clipboard"} in 5ms
+229.7s copy 2m (2000000 chars, surface=desktop): result={"isCopied":false,"reason":"no-clipboard"} in 5ms
+229.9s copy 2m (2000000 chars, surface=desktop): result={"isCopied":false,"reason":"no-clipboard"} in 7ms
+232.3s copy 16m (16000000 chars, surface=desktop): result={"isCopied":false,"reason":"no-clipboard"} in 38ms
+232.5s copy 16m (16000000 chars, surface=desktop): result={"isCopied":false,"reason":"no-clipboard"} in 26ms
+245.8s copy 2m (2000000 chars, surface=desktop): result={"isCopied":false,"reason":"no-clipboard"} in 18ms
+246.0s copy 2m (2000000 chars, surface=desktop): result={"isCopied":false,"reason":"no-clipboard"} in 5ms
+246.1s copy 2m (2000000 chars, surface=desktop): result={"isCopied":false,"reason":"no-clipboard"} in 3ms
+251.5s copy 16m (16000000 chars, surface=desktop): result={"isCopied":false,"reason":"no-clipboard"} in 53ms
+251.6s copy 16m (16000000 chars, surface=desktop): result={"isCopied":false,"reason":"no-clipboard"} in 41ms
+262.3s copy nosurface (14 chars, surface=unset): result={"isCopied":true} in 3ms
+271.1s copy delayed (9 chars, surface=unset): result={"isCopied":true} in 7ms
+271.3s copy delayed (9 chars, surface=unset): result={"isCopied":true} in 19ms
+275.1s read {"text":"COPY-PROBE 短文 😀\nsecond line\ttab","cursor":32}
+285.7s fill delayed: result={"isFilled":true,"text":"FILL-LATE","cursor":9} before={"text":"COPY-PROBE 短文 😀\nsecond line\ttab","cursor":32} after={"text":"FILL-LATE","cursor":9}
+348.6s fill delayed: result={"isFilled":true,"text":"FILL-LATE","cursor":9} before={"text":"","cursor":0} after={"text":"FILL-LATE","cursor":9}
+348.8s copy small (32 chars, surface=desktop): result={"isCopied":true} in 4ms
+348.8s fill delayed: result={"isFilled":true,"text":"FILL-LATE","cursor":9} before={"text":"FILL-LATE","cursor":9} after={"text":"FILL-LATE","cursor":9}
+349.0s fill delayed: result={"isFilled":true,"text":"FILL-LATE","cursor":9} before={"text":"FILL-LATE","cursor":9} after={"text":"FILL-LATE","cursor":9}
+349.2s fill delayed: result={"isFilled":true,"text":"FILL-LATE","cursor":9} before={"text":"FILL-LATE","cursor":9} after={"text":"FILL-LATE","cursor":9}
+349.3s fill delayed: result={"isFilled":true,"text":"FILL-LATE","cursor":9} before={"text":"FILL-LATE","cursor":9} after={"text":"FILL-LATE","cursor":9}
+349.5s fill delayed: result={"isFilled":true,"text":"FILL-LATE","cursor":9} before={"text":"FILL-LATE","cursor":9} after={"text":"FILL-LATE","cursor":9}
+349.7s fill delayed: result={"isFilled":true,"text":"FILL-LATE","cursor":9} before={"text":"FILL-LATE","cursor":9} after={"text":"FILL-LATE","cursor":9}
+363.7s copy small (32 chars, surface=desktop): result={"isCopied":true} in 7ms
+382.1s turn.start
+404.2s fill replace: result={"isFilled":true,"text":"FILL-R","cursor":6} before={"text":"","cursor":0} after={"text":"FILL-R","cursor":6}
+407.3s turn.complete
+423.0s own prompt.fill hook saw {"text":"CMD TEXT","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+423.0s fill from command: result={"isFilled":true,"text":"CMD TEXT","cursor":8} before={"text":"","cursor":0} after={"text":"CMD TEXT","cursor":8}
+432.2s own ui.copy hook saw 8 chars surface=desktop -> {"value":{"isCopied":true}}
+432.2s copy from command (8 chars, surface=unset): result={"isCopied":true} in 3ms

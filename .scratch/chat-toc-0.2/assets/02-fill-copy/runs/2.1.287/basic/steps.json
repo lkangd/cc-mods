@@ -1,0 +1,210 @@
+[
+ {
+  "step": "empty-replace",
+  "composer": [
+   "❯ FILL-R"
+  ]
+ },
+ {
+  "step": "typed-Q-after-click",
+  "composer": [
+   "❯ FILL-RQ"
+  ]
+ },
+ {
+  "step": "draft-replace",
+  "composer": [
+   "❯ FILL-R"
+  ]
+ },
+ {
+  "step": "draft-append",
+  "composer": [
+   "❯ DRAFT+FILL-A"
+  ]
+ },
+ {
+  "step": "draft-insert-cursor-left2",
+  "composer": [
+   "❯ DRA<I>FT"
+  ]
+ },
+ {
+  "step": "empty-insert",
+  "composer": [
+   "❯ <I>"
+  ]
+ },
+ {
+  "step": "multiline",
+  "composer": [
+   "❯ L1 first line",
+   "  L2 second line",
+   "  ```js",
+   "  x()",
+   "  ```"
+  ]
+ },
+ {
+  "step": "slash",
+  "composer": [
+   "❯ /compact keep notes"
+  ]
+ },
+ {
+  "step": "bang",
+  "composer": [
+   "❯ !echo hi"
+  ]
+ },
+ {
+  "step": "invisible",
+  "composer": [
+   "❯ abc[31md"
+  ]
+ },
+ {
+  "step": "draft-fill-empty-text",
+  "composer": [
+   "❯"
+  ]
+ },
+ {
+  "step": "pane-focused-by-title-click",
+  "composer": [
+   "❯"
+  ]
+ },
+ {
+  "step": "focus ring after title click",
+  "focus": "none"
+ },
+ {
+  "step": "typed-Q-pane-focused-no-fill",
+  "composer": [
+   "❯ Q"
+  ]
+ },
+ {
+  "step": "hotkey-r",
+  "composer": [
+   "❯ Qr"
+  ]
+ },
+ {
+  "step": "focus ring after hotkey fill",
+  "focus": "none"
+ },
+ {
+  "step": "typed-Q-after-hotkey",
+  "composer": [
+   "❯ QrQ"
+  ]
+ },
+ {
+  "step": "typed-slash-for-compare",
+  "composer": [
+   "❯ /fillp"
+  ]
+ },
+ {
+  "step": "filled-slash-command",
+  "composer": [
+   "❯ /fillprobe log"
+  ]
+ },
+ {
+  "step": "submitted-filled-slash",
+  "composer": [
+   "❯"
+  ]
+ },
+ {
+  "step": "submitted-filled-bang",
+  "composer": [
+   "❯"
+  ]
+ },
+ {
+  "step": "command-fill",
+  "composer": [
+   "❯ CMD TEXT"
+  ]
+ },
+ {
+  "step": "delayed-fill",
+  "composer": [
+   "❯ FILL-LATE"
+  ]
+ },
+ {
+  "step": "copy-small",
+  "composer": [
+   "❯ FILL-LATE"
+  ],
+  "clipboard": {
+   "chars": 31,
+   "head": "COPY-PROBE 短文 😀\nsecond line\ttab"
+  }
+ },
+ {
+  "step": "copy-no-surface",
+  "composer": [
+   "❯ FILL-LATE"
+  ],
+  "clipboard": {
+   "chars": 14,
+   "head": "COPY-NOSURFACE"
+  }
+ },
+ {
+  "step": "copy-100k",
+  "composer": [
+   "❯ FILL-LATE"
+  ],
+  "clipboard": {
+   "chars": 100000,
+   "head": "0123456789abcdef0123456789abcdef01234567"
+  }
+ },
+ {
+  "step": "copy-2m",
+  "composer": [
+   "❯ FILL-LATE"
+  ],
+  "clipboard": {
+   "chars": 2000000,
+   "head": "0123456789abcdef0123456789abcdef01234567"
+  }
+ },
+ {
+  "step": "copy-16m",
+  "composer": [
+   "❯ FILL-LATE"
+  ],
+  "clipboard": {
+   "chars": 16000000,
+   "head": "0123456789abcdef0123456789abcdef01234567"
+  }
+ },
+ {
+  "step": "copy-delayed",
+  "composer": [
+   "❯ FILL-LATE"
+  ],
+  "clipboard": {
+   "chars": 9,
+   "head": "COPY-LATE"
+  }
+ },
+ {
+  "step": "command-copy",
+  "composer": [
+   "❯"
+  ],
+  "clipboard": {
+   "chars": 8,
+   "head": "CMD COPY"
+  }
+ }
+]

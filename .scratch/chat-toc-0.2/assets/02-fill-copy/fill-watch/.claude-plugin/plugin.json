@@ -1,0 +1,1 @@
+{ "name": "fill-watch", "version": "0.0.1", "description": "Throwaway probe: what another mod's prompt.fill and ui.copy hooks see", "author": { "name": "probe" } }

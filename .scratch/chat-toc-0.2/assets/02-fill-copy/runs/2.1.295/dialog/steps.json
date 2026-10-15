@@ -1,0 +1,20 @@
+[
+ {
+  "step": "dialog-open",
+  "composer": [
+   "<no composer>"
+  ]
+ },
+ {
+  "step": "delayed-fill-under-dialog",
+  "composer": [
+   "<no composer>"
+  ]
+ },
+ {
+  "step": "dialog-closed",
+  "composer": [
+   "❯"
+  ]
+ }
+]

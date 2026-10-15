@@ -1,0 +1,3 @@
+4.7s ui.copy saw {"chars":32,"head":"COPY-PROBE 短文 😀\nsecond line\tt","surface":"terminal"} -> {"value":{"isCopied":true}}
+8.1s ui.copy saw {"chars":100000,"head":"0123456789abcdef0123456789abcd","surface":"terminal"} -> {"value":{"isCopied":true}}
+11.3s ui.copy saw {"chars":2000000,"head":"0123456789abcdef0123456789abcd","surface":"terminal"} -> {"value":{"isCopied":true}}
