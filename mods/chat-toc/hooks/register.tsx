@@ -828,7 +828,7 @@ export const register: Register = on => {
      drawn under, and where it is on screen. */
   for (const component of SITE_COMPONENTS) {
     /* The matcher wants one component's type; every site's props carry
-       `onScreen` alike, so the first stands for all four. */
+       `onScreen` alike, so the first stands for all of them. */
     on('ui.render', { component: component as 'UserMessage' }, ($, e, next) => {
       sawSite($, component, e.requestId, e.props.onScreen)
       return next(e)

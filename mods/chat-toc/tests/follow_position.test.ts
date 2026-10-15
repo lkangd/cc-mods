@@ -222,3 +222,48 @@ test('a switch with the focus ring on the filter row, where a hotkey finds it, k
   const texts = await entryTexts(pane)
   expect(texts.some(s => s.includes('CT-SYN prompt 10'))).toBe(true)
 })
+
+test('a view holding only standalone tool rows, such as file edits, lights their group', async ($, on) => {
+  /* Group 1 makes edits after its text; each draws as its own ToolUse row
+     and ToolResult block, never folded into a ToolGroup. */
+  const t = transcript()
+  const asked: string[] = []
+  const edits: string[] = []
+  for (let i = 0; i < 3; i++) {
+    asked.push(t.prompt(`CT-SYN prompt ${i}`))
+    t.reply([{ type: 'text', text: `CT-SYN looking ${i}` }])
+    if (i === 1) {
+      for (let k = 0; k < 4; k++) {
+        const id = `toolu_edit_${k}`
+        edits.push(id)
+        t.reply([{ type: 'tool_use', id, name: 'Edit', input: {} }])
+        t.toolResult(id)
+      }
+    }
+    t.reply([{ type: 'text', text: `CT-SYN answer ${i}` }])
+  }
+  const world = host(on, t.jsonl())
+  on('ui.render', () => ({ type: 'Text', props: {}, children: ['drawn by Claude Code'] }))
+  await start($, world)
+  const pane = await mountPane($, 14)
+  const site = async (component: string, requestId: string, props: Record<string, unknown>) => {
+    await $.ui.mount({
+      plugin: 'chat-toc',
+      surface: 'terminal',
+      component,
+      requestId,
+      viewport: { columns: 160, rows: 40, isFullscreen: true },
+      props,
+    } as never)
+    await world.clock.settle()
+  }
+  const tool = (id: string, first: number, last: number) =>
+    ({ tool_use_id: id, tool: 'Edit', input: {}, isRunning: false, isErrored: false, isInterrupted: false, output: {}, onScreen: { first, last, of: 30 } })
+
+  /* The view: the middle of the second edit's diff down to the third's. */
+  await site('ToolUse', edits[1]!, tool(edits[1]!, 12, 29))
+  await site('ToolResult', edits[1]!, { tool_use_id: edits[1]!, tool: 'Edit', output: {}, isErrored: false, onScreen: { first: 0, last: 0, of: 1 } })
+  await site('ToolUse', edits[2]!, tool(edits[2]!, 0, 9))
+
+  expect(await litKeys(pane)).toEqual(['g1.u', 'g1.a'])
+})
