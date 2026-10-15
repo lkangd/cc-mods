@@ -116,7 +116,7 @@ Support matrix: Claude Code `>=2.1.287`, an interactive terminal, the fullscreen
 ### 6. Current position and following
 
 - **Definition**: the Turn group of the viewport's top row; the last group when the last drawn row is wholly visible (`last === of - 1`); locked on the target group after a successful jump. A row in no group (the compaction summary, a hook note) counts for the nearest group before it; with no group before it, nothing is highlighted. (Decide whether to highlight the current position, revised by the prototype)
-- **Computing it**: only the on-screen reports of `UserMessage`, `AssistantMessage`, `CommandOutput` and `ToolGroup`; `ToolUse` takes no part. The fullscreen transcript is virtualised, and an unmounted row does not always report `onScreen: null` again, so:
+- **Computing it**: only the on-screen reports of `UserMessage`, `AssistantMessage`, `CommandOutput`, `ToolGroup`, `ToolUse` and `ToolResult`. A tool call not folded into a group (a file edit's diff, a Write) draws at `ToolUse` and `ToolResult` alone, so without them a view holding only such rows lit nothing (revised 2026-10-14). The fullscreen transcript is virtualised, and an unmounted row does not always report `onScreen: null` again, so:
   - an on-screen record reporting `null` is dropped;
   - drawable rows (site rows and rows drawn before) are kept in conversation order in a sorted array, rebuilt only after a transcript read and when a new row is drawn;
   - the on-screen rows are cut into runs in conversation order: any drawable row not on screen between two rows cuts them apart. Only the run holding the latest report is believed, and its first row taken; whether a row lies between is found by binary search.
