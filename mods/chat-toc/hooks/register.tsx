@@ -344,8 +344,8 @@ function forget(): void {
   ruled = undefined
 }
 
-/* The context use the host has now: at the start, and after a hot reload,
-   which starts the module over. */
+/* The context use the host has now: at the start, after a hot reload,
+   which starts the module over, and at /clear and /resume. */
 async function readContextUse($: EngineInterface): Promise<void> {
   const usage = await $.session.usage().catch(() => undefined)
   contextPercent = usage?.context.percent
@@ -1160,6 +1160,10 @@ export const register: Register = on => {
        by the host: the next read finds that compaction. */
     if (e.source === 'resume') await update($, compactedAt, () => '')
     if (reopensOn(e.source)) {
+      /* The old conversation's context use is not this one's: the figure
+         is read again, none while the host has none for the new one. */
+      await readContextUse($)
+      await update($, rev, n => n + 1)
       await update($, isClosed, () => false)
       void autoOpen($)
     }
