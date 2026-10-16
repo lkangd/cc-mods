@@ -838,6 +838,15 @@ async function submitSearch($: EngineInterface, value: string): Promise<void> {
   await setQuery($, '')
 }
 
+/* A press on an entry on the desktop: the preview shows its group, and
+   the press asks to jump as on the terminal (the app refuses it, and the
+   pane says so). */
+async function pressEntry($: EngineInterface, entry: Entry): Promise<void> {
+  pressedOpener = shownGroups()[entry.groupIndex]?.openerUuid
+  await update($, rev, n => n + 1)
+  await jump($, entry)
+}
+
 /* The desktop's submit (Enter, or the field's `show` button): the text
    stays and the match nearest the Current position goes in the preview,
    the newest match, the desktop having no Current position. */
@@ -917,13 +926,19 @@ let previewMemo:
   | undefined
 
 /* The group the preview shows: the selected entry's while the pane holds
-   the keys, else the Current position's, else the newest. While a query is
+   the keys (on the desktop, the entry pressed last), else the Current
+   position's, else the newest. While a query is
    set (`matches`, its groups), the selected match, else the match nearest
    the Current position, else the newest; none with no match. */
-function previewGroup(groups: readonly TurnGroup[], position: number | undefined, matches: readonly number[] | undefined): number | undefined {
+function previewGroup(
+  groups: readonly TurnGroup[],
+  position: number | undefined,
+  matches: readonly number[] | undefined,
+  pressed: number | undefined,
+): number | undefined {
   const onEntry = isPaneFocused ? groupOfKey(ring) : undefined
   if (onEntry !== undefined) heldSelection = onEntry
-  const selected = onEntry ?? (isPaneFocused && isPreviewControl(ring) ? heldSelection : undefined)
+  const selected = pressed ?? onEntry ?? (isPaneFocused && isPreviewControl(ring) ? heldSelection : undefined)
   if (selected !== undefined && selected < groups.length && (matches === undefined || matches.includes(selected))) return selected
   if (matches !== undefined) return nearestMatch(matches, position)
   if (position !== undefined && position < groups.length) return position
@@ -1011,9 +1026,10 @@ function previewOf(
   onToggle: () => Promise<void>,
   onMore: (opener: string) => Promise<void>,
   actionsOf: (group: TurnGroup, isRunning: boolean) => LabelActions,
+  pressed: number | undefined,
 ): PreviewView {
   const state = plan.state === 'none' ? 'hidden' : plan.state
-  const at = previewGroup(groups, position, search?.groupsMatched)
+  const at = previewGroup(groups, position, search?.groupsMatched, pressed)
   const group = at === undefined ? undefined : groups[at]
   const match = at === undefined ? undefined : search?.matches.find(m => m.group === at)
   const isRunning = isRunningNow && at === groups.length - 1
@@ -1060,7 +1076,7 @@ async function expandPreview($: EngineInterface, opener: string | undefined): Pr
 }
 
 /* The expanded preview drawn last, kept while its group and width are. */
-let expandedMemo: { group: TurnGroup; isRunning: boolean; width: number; year: number; base: PathBase; body: ExpandedBody } | undefined
+let expandedMemo: { group: TurnGroup; isRunning: boolean; width: number; year: number; base: PathBase; hasHotkeys: boolean; body: ExpandedBody } | undefined
 
 /* The expanded preview of the group it holds; undefined when that group
    is no longer listed (a rewind took it, another file was read). */
@@ -1071,6 +1087,7 @@ function expandedOf(
   nowMs: number,
   onBack: () => Promise<void>,
   actionsOf: (group: TurnGroup, isRunning: boolean) => LabelActions,
+  hasHotkeys: boolean,
 ): ExpandedView | undefined {
   let at = groups.length - 1
   while (at >= 0 && groups[at]?.openerUuid !== expandedOpener) at--
@@ -1080,7 +1097,13 @@ function expandedOf(
   const year = new Date(nowMs).getFullYear()
   const memo = expandedMemo
   const body =
-    memo !== undefined && memo.group === group && memo.isRunning === isRunning && memo.width === width && memo.year === year && memo.base === pathBase
+    memo !== undefined &&
+    memo.group === group &&
+    memo.isRunning === isRunning &&
+    memo.width === width &&
+    memo.year === year &&
+    memo.base === pathBase &&
+    memo.hasHotkeys === hasHotkeys
       ? memo.body
       : expandedBody({
           meta: metaLine(group, isRunning, nowMs, width),
@@ -1089,8 +1112,9 @@ function expandedOf(
           files: group.facts,
           base: pathBase,
           width,
+          hasHotkeys,
         })
-  expandedMemo = { group, isRunning, width, year, base: pathBase, body }
+  expandedMemo = { group, isRunning, width, year, base: pathBase, hasHotkeys, body }
   return { body, actions: actionsOf(group, isRunning), onBack }
 }
 
@@ -1384,10 +1408,20 @@ export const register: Register = on => {
       $.clock.after(0, () => sendRing($, owed))
     }
     const actionsOf = (group: TurnGroup, isRunning: boolean) => labelActions($, group, isRunning, e.surface)
+    /* The desktop reports no Current position: its preview shows the entry
+       pressed last. */
+    const isTerminal = e.surface === 'terminal'
+    let pressed: number | undefined
+    if (!isTerminal && pressedOpener !== undefined) {
+      const at = groups.findIndex(g => g.openerUuid === pressedOpener)
+      if (at !== -1) pressed = at
+    }
     const preview =
-      plan.state === 'none' ? undefined : previewOf(groups, plan, position, search, isRunningNow, width, nowMs, () => togglePreview($), opener => expandPreview($, opener), actionsOf)
+      plan.state === 'none'
+        ? undefined
+        : previewOf(groups, plan, isTerminal ? position : undefined, search, isRunningNow, width, nowMs, () => togglePreview($), opener => expandPreview($, opener), actionsOf, pressed)
     const expanded =
-      expandedOpener === undefined || e.surface !== 'terminal' ? undefined : expandedOf(groups, isRunningNow, width, nowMs, () => expandPreview($, undefined), actionsOf)
+      expandedOpener === undefined ? undefined : expandedOf(groups, isRunningNow, width, nowMs, () => expandPreview($, undefined), actionsOf, isTerminal)
     if (expanded === undefined) expandedOpener = undefined
     const searchView: SearchView = {
       query: searchText,
@@ -1448,6 +1482,9 @@ export const register: Register = on => {
               onSubmit: value => showMatch($, value).catch(() => undefined),
             },
             matches: search?.groupsMatched,
+            preview,
+            expanded,
+            onPress: (entry: Entry) => pressEntry($, entry),
             runningGroup: isRunningNow ? groups.length - 1 : undefined,
             stripLabels: stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs),
             onLayout: to => chooseLayout($, to),

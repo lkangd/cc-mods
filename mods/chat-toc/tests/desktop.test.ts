@@ -157,3 +157,99 @@ test('each change filters the list; the strip draws the matches in the accent co
   expect(strip.source).toMatch(/\.m\{fill:/)
 })
 
+const texts = async (pane: Pane) => (await pane.findAll({ type: 'Text' })).map(t => t.text)
+const markdowns = async (pane: Pane) => (await all(pane, 'Markdown')).map(m => String(m.props?.text))
+
+test('before any press the preview shows the newest group under a rule Button with no hotkey', async ($, on) => {
+  await start($, host(on, three().jsonl()))
+  const pane = await desktopPane($)
+
+  const rule = await pane.find({ type: 'Button', key: 'preview' })
+  expect([rule?.text, rule?.props.hotkey, rule?.props.plain]).toEqual(['预览', undefined, true])
+  const shown = await texts(pane)
+  expect(shown).toContain('用户')
+  expect(shown).toContain('CT-SYN third')
+  expect(shown.some(t => /^10月10日 \d\d:\d\d$/.test(t))).toBe(true)
+  expect(await markdowns(pane)).toEqual(['CT-SYN third answer'])
+  /* Below the list. */
+  const order = JSON.stringify(await pane.drawn())
+  expect(order.indexOf('"g2.a"')).toBeLessThan(order.indexOf('"preview"'))
+})
+
+test('the preview shows the last entry pressed', async ($, on) => {
+  const world = host(on, three().jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+
+  await pane.press({ key: 'g0.a' })
+  await world.clock.settle()
+  expect(await markdowns(pane)).toEqual(['CT-SYN first answer'])
+  expect((await texts(pane)).some(t => t.startsWith('CT-SYN first, a prompt long enough'))).toBe(true)
+})
+
+test('while a query is set the preview shows the pressed match, else the newest; Enter puts the newest match there and keeps the text', async ($, on) => {
+  const world = host(on, three().jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+
+  await pane.press({ key: 'g0.u' })
+  await type($, 'answer')
+  await world.clock.settle()
+  expect(await markdowns(pane)).toEqual(['CT-SYN first answer'])
+  expect((await texts(pane)).some(t => t.startsWith('10月10日') && t.endsWith('匹配：Agent'))).toBe(true)
+
+  await enter($, 'answer')
+  await world.clock.settle()
+  expect(await markdowns(pane)).toEqual(['CT-SYN third answer'])
+  expect((await all(pane, 'Input'))[0]?.props?.value).toBe('answer')
+
+  await type($, 'CT-SYN nowhere')
+  await world.clock.settle()
+  expect(await markdowns(pane)).toEqual([])
+})
+
+test('the rule Button hides and shows the preview, kept like the Layout', async ($, on) => {
+  const world = host(on, three().jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+
+  await pane.press({ key: 'preview' })
+  await world.clock.settle()
+  expect(world.store.preview).toBe('hidden')
+  expect(await markdowns(pane)).toEqual([])
+  expect((await pane.find({ type: 'Button', key: 'preview' }))?.props.dimColor).toBe(true)
+  await pane.press({ key: 'preview' })
+  await world.clock.settle()
+  expect(world.store.preview).toBe('shown')
+  expect(await markdowns(pane)).toEqual(['CT-SYN third answer'])
+})
+
+function long(): Builder {
+  const t = three()
+  t.prompt(Array.from({ length: 30 }, (_, i) => `CT-SYN line ${i + 1}`).join('\n'))
+  t.reply([{ type: 'text', text: 'CT-SYN long answer' }])
+  return t
+}
+
+test('the cut line is a Button without e:, expanding the preview; ← Back is a Button returning', async ($, on) => {
+  const world = host(on, long().jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+
+  const more = await pane.find({ type: 'Button', key: 'preview.more' })
+  expect(more?.text).toMatch(/^↓ 还有 \d+ 行 · 展开$/)
+  expect(more?.props.hotkey).toBeUndefined()
+  await pane.press({ key: 'preview.more' })
+  await world.clock.settle()
+  const back = await pane.find({ type: 'Button', key: 'preview.back' })
+  expect([back?.text, back?.props.hotkey]).toEqual(['← 返回', undefined])
+  /* Uncut, in the list's place. */
+  expect(await entryKeys(pane)).toEqual([])
+  expect((await texts(pane)).some(t => t.includes('CT-SYN line 30'))).toBe(true)
+  expect(await markdowns(pane)).toEqual(['CT-SYN long answer'])
+  await pane.press({ key: 'preview.back' })
+  await world.clock.settle()
+  expect(await pane.find({ type: 'Button', key: 'preview.back' })).toBeUndefined()
+  expect((await entryKeys(pane)).length).toBeGreaterThan(0)
+})
+

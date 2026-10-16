@@ -343,9 +343,11 @@ export function expandedBody(o: {
   files: { changed: readonly string[]; read: readonly string[] }
   base: PathBase
   width: number
+  /* False on the desktop, which has no hotkeys: the cut lines name none. */
+  hasHotkeys?: boolean
 }): ExpandedBody {
   const capped = capTexts(o.input, o.agent || undefined)
-  const cutLine = (left: number, key: string) => (left > 0 ? words.notShown(left, key) : undefined)
+  const cutLine = (left: number, key: string) => (left > 0 ? words.notShown(left, o.hasHotkeys === false ? undefined : key) : undefined)
   const user = { parts: textParts(capped.input.shown), cut: cutLine(capped.input.left, COPY_INPUT_HOTKEY) }
   const agent = capped.agent === undefined ? undefined : { parts: markdownParts(capped.agent.shown), cut: cutLine(capped.agent.left, COPY_TEXT_HOTKEY) }
   const changed = o.files.changed.map(path => shownPath(path, o.base))
