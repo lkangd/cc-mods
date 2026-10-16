@@ -74,12 +74,13 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 | `1` `2` `3`, or click `1: All` `2: User` `3: Agent` at the top | Shows all / only your input / only the Agent's replies. A thick line in the highlight colour marks the chosen one. Remembered across sessions |
 | `l`, or click the "Layout: Card" button at the footer's right end | Cycles the layout Card → Compact → Timeline; the button names the one in use. Remembered across sessions |
 | `p`, or click `p: Preview` on the preview's top line | Shows the preview or folds it to that one line. Remembered across sessions |
+| `e`, or click `e: expand` on the preview's last line | Expands the preview over the list and the row of blocks: the turn whole, scrolled with the wheel, `PgUp` `PgDn` or `↑` `↓`. `e` again, or `e: ← Back` at its top, returns to the list; so do `Esc` and closing the contents |
 | `Esc` (focus in the contents) | Moves the focus back to the prompt; the contents stay open |
 | `Ctrl+X` then `←` / `→` | Widens / narrows the contents (a Claude Code feature). A width you set wins |
 | Click ✕ | Closes the contents; they do not open by themselves again this session. A new session (including after `/clear` or `/resume`) opens them again |
 | `/chat-toc` | Opens the contents when closed, brings them to the front when open (also when another pane pushed them back); either way moves the focus into them (with an empty prompt). It never closes them |
 
-The hotkeys `1` `2` `3` `l` `p` work only with the focus in the contents. `e: expand` on the preview's last line is drawn but does nothing yet.
+The hotkeys `1` `2` `3` `l` `p` `e` work only with the focus in the contents; `e` only while the preview is cut or expanded.
 
 ### What it shows
 
@@ -106,6 +107,7 @@ The hotkeys `1` `2` `3` `l` `p` work only with the focus in the contents. `e: ex
   - `Agent`, then the Agent's last text reply drawn as Markdown; a running turn shows the latest text written so far;
   - the files the turn touched: `changed register.tsx, pane.tsx +1 · read 5`. Changed are files edited or written by the Agent and files a shell command changed as Claude Code recorded it; read are files the Agent read; a file both read and changed counts as changed. Paths are relative to the session's folder when inside it, else full with `~` for your home folder.
   The preview's height depends on the contents' height, not on the turn (about 40% of the rows below the top, 4 to 14 rows), so the list does not jump as the selection moves. What does not fit is cut, the files line first, then the Agent's reply, then your input; the last line then reads `↓ 12 more lines · e: expand`. When rows run short, the row of blocks goes first, then the preview shrinks to 4 rows, then it folds to `p: Preview (no room)`; the list keeps at least 8 rows.
+  Expanded (`e`), the preview takes the place of the list and the row of blocks, under the view choices and above the footer, and draws the turn uncut: the files one per line under `Changed` and `Read`. It keeps that turn while you scroll the transcript or new turns arrive, and a running turn still grows in it. A very long input or reply is cut there, about 60,000 characters for the two together, with a line after the cut part: `… 12,345 more characters not shown · c: Copy` (`a: Copy` after the reply).
 - **Following and pausing**: the contents scroll to the highlighted turn by themselves; with the transcript at its end, they stay on the newest entry. Scrolling the contents by hand, or the focus being in them, pauses following; following resumes the next time the highlight moves to another turn (you scroll the transcript to another turn, or click to jump). If the highlight changed while another pane pushed the contents back, they catch up as soon as they are in front again.
 - **Entries that cannot be jumped to**: in a session opened with `--resume` (or `/resume` in a session), the turns compacted away before the resume hang on hollow marks from the start (your input on `○` with dim text, the Agent's reply on `├┄`). They can still be selected and clicked; when a jump cannot go through, a yellow line (the theme's warning colour) starting with ⚠ shows under the list, flashing inverse 3 times first: for a compacted turn "This entry was compacted before the session resumed; cannot jump to it", otherwise "This entry is not in the conversation view now; cannot jump to it". The line goes at the next jump, a move of the selection or after about 5 seconds; the side that could not be jumped to then hangs on a hollow mark until Claude Code shows that row again.
 - **Notes under the list**:
@@ -144,6 +146,7 @@ The hotkeys `1` `2` `3` `l` `p` work only with the focus in the contents. `e: ex
 - Jumping to rows compacted away before a `--resume` is not guaranteed (with `--resume` they hang on hollow marks from the start); when a jump cannot go through, a note under the list says so and that side hangs on a hollow mark.
 - The preview shows no duration in Claude Code Desktop, nor for most interrupted turns: the transcript does not record it there.
 - The preview's tokens are the main Agent's output only; what subagents wrote is not counted.
+- A very long prompt or reply is cut in the expanded preview (copying takes the whole text).
 - A forked session does not show the parent session's turns: a line at the top of the list says earlier turns are not in this session's file.
 - Context use in Claude Code Desktop is not promised: it was not measured there, and shows only when the Claude app gives a figure.
 - How the three layouts look, and whether the highlight and the inverse selection tell apart, is checked by a person and does not block a release.
