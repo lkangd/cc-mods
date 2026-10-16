@@ -36,6 +36,10 @@ _Avoid_: Filter, find
 The region at the bottom of the Chat TOC that shows one Turn group whole without jumping: its User input as typed, the Agent reply's last text, the files its tool calls changed or read, and, when the Transcript states them, its duration and the main agent's output tokens. It shows the selected Turn group while the Chat TOC holds the keys, otherwise the Current position's, or where there is none, the last one pressed. Expanded, it takes the list's place until the person goes back.
 _Avoid_: Detail, peek, inspector
 
+**Reuse**:
+Putting an earlier User input back into the composer as typed, as a draft the person edits and sends themselves, never sent for them; a draft already there is kept.
+_Avoid_: Resend, replay, retry, edit
+
 **Layout**:
 How the Chat TOC draws each Turn group, chosen by the person and kept across sessions: card (up to two lines per side, the time at the right of the User input), compact (one line per side, the time in a left column), or timeline (up to two lines per side, the time in a left column). Every Layout hangs the sides on a rail, a day's rule where the day changes. It changes the drawing only, never which entries show.
 _Avoid_: Theme, variant, style
