@@ -87,15 +87,16 @@ test('with rows for the list to keep eight, the Minimap is drawn; with fewer, it
   const { t } = session()
   await start($, host(on, t.jsonl()))
 
-  /* The head and the footer take four rows, the Minimap three. */
-  expect((await cells(await mountPane($, 15))).length).toBe(4)
+  /* The head and the footer take four rows, the preview 7 of the 18
+     left, the Minimap three. */
+  expect((await cells(await mountPane($, 22))).length).toBe(4)
 })
 
 test('with one row fewer the list keeps its rows and the Minimap goes', async ($, on) => {
   const { t } = session()
   await start($, host(on, t.jsonl()))
 
-  expect(await cells(await mountPane($, 14))).toEqual([])
+  expect(await cells(await mountPane($, 21))).toEqual([])
 })
 
 test('past the cells the width holds, a cell stands for several groups, the first cell the first group', async ($, on) => {
@@ -130,7 +131,7 @@ test('a filter that hides every entry does not say the session is empty while th
   t.localCommand('tui', '')
   t.localCommand('help', '')
   await start($, host(on, t.jsonl()))
-  const pane = await mountPane($, 20)
+  const pane = await mountPane($, 22)
 
   await pane.press({ key: 'f-agent' })
 

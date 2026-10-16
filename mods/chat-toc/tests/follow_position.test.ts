@@ -269,8 +269,8 @@ test('a view holding only standalone tool rows, such as file edits, lights their
 })
 
 test('the Minimap\'s cell of the lit group is the only one not dim, and moves with the view', async ($, on) => {
-  /* One row more than the rest: the Minimap takes three of them. */
-  const { pane, view } = await session($, on, 18)
+  /* Rows for the Minimap beside the preview and the list's eight. */
+  const { pane, view } = await session($, on, 22)
   const bright = async () =>
     drawnButtons(await pane.drawn())
       .filter(b => isBarKey(b.key))

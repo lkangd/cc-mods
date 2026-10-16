@@ -19,6 +19,7 @@ the host's own claude-code.d.ts for tsc on a version newer than the minimum
   jump_scenarios.py    CT-JUMP-001..003, 005, CT-UI-005
   position_scenarios.py CT-POS-001..003, CT-COEX-001, CT-LIFE-006
   gate_scenarios.py    CT-COMPAT-001, CT-DATA-001..005, CT-TURN-001..005, CT-UI-001..004, CT-SEC-001
+  ct_preview.py        CT-PREV-001 (0.2: the preview region)
   perf_scenarios.py    CT-PERF-001 (20 MiB many and heavy, 3 runs each)
 
 `report` gathers every run.jsonl record, checks that each MUST scenario of
@@ -49,7 +50,8 @@ MUST = (["CT-COMPAT-001", "CT-COMPAT-002", "CT-COMPAT-003"]
         + [f"CT-DATA-00{i}" for i in range(1, 7)] + [f"CT-TURN-00{i}" for i in range(1, 6)]
         + [f"CT-LIFE-00{i}" for i in range(1, 9)] + [f"CT-UI-00{i}" for i in range(1, 6)]
         + [f"CT-JUMP-00{i}" for i in (1, 2, 3, 5)] + [f"CT-POS-00{i}" for i in range(1, 4)]
-        + ["CT-PERF-001", "CT-SEC-001", "CT-COEX-001"])
+        + ["CT-PERF-001", "CT-SEC-001", "CT-COEX-001"]
+        + ["CT-PREV-001"])
 MARKERS = PLUGIN / "build" / "sec-001-markers.txt"
 LAYOUTS = REPOSITORY / ".scratch" / "chat-toc" / "assets" / "25-layouts"
 
@@ -97,6 +99,7 @@ def run_gate(args) -> int:
             ("jump", [py, HERE / "jump_scenarios.py", v]),
             ("position", [py, HERE / "position_scenarios.py", v]),
             ("gate", [py, HERE / "gate_scenarios.py", "--host", v, "--out", runs / "gate"]),
+            ("ct-preview", [py, HERE / "ct_preview.py", "--host", v, "--out", runs / "ct-preview"]),
         ]
         for name, argv in scripts:
             codes[name] = sh([str(a) for a in argv], logs / f"{name}.log", env=env, timeout=5400)

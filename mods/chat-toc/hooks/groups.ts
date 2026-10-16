@@ -5,6 +5,8 @@
 
 import type { TranscriptRow } from './transcript'
 import { text as words } from './text'
+import { newTally, settle, tallyRow, typedPrompt } from './facts'
+import type { GroupFacts, Tally } from './facts'
 
 /* How the User input was given: a prompt (text or images), a slash command
    (a prompt-type one or a local one), or a `!` shell command. */
@@ -35,6 +37,8 @@ export type TurnGroup = {
   /* How the group's turn ended as the file has it: an interruption marker
      in the group, or the agent's last row an API error. */
   ending: 'done' | 'interrupted' | 'error'
+  /* What the preview, search and Reuse read beyond the entries (facts.ts). */
+  facts: GroupFacts
 }
 
 type Block = { type?: unknown; text?: unknown }
@@ -125,12 +129,28 @@ export function userTextOf(row: TranscriptRow, kind: InputKind): string {
 const isInterruption = (row: TranscriptRow) => row.type === 'user' && /^\s*\[Request interrupted by user/.test(rowText(row))
 const isApiError = (row: TranscriptRow) => (row as { isApiErrorMessage?: unknown }).isApiErrorMessage === true
 
+/* The User input as typed (facts.ts): a command's and a shell command's
+   text with their own spacing, a prompt's with code and pasted content. */
+function typedInputOf(row: TranscriptRow, kind: InputKind): { text: string; hasImages: boolean } {
+  const text = rowText(row)
+  const hasImages = hasBlock(row.message?.content, 'image')
+  if (kind === 'command') {
+    const name = tagged(text, 'command-name').trim()
+    const args = tagged(text, 'command-args').trim()
+    return { text: `${name.startsWith('/') ? name : `/${name}`}${args ? ` ${args}` : ''}`, hasImages }
+  }
+  if (kind === 'shell') return { text: `!${tagged(text, 'bash-input').trim()}`, hasImages }
+  const typed = typedPrompt(text)
+  return { text: typed || (hasImages ? words.imageOnly : ''), hasImages }
+}
+
 /* A text block the agent wrote after its latest tool call. */
 type Part = { uuid: string; messageId: string; text: string }
 
-/* The group being read: the group, the tool calls counted so far, and the
-   text since the latest one. */
-type Open = { group: TurnGroup; toolIds: Set<string>; tail: Part[] }
+/* The group being read: the group, the tool calls counted so far, the
+   text since the latest one, the latest message's text whatever came after
+   it, and the facts' tally. */
+type Open = { group: TurnGroup; toolIds: Set<string>; tail: Part[]; latest: Part[]; tally: Tally; input: { text: string; hasImages: boolean } }
 
 function openGroup(row: TranscriptRow, kind: InputKind): Open {
   const group: TurnGroup = {
@@ -144,13 +164,15 @@ function openGroup(row: TranscriptRow, kind: InputKind): Open {
     reply: undefined,
     lastAgentUuid: undefined,
     ending: 'done',
+    facts: settle(newTally(), { text: '', hasImages: false }, undefined, undefined),
   }
-  return { group, toolIds: new Set(), tail: [] }
+  return { group, toolIds: new Set(), tail: [], latest: [], tally: newTally(), input: typedInputOf(row, kind) }
 }
 
 function addRow(open: Open, row: TranscriptRow): void {
   const { group } = open
   group.rowUuids.push(row.uuid)
+  tallyRow(open.tally, row)
   if (isInterruption(row)) {
     group.ending = 'interrupted'
     group.hasAgentReply = true
@@ -167,18 +189,24 @@ function addRow(open: Open, row: TranscriptRow): void {
       open.toolIds.add(typeof id === 'string' ? id : `${row.uuid}#${n}`)
       open.tail = []
     } else if (block.type === 'text' && typeof block.text === 'string' && block.text.trim()) {
-      open.tail.push({ uuid: row.uuid, messageId, text: block.text })
+      const part = { uuid: row.uuid, messageId, text: block.text }
+      open.tail.push(part)
+      if (open.latest[0]?.messageId !== messageId) open.latest = []
+      open.latest.push(part)
     }
   })
 }
+
+const joined = (parts: readonly Part[]) => (parts.length === 0 ? undefined : parts.map(p => p.text).join('\n'))
 
 function closeGroup(open: Open): void {
   const { group, tail } = open
   group.steps = open.toolIds.size
   const last = tail[tail.length - 1]
+  const parts = last === undefined ? [] : tail.filter(p => p.messageId === last.messageId)
+  group.facts = settle(open.tally, open.input, joined(parts), joined(open.latest))
   if (!last) return
-  const parts = tail.filter(p => p.messageId === last.messageId)
-  group.reply = { text: plainText(parts.map(p => p.text).join('\n')), uuid: parts[0]?.uuid ?? last.uuid }
+  group.reply = { text: plainText(joined(parts) ?? ''), uuid: parts[0]?.uuid ?? last.uuid }
 }
 
 /* The chain's Turn groups, in order. Rows before the first User input

@@ -4,6 +4,7 @@
      source.ts / reader.ts / locate.ts                  how, when and where it is read
      rewind.ts                                          what a rewind took, before the file says
      view.ts / entries.ts / cells.ts / window.ts        what the pane draws
+     facts.ts / preview.ts                              the preview of one Turn group
      pane.tsx / ring.ts                                 how it draws, the keyboard
      sites.ts / jump.ts                                 where a press scrolls
      position.ts                                        what the view is on
@@ -14,7 +15,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 import type { Entry } from './entries'
 import { drawDesktopPane } from './desktop'
-import { BAR_ROWS, barKey, barLabels, barOfGroup, barTarget, barsOf, hasBars } from './bars'
+import { BAR_ROWS, barKey, barLabels, barOfGroup, barTarget, barsOf } from './bars'
 import { stripLabels } from './minimap'
 import type { TurnGroup } from './groups'
 import {
@@ -33,7 +34,10 @@ import {
 import type { Refused } from './jump'
 import { carriesHistory, hidesPane, isClosedByPerson, reopensOn } from './lifecycle'
 import { PANE_COLUMNS, PANE_ID, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
-import { entryAt, pendingShown, ringMove } from './ring'
+import type { PreviewView } from './pane'
+import { PREVIEW_CONTROL, PREVIEW_KEY, filesLine, isPreviewShown, metaLine, previewBody, previewPlan } from './preview'
+import type { PathBase, PreviewBody } from './preview'
+import { LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
 import { derivedTranscriptPath } from './locate'
 import { languageOf, setLanguage, text as words } from './text'
 import type { BandCounts } from './text'
@@ -116,6 +120,10 @@ let opening: Promise<void> = Promise.resolve()
 /* The person's choices, read from `$.store` at each `session.start`. */
 let filter: ViewFilter = 'all'
 let layout: Layout = 'card'
+let isPreviewOn = true
+/* What the preview shows paths against: the session's working directory
+   and the home directory, from `session.start`. */
+let pathBase: PathBase = { cwd: undefined, home: undefined }
 
 /* What the pane drew last, for the keyboard and the next switch: the
    entries, their keys and the table back, their heights, the rows the
@@ -133,6 +141,8 @@ let lastDrawing: Drawing = { entries: [], keys: [], indexOf: new Map(), heights:
    as its moves and chat-toc's own sends left it. */
 let ring: string | undefined
 let isPaneFocused = false
+/* The first control the last drawing put after the entries. */
+let afterList = LAYOUT_CONTROL
 /* An entry the ring goes to once a drawing shows it: after a switch, or
    after the window moved to bring the next entry in. That drawing sends
    it, and sends it again a few times while the host refuses it (its new
@@ -626,6 +636,12 @@ async function sayRefusal($: EngineInterface, key: string, text: string): Promis
   await update($, rev, x => x + 1)
 }
 
+/* The group an entry Button's key belongs to: `g3.u.1` is group 3's. */
+function groupOfKey(key: string | undefined): number | undefined {
+  const m = key === undefined ? null : /^g(\d+)\./.exec(key)
+  return m === null ? undefined : Number(m[1])
+}
+
 /* Whether a Button key is one of an entry's lines. */
 const isLineOf = (element: string | undefined, key: string) => element === key || (element?.startsWith(`${key}.`) ?? false)
 
@@ -642,6 +658,21 @@ function selectionMoved($: EngineInterface, element: string | undefined): void {
 async function loadChoices($: EngineInterface): Promise<void> {
   filter = filterOf(await $.store.get(FILTER_KEY).catch(() => undefined))
   layout = layoutOf(await $.store.get(LAYOUT_KEY).catch(() => undefined))
+  isPreviewOn = isPreviewShown(await $.store.get(PREVIEW_KEY).catch(() => undefined))
+}
+
+/* `p`: the preview shown or folded to its rule line, kept like the
+   Layout. */
+async function togglePreview($: EngineInterface): Promise<void> {
+  isPreviewOn = !isPreviewOn
+  await update($, rev, n => n + 1)
+  await $.store.set(PREVIEW_KEY, isPreviewOn ? 'shown' : 'hidden').catch(() => undefined)
+}
+
+/* The working directory and home the preview's paths are shown against. */
+async function learnPaths($: EngineInterface, cwd: string): Promise<void> {
+  const home = await $.env.get('HOME').catch(() => undefined)
+  pathBase = { cwd: cwd || undefined, home: home || undefined }
 }
 
 /* The group a switch keeps in view: the selected entry's while the pane
@@ -697,6 +728,53 @@ function sendRing($: EngineInterface, key: string, left = RING_RETRIES): void {
   )
 }
 
+/* The preview drawn last, kept while its group and the room are the same:
+   a long reply is folded once, not at every redraw. */
+let previewMemo: { group: TurnGroup; isRunning: boolean; width: number; rows: number; year: number; base: PathBase; body: PreviewBody } | undefined
+
+/* The group the preview shows: the selected entry's while the pane holds
+   the keys, else the Current position's, else the newest. */
+function previewGroup(groups: readonly TurnGroup[], position: number | undefined): number {
+  const selected = isPaneFocused ? groupOfKey(ring) : undefined
+  if (selected !== undefined && selected < groups.length) return selected
+  if (position !== undefined && position < groups.length) return position
+  return groups.length - 1
+}
+
+function previewOf(
+  groups: readonly TurnGroup[],
+  plan: { preview: number; state: 'shown' | 'hidden' | 'noRoom' | 'none' },
+  position: number | undefined,
+  isRunningNow: boolean,
+  width: number,
+  nowMs: number,
+  onToggle: () => Promise<void>,
+): PreviewView {
+  const state = plan.state === 'none' ? 'hidden' : plan.state
+  const at = previewGroup(groups, position)
+  const group = groups[at]
+  const isRunning = isRunningNow && at === groups.length - 1
+  const year = new Date(nowMs).getFullYear()
+  const memo = previewMemo
+  const isSame = memo !== undefined && memo.group === group && memo.isRunning === isRunning && memo.width === width && memo.rows === plan.preview && memo.year === year && memo.base === pathBase
+  const body =
+    state !== 'shown' || group === undefined
+      ? undefined
+      : isSame
+        ? memo.body
+        : previewBody({
+            meta: metaLine(group, isRunning, nowMs, width),
+            input: group.facts.input,
+            agent: isRunning ? group.facts.latestText : group.facts.lastText,
+            files: filesLine(group.facts, pathBase, width),
+            rows: plan.preview,
+            width,
+          })
+  if (body !== undefined && group !== undefined) previewMemo = { group, isRunning, width, rows: plan.preview, year, base: pathBase, body }
+  /* The cut line's press expands the preview (ticket 15). */
+  return { state, rows: plan.preview, body, onToggle, onMore: () => Promise.resolve() }
+}
+
 export const register: Register = on => {
   on('classic.SessionStart', async ($, e, next) => {
     await askLanguage($)
@@ -721,6 +799,7 @@ export const register: Register = on => {
     await askLanguage($)
     await $.command.register({ name: 'chat-toc', description: words.commandDescription, immediate: true })
     await loadChoices($)
+    await learnPaths($, e.cwd)
     await askPerf($)
     await locate($, e.cwd)
     readNow($)
@@ -805,7 +884,7 @@ export const register: Register = on => {
      on entries' first lines and scrolls the window at its ends (ring.ts). */
   on('ui.focus', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     const drawn = lastDrawing
-    const move = e.origin.kind === 'person' ? ringMove(drawn.keys, drawn.indexOf, drawn.window, ring, e.element) : { kind: 'accept' as const }
+    const move = e.origin.kind === 'person' ? ringMove(drawn.keys, drawn.indexOf, drawn.window, ring, e.element, afterList) : { kind: 'accept' as const }
     if (move.kind === 'reveal') {
       const key = drawn.keys[move.index]
       if (key === undefined) return next(e)
@@ -818,9 +897,12 @@ export const register: Register = on => {
     const element = move.kind === 'land' ? move.key : e.element
     const result = await next(move.kind === 'land' ? { ...e, element: move.key } : e)
     if (result.deny === undefined) {
+      const was = ring
       ring = element
       pendingRing = undefined
       selectionMoved($, element)
+      /* The preview follows the selection. */
+      if (groupOfKey(element) !== groupOfKey(was)) redrawSoon($)
     }
     return result
   })
@@ -875,11 +957,13 @@ export const register: Register = on => {
     const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
     const headRows = HEAD_ROWS
     const listRows = e.props.scroll.bodyRows - headRows - FOOT_ROWS - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
+    /* The Minimap, the list and the preview share the rows (preview.ts). */
+    const plan = previewPlan({ rows: listRows, groups: isOk ? groups.length : 0, isShown: isPreviewOn })
     /* The Minimap's cells: a group with no Jump target is one the host
        refused or a compaction took. */
     const isOff = (g: number) => refused.has(sideKeyOf(groups[g] as TurnGroup, 'user'))
-    const bars = isOk && hasBars(groups.length, listRows) ? barsOf(groups.map(g => g.steps), width, isOff) : []
-    const rows = listRows - (bars.length === 0 ? 0 : BAR_ROWS)
+    const bars = isOk && plan.hasBars ? barsOf(groups.map(g => g.steps), width, isOff) : []
+    const rows = listRows - (bars.length === 0 ? 0 : BAR_ROWS) - plan.preview
     const drawnEntries = { heights: table.heights, rows, keys: table.keys, indexOf: table.indexOf }
     const kept = anchor
     anchor = undefined
@@ -893,6 +977,7 @@ export const register: Register = on => {
     if (placed.refocusKey !== undefined) pendingRing = placed.refocusKey
     const window = windowOf(table.heights, rows, top)
     lastDrawing = { ...drawnEntries, entries, window }
+    afterList = plan.state === 'none' || e.surface !== 'terminal' ? LAYOUT_CONTROL : PREVIEW_CONTROL
     /* The ring move owed to an entry goes once this drawing shows it, and
        once more from the drawing after, which the confirm timer asks for. */
     const ringTo = pendingShown(pendingRing, table.indexOf, window)
@@ -910,6 +995,7 @@ export const register: Register = on => {
       $.clock.after(0, () => sendRing($, owed))
     }
     const isRunningNow = isTurnRunning && groups === reading.groups
+    const preview = plan.state === 'none' ? undefined : previewOf(groups, plan, position, isRunningNow, width, nowMs, () => togglePreview($))
     const shared = {
       entries,
       window,
@@ -932,6 +1018,7 @@ export const register: Register = on => {
             bars,
             litBar: barOfGroup(bars, position),
             barLabels: barLabels(stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs), width),
+            preview,
             onBar: (cell: number) => {
               const bar = bars[cell]
               return bar === undefined ? Promise.resolve() : jump($, { groupIndex: barTarget(bar, isOff), side: 'user', key: barKey(cell) })

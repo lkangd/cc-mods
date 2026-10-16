@@ -66,6 +66,21 @@ test('the Minimap\'s cells are stepped over: down from the filter row to the fir
   expect(ringMove([], new Map(), { start: 0, end: 0, maxStart: 0 }, 'f-agent', 'm.0')).toEqual({ kind: 'land', key: 'layout' })
 })
 
+test("with the preview drawn, its Buttons come between the entries and the footer, and the ring treats them as it treats the footer", () => {
+  const after = (from: string | undefined, to: string | undefined, window = WINDOW) => ringMove(KEYS, INDEX, window, from, to, 'preview')
+  /* Down off the window's last entry onto the preview's rule: the next entry instead. */
+  expect(after('g2.u', 'preview')).toEqual({ kind: 'reveal', index: 4 })
+  const all = { start: 0, end: 5, maxStart: 0 }
+  /* Down off the list's last entry's first line: the preview's rule. */
+  expect(after('g2.a', 'g2.a.1', all)).toEqual({ kind: 'land', key: 'preview' })
+  expect(after('g2.a', 'preview', all)).toEqual({ kind: 'accept' })
+  /* Up from the cut line or the rule onto the last entry. */
+  expect(after('preview', 'g2.a.1', all)).toEqual({ kind: 'land', key: 'g2.a' })
+  /* No entries: down from the filter row to the preview, up from it to the filter row. */
+  expect(ringMove([], new Map(), { start: 0, end: 0, maxStart: 0 }, 'f-agent', 'm.0', 'preview')).toEqual({ kind: 'land', key: 'preview' })
+  expect(ringMove([], new Map(), { start: 0, end: 0, maxStart: 0 }, 'preview.more', 'm.3', 'preview')).toEqual({ kind: 'land', key: 'f-agent' })
+})
+
 test('a ring move waiting for its entry is sent by the drawing whose window shows it', () => {
   /* Entries 1 to 3 are in view. */
   expect(pendingShown('g2.u', INDEX, WINDOW)).toBe('g2.u')
@@ -114,11 +129,12 @@ test('down past the window scrolls it one entry and puts the ring there', async 
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
-  /* The head, three 1-line prompts with their gaps, the footer. */
-  const pane = await mountPane($, 10)
+  /* The head, three 1-line prompts with their gaps, the preview's one
+     line (no room for more), the footer. */
+  const pane = await mountPane($, 11)
   const prompts = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN'))
 
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 11, contentRows: 11, origin: { kind: 'person' } } as never)
   expect(await prompts()).toEqual(['CT-SYN prompt 3', 'CT-SYN prompt 4', 'CT-SYN prompt 5'])
 
   await arrow($, 'g5.u')

@@ -56,7 +56,7 @@ test('in English the filters, the Layout Button, the steps, the day and the coun
   const pane = await mountPane($)
 
   const controls = drawnButtons(await pane.drawn()).filter(b => isControlKey(b.key))
-  expect(controls.map(b => b.label)).toEqual(['All', 'User', 'Agent', 'Layout: Card'])
+  expect(controls.map(b => b.label)).toEqual(['All', 'User', 'Agent', 'Preview', 'Layout: Card'])
   expect(await entryTexts(pane)).toContain('1 step · CT-SYN first answer')
   const texts = (await pane.findAll({ type: 'Text' })).map(t => t.text)
   expect(texts.some(t => t.includes('Today · Oct 10'))).toBe(true)

@@ -327,6 +327,9 @@ _LIT = "◉┣┃"
 _TIME_COLUMN = re.compile(r"^(\d\d:\d\d| {5}) (?=[●◉├┣│┃])")
 _DAY_RULE = re.compile(r"^─ (.+?) ─+$")
 _FOOTER_RULE = re.compile(r"^─{10,}$")
+# The preview's rule over the footer (0.2): shown or folded `─ p: 预览 ───`,
+# or `─ p: 预览（空间不足） ───` when the rows ran short.
+_PREVIEW_RULE = re.compile(r"^─ p: 预览(（空间不足）)? ─*$")
 _ASIDE = re.compile(r"^(.*?)\s+(\d\d:\d\d)$")
 _AGENT_HEAD = re.compile(r"^(?:(?:进行中|已中断|出错)(?: · \d+ 步)?|\d+ 步(?: · 无文字回复)?|无文字回复)")
 
@@ -407,6 +410,7 @@ class Pane:
     partial_top: bool
     layout: str | None = None   # 卡片 / 紧凑 / 时间轴, as the footer says it
     footer: str | None = None   # the footer's left: 「N 轮」 or 「⏸ 暂停跟随」
+    preview: list[str] | None = None   # the preview's rows, its rule first; None when not drawn
 
 
 def _chosen_filter(rows: list[str], filter_row: int, left: int) -> str:
@@ -452,6 +456,7 @@ def parse_pane(rows: list[str]) -> Pane | None:
     current: PaneEntry | None = None
     side = None
     day = None
+    preview: list[str] | None = None
     for y in range(filter_row + 1, len(rows)):
         text = _right_of(rows[y], left)
         if text is None:
@@ -466,7 +471,15 @@ def parse_pane(rows: list[str]) -> Pane | None:
         text = re.sub(r"\s+✕$", "", text)
         stripped = text.strip()
         if not stripped or (set(stripped) <= set("━─") and "━" in stripped):
+            if preview is not None:
+                preview.append("")
             current, side = None, None
+            continue
+        if preview is not None and not _FOOTER_RULE.match(stripped):
+            preview.append(text.rstrip())
+            continue
+        if _PREVIEW_RULE.match(stripped):
+            preview, current, side = [stripped], None, None
             continue
         if _FOOTER_RULE.match(stripped):
             current, side = None, None
@@ -537,7 +550,7 @@ def parse_pane(rows: list[str]) -> Pane | None:
         # the window may end inside it, blank filler below or not
         entries[-1].clipped = True
     return Pane(left=left, filter_row=filter_row, filter=chosen, entries=entries, notes=notes, partial_top=partial_top,
-                layout=layout, footer=footer)
+                layout=layout, footer=footer, preview=preview)
 
 
 # ---------- the diff ----------
