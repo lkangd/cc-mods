@@ -16,7 +16,7 @@ Spec: [chat-toc 0.2](../spec.md) §4 (compaction boundaries, the fork line's con
 - [x] Footer `38 turns · context 62% used` → `38 turns · 62% used` → left out as the width shrinks to 36 columns, Chinese forms as the spec; the band's counts gain `· context 62% used`
 - [x] Both versions behave alike (no version switch)
 - [x] `CT-CMPCT-001` and `CT-CTX-001` added to the PTY drivers and the release gate's MUST list, passing on both versions; `CT-LIFE-003` and `CT-LIFE-005` updated as the spec says
-- [ ] The search ticket (16) keeps the rules during a query; if this lands after it, this ticket covers that instead
+- [x] The search ticket (16) keeps the rules during a query; if this lands after it, this ticket covers that instead
 - [x] Root README: "What it shows" (compaction rules, the fork line, context use), known limits 3 and 4 of the spec
 - [x] `claude plugin test`, `tsc` and `claude plugin validate` pass
 

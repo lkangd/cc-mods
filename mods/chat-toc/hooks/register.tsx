@@ -1088,7 +1088,10 @@ function previewOf(
     rows: plan.preview,
     body,
     actions: body === undefined || group === undefined ? undefined : actionsOf(group, isRunning),
-    onToggle,
+    /* The no-room line is the preview shown without rows: `p` there leaves
+       the choice alone, or the preview would stay hidden once rows came
+       back. */
+    onToggle: state === 'noRoom' ? () => Promise.resolve() : onToggle,
     onMore: () => (group === undefined ? Promise.resolve() : onMore(group.openerUuid)),
   }
 }

@@ -90,6 +90,21 @@ test('p folds the preview to its rule line and back, kept in the store; a value 
   expect(await pane.find({ type: 'Markdown' })).toBeDefined()
 })
 
+test('p on the no-room line leaves the choice alone: given the rows back, the preview shows again', async ($, on) => {
+  const world = host(on, two().jsonl())
+  await start($, world)
+  const rows = (bodyRows: number) => ({ title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows }, view: {} })
+  const pane = await mountPane($, 16)
+  expect((await pane.find({ type: 'Button', key: 'preview' }))?.text).toBe('预览（空间不足）')
+
+  await pane.press({ key: 'preview' })
+  expect(world.store.preview).toBeUndefined()
+  expect((await pane.find({ type: 'Button', key: 'preview' }))?.text).toBe('预览（空间不足）')
+
+  await pane.redraw(rows(30))
+  expect(await pane.find({ type: 'Markdown' })).toBeDefined()
+})
+
 test('a hidden preview stays hidden in the next session', async ($, on) => {
   const world: Host = host(on, two().jsonl(), undefined, { preview: 'hidden' })
   await start($, world)
