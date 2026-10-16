@@ -303,6 +303,67 @@ class ConversationChain(unittest.TestCase):
         self.assertEqual((toc.exists, toc.groups), (False, []))
 
 
+def boundary(t: Rows, trigger: str, logical=None) -> dict:
+    row = t.system("compact_boundary", "Conversation compacted", parent=None,
+                   logicalParentUuid=logical or t.parent, compactMetadata={"trigger": trigger})
+    t.user("摘要", isCompactSummary=True, isVisibleInTranscriptOnly=True)
+    return row
+
+
+class Compactions(unittest.TestCase):
+    """Where each compaction's rule goes (spec 0.2 §5), written out by hand."""
+
+    def test_the_four_places(self):
+        t = Rows()
+        t.prompt("零")
+        t.text("零的回复")
+        boundary(t, "manual")                                   # 09:03, before the /compact row
+        t.user("<command-name>/compact</command-name>\n<command-message>compact</command-message>\n<command-args></command-args>")
+        t.prompt("提交时压缩")
+        boundary(t, "auto")                                     # 09:07, at a submit
+        t.text("压缩后回复")
+        t.prompt("轮中压缩")
+        t.tool()
+        boundary(t, "auto")                                     # 09:13, mid-turn
+        t.text("继续")
+        t.prompt("下一轮")
+        toc = expect(t)
+        self.assertEqual([g.user_text for g in toc.groups], ["零", "/compact", "提交时压缩", "轮中压缩", "下一轮"])
+        self.assertEqual([(c.trigger, c.clock, c.before) for c in toc.compactions],
+                         [("manual", "09:03", 2), ("auto", "09:07", 2), ("auto", "09:13", 4)])
+        self.assertFalse(toc.earlier_elsewhere)
+        self.assertEqual(toc_verifier.expected_rules(toc), [{"before": 2, "text": "自动压缩 ×2 · 09:07"},
+                                                            {"before": 4, "text": "自动压缩 09:13"}])
+        self.assertEqual(toc_verifier.expected_rules(toc, "agent"), [{"before": 1, "text": "自动压缩 ×2 · 09:07"},
+                                                                     {"before": 3, "text": "自动压缩 09:13"}])
+
+    def test_a_file_starting_at_a_foreign_boundary_has_earlier_turns_elsewhere(self):
+        t = Rows()
+        boundary(t, "manual", logical="not-in-this-file")
+        t.prompt("分叉后")
+        t.text("回复")
+        toc = expect(t)
+        self.assertTrue(toc.earlier_elsewhere)
+        self.assertEqual([c.before for c in toc.compactions], [0])
+
+    def test_reads_rules_and_the_fork_line_from_a_window(self):
+        rows = ["x" * 10 + "│1: 全部   2: 用户   3: Agent",
+                "x" * 10 + "│━━━━━━━──────────────",
+                "x" * 10 + "│更早的轮次不在本会话的文件里",
+                "x" * 10 + "│╌ 已压缩 09:03 ╌╌╌╌╌╌╌╌╌╌",
+                "x" * 10 + "│●  分叉后                09:05",
+                "x" * 10 + "│├╴ 回复",
+                "x" * 10 + "│╌ 自动压缩 09:09 ╌╌╌╌╌╌╌╌",
+                "x" * 10 + "│",
+                "x" * 10 + "│",
+                "x" * 10 + "│──────────────────────────",
+                "x" * 10 + "│1 轮            l: 布局 卡片"]
+        pane = toc_verifier.parse_pane(rows)
+        self.assertTrue(pane.fork_line)
+        self.assertEqual(pane.rules, [{"text": "已压缩 09:03", "before": 0}, {"text": "自动压缩 09:09", "before": 1}])
+        self.assertEqual(pane.notes, [])
+
+
 TESTDATA = pathlib.Path(__file__).parent / "testdata"
 
 
