@@ -17,8 +17,8 @@ session's own transcript file.
                 above the prompt once the Pane is closed; the shorter footer
                 form at 36 columns.
 
-The search part of CT-CMPCT-001 ("rules show under every query") is ticket
-16's: there is no query before it lands.
+CT-CMPCT-001's query part: with the query 合成 (K00, K01, K04, K05) the
+rules go between the matches, folded where several fall in one place.
 
     $PY ct_compaction.py [--host current|2.1.287] [--only fixture,fork,live] [--out DIR]
 
@@ -100,16 +100,19 @@ def write_fixture(world, host) -> pathlib.Path:
     return path
 
 
-def check_rules(t, path, label, evidence) -> dict:
+def check_rules(t, path, label, evidence, query: str | None = None) -> dict:
     """The one window against the verifier: every listed group shown, and the
-    rules in place with their words."""
+    rules in place with their words. With a query, the groups whose User
+    input holds it (the fixture's words are in the input and the reply
+    alike) are the ones listed."""
     toc = v.expected_toc(path)
     p = v.parse_pane(t.settle(quiet=0.8))
     evidence.append(t.snap(label))
     if p is None:
         return {"ok": False, "error": "no Pane"}
-    rules = v.compare_rules(toc, p)
-    whole = len(p.entries) == len(v.listed(toc.groups, p.filter))
+    among = None if query is None else [i for i, g in enumerate(toc.groups) if query in g.user_text]
+    rules = v.compare_rules(toc, p, among=among)
+    whole = len(p.entries) == len(v.listed([g for i, g in enumerate(toc.groups) if among is None or i in among], p.filter))
     return {"ok": rules["ok"] and whole, "filter": p.filter, "layout": p.layout, "expected": rules["expected"],
             "actual": rules["actual"], "allListed": whole, "notes": p.notes}
 
@@ -133,13 +136,24 @@ def fixture(world, host, run):
         actual["card agent"] = check_rules(t, path, "card, Agent", evidence)
         click_text(t, "1: 全部")
         actual["folded"] = any("×3" in r["text"] for r in actual["card all"].get("actual", []))
+        search = pane(t).filter_row + 2                       # the search row: a click gives the field the keys
+        t.click(pane(t).left + 10, search)
+        time.sleep(0.5)
+        t._write("合成")
+        t.wait_for(lambda term: (q := pane(term)) is not None and (q.search or {}).get("text") == "合成", "the query 合成", timeout=10)
+        t.key("esc")
+        pointer_off(t)
+        actual["card all 合成"] = check_rules(t, path, "card, All, query 合成", evidence, query="合成")
+        actual["queryFolded"] = any("×2" in r["text"] for r in actual["card all 合成"].get("actual", []))
         actual["forkLine"] = pane(t).fork_line
     finally:
         t.close()
-    ok = all(actual[k]["ok"] for k in actual if isinstance(actual[k], dict)) and actual["folded"] and not actual["forkLine"]
+    ok = (all(actual[k]["ok"] for k in actual if isinstance(actual[k], dict)) and actual["folded"] and actual["queryFolded"]
+          and not actual["forkLine"])
     return ("rules as the verifier places them: manual after the /compact entry, auto at a submit before its group, "
             "mid-turn after its group, three in a row as one ×3 rule; in card, compact and timeline and under All, User "
-            "and Agent; no fork line in a file holding the whole conversation", actual, ok, evidence)
+            "and Agent; with the query 合成 between its matches K00, K01, K04, K05, the two before K04 as one ×2 rule; no fork "
+            "line in a file holding the whole conversation", actual, ok, evidence)
 
 
 def fork(world, host, run):

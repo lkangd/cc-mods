@@ -353,13 +353,14 @@ def rule_label(trigger: str, count: int, clock: str) -> str:
     return f"{words} {clock}".strip()
 
 
-def expected_rules(toc: Toc, chosen: str = "all") -> list[dict]:
+def expected_rules(toc: Toc, chosen: str = "all", among: list[int] | None = None) -> list[dict]:
     """The compaction rules the list draws under a View filter: each before
     the first listed group at or after its place, else after the last listed
     one; several in one place as one rule with a count and the last one's
-    time. `before` is the listed group's index among those listed."""
+    time. `before` is the listed group's index among those listed. `among`,
+    a query's matches (group indices), narrows the groups listed."""
     kept = listed(toc.groups, chosen)
-    shown = [i for i, g in enumerate(toc.groups) if any(g is k for k in kept)]
+    shown = [i for i, g in enumerate(toc.groups) if any(g is k for k in kept) and (among is None or i in among)]
     if not shown:
         return []
     folded: dict[int, list[Compaction]] = {}
@@ -789,16 +790,18 @@ def compare_windows(groups: list[Group], panes: list[Pane], chosen: str | None =
     return {"ok": ok and not missing, "covered": len(covered), "missing": missing, "windows": windows}
 
 
-def compare_rules(toc: Toc, pane: "Pane | None", chosen: str | None = None) -> dict:
+def compare_rules(toc: Toc, pane: "Pane | None", chosen: str | None = None, among: list[int] | None = None) -> dict:
     """The compaction rules a window shows against those expected for the
-    listed groups it holds: each in place, with its words."""
+    listed groups it holds: each in place, with its words. `among`, a
+    query's matches (group indices), narrows the groups listed."""
     if pane is None:
         return {"ok": False, "expected": [], "actual": [], "error": "no chat-toc Pane on screen"}
     chosen = chosen or pane.filter
-    window = compare_window(toc.groups, pane, chosen)
+    groups = toc.groups if among is None else [g for i, g in enumerate(toc.groups) if i in among]
+    window = compare_window(groups, pane, chosen)
     start, count = window["start"] or 0, len(pane.entries)
-    last = len(listed(toc.groups, chosen))
-    expected = [{"before": r["before"] - start, "text": r["text"]} for r in expected_rules(toc, chosen)
+    last = len(listed(groups, chosen))
+    expected = [{"before": r["before"] - start, "text": r["text"]} for r in expected_rules(toc, chosen, among)
                 if start <= r["before"] < start + count or (r["before"] == last and start + count == last)]
     return {"ok": window["ok"] and expected == pane.rules, "expected": expected, "actual": pane.rules,
             "windowStart": start}

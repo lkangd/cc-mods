@@ -926,6 +926,16 @@ def sec_001(host, run):
             t.type(key)
             time.sleep(0.5)
         t.key("esc")
+        focus_pane(t)                                      # the marker in a query: $.state only (0.2)
+        t.type("f")
+        time.sleep(0.5)
+        t.type(marker)
+        # the field cuts a long query with … at the Pane's width: its start and the one match it leaves
+        t.wait_for(lambda term: (q := pane(term)) is not None and (q.search or {}).get("text", "").startswith(marker[:12])
+                   and len(q.entries) == 1, "the marker in the search field", timeout=10)
+        actual["inQuery"] = True
+        t.key("esc")
+        time.sleep(0.5)
         p = pane(t)
         mine = next((e for e in p.entries if marker in e.user_text), None)
         if mine is not None:
@@ -961,11 +971,11 @@ def sec_001(host, run):
     kept.write_text("\n".join(line.replace(marker, "<marker>") for line in ours) + "\n")
     log.unlink()
     ev.append(kept)
-    ok = (actual.get("drawnInPane") is True and not found and not found_in_log
+    ok = (actual.get("drawnInPane") is True and actual.get("inQuery") is True and not found and not found_in_log
           and set(actual["storeKeys"]) <= {"viewFilter", "layout", "preview"} and "preview" in actual["storeKeys"]
           and "failure" not in actual)
     return ("CT-SEC-001", "turns 6 + one submitted prompt holding a synthetic unique marker",
-            "the marker is drawn in the Pane and appears in none of: chat-toc's $.store file (which holds only viewFilter, "
+            "the marker is drawn in the Pane and typed into the search field, and appears in none of: chat-toc's $.store file (which holds only viewFilter, "
             "layout and preview), its plugin data directory, the debug log's chat-toc lines (CHAT_TOC_PERF on, a jump, a hot reload); "
             "the release evidence is scanned for it too (release_gate.py)", actual, ok, ev)
 
