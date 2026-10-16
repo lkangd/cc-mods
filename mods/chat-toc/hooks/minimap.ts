@@ -11,7 +11,7 @@
 
 import { textCells } from './cells'
 import { clockTime, dayLabel } from './entries'
-import { text as words } from './text'
+import { text as words, turnsAndContextUse } from './text'
 
 const BARS_HEIGHT = 36
 const LABEL_HEIGHT = 20
@@ -45,14 +45,8 @@ const labelPx = (s: string) => [...s].reduce((w, ch) => w + (textCells(ch) === 2
 /* The middle label: the count, then the context use, long while the three
    labels fit the width with room between them, else short, else none. */
 function middleLabel(n: number, labels: StripLabels, width: number, percent: number | undefined): string {
-  const turns = words.turns(n)
-  if (percent === undefined) return turns
   const sides = 2 * Math.max(labelPx(labels.first), labelPx(labels.last))
-  for (const isShort of [false, true]) {
-    const middle = `${turns} · ${words.contextUse(percent, isShort)}`
-    if (sides + labelPx(middle) + 24 <= width) return middle
-  }
-  return turns
+  return turnsAndContextUse(n, percent, middle => sides + labelPx(middle) + 24 <= width)
 }
 
 export function minimapOf(steps: readonly number[], running: number | undefined, width: number, labels: StripLabels, marks: StripMarks = {}): Minimap {

@@ -11,13 +11,13 @@ import { BAR_ROWS, barKey } from './bars'
 import type { Bar } from './bars'
 import { textCells } from './cells'
 import type { CompactionRule } from './compactions'
-import { GUTTER, clockTime, dayRuleBefore, entryRows } from './entries'
+import { GUTTER, clockTime, dayRuleBefore, entryRows, isRuleBefore } from './entries'
 import type { Entry } from './entries'
 import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
 import { FILTERS, LAYOUT_HOTKEY, filterLabel, layoutLabel } from './view'
 import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
-import { text as words } from './text'
+import { text as words, turnsAndContextUse } from './text'
 import { BACK_CONTROL, EXPAND_HOTKEY, MORE_CONTROL, PREVIEW_CONTROL, PREVIEW_HOTKEY } from './preview'
 import { NEXT_ACTION, NEXT_CONTROL, PREVIOUS_ACTION, PREVIOUS_CONTROL } from './walk'
 import type { WalkDirection } from './walk'
@@ -74,6 +74,12 @@ export type SearchView = {
   onWalk: (direction: WalkDirection) => Promise<void>
 }
 
+/* The count of matches after the field while there is a query, dim. */
+export function matchCount(elements: ElementTable, count: SearchView['count']): RenderElement | null {
+  const { Text } = elements
+  return count === undefined ? null : <Text dimColor>{' ' + words.matchCount(count.matches, count.of)}</Text>
+}
+
 function drawSearch(elements: ElementTable<'terminal'>, search: SearchView): RenderElement {
   const { Box, Text, Button, Input } = elements
   const hasQuery = search.query !== ''
@@ -93,7 +99,7 @@ function drawSearch(elements: ElementTable<'terminal'>, search: SearchView): Ren
           onSubmit={(value: string) => search.onSubmit(value)}
         />
       </Box>
-      {search.count === undefined ? null : <Text dimColor>{' ' + words.matchCount(search.count.matches, search.count.of)}</Text>}
+      {matchCount(elements, search.count)}
       {hasQuery ? <Text> </Text> : null}
       {hasQuery ? (
         <Button key={CLEAR_CONTROL} plain dimColor onPress={() => search.onClear()}>
@@ -336,14 +342,8 @@ const FOOT_GAP = 2
 /* The footer's left: the turn count, then the context use as long as it
    fits beside the Layout Button, shorter, else left out. */
 export function footerStatus(count: number, percent: number | undefined, bodyColumns: number, layout: Layout): string {
-  const turns = words.turns(count)
-  if (percent === undefined) return turns
   const room = bodyColumns - FOOT_GAP - controlCells(layoutLabel(layout))
-  for (const isShort of [false, true]) {
-    const status = `${turns} · ${words.contextUse(percent, isShort)}`
-    if (textCells(status) <= room) return status
-  }
-  return turns
+  return turnsAndContextUse(count, percent, status => textCells(status) <= room)
 }
 
 export type PaneView = {
@@ -500,7 +500,7 @@ export function drawPane(elements: ElementTable<'terminal'>, view: PaneView): Re
     const timeColumn = hasTimeColumn ? isLit ? <Text color="suggestion">{timeColumnOf(entry)}</Text> : <Text dimColor>{timeColumnOf(entry)}</Text> : null
     /* The gap goes on with the rail, unless a new day's rule or a
        compaction's comes next. */
-    const isRuleNext = dayRuleBefore(view.entries, i + 1) !== undefined || view.entries[i + 1]?.compactionBefore !== undefined
+    const isRuleNext = isRuleBefore(view.entries, i + 1)
     const gap = !hasGap ? null : isRuleNext ? (
       <Text> </Text>
     ) : (

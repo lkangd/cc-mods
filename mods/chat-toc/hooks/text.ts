@@ -31,6 +31,10 @@ const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : 
 /* A number with its thousands grouped: `12,345`. */
 const grouped = (n: number) => String(n).replace(/\B(?=(\d{3})+$)/g, ',')
 
+/* The context use, long (`context 62% used`) or short (`62% used`). */
+const enContextUse = (percent: number, isShort: boolean) => (isShort ? `${percent}% used` : `context ${percent}% used`)
+const zhContextUse = (percent: number, isShort: boolean) => (isShort ? `已用 ${percent}%` : `上下文已用 ${percent}%`)
+
 const EN = {
   paneTitle: 'Contents',
   commandDescription: 'Open the conversation contents',
@@ -54,7 +58,7 @@ const EN = {
     w(' · '),
     n(c.steps),
     w(c.steps === 1 ? ' agent step' : ' agent steps'),
-    ...(c.percent === undefined ? [] : [w(` · context ${c.percent}% used`)]),
+    ...(c.percent === undefined ? [] : [w(` · ${enContextUse(c.percent, false)}`)]),
   ],
   bandOpen: 'Open contents ❯',
   running: 'Running',
@@ -70,7 +74,7 @@ const EN = {
   compactionRule: (isAuto: boolean, count: number, time: string) =>
     [isAuto ? 'Auto-compacted' : 'Compacted', count > 1 ? `×${count}` : '', count > 1 && time ? `· ${time}` : time].filter(Boolean).join(' '),
   earlierElsewhere: "Earlier turns are not in this session's file",
-  contextUse: (percent: number, isShort: boolean) => (isShort ? `${percent}% used` : `context ${percent}% used`),
+  contextUse: enContextUse,
   stripAlt: (n: number, per: number) =>
     per === 1 ? `${count(n, 'turn', 'turns')}, one bar per turn, height by steps` : `${count(n, 'turn', 'turns')}, ${per} turns per bar, height by steps`,
   preview: 'Preview',
@@ -135,7 +139,7 @@ const ZH: Text = {
     w(' 轮 · Agent '),
     n(c.steps),
     w(' 步'),
-    ...(c.percent === undefined ? [] : [w(` · 上下文已用 ${c.percent}%`)]),
+    ...(c.percent === undefined ? [] : [w(` · ${zhContextUse(c.percent, false)}`)]),
   ],
   bandOpen: '展开目录 ❯',
   running: '进行中',
@@ -151,7 +155,7 @@ const ZH: Text = {
   compactionRule: (isAuto, count, time) =>
     [isAuto ? '自动压缩' : '已压缩', count > 1 ? `×${count}` : '', count > 1 && time ? `· ${time}` : time].filter(Boolean).join(' '),
   earlierElsewhere: '更早的轮次不在本会话的文件里',
-  contextUse: (percent, isShort) => (isShort ? `已用 ${percent}%` : `上下文已用 ${percent}%`),
+  contextUse: zhContextUse,
   stripAlt: (n, per) => (per === 1 ? `${n} 轮，每轮一根竖条，高度按步数` : `${n} 轮，每根竖条 ${per} 轮，高度按步数`),
   preview: '预览',
   previewNoRoom: '预览（空间不足）',
@@ -191,6 +195,19 @@ const ZH: Text = {
 /* The words in use. Swapped in place, so a module holding it reads the
    language set since. */
 export const text: Text = { ...EN, filters: { ...EN.filters }, layouts: { ...EN.layouts } }
+
+/* The turn count, then the context use while `fits` takes the line: long,
+   else short, else left out. The footer and the desktop's strip each say
+   what fits. */
+export function turnsAndContextUse(n: number, percent: number | undefined, fits: (line: string) => boolean): string {
+  const turns = text.turns(n)
+  if (percent === undefined) return turns
+  for (const isShort of [false, true]) {
+    const line = `${turns} · ${text.contextUse(percent, isShort)}`
+    if (fits(line)) return line
+  }
+  return turns
+}
 
 export function setLanguage(language: Language): void {
   const from = language === 'zh' ? ZH : EN
