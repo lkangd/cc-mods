@@ -1,0 +1,1 @@
+{ "name": "input-probe", "version": "0.0.1", "description": "Throwaway probe: an Input in the docked Pane", "author": { "name": "probe" }, "types": "./types/index.d.ts" }

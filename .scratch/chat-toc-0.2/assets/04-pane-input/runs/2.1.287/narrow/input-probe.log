@@ -1,0 +1,68 @@
+0.10s session.start version=[object Object] mode=uncontrolled autofocus=undefined rows=undefined
+2.48s open open columns=36 {"isPlaced":true}
+2.51s render #1 q="" built=19ms sinceChange=-1ms w=133
+4.89s render #2 q="" built=7ms sinceChange=-1ms w=133
+6.61s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+8.22s ui.input hook kind=change element=q value="a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+8.25s onInput #1 "a long query that runs past the edge of the pane"
+8.27s render #3 q="a long query that runs past the edge of the pane" built=6ms sinceChange=15ms w=133
+12.64s ui.input hook kind=change element=q value="搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+12.65s onInput #2 "搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane"
+12.66s render #4 q="搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane" built=1ms sinceChange=10ms w=133
+14.76s ui.input hook kind=change element=q value="搜索中文对话的轮次标题和内a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+14.76s onInput #3 "搜索中文对话的轮次标题和内a long query that runs past the edge of the pane"
+14.76s render #5 q="搜索中文对话的轮次标题和内a long query that runs past the edge of the pane" built=0ms sinceChange=2ms w=133
+18.00s ui.input hook kind=change element=q value="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+18.01s onInput #4 "搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane"
+18.01s render #6 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=1ms sinceChange=4ms w=133
+19.69s render #7 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=5ms sinceChange=1686ms w=133
+22.28s ui.close hook {"id":"input-probe","origin":{"kind":"plugin"}}
+22.29s closed
+25.02s open open columns=44 {"isPlaced":true}
+25.04s render #8 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=12ms sinceChange=7031ms w=125
+27.37s render #9 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=2ms sinceChange=9366ms w=125
+29.01s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+30.63s ui.input hook kind=change element=q value="a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+30.64s onInput #5 "a long query that runs past the edge of the pane"
+30.64s render #10 q="a long query that runs past the edge of the pane" built=1ms sinceChange=4ms w=125
+34.76s ui.input hook kind=change element=q value="搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+34.77s onInput #6 "搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane"
+34.77s render #11 q="搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane" built=1ms sinceChange=2ms w=125
+36.89s ui.input hook kind=change element=q value="搜索中文对话的轮次标题和内a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+36.89s onInput #7 "搜索中文对话的轮次标题和内a long query that runs past the edge of the pane"
+36.90s render #12 q="搜索中文对话的轮次标题和内a long query that runs past the edge of the pane" built=1ms sinceChange=3ms w=125
+40.20s ui.input hook kind=change element=q value="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+40.20s onInput #8 "搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane"
+40.20s render #13 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=0ms sinceChange=2ms w=125
+41.88s render #14 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=5ms sinceChange=1682ms w=125
+44.46s ui.close hook {"id":"input-probe","origin":{"kind":"plugin"}}
+44.46s closed
+46.97s open open columns=56 {"isPlaced":true}
+46.98s render #15 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=7ms sinceChange=6781ms w=113
+49.34s render #16 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=3ms sinceChange=9139ms w=113
+50.97s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+52.62s ui.input hook kind=change element=q value="a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+52.62s onInput #9 "a long query that runs past the edge of the pane"
+52.63s render #17 q="a long query that runs past the edge of the pane" built=4ms sinceChange=9ms w=113
+56.77s ui.input hook kind=change element=q value="搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+56.77s onInput #10 "搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane"
+56.78s render #18 q="搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane" built=3ms sinceChange=6ms w=113
+58.87s ui.input hook kind=change element=q value="搜索中文对话的轮次标题和内a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+58.88s onInput #11 "搜索中文对话的轮次标题和内a long query that runs past the edge of the pane"
+58.88s render #19 q="搜索中文对话的轮次标题和内a long query that runs past the edge of the pane" built=1ms sinceChange=2ms w=113
+62.09s ui.input hook kind=change element=q value="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" keys=plugin,element,component,requestId,surface,kind,value
+62.10s onInput #12 "搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane"
+62.10s render #20 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=1ms sinceChange=2ms w=113
+63.76s render #21 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=4ms sinceChange=1664ms w=113
+66.34s ui.close hook {"id":"input-probe","origin":{"kind":"plugin"}}
+66.35s closed
+69.86s open  columns=undefined {"isPlaced":true}
+69.87s render #22 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=8ms sinceChange=7776ms w=100
+69.88s render #23 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=2ms sinceChange=7781ms w=100
+72.22s render #24 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=2ms sinceChange=10121ms w=100
+73.83s render #25 q="搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane" built=1ms sinceChange=11735ms w=100
+75.44s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+77.10s ui.input hook kind=change element=q value="搜索中文" keys=plugin,element,component,requestId,surface,kind,value
+77.11s onInput #13 "搜索中文"
+77.11s render #26 q="搜索中文" built=1ms sinceChange=3ms w=100
+78.99s render #27 q="搜索中文" built=3ms sinceChange=1884ms w=100

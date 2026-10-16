@@ -1,0 +1,35 @@
+# The user's hand run in the Claude app (Claude Code 2.1.295, macOS), 2026-10-16: input-probe installed from
+# the local marketplace (../../.claude-plugin/marketplace.json). The Pane's header read "input-probe desktop w=106".
+# input-probe.log with the "render #" lines left out: the user's terminal session, still running with the same
+# plugin root, later rewrote the shared log file, so this copy was taken from the session's earlier read of it.
+# The `/inputprobe openfocus` retry came after that read; its result is the user's report alone.
+0.38s session.start mode=undefined autofocus=undefined rows=undefined
+65.67s open  columns=undefined {"isPlaced":true}
+87.30s onInput #1 "z"            (no ui.focus hook for a click into the field)
+87.38s onInput #2 "zo"
+88.59s onInput #3 "z"
+88.74s onInput #4 ""
+121.79s onInput #5 "1" / #6 "12" / #7 "123" / #8 "1234"
+123.11s onInput #9 "123"
+124.32s onInput #10 "123l"
+132.08s onSubmit #1 "123l" ... 145.01s onSubmit #9 "123l"   (Enter nine times; the field keeps its text)
+170.37s ui.focus hook element=link origin=person   (Tab)
+171.14s onInput #11 ""
+171.62s onInput #12 "v"
+171.72s onInput #13 "vs"
+171.93s onInput #14 "vsw"
+172.02s onInput #15 "vswf"     (IME composition letters arrive as changes: Xiaohe Shuangpin for zhong wen)
+172.38s onInput #16 ""
+173.35s onInput #17 "中文"     (then the commit)
+181.64s PRESS clear
+181.68s ui.focus hook element=clear origin=person   (after the press: a click focuses the Button)
+195.39s mode controlled
+201.74s onInput #18 "中文"
+202.44s onSubmit #10 "中文"
+203.39s onSubmit #11 "中文"
+204.87s PRESS clear
+204.89s ui.focus hook element=clear origin=person
+211.61s set "foo"
+234.21s autofocus true
+235.86s ui.close hook {"id":"input-probe","origin":{"kind":"person"}}
+238.61s open  columns=undefined {"isPlaced":true}   (plain open: no focus asked)

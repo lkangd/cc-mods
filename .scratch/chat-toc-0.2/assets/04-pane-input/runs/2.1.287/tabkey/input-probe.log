@@ -1,0 +1,12 @@
+0.09s session.start version=[object Object] mode=controlled autofocus=undefined rows=undefined
+2.04s open  columns=undefined {"isPlaced":true}
+2.06s render #1 q="" built=21ms sinceChange=-1ms w=94
+4.39s render #2 q="" built=3ms sinceChange=-1ms w=94
+6.00s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+7.62s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+9.27s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e1","origin":{"kind":"person"}}
+10.89s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+12.69s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e1","origin":{"kind":"person"}}
+14.22s render #3 q="" built=4ms sinceChange=-1ms w=94
+19.40s render #4 q="" built=1ms sinceChange=-1ms w=94
+22.77s render #5 q="" built=4ms sinceChange=-1ms w=94

@@ -1,0 +1,259 @@
+4.81s session.start version=[object Object] mode=undefined autofocus=undefined rows=undefined
+268.32s open  columns=undefined {"isPlaced":true}
+268.35s render #1 q="" built=25ms sinceChange=-1ms w=134
+287.97s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+288.00s render #2 q="" built=31ms sinceChange=-1ms w=134
+289.01s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+290.29s ui.input hook kind=change element=q value="1" keys=plugin,element,component,requestId,surface,kind,value
+290.30s onInput #1 "1"
+290.30s render #3 q="1" built=1ms sinceChange=5ms w=134
+290.55s ui.input hook kind=change element=q value="12" keys=plugin,element,component,requestId,surface,kind,value
+290.55s onInput #2 "12"
+290.56s render #4 q="12" built=0ms sinceChange=2ms w=134
+290.72s ui.input hook kind=change element=q value="123" keys=plugin,element,component,requestId,surface,kind,value
+290.73s onInput #3 "123"
+290.73s render #5 q="123" built=0ms sinceChange=2ms w=134
+292.88s ui.input hook kind=change element=q value="12" keys=plugin,element,component,requestId,surface,kind,value
+292.89s onInput #4 "12"
+292.89s render #6 q="12" built=1ms sinceChange=3ms w=134
+293.06s ui.input hook kind=change element=q value="1" keys=plugin,element,component,requestId,surface,kind,value
+293.07s onInput #5 "1"
+293.07s render #7 q="1" built=1ms sinceChange=2ms w=134
+293.25s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+293.25s onInput #6 ""
+293.25s render #8 q="" built=2ms sinceChange=4ms w=134
+304.74s ui.input hook kind=change element=q value="1" keys=plugin,element,component,requestId,surface,kind,value
+304.74s onInput #7 "1"
+304.74s render #9 q="1" built=1ms sinceChange=3ms w=134
+304.81s ui.input hook kind=change element=q value="12" keys=plugin,element,component,requestId,surface,kind,value
+304.81s onInput #8 "12"
+304.81s render #10 q="12" built=1ms sinceChange=3ms w=134
+304.92s ui.input hook kind=change element=q value="123" keys=plugin,element,component,requestId,surface,kind,value
+304.92s onInput #9 "123"
+304.92s render #11 q="123" built=1ms sinceChange=3ms w=134
+305.05s ui.input hook kind=change element=q value="1231" keys=plugin,element,component,requestId,surface,kind,value
+305.05s onInput #10 "1231"
+305.05s render #12 q="1231" built=1ms sinceChange=3ms w=134
+305.12s ui.input hook kind=change element=q value="12312" keys=plugin,element,component,requestId,surface,kind,value
+305.13s onInput #11 "12312"
+305.13s render #13 q="12312" built=2ms sinceChange=4ms w=134
+305.26s ui.input hook kind=change element=q value="123123" keys=plugin,element,component,requestId,surface,kind,value
+305.26s onInput #12 "123123"
+305.26s render #14 q="123123" built=0ms sinceChange=2ms w=134
+305.42s ui.input hook kind=change element=q value="1231231" keys=plugin,element,component,requestId,surface,kind,value
+305.42s onInput #13 "1231231"
+305.42s render #15 q="1231231" built=1ms sinceChange=3ms w=134
+305.48s ui.input hook kind=change element=q value="12312312" keys=plugin,element,component,requestId,surface,kind,value
+305.49s onInput #14 "12312312"
+305.49s render #16 q="12312312" built=1ms sinceChange=3ms w=134
+305.58s ui.input hook kind=change element=q value="123123123" keys=plugin,element,component,requestId,surface,kind,value
+305.58s onInput #15 "123123123"
+305.58s render #17 q="123123123" built=1ms sinceChange=3ms w=134
+306.26s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+306.27s onInput #16 ""
+306.27s render #18 q="" built=1ms sinceChange=3ms w=134
+329.99s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+330.19s ui.input hook kind=change element=q value="1" keys=plugin,element,component,requestId,surface,kind,value
+330.20s onInput #17 "1"
+330.20s render #19 q="1" built=2ms sinceChange=4ms w=134
+330.28s ui.input hook kind=change element=q value="12" keys=plugin,element,component,requestId,surface,kind,value
+330.28s onInput #18 "12"
+330.28s render #20 q="12" built=1ms sinceChange=3ms w=134
+330.37s ui.input hook kind=change element=q value="123" keys=plugin,element,component,requestId,surface,kind,value
+330.37s onInput #19 "123"
+330.37s render #21 q="123" built=1ms sinceChange=2ms w=134
+332.13s ui.input hook kind=change element=q value="123l" keys=plugin,element,component,requestId,surface,kind,value
+332.14s onInput #20 "123l"
+332.15s render #22 q="123l" built=8ms sinceChange=15ms w=134
+332.82s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+332.83s onInput #21 ""
+332.83s render #23 q="" built=0ms sinceChange=3ms w=134
+339.01s ui.input hook kind=change element=q value="1" keys=plugin,element,component,requestId,surface,kind,value
+339.01s onInput #22 "1"
+339.02s render #24 q="1" built=2ms sinceChange=4ms w=134
+339.07s ui.input hook kind=change element=q value="12" keys=plugin,element,component,requestId,surface,kind,value
+339.08s onInput #23 "12"
+339.08s render #25 q="12" built=2ms sinceChange=3ms w=134
+339.14s ui.input hook kind=change element=q value="123" keys=plugin,element,component,requestId,surface,kind,value
+339.15s onInput #24 "123"
+339.18s render #26 q="123" built=18ms sinceChange=32ms w=134
+339.38s ui.input hook kind=submit element=q value="123" keys=plugin,element,component,requestId,surface,kind,value
+339.38s onSubmit #1 "123"
+340.19s ui.input hook kind=change element=q value="1" keys=plugin,element,component,requestId,surface,kind,value
+340.20s onInput #25 "1"
+340.20s render #27 q="1" built=1ms sinceChange=3ms w=134
+340.29s ui.input hook kind=change element=q value="12" keys=plugin,element,component,requestId,surface,kind,value
+340.29s onInput #26 "12"
+340.29s render #28 q="12" built=1ms sinceChange=3ms w=134
+340.34s ui.input hook kind=change element=q value="123" keys=plugin,element,component,requestId,surface,kind,value
+340.34s onInput #27 "123"
+340.35s render #29 q="123" built=2ms sinceChange=4ms w=134
+340.54s ui.input hook kind=submit element=q value="123" keys=plugin,element,component,requestId,surface,kind,value
+340.54s onSubmit #2 "123"
+348.83s render #30 q="123" built=2ms sinceChange=8487ms w=134
+401.27s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+401.28s render #31 q="123" built=6ms sinceChange=60931ms w=134
+402.29s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+403.14s ui.input hook kind=change element=q value="asdf" keys=plugin,element,component,requestId,surface,kind,value
+403.15s onInput #28 "asdf"
+403.16s render #32 q="asdf" built=1ms sinceChange=5ms w=134
+403.47s ui.input hook kind=submit element=q value="asdf" keys=plugin,element,component,requestId,surface,kind,value
+403.47s onSubmit #3 "asdf"
+404.49s render #33 q="asdf" built=4ms sinceChange=1338ms w=134
+418.38s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+418.39s render #34 q="asdf" built=6ms sinceChange=15236ms w=134
+418.86s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+419.25s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e1","origin":{"kind":"person"}}
+419.43s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e2","origin":{"kind":"person"}}
+419.58s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e3","origin":{"kind":"person"}}
+419.74s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"link","origin":{"kind":"person"}}
+419.92s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"clear","origin":{"kind":"person"}}
+420.43s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+420.61s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+420.79s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e1","origin":{"kind":"person"}}
+420.97s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e2","origin":{"kind":"person"}}
+421.19s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e3","origin":{"kind":"person"}}
+421.36s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"link","origin":{"kind":"person"}}
+421.55s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"clear","origin":{"kind":"person"}}
+425.62s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"link","origin":{"kind":"person"}}
+426.09s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e3","origin":{"kind":"person"}}
+426.27s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e2","origin":{"kind":"person"}}
+426.40s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e1","origin":{"kind":"person"}}
+426.55s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+426.72s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+445.76s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+446.67s ui.input hook kind=change element=q value="测试" keys=plugin,element,component,requestId,surface,kind,value
+446.68s onInput #29 "测试"
+446.68s render #35 q="测试" built=1ms sinceChange=6ms w=134
+447.15s ui.input hook kind=submit element=q value="测试" keys=plugin,element,component,requestId,surface,kind,value
+447.15s onSubmit #4 "测试"
+458.56s ui.input hook kind=change element=q value="奥赛发送方" keys=plugin,element,component,requestId,surface,kind,value
+458.56s onInput #30 "奥赛发送方"
+458.57s render #36 q="奥赛发送方" built=2ms sinceChange=5ms w=134
+461.58s ui.press hook element=clear
+461.58s PRESS clear
+461.59s render #37 q="" built=2ms sinceChange=3028ms w=134
+461.62s render #38 q="" built=2ms sinceChange=3063ms w=134
+475.56s ui.input hook kind=change element=q value="/inputprobe mode controlled" keys=plugin,element,component,requestId,surface,kind,value
+475.56s onInput #31 "/inputprobe mode controlled"
+475.57s render #39 q="/inputprobe mode controlled" built=1ms sinceChange=4ms w=134
+475.60s render #40 q="/inputprobe mode controlled" built=1ms sinceChange=37ms w=134
+477.13s render #41 q="/inputprobe mode controlled" built=5ms sinceChange=1566ms w=134
+478.68s mode controlled
+478.70s render #42 q="/inputprobe mode controlled" built=11ms sinceChange=3138ms w=134
+489.24s render #43 q="/inputprobe mode controlled" built=1ms sinceChange=13673ms w=134
+492.11s ui.press hook element=tofind
+492.11s PRESS tofind -> focus q {}
+495.56s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+495.57s onInput #32 ""
+495.57s render #44 q="" built=1ms sinceChange=3ms w=134
+497.06s ui.input hook kind=change element=q value="测试" keys=plugin,element,component,requestId,surface,kind,value
+497.07s onInput #33 "测试"
+497.09s render #45 q="测试" built=4ms sinceChange=17ms w=134
+497.53s ui.input hook kind=change element=q value="测试测试" keys=plugin,element,component,requestId,surface,kind,value
+497.53s onInput #34 "测试测试"
+497.53s render #46 q="测试测试" built=0ms sinceChange=2ms w=134
+498.16s ui.input hook kind=change element=q value="测试测试测试" keys=plugin,element,component,requestId,surface,kind,value
+498.17s onInput #35 "测试测试测试"
+498.17s render #47 q="测试测试测试" built=2ms sinceChange=9ms w=134
+498.91s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+498.91s onInput #36 ""
+498.91s render #48 q="" built=0ms sinceChange=2ms w=134
+499.77s render #49 q="" built=2ms sinceChange=861ms w=134
+501.79s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+501.79s render #50 q="" built=1ms sinceChange=2882ms w=134
+502.69s ui.input hook kind=change element=q value="埃塞翻领撒旦" keys=plugin,element,component,requestId,surface,kind,value
+502.71s onInput #37 "埃塞翻领撒旦"
+502.71s render #51 q="埃塞翻领撒旦" built=1ms sinceChange=4ms w=134
+503.58s ui.input hook kind=change element=q value="埃塞翻领撒旦发" keys=plugin,element,component,requestId,surface,kind,value
+503.59s onInput #38 "埃塞翻领撒旦发"
+503.59s render #52 q="埃塞翻领撒旦发" built=1ms sinceChange=4ms w=134
+504.22s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+504.23s onInput #39 ""
+504.23s render #53 q="" built=0ms sinceChange=1ms w=134
+505.93s render #54 q="" built=3ms sinceChange=1702ms w=134
+511.96s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+511.96s render #55 q="" built=5ms sinceChange=7739ms w=134
+512.72s ui.input hook kind=change element=q value="按时独领风骚奥迪看房" keys=plugin,element,component,requestId,surface,kind,value
+512.72s onInput #40 "按时独领风骚奥迪看房"
+512.72s render #56 q="按时独领风骚奥迪看房" built=1ms sinceChange=3ms w=134
+514.14s ui.press hook element=clear
+514.14s PRESS clear
+514.15s render #57 q="" built=5ms sinceChange=1432ms w=134
+520.55s render #58 q="" built=2ms sinceChange=7827ms w=134
+521.61s set "foo"
+521.61s render #59 q="foo" built=2ms sinceChange=8890ms w=134
+521.64s render #60 q="foo" built=1ms sinceChange=8922ms w=134
+539.46s autofocus true
+539.47s render #61 q="foo" built=8ms sinceChange=26751ms w=134
+546.25s ui.close hook {"id":"input-probe","origin":{"kind":"person"}}
+563.36s open openfocus columns=undefined {"isPlaced":true}
+563.38s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"plugin","name":"input-probe"}}
+563.39s render #62 q="foo" built=19ms sinceChange=50674ms w=134
+612.00s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"plugin","name":"input-probe"}}
+614.83s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"plugin","name":"input-probe"}}
+618.01s ui.close hook {"id":"chat-toc","origin":{"kind":"person"}}
+618.03s render #63 q="foo" built=3ms sinceChange=105307ms w=134
+619.48s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"plugin","name":"input-probe"}}
+619.48s render #64 q="foo" built=1ms sinceChange=106757ms w=134
+626.85s render #65 q="foo" built=7ms sinceChange=114133ms w=134
+628.31s render #66 q="foo" built=1ms sinceChange=115589ms w=134
+628.31s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"plugin","name":"input-probe"}}
+1159.80s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"plugin","name":"input-probe"}}
+1169.22s ui.input hook kind=change element=q value="fo" keys=plugin,element,component,requestId,surface,kind,value
+1169.22s onInput #41 "fo"
+1169.22s render #67 q="fo" built=1ms sinceChange=4ms w=134
+1169.26s render #68 q="fo" built=1ms sinceChange=39ms w=134
+1169.39s ui.input hook kind=change element=q value="f" keys=plugin,element,component,requestId,surface,kind,value
+1169.39s onInput #42 "f"
+1169.40s render #69 q="f" built=0ms sinceChange=3ms w=134
+1169.57s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+1169.57s onInput #43 ""
+1169.58s render #70 q="" built=1ms sinceChange=2ms w=134
+1175.97s ui.input hook kind=change element=q value="szso" keys=plugin,element,component,requestId,surface,kind,value
+1175.97s onInput #44 "szso"
+1175.98s render #71 q="szso" built=0ms sinceChange=4ms w=134
+1187.14s render #72 q="szso" built=4ms sinceChange=11170ms w=134
+1191.30s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+1191.32s render #73 q="szso" built=14ms sinceChange=15342ms w=134
+1191.82s ui.input hook kind=change element=q value="szs" keys=plugin,element,component,requestId,surface,kind,value
+1191.85s onInput #45 "szs"
+1191.85s render #74 q="szs" built=0ms sinceChange=3ms w=134
+1191.98s ui.input hook kind=change element=q value="sz" keys=plugin,element,component,requestId,surface,kind,value
+1191.98s onInput #46 "sz"
+1191.99s render #75 q="sz" built=1ms sinceChange=3ms w=134
+1192.13s ui.input hook kind=change element=q value="s" keys=plugin,element,component,requestId,surface,kind,value
+1192.13s onInput #47 "s"
+1192.14s render #76 q="s" built=1ms sinceChange=2ms w=134
+1192.27s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+1192.28s onInput #48 ""
+1192.28s render #77 q="" built=1ms sinceChange=3ms w=134
+1193.02s ui.input hook kind=change element=q value="总所" keys=plugin,element,component,requestId,surface,kind,value
+1193.03s onInput #49 "总所"
+1193.03s render #78 q="总所" built=2ms sinceChange=5ms w=134
+1193.38s ui.input hook kind=change element=q value="总" keys=plugin,element,component,requestId,surface,kind,value
+1193.38s onInput #50 "总"
+1193.39s render #79 q="总" built=0ms sinceChange=3ms w=134
+1193.53s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+1193.53s onInput #51 ""
+1193.54s render #80 q="" built=0ms sinceChange=3ms w=134
+1194.92s ui.input hook kind=change element=q value="szso" keys=plugin,element,component,requestId,surface,kind,value
+1194.93s onInput #52 "szso"
+1194.94s render #81 q="szso" built=2ms sinceChange=7ms w=134
+1195.42s render #82 q="szso" built=4ms sinceChange=490ms w=134
+1219.83s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+1219.84s render #83 q="szso" built=6ms sinceChange=24906ms w=134
+1220.57s ui.input hook kind=change element=q value="szs" keys=plugin,element,component,requestId,surface,kind,value
+1220.57s onInput #53 "szs"
+1220.58s render #84 q="szs" built=2ms sinceChange=5ms w=134
+1220.74s ui.input hook kind=change element=q value="sz" keys=plugin,element,component,requestId,surface,kind,value
+1220.74s onInput #54 "sz"
+1220.74s render #85 q="sz" built=0ms sinceChange=2ms w=134
+1220.88s ui.input hook kind=change element=q value="s" keys=plugin,element,component,requestId,surface,kind,value
+1220.88s onInput #55 "s"
+1220.88s render #86 q="s" built=0ms sinceChange=2ms w=134
+1221.02s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+1221.02s onInput #56 ""
+1221.02s render #87 q="" built=1ms sinceChange=2ms w=134
+1475.94s render #88 q="" built=1ms sinceChange=254917ms w=134
+1476.47s render #89 q="" built=2ms sinceChange=255449ms w=134

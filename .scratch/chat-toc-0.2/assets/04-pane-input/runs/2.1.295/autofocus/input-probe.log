@@ -1,0 +1,24 @@
+0.11s session.start version=[object Object] mode=uncontrolled autofocus=1 rows=undefined
+2.16s open openfocus columns=undefined {"isPlaced":true}
+2.21s render #1 q="" built=38ms sinceChange=-1ms w=94
+2.22s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"plugin","name":"input-probe"}}
+4.21s ui.input hook kind=change element=q value="a" keys=plugin,element,component,requestId,surface,kind,value
+4.21s onInput #1 "a"
+4.21s render #2 q="a" built=1ms sinceChange=4ms w=94
+5.89s render #3 q="a" built=3ms sinceChange=1680ms w=94
+8.32s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"plugin","name":"input-probe"}}
+8.32s render #4 q="a" built=5ms sinceChange=4114ms w=94
+10.46s ui.input hook kind=change element=q value="ab" keys=plugin,element,component,requestId,surface,kind,value
+10.48s onInput #2 "ab"
+10.49s render #5 q="ab" built=3ms sinceChange=8ms w=94
+12.08s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+13.76s render #6 q="ab" built=2ms sinceChange=3276ms w=94
+16.22s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"plugin","name":"input-probe"}}
+16.23s render #7 q="ab" built=8ms sinceChange=5748ms w=94
+17.81s ui.input hook kind=change element=q value="abc" keys=plugin,element,component,requestId,surface,kind,value
+17.81s onInput #3 "abc"
+17.81s render #8 q="abc" built=1ms sinceChange=3ms w=94
+19.48s render #9 q="abc" built=4ms sinceChange=1673ms w=94
+22.06s ui.close hook {"id":"input-probe","origin":{"kind":"plugin"}}
+22.06s closed
+24.58s open  columns=undefined {"isPlaced":true}

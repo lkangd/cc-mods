@@ -1,0 +1,761 @@
+[
+ {
+  "step": "open-pane",
+  "sent": "\r",
+  "events": [
+   "2.56s open  columns=undefined {\"isPlaced\":true}"
+  ],
+  "renders": [
+   "render #1 q=\"\" built=23ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=1 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #2 q=\"\" built=1ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "down-to-field",
+  "sent": "\u001b[B",
+  "events": [
+   "6.60s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "3:101-101:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   101,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-hello",
+  "sent": "hello",
+  "events": [
+   "8.21s ui.input hook kind=change element=q value=\"hello\" keys=plugin,element,component,requestId,surface,kind,value",
+   "8.21s onInput #1 \"hello\""
+  ],
+  "renders": [
+   "render #3 q=\"hello\" built=2ms sinceChange=6ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=1 s=0",
+   "q=\"hello\" mode=controlled rev=0",
+   "find: hello  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "4.98s render #2 q=\"\" built=1ms sinceChange=-1ms w=94"
+  ],
+  "ring": [
+   "3:106-106:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   106,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-fast",
+  "sent": "world",
+  "events": [
+   "9.82s ui.input hook kind=change element=q value=\"helloworld\" keys=plugin,element,component,requestId,surface,kind,value",
+   "9.83s onInput #2 \"helloworld\""
+  ],
+  "renders": [
+   "render #4 q=\"helloworld\" built=1ms sinceChange=3ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=2 s=0",
+   "q=\"helloworld\" mode=controlled rev=0",
+   "find: helloworld  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "8.21s onInput #1 \"hello\""
+  ],
+  "ring": [
+   "3:111-111:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   111,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "left-left",
+  "sent": "\u001b[D\u001b[D",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=2 s=0",
+   "q=\"helloworld\" mode=controlled rev=0",
+   "find: helloworld ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "8.21s onInput #1 \"hello\""
+  ],
+  "ring": [
+   "3:109-109:l",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   109,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-mid",
+  "sent": "M",
+  "events": [
+   "13.06s ui.input hook kind=change element=q value=\"helloworMld\" keys=plugin,element,component,requestId,surface,kind,value",
+   "13.07s onInput #3 \"helloworMld\""
+  ],
+  "renders": [
+   "render #5 q=\"helloworMld\" built=1ms sinceChange=3ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=5 c=3 s=0",
+   "q=\"helloworMld\" mode=controlled rev=0",
+   "find: helloworMld ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "9.83s onInput #2 \"helloworld\""
+  ],
+  "ring": [
+   "3:110-110:l",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   110,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "enter-submit",
+  "sent": "\r",
+  "events": [
+   "15.44s ui.input hook kind=submit element=q value=\"helloworMld\" keys=plugin,element,component,requestId,surface,kind,value",
+   "15.50s onSubmit #1 \"helloworMld\""
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=5 c=3 s=0",
+   "q=\"helloworMld\" mode=controlled rev=0",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "9.83s onInput #2 \"helloworld\""
+  ],
+  "ring": [
+   "3:101-101:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   101,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-after-submit",
+  "sent": "Q",
+  "events": [
+   "16.77s ui.input hook kind=change element=q value=\"Q\" keys=plugin,element,component,requestId,surface,kind,value",
+   "16.77s onInput #4 \"Q\""
+  ],
+  "renders": [
+   "render #6 q=\"Q\" built=7ms sinceChange=13ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=4 s=1",
+   "q=\"Q\" mode=controlled rev=0",
+   "find: Q  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "15.44s ui.input hook kind=submit element=q value=\"helloworMld\" keys=plugin…"
+  ],
+  "ring": [
+   "3:102-102:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   102,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "seek-clear-0",
+  "sent": "\u001b[B",
+  "events": [
+   "18.40s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"tofind\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=4 s=1",
+   "q=\"Q\" mode=controlled rev=0",
+   "find: Q",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "15.44s ui.input hook kind=submit element=q value=\"helloworMld\" keys=plugin…"
+  ],
+  "ring": [
+   "4:95-101:to·find",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "seek-clear-1",
+  "sent": "\u001b[B",
+  "events": [
+   "20.02s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"e1\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=4 s=1",
+   "q=\"Q\" mode=controlled rev=0",
+   "find: Q",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "15.44s ui.input hook kind=submit element=q value=\"helloworMld\" keys=plugin…"
+  ],
+  "ring": [
+   "5:95-106:1:·entry·one",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "seek-clear-2",
+  "sent": "\u001b[B",
+  "events": [
+   "22.54s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"e2\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=4 s=1",
+   "q=\"Q\" mode=controlled rev=0",
+   "find: Q",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "15.44s ui.input hook kind=submit element=q value=\"helloworMld\" keys=plugin…"
+  ],
+  "ring": [
+   "6:95-106:2:·entry·two",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "seek-clear-3",
+  "sent": "\u001b[B",
+  "events": [
+   "24.06s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"e3\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=4 s=1",
+   "q=\"Q\" mode=controlled rev=0",
+   "find: Q",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "15.44s ui.input hook kind=submit element=q value=\"helloworMld\" keys=plugin…"
+  ],
+  "ring": [
+   "7:95-108:3:·entry·three",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "seek-clear-4",
+  "sent": "\u001b[B",
+  "events": [
+   "25.69s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"link\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=4 s=1",
+   "q=\"Q\" mode=controlled rev=0",
+   "find: Q",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "15.44s ui.input hook kind=submit element=q value=\"helloworMld\" keys=plugin…"
+  ],
+  "ring": [
+   "8:95-105:l:·link·(l)",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "seek-clear-5",
+  "sent": "\u001b[B",
+  "events": [
+   "27.32s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"clear\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=4 s=1",
+   "q=\"Q\" mode=controlled rev=0",
+   "find: Q",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "15.44s ui.input hook kind=submit element=q value=\"helloworMld\" keys=plugin…"
+  ],
+  "ring": [
+   "9:95-99:clear",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "enter-on-clear",
+  "sent": "\r",
+  "events": [
+   "28.94s ui.press hook element=clear",
+   "28.94s PRESS clear"
+  ],
+  "renders": [
+   "render #7 q=\"\" built=1ms sinceChange=12180ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=7 c=4 s=1",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "9:95-99:clear",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "shift-tab-back",
+  "sent": "\u001b[Z",
+  "events": [
+   "30.59s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"link\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=7 c=4 s=1",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "8:95-105:l:·link·(l)",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-after-clear",
+  "sent": "z",
+  "events": [],
+  "renders": [
+   "render #8 q=\"\" built=7ms sinceChange=15477ms w=94"
+  ],
+  "composer": [
+   "❯ z"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=8 c=4 s=1",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:3-3:·"
+  ],
+  "cursor": [
+   3,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ z"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=8 c=4 s=1",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:3-3:·"
+  ],
+  "cursor": [
+   3,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "set-foo-by-command",
+  "sent": "\r",
+  "events": [
+   "36.75s set \"foo\""
+  ],
+  "renders": [
+   "render #9 q=\"foo\" built=36ms sinceChange=20002ms w=94",
+   "render #10 q=\"foo\" built=12ms sinceChange=20016ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=10 c=4 s=1",
+   "q=\"foo\" mode=controlled rev=0 forced=\"foo\"",
+   "find: foo",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "30.59s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "clear-by-command",
+  "sent": "\r",
+  "events": [
+   "39.03s cleared by command"
+  ],
+  "renders": [
+   "render #11 q=\"\" built=2ms sinceChange=22264ms w=94",
+   "render #12 q=\"\" built=4ms sinceChange=22300ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=12 c=4 s=1",
+   "q=\"\" mode=controlled rev=0 forced=\"\"",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "log",
+  "sent": "\r",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=12 c=4 s=1",
+   "q=\"\" mode=controlled rev=0 forced=\"\"",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ }
+]

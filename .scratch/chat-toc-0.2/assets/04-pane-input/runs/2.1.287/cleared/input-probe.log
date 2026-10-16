@@ -1,0 +1,44 @@
+0.11s session.start version=[object Object] mode=uncontrolled autofocus=undefined rows=undefined
+2.04s open  columns=undefined {"isPlaced":true}
+2.08s render #1 q="" built=22ms sinceChange=-1ms w=94
+4.40s render #2 q="" built=2ms sinceChange=-1ms w=94
+6.00s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+7.62s ui.input hook kind=change element=q value="hello" keys=plugin,element,component,requestId,surface,kind,value
+7.62s onInput #1 "hello"
+7.62s render #3 q="hello" built=0ms sinceChange=2ms w=94
+9.24s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+10.90s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e1","origin":{"kind":"person"}}
+12.52s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e2","origin":{"kind":"person"}}
+14.15s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e3","origin":{"kind":"person"}}
+15.82s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"link","origin":{"kind":"person"}}
+17.43s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"clear","origin":{"kind":"person"}}
+19.05s ui.press hook element=clear
+19.05s PRESS clear
+19.05s render #4 q="" built=1ms sinceChange=11434ms w=94
+19.09s render #5 q="" built=1ms sinceChange=11468ms w=94
+20.68s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"link","origin":{"kind":"person"}}
+22.36s render #6 q="" built=5ms sinceChange=14741ms w=94
+24.78s render #7 q="" built=1ms sinceChange=17157ms w=94
+26.40s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+28.02s ui.input hook kind=change element=q value="again" keys=plugin,element,component,requestId,surface,kind,value
+28.02s onInput #2 "again"
+28.02s render #8 q="again" built=0ms sinceChange=2ms w=94
+28.06s render #9 q="again" built=1ms sinceChange=36ms w=94
+29.69s render #10 q="again" built=3ms sinceChange=1667ms w=94
+32.28s set "foo"
+32.29s render #11 q="foo" built=2ms sinceChange=4263ms w=94
+32.32s render #12 q="foo" built=1ms sinceChange=4296ms w=94
+34.82s bumped
+34.83s render #13 q="foo" built=10ms sinceChange=6805ms w=94
+37.22s render #14 q="foo" built=2ms sinceChange=9194ms w=94
+38.83s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+40.46s ui.input hook kind=change element=q value="foobar" keys=plugin,element,component,requestId,surface,kind,value
+40.47s onInput #3 "foobar"
+40.47s render #15 q="foobar" built=1ms sinceChange=3ms w=94
+40.50s render #16 q="foobar" built=0ms sinceChange=38ms w=94
+42.13s render #17 q="foobar" built=3ms sinceChange=1665ms w=94
+44.70s cleared by command
+44.71s render #18 q="" built=6ms sinceChange=4245ms w=94
+44.74s render #19 q="" built=1ms sinceChange=4275ms w=94
+47.23s bumped
+47.25s render #20 q="" built=13ms sinceChange=6783ms w=94

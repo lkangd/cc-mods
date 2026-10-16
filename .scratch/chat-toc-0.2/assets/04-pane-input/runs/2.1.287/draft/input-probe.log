@@ -1,0 +1,9 @@
+0.11s session.start version=[object Object] mode=uncontrolled autofocus=undefined rows=undefined
+2.15s open  columns=undefined {"isPlaced":true}
+2.18s render #1 q="" built=18ms sinceChange=-1ms w=94
+4.82s render #2 q="" built=2ms sinceChange=-1ms w=94
+6.44s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+8.05s ui.input hook kind=change element=q value="q" keys=plugin,element,component,requestId,surface,kind,value
+8.06s onInput #1 "q"
+8.06s render #3 q="q" built=2ms sinceChange=7ms w=94
+9.72s render #4 q="q" built=3ms sinceChange=1665ms w=94

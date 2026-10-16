@@ -1,0 +1,1 @@
+{ "description": "input-probe", "modules": ["./register.ts"] }

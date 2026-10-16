@@ -1,0 +1,56 @@
+0.12s session.start version=[object Object] mode=uncontrolled autofocus=undefined rows=5000
+2.52s open  columns=undefined {"isPlaced":true}
+2.56s render #1 q="" built=24ms sinceChange=-1ms w=94
+4.92s render #2 q="" built=50ms sinceChange=-1ms w=94
+6.48s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+8.10s ui.input hook kind=change element=q value="r" keys=plugin,element,component,requestId,surface,kind,value
+8.12s onInput #1 "r"
+8.14s render #3 q="r" built=15ms sinceChange=19ms w=94
+8.22s ui.input hook kind=change element=q value="ro" keys=plugin,element,component,requestId,surface,kind,value
+8.23s onInput #2 "ro"
+8.26s render #4 q="ro" built=25ms sinceChange=36ms w=94
+8.34s ui.input hook kind=change element=q value="row" keys=plugin,element,component,requestId,surface,kind,value
+8.35s onInput #3 "row"
+8.35s render #5 q="row" built=3ms sinceChange=5ms w=94
+8.47s ui.input hook kind=change element=q value="row " keys=plugin,element,component,requestId,surface,kind,value
+8.47s onInput #4 "row "
+8.48s render #6 q="row " built=5ms sinceChange=9ms w=94
+8.59s ui.input hook kind=change element=q value="row 1" keys=plugin,element,component,requestId,surface,kind,value
+8.60s onInput #5 "row 1"
+8.60s render #7 q="row 1" built=3ms sinceChange=5ms w=94
+10.83s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+10.83s onInput #6 ""
+10.84s render #8 q="" built=4ms sinceChange=7ms w=94
+11.34s ui.input hook kind=change element=q value="t" keys=plugin,element,component,requestId,surface,kind,value
+11.34s onInput #7 "t"
+11.35s render #9 q="t" built=5ms sinceChange=9ms w=94
+11.36s ui.input hook kind=change element=q value="tu" keys=plugin,element,component,requestId,surface,kind,value
+11.36s onInput #8 "tu"
+11.38s ui.input hook kind=change element=q value="tur" keys=plugin,element,component,requestId,surface,kind,value
+11.38s onInput #9 "tur"
+11.38s render #10 q="tu" built=4ms sinceChange=2ms w=94
+11.40s ui.input hook kind=change element=q value="turn" keys=plugin,element,component,requestId,surface,kind,value
+11.40s onInput #10 "turn"
+11.42s render #11 q="turn" built=3ms sinceChange=14ms w=94
+11.43s ui.input hook kind=change element=q value="turn " keys=plugin,element,component,requestId,surface,kind,value
+11.43s onInput #11 "turn "
+11.45s ui.input hook kind=change element=q value="turn 7" keys=plugin,element,component,requestId,surface,kind,value
+11.45s onInput #12 "turn 7"
+11.46s render #12 q="turn " built=5ms sinceChange=2ms w=94
+11.47s ui.input hook kind=change element=q value="turn 77" keys=plugin,element,component,requestId,surface,kind,value
+11.48s onInput #13 "turn 77"
+11.49s render #13 q="turn 77" built=4ms sinceChange=3ms w=94
+11.55s render #14 q="turn 77" built=36ms sinceChange=70ms w=94
+13.62s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+13.63s onInput #14 ""
+13.63s render #15 q="" built=2ms sinceChange=4ms w=94
+14.18s ui.input hook kind=change element=q value="abcdefghij" keys=plugin,element,component,requestId,surface,kind,value
+14.21s onInput #15 "abcdefghij"
+14.24s render #16 q="abcdefghij" built=12ms sinceChange=33ms w=94
+16.28s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+16.28s onInput #16 ""
+16.29s render #17 q="" built=3ms sinceChange=4ms w=94
+16.80s ui.input hook kind=change element=q value="pasted text 20c" keys=plugin,element,component,requestId,surface,kind,value
+16.81s onInput #17 "pasted text 20c"
+16.84s render #18 q="pasted text 20c" built=19ms sinceChange=26ms w=94
+18.96s render #19 q="pasted text 20c" built=5ms sinceChange=2151ms w=94

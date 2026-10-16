@@ -1,0 +1,344 @@
+[
+ {
+  "step": "open-pane",
+  "sent": "\r",
+  "events": [
+   "2.15s open  columns=undefined {\"isPlaced\":true}"
+  ],
+  "renders": [
+   "render #1 q=\"\" built=26ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=1 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 400 of 5000 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #2 q=\"\" built=6ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 400 of 5000 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "tab-to-field",
+  "sent": "\t",
+  "events": [
+   "6.12s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 400 of 5000 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "3:101-101:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   101,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "typed-row-1-at-120ms",
+  "sent": null,
+  "events": [
+   "7.78s ui.input hook kind=change element=q value=\"r\" keys=plugin,element,component,requestId,surface,kind,value",
+   "7.79s onInput #1 \"r\"",
+   "7.90s ui.input hook kind=change element=q value=\"ro\" keys=plugin,element,component,requestId,surface,kind,value",
+   "7.91s onInput #2 \"ro\"",
+   "8.03s ui.input hook kind=change element=q value=\"row\" keys=plugin,element,component,requestId,surface,kind,value",
+   "8.04s onInput #3 \"row\"",
+   "8.15s ui.input hook kind=change element=q value=\"row \" keys=plugin,element,component,requestId,surface,kind,value",
+   "8.15s onInput #4 \"row \"",
+   "8.27s ui.input hook kind=change element=q value=\"row 1\" keys=plugin,element,component,requestId,surface,kind,value",
+   "8.28s onInput #5 \"row 1\""
+  ],
+  "renders": [
+   "render #3 q=\"r\" built=3ms sinceChange=7ms w=94",
+   "render #4 q=\"ro\" built=3ms sinceChange=6ms w=94",
+   "render #5 q=\"row\" built=4ms sinceChange=6ms w=94",
+   "render #6 q=\"row \" built=3ms sinceChange=6ms w=94",
+   "render #7 q=\"row 1\" built=4ms sinceChange=7ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=7 c=5 s=0",
+   "q=\"row 1\" mode=uncontrolled rev=0",
+   "find: row 1  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 400 of 5000 match ---",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 10 turn text 70 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem …"
+  ],
+  "ring": [
+   "3:106-106:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   106,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "typed-turn-77-at-20ms",
+  "sent": null,
+  "events": [
+   "11.06s ui.input hook kind=change element=q value=\"t\" keys=plugin,element,component,requestId,surface,kind,value",
+   "11.06s onInput #7 \"t\"",
+   "11.08s ui.input hook kind=change element=q value=\"tu\" keys=plugin,element,component,requestId,surface,kind,value",
+   "11.09s onInput #8 \"tu\"",
+   "11.10s ui.input hook kind=change element=q value=\"tur\" keys=plugin,element,component,requestId,surface,kind,value",
+   "11.11s onInput #9 \"tur\"",
+   "11.12s ui.input hook kind=change element=q value=\"turn\" keys=plugin,element,component,requestId,surface,kind,value",
+   "11.13s onInput #10 \"turn\"",
+   "11.15s ui.input hook kind=change element=q value=\"turn \" keys=plugin,element,component,requestId,surface,kind,value",
+   "11.15s onInput #11 \"turn \"",
+   "11.17s ui.input hook kind=change element=q value=\"turn 7\" keys=plugin,element,component,requestId,surface,kind,value",
+   "11.18s onInput #12 \"turn 7\"",
+   "11.19s ui.input hook kind=change element=q value=\"turn 77\" keys=plugin,element,component,requestId,surface,kind,value",
+   "11.20s onInput #13 \"turn 77\""
+  ],
+  "renders": [
+   "render #9 q=\"t\" built=4ms sinceChange=8ms w=94",
+   "render #10 q=\"tu\" built=3ms sinceChange=17ms w=94",
+   "render #11 q=\"turn\" built=8ms sinceChange=15ms w=94",
+   "render #12 q=\"turn \" built=7ms sinceChange=2ms w=94",
+   "render #13 q=\"turn 77\" built=2ms sinceChange=8ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=13 c=13 s=0",
+   "q=\"turn 77\" mode=uncontrolled rev=0",
+   "find: turn 77  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 5000 match ---",
+   "--- log ---",
+   "11.18s onInput #12 \"turn 7\""
+  ],
+  "ring": [
+   "3:108-108:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   108,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "burst-one-write",
+  "sent": "abcdefghij",
+  "events": [
+   "13.88s ui.input hook kind=change element=q value=\"abcdefghij\" keys=plugin,element,component,requestId,surface,kind,value",
+   "13.89s onInput #15 \"abcdefghij\""
+  ],
+  "renders": [
+   "render #15 q=\"abcdefghij\" built=2ms sinceChange=5ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=15 c=15 s=0",
+   "q=\"abcdefghij\" mode=uncontrolled rev=0",
+   "find: abcdefghij  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 5000 match ---",
+   "--- log ---",
+   "13.39s onInput #14 \"\""
+  ],
+  "ring": [
+   "3:111-111:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   111,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "bracketed-paste",
+  "sent": "\u001b[200~pasted text 20c\u001b[201~",
+  "events": [
+   "16.51s ui.input hook kind=change element=q value=\"pasted text 20c\" keys=plugin,element,component,requestId,surface,kind,value",
+   "16.52s onInput #17 \"pasted text 20c\""
+  ],
+  "renders": [
+   "render #17 q=\"pasted text 20c\" built=2ms sinceChange=5ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=17 c=17 s=0",
+   "q=\"pasted text 20c\" mode=uncontrolled rev=0",
+   "find: pasted text 20c  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 5000 match ---",
+   "--- log ---",
+   "16.01s onInput #16 \"\""
+  ],
+  "ring": [
+   "3:116-116:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   116,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [
+   "render #18 q=\"pasted text 20c\" built=5ms sinceChange=2209ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=18 c=17 s=0",
+   "q=\"pasted text 20c\" mode=uncontrolled rev=0",
+   "find: pasted text 20c",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 5000 match ---",
+   "--- log ---",
+   "16.02s render #16 q=\"\" built=3ms sinceChange=5ms w=94"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "log",
+  "sent": "\r",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=18 c=17 s=0",
+   "q=\"pasted text 20c\" mode=uncontrolled rev=0",
+   "find: pasted text 20c",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 5000 match ---",
+   "--- log ---",
+   "16.02s render #16 q=\"\" built=3ms sinceChange=5ms w=94"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ }
+]

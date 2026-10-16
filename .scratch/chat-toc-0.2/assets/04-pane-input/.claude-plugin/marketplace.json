@@ -1,0 +1,8 @@
+{
+  "name": "input-probe-local",
+  "owner": { "name": "lkangd" },
+  "description": "Throwaway: an Input in the docked Pane",
+  "plugins": [
+    { "name": "input-probe", "source": "./input-probe", "description": "A Pane with an Input, entries with digit hotkeys, and a clear Button", "version": "0.0.1" }
+  ]
+}

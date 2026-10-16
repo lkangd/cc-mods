@@ -1,0 +1,463 @@
+[
+ {
+  "step": "open-pane",
+  "sent": "\r",
+  "events": [
+   "2.62s open  columns=undefined {\"isPlaced\":true}"
+  ],
+  "renders": [
+   "render #1 q=\"\" built=15ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=1 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #2 q=\"\" built=2ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "tab-from-nothing",
+  "sent": "\t",
+  "events": [
+   "6.61s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "3:101-101:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   101,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "tab-2",
+  "sent": "\t",
+  "events": [
+   "8.23s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"tofind\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "4:95-101:to·find",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "tab-3",
+  "sent": "\t",
+  "events": [
+   "9.85s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"e1\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "5:95-106:1:·entry·one",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "shift-tab",
+  "sent": "\u001b[Z",
+  "events": [
+   "11.48s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"tofind\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "4:95-101:to·find",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "down-to-field?",
+  "sent": "\u001b[B",
+  "events": [
+   "13.09s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"e1\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "5:95-106:1:·entry·one",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-ab",
+  "sent": "ab",
+  "events": [],
+  "renders": [
+   "render #3 q=\"\" built=4ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯ ab"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "45:4-4:·"
+  ],
+  "cursor": [
+   4,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "tab-from-field",
+  "sent": "\t",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ ab"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "45:4-4:·"
+  ],
+  "cursor": [
+   4,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "letter-z-on-button",
+  "sent": "z",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ abz"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "45:5-5:·"
+  ],
+  "cursor": [
+   5,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab-2",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #4 q=\"\" built=1ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯ abz"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "45:5-5:·"
+  ],
+  "cursor": [
+   5,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ring-kept?",
+  "sent": null,
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ abz"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "45:5-5:·"
+  ],
+  "cursor": [
+   5,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [
+   "render #5 q=\"\" built=1ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯ abz"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=5 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "45:5-5:·"
+  ],
+  "cursor": [
+   5,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "log",
+  "sent": "\r",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=5 c=0 s=0",
+   "q=\"\" mode=controlled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0",
+   "row 1 turn text 7"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ }
+]

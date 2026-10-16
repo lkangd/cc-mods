@@ -1,0 +1,32 @@
+0.15s session.start version=[object Object] mode=uncontrolled autofocus=undefined rows=undefined
+3.30s open  columns=undefined {"isPlaced":true}
+3.33s render #1 q="" built=18ms sinceChange=-1ms w=94
+7.95s focus q {"deny":"that site does not hold the keyboard"}
+10.81s render #2 q="" built=8ms sinceChange=-1ms w=94
+12.45s render #3 q="" built=4ms sinceChange=-1ms w=94
+26.53s render #4 q="" built=4ms sinceChange=-1ms w=94
+28.14s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+29.76s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+31.37s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+34.63s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"clear","origin":{"kind":"person"}}
+36.31s render #5 q="" built=2ms sinceChange=-1ms w=94
+38.81s render #6 q="" built=1ms sinceChange=-1ms w=94
+40.42s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+42.05s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+43.66s ui.press hook element=tofind
+43.66s PRESS tofind -> focus q {}
+45.32s ui.input hook kind=change element=q value="q" keys=plugin,element,component,requestId,surface,kind,value
+45.33s onInput #1 "q"
+45.33s render #7 q="q" built=1ms sinceChange=3ms w=94
+47.00s render #8 q="q" built=3ms sinceChange=1672ms w=94
+49.52s ui.press hook element=e1
+49.52s PRESS e1
+53.95s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+53.96s render #9 q="q" built=7ms sinceChange=8637ms w=94
+55.80s ui.input hook kind=change element=q value="qk" keys=plugin,element,component,requestId,surface,kind,value
+55.81s onInput #2 "qk"
+55.82s render #10 q="qk" built=4ms sinceChange=8ms w=94
+57.45s render #11 q="qk" built=3ms sinceChange=1647ms w=94
+60.06s open openfocus columns=undefined {"isPlaced":true}
+60.08s render #12 q="qk" built=13ms sinceChange=4267ms w=94
+62.29s render #13 q="qk" built=40ms sinceChange=6481ms w=94

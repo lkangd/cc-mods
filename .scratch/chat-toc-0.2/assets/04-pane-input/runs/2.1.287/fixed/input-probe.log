@@ -1,0 +1,14 @@
+0.10s session.start version=[object Object] mode=fixed autofocus=undefined rows=undefined
+1.95s open  columns=undefined {"isPlaced":true}
+1.98s render #1 q="" built=15ms sinceChange=-1ms w=94
+4.32s render #2 q="" built=3ms sinceChange=-1ms w=94
+5.93s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+7.55s ui.input hook kind=change element=q value="fixeda" keys=plugin,element,component,requestId,surface,kind,value
+7.55s onInput #1 "fixeda"
+7.55s render #3 q="fixeda" built=1ms sinceChange=3ms w=94
+9.16s ui.input hook kind=change element=q value="fixedab" keys=plugin,element,component,requestId,surface,kind,value
+9.16s onInput #2 "fixedab"
+9.17s render #4 q="fixedab" built=0ms sinceChange=3ms w=94
+11.12s render #5 q="fixedab" built=13ms sinceChange=1952ms w=94
+13.74s bumped
+13.75s render #6 q="fixedab" built=11ms sinceChange=4590ms w=94
