@@ -12,6 +12,7 @@ import { MIN_LIST_ROWS, BAR_ROWS, MIN_BAR_GROUPS } from './bars'
 import { textCells, wrapCells } from './cells'
 import { agentStateOf, clockTime, dayLabel } from './entries'
 import type { TurnGroup } from './groups'
+import { COPY_INPUT_HOTKEY, COPY_TEXT_HOTKEY } from './reuse'
 import { text as words } from './text'
 
 /* Where the preview's choice is kept in `$.store`, and its two values; a
@@ -26,10 +27,6 @@ export const PREVIEW_HOTKEY = 'p'
 export const EXPAND_HOTKEY = 'e'
 /* The expanded preview's Back Button, hotkey `e` too. */
 export const BACK_CONTROL = 'preview.back'
-/* The keys that copy the User input and the last text (ticket 17's
-   Buttons on the label rows); the cap lines name them. */
-const COPY_INPUT_HOTKEY = 'c'
-const COPY_TEXT_HOTKEY = 'a'
 
 const MIN_ROWS = 4
 const MAX_ROWS = 14

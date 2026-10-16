@@ -98,6 +98,15 @@ const EN = {
   matched: (fields: readonly ('user' | 'agent' | 'files')[]) =>
     `matched: ${fields.map(f => (f === 'user' ? 'User' : f === 'agent' ? 'Agent' : 'files')).join(' · ')}`,
   readNamed: (names: string) => `read ${names}`,
+  reuse: 'Reuse',
+  copy: 'Copy',
+  copied: 'Copied',
+  imagesLeft: 'Images not included',
+  fillDialog: "Couldn't fill the prompt: a dialog is open",
+  fillRefused: "Couldn't fill the prompt: another plugin refused",
+  fillNoComposer: "Couldn't fill the prompt: there is no prompt box here",
+  copyFailed: (reason: 'no-surface' | 'no-clipboard' | 'refused'): string =>
+    reason === 'no-clipboard' ? 'Too long to copy here' : reason === 'refused' ? "Couldn't copy: another plugin refused" : "Couldn't copy: no clipboard here",
 }
 
 export type Text = typeof EN
@@ -167,6 +176,14 @@ const ZH: Text = {
   noMatch: '没有匹配的轮次',
   matched: fields => `匹配：${fields.map(f => (f === 'user' ? '用户' : f === 'agent' ? 'Agent' : '文件')).join(' · ')}`,
   readNamed: names => `读 ${names}`,
+  reuse: '填入',
+  copy: '复制',
+  copied: '已复制',
+  imagesLeft: '图片未包含',
+  fillDialog: '无法填入：有对话框打开',
+  fillRefused: '无法填入：被其他插件拒绝',
+  fillNoComposer: '无法填入：此处没有输入框',
+  copyFailed: reason => (reason === 'no-clipboard' ? '太长，无法在此复制' : reason === 'refused' ? '无法复制：被其他插件拒绝' : '无法复制：此处没有剪贴板'),
 }
 
 /* The words in use. Swapped in place, so a module holding it reads the
