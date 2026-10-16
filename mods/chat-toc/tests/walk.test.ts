@@ -1,43 +1,43 @@
 import { expect, test } from 'claude-code/testing'
-import { listedGroups, stepFrom } from '../hooks/step'
+import { listedGroups, walkFrom } from '../hooks/walk'
 
 /* The previous and next Turn group (spec §6): which group a press of ‹ or ›
    jumps to, from the Current position over the groups the list shows. */
 
 const all = () => true
 
-test('a step goes to the shown group before or after the Current position', () => {
-  expect(stepFrom([0, 1, 2, 3], 2, 'previous', all)).toEqual({ kind: 'jump', group: 1 })
-  expect(stepFrom([0, 1, 2, 3], 2, 'next', all)).toEqual({ kind: 'jump', group: 3 })
+test('a walk goes to the shown group before or after the Current position', () => {
+  expect(walkFrom([0, 1, 2, 3], 2, 'previous', all)).toEqual({ kind: 'jump', group: 1 })
+  expect(walkFrom([0, 1, 2, 3], 2, 'next', all)).toEqual({ kind: 'jump', group: 3 })
 })
 
 test('it walks only the groups shown, from a position the list does not show', () => {
-  expect(stepFrom([0, 3, 7], 5, 'previous', all)).toEqual({ kind: 'jump', group: 3 })
-  expect(stepFrom([0, 3, 7], 5, 'next', all)).toEqual({ kind: 'jump', group: 7 })
-  expect(stepFrom([0, 3, 7], 3, 'next', all)).toEqual({ kind: 'jump', group: 7 })
+  expect(walkFrom([0, 3, 7], 5, 'previous', all)).toEqual({ kind: 'jump', group: 3 })
+  expect(walkFrom([0, 3, 7], 5, 'next', all)).toEqual({ kind: 'jump', group: 7 })
+  expect(walkFrom([0, 3, 7], 3, 'next', all)).toEqual({ kind: 'jump', group: 7 })
 })
 
 test('at either end nothing happens', () => {
-  expect(stepFrom([0, 1, 2], 0, 'previous', all)).toEqual({ kind: 'end' })
-  expect(stepFrom([0, 1, 2], 2, 'next', all)).toEqual({ kind: 'end' })
-  expect(stepFrom([4, 6], 2, 'previous', all)).toEqual({ kind: 'end' })
-  expect(stepFrom([], 2, 'next', all)).toEqual({ kind: 'end' })
+  expect(walkFrom([0, 1, 2], 0, 'previous', all)).toEqual({ kind: 'end' })
+  expect(walkFrom([0, 1, 2], 2, 'next', all)).toEqual({ kind: 'end' })
+  expect(walkFrom([4, 6], 2, 'previous', all)).toEqual({ kind: 'end' })
+  expect(walkFrom([], 2, 'next', all)).toEqual({ kind: 'end' })
 })
 
 test('a group without a Jump target is skipped for the next one that way that has one', () => {
   const jumpable = (g: number) => g !== 2 && g !== 3
-  expect(stepFrom([0, 1, 2, 3, 4], 1, 'next', jumpable)).toEqual({ kind: 'jump', group: 4 })
-  expect(stepFrom([0, 1, 2, 3, 4], 4, 'previous', jumpable)).toEqual({ kind: 'jump', group: 1 })
+  expect(walkFrom([0, 1, 2, 3, 4], 1, 'next', jumpable)).toEqual({ kind: 'jump', group: 4 })
+  expect(walkFrom([0, 1, 2, 3, 4], 4, 'previous', jumpable)).toEqual({ kind: 'jump', group: 1 })
 })
 
-test('with groups that way but none with a Jump target, the step says so', () => {
+test('with groups that way but none with a Jump target, the walk says so', () => {
   const jumpable = (g: number) => g < 2
-  expect(stepFrom([0, 1, 2, 3], 1, 'next', jumpable)).toEqual({ kind: 'unjumpable' })
+  expect(walkFrom([0, 1, 2, 3], 1, 'next', jumpable)).toEqual({ kind: 'unjumpable' })
 })
 
 test('with no Current position, previous starts from the newest shown group and next does nothing', () => {
-  expect(stepFrom([0, 1, 2], undefined, 'previous', all)).toEqual({ kind: 'jump', group: 2 })
-  expect(stepFrom([0, 1, 2], undefined, 'next', all)).toEqual({ kind: 'end' })
+  expect(walkFrom([0, 1, 2], undefined, 'previous', all)).toEqual({ kind: 'jump', group: 2 })
+  expect(walkFrom([0, 1, 2], undefined, 'next', all)).toEqual({ kind: 'end' })
 })
 
 test('the groups the list shows: every group under All and User, those with an Agent side under Agent', () => {

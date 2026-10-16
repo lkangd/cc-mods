@@ -10,7 +10,7 @@
      search.ts                                          which groups a query matches
      pane.tsx / ring.ts                                 how it draws, the keyboard
      sites.ts / jump.ts                                 where a press scrolls
-     step.ts                                            the previous and next Turn group
+     walk.ts                                            the walk to the previous and next Turn group
      position.ts                                        what the view is on
    The host's `$` may only be handed to functions declared at the top of
    this file, so every call on `$` is made here or in one of them. */
@@ -49,8 +49,8 @@ import type { CopyWhich } from './reuse'
 import { indexGroups, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
 import type { Match } from './search'
 import { derivedTranscriptPath } from './locate'
-import { listedGroups, stepFrom } from './step'
-import type { StepDirection } from './step'
+import { listedGroups, walkFrom } from './walk'
+import type { WalkDirection } from './walk'
 import { languageOf, setLanguage, text as words } from './text'
 import type { BandCounts } from './text'
 import { drawBand } from './band'
@@ -744,14 +744,14 @@ async function say($: EngineInterface, key: string, text: string, isPaneOnScreen
 }
 
 /* ‹ or ›, pressed by a click or by a key the person bound to its action:
-   the transcript steps from the Current position (not the selection) to
+   the transcript walks from the Current position (not the selection) to
    the Turn group before or after it among those the list shows, the View
-   filter's and, during a search, the matches' (step.ts), on the side the
+   filter's and, during a search, the matches' (walk.ts), on the side the
    View filter shows, without ending the search. The jump locks the Current
    position on its group, so presses walk group by group. Nothing at either
    end; groups that way but none with a Jump target say the click's notice.
    The press hands this promise back: the scroll is the person's. */
-async function stepTurn($: EngineInterface, direction: StepDirection, isPaneOnScreen: boolean): Promise<void> {
+async function walkTurn($: EngineInterface, direction: WalkDirection, isPaneOnScreen: boolean): Promise<void> {
   if (source !== 'ok') return
   const groups = shownGroups()
   const isRunning = isTurnRunning && groups === reading.groups
@@ -763,9 +763,9 @@ async function stepTurn($: EngineInterface, direction: StepDirection, isPaneOnSc
     const group = groups[g]
     return group !== undefined && !refused.has(sideKeyOf(group, side)) && jumpTargetsOf(group, side, chainRows, sites).length > 0
   }
-  const to = stepFrom(shown, placing.position, direction, hasTarget)
+  const to = walkFrom(shown, placing.position, direction, hasTarget)
   if (to.kind === 'jump') return jump($, { groupIndex: to.group, side, key: `g${to.group}.${side === 'agent' ? 'a' : 'u'}` }, isPaneOnScreen)
-  if (to.kind === 'unjumpable') return say($, `step.${direction}`, words.refused, isPaneOnScreen)
+  if (to.kind === 'unjumpable') return say($, `walk.${direction}`, words.refused, isPaneOnScreen)
 }
 
 /* Says below the entries why a press did not jump, flashing, for a while. */
@@ -1286,7 +1286,7 @@ export const register: Register = on => {
     const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
     isBandDrawn = !e.props.hasSurvey && (pane === undefined || !pane.isPlaced || !pane.isShown)
     if (!isBandDrawn) return next(e)
-    return drawBand($.ui.resolve(e), { counts: bandCounts(), onOpen: () => openAsked($), onStep: direction => stepTurn($, direction, false) })
+    return drawBand($.ui.resolve(e), { counts: bandCounts(), onOpen: () => openAsked($), onWalk: direction => walkTurn($, direction, false) })
   })
 
   /* The arrows walk the host's focus ring Button by Button; this keeps it
@@ -1460,14 +1460,14 @@ export const register: Register = on => {
     const searchView: SearchView = {
       query: searchText,
       count: search === undefined ? undefined : { matches: search.matches.length, of: groups.length },
-      onFind: () => focusSearch($),
+      onFocusSearch: () => focusSearch($),
       onInput: value => {
         if (perf.isOn) typedAt ??= perfNow()
         void setQuery($, value)
       },
       onSubmit: value => submitSearch($, value).catch(() => undefined),
       onClear: () => setQuery($, ''),
-      onStep: direction => stepTurn($, direction, true),
+      onWalk: direction => walkTurn($, direction, true),
     }
     /* The Minimap lights the Current position's cell or, while a query is
        set, the cells holding a match. */

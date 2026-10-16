@@ -7,7 +7,7 @@
    scroll of it, so the arrows reach every entry. */
 
 import { isBarKey } from './bars'
-import { isStepKey } from './step'
+import { isWalkKey } from './walk'
 import type { TocWindow } from './window'
 
 /* The controls around the entries, in the ring's order: the filter row's
@@ -69,7 +69,7 @@ export function ringMove(
   /* The ‹ › Buttons and the Minimap's cells are for the pointer: the ring
      steps over them, from the search row down to the first entry in the
      window, from an entry up to the search row. */
-  if (isBarKey(to) || isStepKey(to)) {
+  if (isBarKey(to) || isWalkKey(to)) {
     if (was === undefined) {
       /* Up from the Layout Button, with no entry to land on, goes on to the search row. */
       if (isAfterList(from)) return { kind: 'land', key: before }

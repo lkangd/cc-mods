@@ -1,12 +1,12 @@
-/* The previous and next Turn group (spec §6): two plain Buttons, `‹` and
-   `›`, at the search row's right end and in the band, that step the
-   transcript from the Current position to the group before or after it
+/* The walk to the previous and next Turn group (spec §6): two plain
+   Buttons, `‹` and `›`, at the search row's right end and in the band,
+   that move the transcript from the Current position to the group before or after it
    among the groups the list shows. Each carries a borrowed keybinding
    action, so a key the person binds to it presses the Button from the
    composer; chat-toc binds none. The names mean something else in Claude
    Code (diff dialog switches with no handler mounted in a normal session):
    a later Claude Code that mounts one takes the key back. The scroll itself
-   is `step` in register.tsx, which may hold the host's `$`. */
+   is `walkTurn` in register.tsx, which may hold the host's `$`. */
 
 import type { ViewFilter } from './view'
 
@@ -14,16 +14,16 @@ export const PREVIOUS_ACTION = 'app:toggleDiffNoiseFilter'
 export const NEXT_ACTION = 'app:toggleDiffPreSession'
 
 /* The Buttons' keys, in the pane and in the band. */
-export const PREVIOUS_CONTROL = 'step.previous'
-export const NEXT_CONTROL = 'step.next'
+export const PREVIOUS_CONTROL = 'walk.previous'
+export const NEXT_CONTROL = 'walk.next'
 export const BAND_PREVIOUS = 'chat-toc-band.previous'
 export const BAND_NEXT = 'chat-toc-band.next'
 
-export const isStepKey = (key: string | undefined) => key === PREVIOUS_CONTROL || key === NEXT_CONTROL
+export const isWalkKey = (key: string | undefined) => key === PREVIOUS_CONTROL || key === NEXT_CONTROL
 
-export type StepDirection = 'previous' | 'next'
+export type WalkDirection = 'previous' | 'next'
 
-export type Step =
+export type Walk =
   /* Jump to this group. */
   | { kind: 'jump'; group: number }
   /* No shown group that way: nothing happens. */
@@ -45,10 +45,10 @@ export function listedGroups(
   return among.filter(g => g >= 0 && g < groups.length && isListed(g))
 }
 
-/* The group a step goes to from the Current position `position` (a group
+/* The group a walk goes to from the Current position `position` (a group
    index; undefined with none, which previous takes as past the newest)
    over `shown`, skipping groups without a Jump target. */
-export function stepFrom(shown: readonly number[], position: number | undefined, direction: StepDirection, hasTarget: (group: number) => boolean): Step {
+export function walkFrom(shown: readonly number[], position: number | undefined, direction: WalkDirection, hasTarget: (group: number) => boolean): Walk {
   const way =
     direction === 'previous'
       ? shown.filter(g => position === undefined || g < position).reverse()

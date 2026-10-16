@@ -6,7 +6,7 @@ import { transcript } from './fixture'
 /* CT-STEP-001's automated half: the ‹ › Buttons at the search row's right
    end and in the band, the borrowed actions they carry, and the focus ring
    stepping over them (spec §1, §6). The scroll a press makes never reaches
-   the test kit: the walk is tested in step.test.ts and the jump in a PTY. */
+   the test kit: the walk is tested in walk.test.ts and the jump in a PTY. */
 
 function session() {
   const t = transcript()
@@ -28,9 +28,9 @@ test('‹ and › close the search row, after the count and ✕, plain, with no 
 
   const keys = drawnButtons(await pane.drawn()).map(b => b.key)
   const at = keys.indexOf('search.clear')
-  expect(keys.slice(at, at + 3)).toEqual(['search.clear', 'step.previous', 'step.next'])
-  const previous = await pane.find({ type: 'Button', key: 'step.previous' })
-  const next = await pane.find({ type: 'Button', key: 'step.next' })
+  expect(keys.slice(at, at + 3)).toEqual(['search.clear', 'walk.previous', 'walk.next'])
+  const previous = await pane.find({ type: 'Button', key: 'walk.previous' })
+  const next = await pane.find({ type: 'Button', key: 'walk.next' })
   expect([previous?.text, previous?.props.plain, previous?.props.hotkey, previous?.props.action]).toEqual(['‹', true, undefined, 'app:toggleDiffNoiseFilter'])
   expect([next?.text, next?.props.plain, next?.props.hotkey, next?.props.action]).toEqual(['›', true, undefined, 'app:toggleDiffPreSession'])
 })
@@ -40,7 +40,7 @@ test('without a query ‹ › follow the field', async ($, on) => {
   await start($, world)
   const pane = await mountPane($, 40)
   const keys = drawnButtons(await pane.drawn()).map(b => b.key)
-  expect(keys.slice(keys.indexOf('find'), keys.indexOf('find') + 3)).toEqual(['find', 'step.previous', 'step.next'])
+  expect(keys.slice(keys.indexOf('search.focus'), keys.indexOf('search.focus') + 3)).toEqual(['search.focus', 'walk.previous', 'walk.next'])
 })
 
 test('Desktop draws no ‹ ›: it cannot move the transcript', async ($, on) => {
@@ -56,8 +56,8 @@ test('Desktop draws no ‹ ›: it cannot move the transcript', async ($, on) =>
   await world.clock.settle()
   const keys = drawnButtons(await pane.drawn()).map(b => b.key)
   expect(keys.length).toBeGreaterThan(0)
-  expect(keys).not.toContain('step.previous')
-  expect(keys).not.toContain('step.next')
+  expect(keys).not.toContain('walk.previous')
+  expect(keys).not.toContain('walk.next')
 })
 
 test('the focus ring steps over ‹ ›: down from the search row lands on the first entry, up from it on the search row', async ($, on) => {
@@ -75,8 +75,8 @@ test('the focus ring steps over ‹ ›: down from the search row lands on the f
   const arrow = (element: string) => $.ui.focus({ component: 'Pane', requestId: PANE, element, origin: { kind: 'person' } } as never)
   await arrow('search')
   world.focuses.length = 0
-  await arrow('step.previous')
+  await arrow('walk.previous')
   expect(world.focuses.at(-1)?.element).toBe('g0.u')
-  await arrow('step.next')
+  await arrow('walk.next')
   expect(world.focuses.at(-1)?.element).toBe('search')
 })

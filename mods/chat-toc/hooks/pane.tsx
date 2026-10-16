@@ -19,8 +19,8 @@ import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
 import { text as words } from './text'
 import { BACK_CONTROL, EXPAND_HOTKEY, MORE_CONTROL, PREVIEW_CONTROL, PREVIEW_HOTKEY } from './preview'
-import { NEXT_ACTION, NEXT_CONTROL, PREVIOUS_ACTION, PREVIOUS_CONTROL } from './step'
-import type { StepDirection } from './step'
+import { NEXT_ACTION, NEXT_CONTROL, PREVIOUS_ACTION, PREVIOUS_CONTROL } from './walk'
+import type { WalkDirection } from './walk'
 import type { ExpandedBody, PreviewBody } from './preview'
 import { COPY_INPUT_CONTROL, COPY_INPUT_HOTKEY, COPY_TEXT_CONTROL, COPY_TEXT_HOTKEY, REUSE_CONTROL, REUSE_HOTKEY } from './reuse'
 import type { CopyWhich } from './reuse'
@@ -51,27 +51,27 @@ export const FOOT_ROWS = 2
 export const SEARCH_ROWS = 1
 
 /* The search row's controls: the `f` Button, the field, the clear mark. */
-export const FIND_CONTROL = 'find'
+export const SEARCH_CONTROL = 'search.focus'
 export const SEARCH_FIELD = 'search'
 export const CLEAR_CONTROL = 'search.clear'
-export const FIND_HOTKEY = 'f'
+export const SEARCH_HOTKEY = 'f'
 
 /* The search row: the `f` Button moving the keys into the field, the field
    holding the query, while there is a query the count of matches among all
-   groups and the ✕ that clears it, then ‹ › stepping to the previous or
-   next Turn group (step.ts). */
+   groups and the ✕ that clears it, then ‹ › walking to the previous or
+   next Turn group (walk.ts). */
 export type SearchView = {
   query: string
   /* Undefined without a query. */
   count: { matches: number; of: number } | undefined
-  onFind: () => Promise<void>
+  onFocusSearch: () => Promise<void>
   onInput: (value: string) => void
   /* Hands back its promise: the host lets the transcript move only
      while the person's submit is under way. */
   onSubmit: (value: string) => Promise<void>
   onClear: () => Promise<void>
   /* Hands back its promise, as `onSubmit` does. */
-  onStep: (direction: StepDirection) => Promise<void>
+  onWalk: (direction: WalkDirection) => Promise<void>
 }
 
 function drawSearch(elements: ElementTable<'terminal'>, search: SearchView): RenderElement {
@@ -79,7 +79,7 @@ function drawSearch(elements: ElementTable<'terminal'>, search: SearchView): Ren
   const hasQuery = search.query !== ''
   return (
     <Box flexDirection="row">
-      <Button key={FIND_CONTROL} plain hotkey={FIND_HOTKEY} onPress={() => search.onFind()}>
+      <Button key={SEARCH_CONTROL} plain hotkey={SEARCH_HOTKEY} onPress={() => search.onFocusSearch()}>
         {words.find}
       </Button>
       <Text> </Text>
@@ -101,11 +101,11 @@ function drawSearch(elements: ElementTable<'terminal'>, search: SearchView): Ren
         </Button>
       ) : null}
       <Text> </Text>
-      <Button key={PREVIOUS_CONTROL} plain action={PREVIOUS_ACTION} onPress={() => search.onStep('previous')}>
+      <Button key={PREVIOUS_CONTROL} plain action={PREVIOUS_ACTION} onPress={() => search.onWalk('previous')}>
         ‹
       </Button>
       <Text> </Text>
-      <Button key={NEXT_CONTROL} plain action={NEXT_ACTION} onPress={() => search.onStep('next')}>
+      <Button key={NEXT_CONTROL} plain action={NEXT_ACTION} onPress={() => search.onWalk('next')}>
         ›
       </Button>
     </Box>
