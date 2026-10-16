@@ -18,7 +18,8 @@ export const COPY_TEXT_HOTKEY = 'a'
 /* How long a copy Button reads `Copied`. */
 export const COPIED_MS = 2_000
 
-export type CopyWhich = 'input' | 'text'
+/* Which side a copy takes: the User input or the Agent reply's last text. */
+export type CopySide = 'user' | 'agent'
 
 /* What a group's label rows offer: each text undefined draws no Button. */
 export type Reusable = {

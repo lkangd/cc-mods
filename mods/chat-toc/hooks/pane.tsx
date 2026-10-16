@@ -23,7 +23,7 @@ import { NEXT_ACTION, NEXT_CONTROL, PREVIOUS_ACTION, PREVIOUS_CONTROL } from './
 import type { WalkDirection } from './walk'
 import type { ExpandedBody, PreviewBody } from './preview'
 import { COPY_INPUT_CONTROL, COPY_INPUT_HOTKEY, COPY_TEXT_CONTROL, COPY_TEXT_HOTKEY, REUSE_CONTROL, REUSE_HOTKEY } from './reuse'
-import type { CopyWhich } from './reuse'
+import type { CopySide } from './reuse'
 
 export const PANE_ID = 'chat-toc'
 export const PANE_COLUMNS = 44
@@ -157,9 +157,9 @@ export type LabelActions = {
   canCopyInput: boolean
   canCopyText: boolean
   /* The copy Button that reads `Copied` now. */
-  copied: CopyWhich | undefined
+  copied: CopySide | undefined
   onReuse: () => Promise<void>
-  onCopy: (which: CopyWhich) => Promise<void>
+  onCopy: (which: CopySide) => Promise<void>
 }
 
 /* A dim label row, `User` or `Agent`, with its Buttons at the right end,
@@ -167,7 +167,7 @@ export type LabelActions = {
 export function labelRow(elements: ElementTable, label: string, side: 'user' | 'agent', actions: LabelActions | undefined, hasHotkeys = true): RenderElement {
   const { Box, Text, Button } = elements
   const key = (hotkey: string) => (hasHotkeys ? hotkey : undefined)
-  const copy = (which: CopyWhich, control: string, hotkey: string) => (
+  const copy = (which: CopySide, control: string, hotkey: string) => (
     <Button key={control} plain hotkey={key(hotkey)} dimColor={actions?.copied !== which} onPress={() => actions?.onCopy(which) ?? Promise.resolve()}>
       {actions?.copied === which ? words.copied : words.copy}
     </Button>
@@ -179,8 +179,8 @@ export function labelRow(elements: ElementTable, label: string, side: 'user' | '
         {words.reuse}
       </Button>,
     )
-  if (side === 'user' && actions?.canCopyInput) buttons.push(copy('input', COPY_INPUT_CONTROL, COPY_INPUT_HOTKEY))
-  if (side === 'agent' && actions?.canCopyText) buttons.push(copy('text', COPY_TEXT_CONTROL, COPY_TEXT_HOTKEY))
+  if (side === 'user' && actions?.canCopyInput) buttons.push(copy('user', COPY_INPUT_CONTROL, COPY_INPUT_HOTKEY))
+  if (side === 'agent' && actions?.canCopyText) buttons.push(copy('agent', COPY_TEXT_CONTROL, COPY_TEXT_HOTKEY))
   if (buttons.length === 0) return <Text dimColor>{label}</Text>
   return (
     <Box flexDirection="row" justifyContent="space-between">

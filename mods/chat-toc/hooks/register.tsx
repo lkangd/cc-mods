@@ -45,7 +45,7 @@ import { PREVIEW_CONTROL, PREVIEW_KEY, expandedBody, filesLine, isPreviewShown, 
 import type { ExpandedBody, PathBase, PreviewBody } from './preview'
 import { FILTER_END, LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
 import { COPIED_MS, fillOf, fillRefusedText, hasReuse, reusableOf } from './reuse'
-import type { CopyWhich } from './reuse'
+import type { CopySide } from './reuse'
 import { indexGroups, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
 import type { Match } from './search'
 import { derivedTranscriptPath } from './locate'
@@ -155,7 +155,7 @@ let pressedOpener: string | undefined
 let hostBase: string | undefined
 /* The copy Button reading `Copied`: the group's opener, which Button, and
    which copy, so only its own timer takes it back. */
-let copied: { opener: string; which: CopyWhich; n: number } | undefined
+let copied: { opener: string; which: CopySide; n: number } | undefined
 let copies = 0
 
 /* What the pane drew last, for the keyboard and the next switch: the
@@ -989,10 +989,10 @@ async function reuseInput($: EngineInterface, opener: string): Promise<void> {
 
 /* `c` or `a`: the User input or the last text, whole, on the clipboard.
    The Button reads `Copied` for a while; a copy refused says why. */
-async function copyOut($: EngineInterface, opener: string, which: CopyWhich, surface: RenderSurface): Promise<void> {
+async function copyOut($: EngineInterface, opener: string, which: CopySide, surface: RenderSurface): Promise<void> {
   const found = groupAtPress(opener)
   const offered = found === undefined ? undefined : reusableOf(found.group, found.isRunning)
-  const text = which === 'input' ? offered?.input : offered?.text
+  const text = which === 'user' ? offered?.input : offered?.text
   if (offered === undefined || text === undefined) return
   const result = await $.ui.copy({ text, surface })
   if (!result.isCopied) {
@@ -1007,7 +1007,7 @@ async function copyOut($: EngineInterface, opener: string, which: CopyWhich, sur
     void update($, rev, x => x + 1).catch(() => undefined)
   })
   await update($, rev, x => x + 1)
-  if (which === 'input' && offered.hasImagesLeft) $.ui.toast(words.imagesLeft)
+  if (which === 'user' && offered.hasImagesLeft) $.ui.toast(words.imagesLeft)
 }
 
 /* The label rows' Buttons for a group, as it offers them. */
