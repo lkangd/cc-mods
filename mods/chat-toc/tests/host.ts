@@ -88,6 +88,17 @@ export type Host = {
   /* The context use `$.session.usage()` gives: absent before the first
      response and from a compaction until the next. */
   percent: number | undefined
+  /* The prompt box: the draft as it stands, and what a fill answers. A
+     fill under `refuseFill` keeps the draft and answers so. */
+  draft: string
+  fills: { text: string; mode: string | undefined }[]
+  refuseFill?: 'dialog' | 'hook'
+  /* What reached the clipboard, each copy in order, and what a copy
+     answers while set. */
+  copies: { text: string; surface: string | undefined }[]
+  refuseCopy?: 'no-surface' | 'no-clipboard' | 'refused'
+  /* The toasts chat-toc showed, in order. */
+  toasts: string[]
 }
 
 /* What the shell and Windows PowerShell commands of a chunked read write:
@@ -137,6 +148,10 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     messages: [],
     messageCalls: 0,
     percent: undefined,
+    draft: '',
+    fills: [],
+    copies: [],
+    toasts: [],
   }
   on('env.get', (_$, e) => ({ value: world.env[e.name] }))
   on('session.turns', () => ({ value: world.messages.filter(m => m.role === 'user' && !(m.toolResults?.length ?? 0)).length }))
@@ -217,6 +232,23 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     const text = world.file
     if (world.hold) await world.hold
     return { value: text }
+  })
+  on('prompt.read', () => ({ value: { text: world.draft, cursor: world.draft.length } }))
+  on('prompt.fill', (_$, e) => {
+    if (world.refuseFill === 'dialog') return { isFilled: false, refusal: 'dialog' as const }
+    if (world.refuseFill === 'hook') return { isFilled: false }
+    world.fills.push({ text: e.text, mode: e.mode })
+    world.draft = e.mode === 'append' ? world.draft + e.text : e.text
+    return { isFilled: true }
+  })
+  on('ui.copy', (_$, e) => {
+    if (world.refuseCopy !== undefined) return { value: { isCopied: false as const, reason: world.refuseCopy } }
+    world.copies.push({ text: e.text, surface: e.surface })
+    return { value: { isCopied: true as const } }
+  })
+  on('ui.toast', (_$, e) => {
+    world.toasts.push(e.text)
+    return { value: undefined }
   })
   on('ui.scroll', (_$, e) => {
     world.scrolls.push({ ...e })

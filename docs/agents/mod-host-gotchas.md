@@ -49,6 +49,7 @@ Host and test-kit behaviour that the `plugin-authoring` skill does not state, me
 - 2.1.295's kit stores `session.append` itself; 2.1.287's kit has no bottom for it, so append-driven tests fail there. Run the suite on the current host only.
 - `mountPane($)` once per test; a second mount throws "mounted already".
 - The engine resolves a non-absolute path (a Windows `C:\…` on macOS) against the plugin dir before `fs.*` hooks see it.
+- A test's `prompt.fill` hook answering `{ isFilled: false, refusal: 'dialog' }` reaches the plugin with no `refusal`: the kit strips a cause a hook writes, as the host does. Test the engine's own refusals (`dialog`, `no_composer`) at a pure seam (chat-toc's `fillRefusedText`).
 
 ## Minimum host 2.1.287
 
@@ -61,6 +62,8 @@ Install into a scratch dir, never globally: `npm install --prefix <dir> @anthrop
 - Prefer pyte for whole-pane reads; cmux wheel input makes a pane window jump. cmux specifics (click side effects, sizes, commands) live in the memory `cmux-pty-acceptance`.
 - The host draws `dimColor` as the theme's `inactive` foreground, not SGR 2: `999999` under dark (the harness's world), `666666` under light, `white`/`brightblack` under dark-ansi/light-ansi. A hovered entry is drawn inverse: move the pointer off before checking colours.
 - Slice pyte rows by cell column, not char index: CJK text shifts character offsets.
+- pyte reads a `$.ui.toast`: a bordered box at the top right of the transcript, beside a docked Pane (cmux's `read-screen` does not). It slides in: wait for its text (about 1 s) rather than reading at once.
+- The prompt box's first line starts `❯` and a no-break space (U+00A0), not a plain space; its continuation lines start with two spaces.
 - Rewind without a model: Esc Esc on the empty composer, Up to the prompt, Enter, Enter (restore), then backspaces to clear the restored prompt.
 - `settle()` never goes quiet while the spinner turns: snap a running turn with a short timeout. A `fake_api.py` turn that reads a file outside the project raises a permission dialog: point `read_path` inside it.
 - The shell is fish: `$var` with spaces does not word-split. Drive loops from Python.

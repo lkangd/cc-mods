@@ -22,6 +22,8 @@ import { BACK_CONTROL, EXPAND_HOTKEY, MORE_CONTROL, PREVIEW_CONTROL, PREVIEW_HOT
 import { NEXT_ACTION, NEXT_CONTROL, PREVIOUS_ACTION, PREVIOUS_CONTROL } from './step'
 import type { StepDirection } from './step'
 import type { ExpandedBody, PreviewBody } from './preview'
+import { COPY_INPUT_CONTROL, COPY_INPUT_HOTKEY, COPY_TEXT_CONTROL, COPY_TEXT_HOTKEY, REUSE_CONTROL, REUSE_HOTKEY } from './reuse'
+import type { CopyWhich } from './reuse'
 
 export const PANE_ID = 'chat-toc'
 export const PANE_COLUMNS = 44
@@ -148,6 +150,46 @@ export function timeColumnOf(entry: Entry): string {
   return entry.lines.map((_, n) => (n === 0 ? entry.time : '').padEnd(TIME_COLUMN)).join('\n')
 }
 
+/* The Buttons on the preview's label rows (reuse.ts), acting on the group
+   it shows; each is drawn only when the group offers it. */
+export type LabelActions = {
+  canReuse: boolean
+  canCopyInput: boolean
+  canCopyText: boolean
+  /* The copy Button that reads `Copied` now. */
+  copied: CopyWhich | undefined
+  onReuse: () => Promise<void>
+  onCopy: (which: CopyWhich) => Promise<void>
+}
+
+/* A dim label row, `User` or `Agent`, with its Buttons at the right end,
+   ` · ` between them; on the desktop, which has no hotkeys, without them. */
+export function labelRow(elements: ElementTable, label: string, side: 'user' | 'agent', actions: LabelActions | undefined, hasHotkeys = true): RenderElement {
+  const { Box, Text, Button } = elements
+  const key = (hotkey: string) => (hasHotkeys ? hotkey : undefined)
+  const copy = (which: CopyWhich, control: string, hotkey: string) => (
+    <Button key={control} plain hotkey={key(hotkey)} dimColor={actions?.copied !== which} onPress={() => actions?.onCopy(which) ?? Promise.resolve()}>
+      {actions?.copied === which ? words.copied : words.copy}
+    </Button>
+  )
+  const buttons: RenderElement[] = []
+  if (side === 'user' && actions?.canReuse)
+    buttons.push(
+      <Button key={REUSE_CONTROL} plain dimColor hotkey={key(REUSE_HOTKEY)} onPress={() => actions.onReuse()}>
+        {words.reuse}
+      </Button>,
+    )
+  if (side === 'user' && actions?.canCopyInput) buttons.push(copy('input', COPY_INPUT_CONTROL, COPY_INPUT_HOTKEY))
+  if (side === 'agent' && actions?.canCopyText) buttons.push(copy('text', COPY_TEXT_CONTROL, COPY_TEXT_HOTKEY))
+  if (buttons.length === 0) return <Text dimColor>{label}</Text>
+  return (
+    <Box flexDirection="row" justifyContent="space-between">
+      <Text dimColor>{label}</Text>
+      <Box flexDirection="row">{buttons.flatMap((b, n) => (n === 0 ? [b] : [<Text dimColor>{' · '}</Text>, b]))}</Box>
+    </Box>
+  )
+}
+
 /* The preview region over the footer (preview.ts): its rule Button, then
    the group's content when shown. */
 export type PreviewView = {
@@ -155,6 +197,8 @@ export type PreviewView = {
   /* The rows it takes, its rule included. */
   rows: number
   body: PreviewBody | undefined
+  /* Undefined draws the label rows bare. */
+  actions?: LabelActions | undefined
   onToggle: () => Promise<void>
   onMore: () => Promise<void>
 }
@@ -165,7 +209,7 @@ export type PreviewView = {
    which 2.1.287 draws as 2.1.295 does; its Box clips it at the rows it
    was given. */
 function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: number): RenderElement {
-  const { Box, Text, Button, Markdown } = elements
+  const { Box, Text, Button } = elements
   const label = preview.state === 'noRoom' ? words.previewNoRoom : words.preview
   const ruleRest = Math.max(0, bodyColumns - 2 - textCells(`${PREVIEW_HOTKEY}: ${label}`) - 1)
   const rule = (
@@ -187,21 +231,10 @@ function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: 
         {empty}
       </Box>
     )
-  const agent = body.agent
   return (
     <Box flexDirection="column">
       {rule}
-      <Text dimColor>{body.meta}</Text>
-      {body.user === undefined ? null : <Text dimColor>{words.previewUser}</Text>}
-      {body.user === undefined || body.user.length === 0 ? null : <Text>{body.user.join('\n')}</Text>}
-      {agent === undefined ? null : <Text dimColor>{words.previewAgent}</Text>}
-      {agent === undefined || agent.rows === 0 ? null : (
-        <Box height={agent.rows} overflow="hidden" flexDirection="column">
-          <Markdown text={agent.text} />
-        </Box>
-      )}
-      {body.files === undefined ? null : <Text dimColor>{body.files}</Text>}
-      {body.blank > 0 ? <Box height={body.blank} /> : null}
+      {previewContent(elements, body, preview.actions, true)}
       {body.more === 0 ? null : (
         <Box flexDirection="row">
           <Text dimColor>{words.moreLines(body.more)}</Text>
@@ -214,10 +247,34 @@ function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: 
   )
 }
 
+/* The region's content under its rule, down to the blank rows: the meta
+   line, the User input under its label, the last text under its label in a
+   `Markdown` its Box clips at the rows it was given, the files line. */
+export function previewContent(elements: ElementTable, body: PreviewBody, actions: LabelActions | undefined, hasHotkeys: boolean): RenderElement {
+  const { Box, Text, Markdown } = elements
+  const agent = body.agent
+  return (
+    <Box flexDirection="column">
+      <Text dimColor>{body.meta}</Text>
+      {body.user === undefined ? null : labelRow(elements, words.previewUser, 'user', actions, hasHotkeys)}
+      {body.user === undefined || body.user.length === 0 ? null : <Text>{body.user.join('\n')}</Text>}
+      {agent === undefined ? null : labelRow(elements, words.previewAgent, 'agent', actions, hasHotkeys)}
+      {agent === undefined || agent.rows === 0 ? null : (
+        <Box height={agent.rows} overflow="hidden" flexDirection="column">
+          <Markdown text={agent.text} />
+        </Box>
+      )}
+      {body.files === undefined ? null : <Text dimColor>{body.files}</Text>}
+      {body.blank > 0 ? <Box height={body.blank} /> : null}
+    </Box>
+  )
+}
+
 /* The expanded preview (preview.ts): one group whole in the list's place,
    the Back Button at its top. */
 export type ExpandedView = {
   body: ExpandedBody
+  actions?: LabelActions | undefined
   onBack: () => Promise<void>
 }
 
@@ -226,7 +283,23 @@ export type ExpandedView = {
    cap cut, then the files one per line under their headings. Drawn uncut:
    the host scrolls the tree. */
 function drawExpanded(elements: ElementTable, expanded: ExpandedView): RenderElement {
-  const { Box, Text, Button, Markdown } = elements
+  const { Box, Button } = elements
+  return (
+    <Box flexDirection="column">
+      <Button key={BACK_CONTROL} plain hotkey={EXPAND_HOTKEY} onPress={() => expanded.onBack()}>
+        {words.back}
+      </Button>
+      {expandedContent(elements, expanded, true)}
+    </Box>
+  )
+}
+
+/* The expanded preview under its Back Button: the meta line, the User
+   input under its label, the last text in one `Markdown` per part under
+   its label, a line after a part the cap cut, then the files one per line
+   under their headings. */
+export function expandedContent(elements: ElementTable, expanded: ExpandedView, hasHotkeys: boolean): RenderElement {
+  const { Box, Text, Markdown } = elements
   const { body } = expanded
   const files = (heading: string, paths: readonly string[]) =>
     paths.length === 0 ? null : (
@@ -239,14 +312,11 @@ function drawExpanded(elements: ElementTable, expanded: ExpandedView): RenderEle
     )
   return (
     <Box flexDirection="column">
-      <Button key={BACK_CONTROL} plain hotkey={EXPAND_HOTKEY} onPress={() => expanded.onBack()}>
-        {words.back}
-      </Button>
       <Text dimColor>{body.meta}</Text>
-      <Text dimColor>{words.previewUser}</Text>
+      {labelRow(elements, words.previewUser, 'user', expanded.actions, hasHotkeys)}
       {body.user.parts.map(part => (part === '' ? null : <Text>{part}</Text>))}
       {body.user.cut === undefined ? null : <Text dimColor>{body.user.cut}</Text>}
-      {body.agent === undefined ? null : <Text dimColor>{words.previewAgent}</Text>}
+      {body.agent === undefined ? null : labelRow(elements, words.previewAgent, 'agent', expanded.actions, hasHotkeys)}
       {body.agent === undefined ? null : body.agent.parts.map(part => <Markdown text={part} />)}
       {body.agent?.cut === undefined ? null : <Text dimColor>{body.agent.cut}</Text>}
       {files(words.changedHeading, body.changed)}

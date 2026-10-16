@@ -149,7 +149,7 @@ def body(p) -> list[str]:
 def shown_input(p) -> str | None:
     """The first line of the User input the preview shows."""
     rows = body(p)
-    return rows[2] if len(rows) > 2 and rows[1] == "用户" else None
+    return rows[2] if len(rows) > 2 and rows[1].split()[:1] == ["用户"] else None
 
 
 def focus(t):
