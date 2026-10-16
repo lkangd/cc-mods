@@ -12,6 +12,7 @@
      sites.ts / jump.ts                                 where a press scrolls
      walk.ts                                            the walk to the previous and next Turn group
      position.ts                                        what the view is on
+     memo.ts                                            what a drawing keeps for the next
    The host's `$` may only be handed to functions declared at the top of
    this file, so every call on `$` is made here or in one of them. */
 
@@ -24,7 +25,9 @@ import type { Compaction, Listed } from './compactions'
 import { drawDesktopPane } from './desktop'
 import { BAR_ROWS, barKey, barLabels, barOfGroup, barTarget, barsOf } from './bars'
 import { stripLabels } from './minimap'
+import { groupIndexOf } from './groups'
 import type { TurnGroup } from './groups'
+import { newMemo, remember } from './memo'
 import {
   FLASHES,
   FLASH_MS,
@@ -47,7 +50,7 @@ import type { ExpandedBody, PathBase, PreviewBody } from './preview'
 import { FILTER_END, LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
 import { COPIED_MS, fillOf, fillRefusedText, hasReuse, reusableOf } from './reuse'
 import type { CopySide } from './reuse'
-import { indexGroups, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
+import { indexGroups, matchShown, matchedFields, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
 import type { Match } from './search'
 import { derivedTranscriptPath } from './locate'
 import { listedGroups, walkFrom } from './walk'
@@ -241,17 +244,22 @@ let isRewindRecheckQueued = false
 /* A rewind's check runs as the hint line is drawn and again this long
    after, should the host's messages not be cut yet. */
 const REWIND_RECHECK_MS = 300
-let shownMemo: { groups: readonly TurnGroup[]; opener: string; shown: readonly TurnGroup[] } | undefined
+const shownMemo = newMemo<readonly TurnGroup[]>()
 
 /* The groups the pane lists: the file's, short of a rewind's. */
 function shownGroups(): readonly TurnGroup[] {
-  if (rewound === undefined) return reading.groups
-  if (shownMemo?.groups === reading.groups && shownMemo.opener === rewound) return shownMemo.shown
-  const at = reading.groups.findIndex(g => g.openerUuid === rewound)
-  const shown = at === -1 ? reading.groups : reading.groups.slice(0, at)
-  shownMemo = { groups: reading.groups, opener: rewound, shown }
-  return shown
+  const groups = reading.groups
+  const opener = rewound
+  if (opener === undefined) return groups
+  return remember(shownMemo, [groups, opener], () => {
+    const at = groupIndexOf(groups, opener)
+    return at === -1 ? groups : groups.slice(0, at)
+  })
 }
+
+/* Whether the last of `groups` is under way: only while they are the
+   file's whole list, not one a rewind cut. */
+const isRunningIn = (groups: readonly TurnGroup[]) => isTurnRunning && groups === reading.groups
 
 /* The chain's compactions as last read, whether earlier turns are not in
    the file, and the last boundary a read found. */
@@ -265,36 +273,29 @@ let contextPercent: number | undefined
 /* The entries kept between drawings (table.ts), and the list with the
    compactions' rules laid on, kept while neither changes. */
 let entryCache = newEntryCache()
-let ruled: { table: EntryTable; compactions: readonly Compaction[]; listed: Listed } | undefined
+let ruled = newMemo<Listed>()
 
 /* Each group's searchable text (search.ts), built as reads regroup; the
    matches of the query last drawn; the list narrowed to them; the query
    the last drawing showed. */
 const searchIndex = newSearchIndex()
-type Searched = { groups: readonly TurnGroup[]; words: string; filter: ViewFilter; isRunning: boolean; matches: Match[]; groupsMatched: number[] }
-let searched: Searched | undefined
-let narrowed: { table: EntryTable; matches: readonly number[]; narrowed: EntryTable } | undefined
+type Searched = { matches: Match[]; groupsMatched: number[] }
+const searched = newMemo<Searched>()
+const narrowed = newMemo<EntryTable>()
 let queryDrawn = ''
 
 function matchesNow(groups: readonly TurnGroup[], words: readonly string[], isRunning: boolean): Searched {
-  const key = words.join(' ')
-  const was = searched
-  if (was !== undefined && was.groups === groups && was.words === key && was.filter === filter && was.isRunning === isRunning) return was
-  const matches = matchesOf(searchIndex, groups, words, filter, isRunning)
-  searched = { groups, words: key, filter, isRunning, matches, groupsMatched: matches.map(m => m.group) }
-  return searched
+  return remember(searched, [groups, words.join(' '), filter, isRunning], () => {
+    const matches = matchesOf(searchIndex, groups, words, filter, isRunning)
+    return { matches, groupsMatched: matches.map(m => m.group) }
+  })
 }
 
-function narrowedTo(table: EntryTable, matches: readonly number[]): EntryTable {
-  if (narrowed?.table === table && narrowed.matches === matches) return narrowed.narrowed
-  narrowed = { table, matches, narrowed: narrowedTable(table, matches) }
-  return narrowed.narrowed
-}
-
-function listedWithRules(table: EntryTable): Listed {
-  if (ruled?.table === table && ruled.compactions === compactions) return ruled.listed
-  ruled = { table, compactions, listed: layRules(table, compactions) }
-  return ruled.listed
+/* The groups the query `value` matches among those listed now, in order. */
+function matchedGroups(value: string): number[] {
+  const groups = shownGroups()
+  const words = queryWords(value)
+  return words.length === 0 ? [] : matchesNow(groups, words, isRunningIn(groups)).groupsMatched
 }
 
 /* What a read found of the chain's compactions. A new boundary no response
@@ -342,7 +343,7 @@ function forget(): void {
   entryCache = newEntryCache()
   compactions = []
   isEarlierElsewhere = false
-  ruled = undefined
+  ruled = newMemo()
 }
 
 /* The context use the host has now: at the start, after a hot reload,
@@ -755,7 +756,7 @@ async function say($: EngineInterface, key: string, text: string, isPaneOnScreen
 async function walkTurn($: EngineInterface, direction: WalkDirection, isPaneOnScreen: boolean): Promise<void> {
   if (source !== 'ok') return
   const groups = shownGroups()
-  const isRunning = isTurnRunning && groups === reading.groups
+  const isRunning = isRunningIn(groups)
   const searchWords = queryWords(await read($, query))
   const matches = searchWords.length === 0 ? undefined : matchesNow(groups, searchWords, isRunning).groupsMatched
   const shown = listedGroups(groups, filter, isRunning ? groups.length - 1 : undefined, matches)
@@ -835,9 +836,7 @@ function setQuery($: EngineInterface, value: string): Promise<void> {
    hands this promise back, and the scroll goes before anything else is
    written. */
 async function submitSearch($: EngineInterface, value: string): Promise<void> {
-  const groups = shownGroups()
-  const words = queryWords(value)
-  const found = words.length === 0 ? [] : matchesOf(searchIndex, groups, words, filter, isTurnRunning && groups === reading.groups).map(m => m.group)
+  const found = matchedGroups(value)
   const target = nearestMatch(found, (await read($, currentPosition)) ?? undefined)
   if (target !== undefined) {
     const side = jumpSide(filter)
@@ -859,12 +858,9 @@ async function pressEntry($: EngineInterface, entry: Entry): Promise<void> {
    stays and the match nearest the Current position goes in the preview,
    the newest match, the desktop having no Current position. */
 async function showMatch($: EngineInterface, value: string): Promise<void> {
-  const groups = shownGroups()
-  const words = queryWords(value)
-  const found = words.length === 0 ? [] : matchesOf(searchIndex, groups, words, filter, isTurnRunning && groups === reading.groups).map(m => m.group)
-  const target = nearestMatch(found, undefined)
+  const target = nearestMatch(matchedGroups(value), undefined)
   if (target === undefined) return
-  pressedOpener = groups[target]?.openerUuid
+  pressedOpener = shownGroups()[target]?.openerUuid
   await update($, rev, n => n + 1)
 }
 
@@ -929,9 +925,7 @@ function sendRing($: EngineInterface, key: string, left = RING_RETRIES): void {
 
 /* The preview drawn last, kept while its group and the room are the same:
    a long reply is folded once, not at every redraw. */
-let previewMemo:
-  | { group: TurnGroup; isRunning: boolean; width: number; rows: number; year: number; base: PathBase; match: Match | undefined; body: PreviewBody }
-  | undefined
+const previewMemo = newMemo<PreviewBody>()
 
 /* The group the preview shows: the selected entry's while the pane holds
    the keys (on the desktop, the entry pressed last), else the Current
@@ -960,10 +954,9 @@ const isPreviewControl = (key: string | undefined) => key === PREVIEW_CONTROL ||
    groups listed now by its opener: nothing of it is kept from the drawing. */
 function groupAtPress(opener: string): { group: TurnGroup; isRunning: boolean } | undefined {
   const groups = shownGroups()
-  let at = groups.length - 1
-  while (at >= 0 && groups[at]?.openerUuid !== opener) at--
+  const at = groupIndexOf(groups, opener)
   const group = groups[at]
-  return group === undefined ? undefined : { group, isRunning: isTurnRunning && groups === reading.groups && at === groups.length - 1 }
+  return group === undefined ? undefined : { group, isRunning: isRunningIn(groups) && at === groups.length - 1 }
 }
 
 /* `r`: the User input into the composer as a draft, over an empty one,
@@ -1019,65 +1012,48 @@ function labelActions($: EngineInterface, group: TurnGroup, isRunning: boolean, 
   }
 }
 
-/* A match's fields as the meta line ends with them. */
-const matchedWords = (match: Match) =>
-  words.matched([...(match.user ? ['user' as const] : []), ...(match.agent ? ['agent' as const] : []), ...(match.files ? ['files' as const] : [])])
-
-/* Whether two matches of a group end its meta line and order its files
-   alike: each keystroke matches anew, and the preview is laid out again
-   only when what it shows of the match changed. */
-const isSameMatch = (a: Match | undefined, b: Match | undefined) =>
-  a === b ||
-  (a !== undefined &&
-    b !== undefined &&
-    a.user === b.user &&
-    a.agent === b.agent &&
-    a.paths.length === b.paths.length &&
-    a.paths.every((path, i) => path === b.paths[i]))
+/* What a drawing draws the preview and the expanded preview from: the
+   groups listed, whether the last is under way, the width, the time, and
+   the label rows' Buttons for a group. */
+type PreviewSource = {
+  groups: readonly TurnGroup[]
+  isRunningNow: boolean
+  width: number
+  nowMs: number
+  actionsOf: (group: TurnGroup, isRunning: boolean) => LabelActions
+}
 
 function previewOf(
-  groups: readonly TurnGroup[],
-  plan: { preview: number; state: 'shown' | 'hidden' | 'noRoom' | 'none' },
-  position: number | undefined,
-  search: Searched | undefined,
-  isRunningNow: boolean,
-  width: number,
-  nowMs: number,
-  onToggle: () => Promise<void>,
-  onMore: (opener: string) => Promise<void>,
-  actionsOf: (group: TurnGroup, isRunning: boolean) => LabelActions,
-  pressed: number | undefined,
+  { groups, isRunningNow, width, nowMs, actionsOf }: PreviewSource,
+  o: {
+    plan: { preview: number; state: 'shown' | 'hidden' | 'noRoom' | 'none' }
+    position: number | undefined
+    search: Searched | undefined
+    pressed: number | undefined
+    onToggle: () => Promise<void>
+    onMore: (opener: string) => Promise<void>
+  },
 ): PreviewView {
+  const { plan, search } = o
   const state = plan.state === 'none' ? 'hidden' : plan.state
-  const at = previewGroup(groups, position, search?.groupsMatched, pressed)
+  const at = previewGroup(groups, o.position, search?.groupsMatched, o.pressed)
   const group = at === undefined ? undefined : groups[at]
   const match = at === undefined ? undefined : search?.matches.find(m => m.group === at)
   const isRunning = isRunningNow && at === groups.length - 1
   const year = new Date(nowMs).getFullYear()
-  const memo = previewMemo
-  const isSame =
-    memo !== undefined &&
-    memo.group === group &&
-    memo.isRunning === isRunning &&
-    memo.width === width &&
-    memo.rows === plan.preview &&
-    memo.year === year &&
-    memo.base === pathBase &&
-    isSameMatch(memo.match, match)
   const body =
     state !== 'shown' || group === undefined
       ? undefined
-      : isSame
-        ? memo.body
-        : previewBody({
-            meta: metaLine(group, isRunning, nowMs, width, match === undefined ? undefined : matchedWords(match)),
+      : remember(previewMemo, [group, isRunning, width, plan.preview, year, pathBase, matchShown(match)], () =>
+          previewBody({
+            meta: metaLine(group, isRunning, nowMs, width, match === undefined ? undefined : words.matched(matchedFields(match))),
             input: typedInput(group.facts),
             agent: isRunning ? group.facts.latestText : group.facts.lastText,
             files: filesLine(group.facts, pathBase, width, match?.paths),
             rows: plan.preview,
             width,
-          })
-  if (body !== undefined && group !== undefined) previewMemo = { group, isRunning, width, rows: plan.preview, year, base: pathBase, match, body }
+          }),
+        )
   return {
     state,
     rows: plan.preview,
@@ -1086,8 +1062,8 @@ function previewOf(
     /* The no-room line is the preview shown without rows: `p` there leaves
        the choice alone, or the preview would stay hidden once rows came
        back. */
-    onToggle: state === 'noRoom' ? () => Promise.resolve() : onToggle,
-    onMore: () => (group === undefined ? Promise.resolve() : onMore(group.openerUuid)),
+    onToggle: state === 'noRoom' ? () => Promise.resolve() : o.onToggle,
+    onMore: () => (group === undefined ? Promise.resolve() : o.onMore(group.openerUuid)),
   }
 }
 
@@ -1099,46 +1075,29 @@ async function expandPreview($: EngineInterface, opener: string | undefined): Pr
 }
 
 /* The expanded preview drawn last, kept while its group and width are. */
-let expandedMemo: { group: TurnGroup; isRunning: boolean; width: number; year: number; base: PathBase; hasHotkeys: boolean; body: ExpandedBody } | undefined
+const expandedMemo = newMemo<ExpandedBody>()
 
 /* The expanded preview of the group it holds; undefined when that group
    is no longer listed (a rewind took it, another file was read). */
-function expandedOf(
-  groups: readonly TurnGroup[],
-  isRunningNow: boolean,
-  width: number,
-  nowMs: number,
-  onBack: () => Promise<void>,
-  actionsOf: (group: TurnGroup, isRunning: boolean) => LabelActions,
-  hasHotkeys: boolean,
-): ExpandedView | undefined {
-  let at = groups.length - 1
-  while (at >= 0 && groups[at]?.openerUuid !== expandedOpener) at--
+function expandedOf({ groups, isRunningNow, width, nowMs, actionsOf }: PreviewSource, o: { hasHotkeys: boolean; onBack: () => Promise<void> }): ExpandedView | undefined {
+  const at = groupIndexOf(groups, expandedOpener)
   const group = groups[at]
   if (group === undefined) return undefined
   const isRunning = isRunningNow && at === groups.length - 1
   const year = new Date(nowMs).getFullYear()
-  const memo = expandedMemo
-  const body =
-    memo !== undefined &&
-    memo.group === group &&
-    memo.isRunning === isRunning &&
-    memo.width === width &&
-    memo.year === year &&
-    memo.base === pathBase &&
-    memo.hasHotkeys === hasHotkeys
-      ? memo.body
-      : expandedBody({
-          meta: metaLine(group, isRunning, nowMs, width),
-          input: typedInput(group.facts),
-          agent: isRunning ? group.facts.latestText : group.facts.lastText,
-          files: group.facts,
-          base: pathBase,
-          width,
-          hasHotkeys,
-        })
-  expandedMemo = { group, isRunning, width, year, base: pathBase, hasHotkeys, body }
-  return { body, actions: actionsOf(group, isRunning), onBack }
+  const { hasHotkeys } = o
+  const body = remember(expandedMemo, [group, isRunning, width, year, pathBase, hasHotkeys], () =>
+    expandedBody({
+      meta: metaLine(group, isRunning, nowMs, width),
+      input: typedInput(group.facts),
+      agent: isRunning ? group.facts.latestText : group.facts.lastText,
+      files: group.facts,
+      base: pathBase,
+      width,
+      hasHotkeys,
+    }),
+  )
+  return { body, actions: actionsOf(group, isRunning), onBack: o.onBack }
 }
 
 export const register: Register = on => {
@@ -1362,18 +1321,18 @@ export const register: Register = on => {
     const width = e.props.bodyColumns
     const wasTable = entryCache.table
     const groups = shownGroups()
-    const isRunningNow = isTurnRunning && groups === reading.groups
+    const isRunningNow = isRunningIn(groups)
     const whole = isOk ? entryTable(entryCache, groups, { layout, filter, width, nowMs, isRunning: isRunningNow }) : NO_ENTRIES
     /* A query narrows the list to its matches; the rules go between them. */
     const searchWords = queryWords(searchText)
     const search = isOk && searchWords.length > 0 ? matchesNow(groups, searchWords, isRunningNow) : undefined
-    const table = search === undefined ? whole : narrowedTo(whole, search.groupsMatched)
+    const table = search === undefined ? whole : remember(narrowed, [whole, search.groupsMatched], () => narrowedTable(whole, search.groupsMatched))
     /* A new query shows the match nearest the Current position, held or
        not: the list it was on is gone. */
     const isQueryNew = searchText !== queryDrawn
     queryDrawn = searchText
     if (isQueryNew) top = undefined
-    const listed = listedWithRules(table)
+    const listed = remember(ruled, [table, compactions], () => layRules(table, compactions))
     const entries = dimRefused(listed.entries as Entry[], groups, refused)
     /* A resumed or forked session shows its history in the transcript
        before its own file is written; it is not without a conversation. */
@@ -1440,17 +1399,21 @@ export const register: Register = on => {
     /* The desktop reports no Current position: its preview shows the entry
        pressed last. */
     const isTerminal = e.surface === 'terminal'
-    let pressed: number | undefined
-    if (!isTerminal && pressedOpener !== undefined) {
-      const at = groups.findIndex(g => g.openerUuid === pressedOpener)
-      if (at !== -1) pressed = at
-    }
+    const pressedAt = isTerminal || pressedOpener === undefined ? -1 : groupIndexOf(groups, pressedOpener)
+    const pressed = pressedAt === -1 ? undefined : pressedAt
+    const previewFrom: PreviewSource = { groups, isRunningNow, width, nowMs, actionsOf }
     const preview =
       plan.state === 'none'
         ? undefined
-        : previewOf(groups, plan, isTerminal ? position : undefined, search, isRunningNow, width, nowMs, () => togglePreview($), opener => expandPreview($, opener), actionsOf, pressed)
-    const expanded =
-      expandedOpener === undefined ? undefined : expandedOf(groups, isRunningNow, width, nowMs, () => expandPreview($, undefined), actionsOf, isTerminal)
+        : previewOf(previewFrom, {
+            plan,
+            position: isTerminal ? position : undefined,
+            search,
+            pressed,
+            onToggle: () => togglePreview($),
+            onMore: opener => expandPreview($, opener),
+          })
+    const expanded = expandedOpener === undefined ? undefined : expandedOf(previewFrom, { hasHotkeys: isTerminal, onBack: () => expandPreview($, undefined) })
     if (expanded === undefined) expandedOpener = undefined
     const searchView: SearchView = {
       query: searchText,

@@ -218,6 +218,14 @@ function closeGroup(open: Open): void {
   group.reply = { text: plainText(joined(parts) ?? ''), uuid: parts[0]?.uuid ?? last.uuid }
 }
 
+/* Where the group a uuid opened is among `groups`, which a regroup keeps;
+   -1 when none is. Looked for from the newest. */
+export function groupIndexOf(groups: readonly TurnGroup[], opener: string | undefined): number {
+  let at = groups.length - 1
+  while (at >= 0 && groups[at]!.openerUuid !== opener) at--
+  return at
+}
+
 /* The chain's Turn groups, in order. Rows before the first User input
    belong to no group. */
 export function groupTurns(chain: readonly TranscriptRow[]): TurnGroup[] {

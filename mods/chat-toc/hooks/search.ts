@@ -106,6 +106,19 @@ export function matchesOf(index: SearchIndex, groups: readonly TurnGroup[], word
   return found
 }
 
+/* The fields a match was found in, in the order the meta line names them. */
+export function matchedFields(match: Match): ('user' | 'agent' | 'files')[] {
+  return [...(match.user ? ['user' as const] : []), ...(match.agent ? ['agent' as const] : []), ...(match.files ? ['files' as const] : [])]
+}
+
+/* What the preview shows of a match, as one string: the fields that
+   matched and the matching paths in order. Each keystroke matches anew;
+   two matches the preview draws alike give the same string, so it is laid
+   out again only when this changed. Undefined with no match. */
+export function matchShown(match: Match | undefined): string | undefined {
+  return match === undefined ? undefined : [matchedFields(match).join(' '), ...match.paths].join('\0')
+}
+
 /* The match nearest the Current position: the nearest at or before it,
    else the first after it; the newest with no position. `matches` are
    group indices in order. */
