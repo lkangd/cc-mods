@@ -3,7 +3,9 @@ import { perfNow } from '../hooks/perf'
 import { drawableRows, groupOfRow, lastDrawnRow, liveRows, openerRows, positionOf } from '../hooks/position'
 import { newReading, readLines } from '../hooks/regroup'
 import { newSites, noteSite, rowIndex } from '../hooks/sites'
-import { entryTable, newEntryCache } from '../hooks/table'
+import { layRules } from '../hooks/compactions'
+import { indexGroups, matchesOf, newSearchIndex, queryWords } from '../hooks/search'
+import { entryTable, narrowedTable, newEntryCache } from '../hooks/table'
 import { transcript } from './fixture'
 import type { Row } from './fixture'
 
@@ -135,4 +137,41 @@ test('the entry table: a redraw reuses it, a read growing the last group rebuild
   )
   expect(hit.p95).toBeLessThanOrEqual(16)
   expect(grown.p95).toBeLessThanOrEqual(16)
+})
+
+test('CT-PERF-002 at the seams: the index is built within the read, a keystroke narrows the list within 50 ms', () => {
+  const index = newSearchIndex()
+  const build = batch(1, () => indexGroups(index, reading.groups))
+  expect(indexGroups(index, reading.groups)).toBe(0)
+  const options = { layout: 'card' as const, filter: 'all' as const, width: 42, nowMs: Date.now(), isRunning: false }
+  const table = entryTable(newEntryCache(), reading.groups, options)
+  /* A keystroke's own work in the Pane: the words, the matches, the list
+     narrowed to them and the rules laid on. */
+  const keystroke = (query: string) => () => {
+    const matches = matchesOf(index, reading.groups, queryWords(query), 'all', false)
+    layRules(narrowedTable(table, matches.map(m => m.group)), [])
+  }
+  const queries: [string, number][] = [
+    ['c', TURNS],
+    ['ct-syn', TURNS],
+    ['模块 正常', TURNS],
+    /* T1, T10-T19, T100-T199, T1000-T1999: a quarter of the list. */
+    ['T1', 1111],
+    ['T4431 ', 1],
+    ['zzz', 0],
+  ]
+  const lines: string[] = []
+  const p95s: number[] = []
+  for (const [query, count] of queries) {
+    const words = queryWords(query)
+    const matches = matchesOf(index, reading.groups, words, 'all', false)
+    expect(matches.length).toBe(count)
+    const t = timings(20, keystroke(query))
+    const matcher = timings(20, () => matchesOf(index, reading.groups, words, 'all', false))
+    const narrow = timings(20, () => layRules(narrowedTable(table, matches.map(m => m.group)), []))
+    lines.push(`"${query.trim()}" ${count} p50/p95/max=${t.p50}/${t.p95}/${t.max} (matcher p95 ${matcher.p95}, narrowing p95 ${narrow.p95})`)
+    p95s.push(t.p95)
+  }
+  print(`CT-PERF search groups=${TURNS} index=${build.max} ms; keystroke ${lines.join('; ')} ms`)
+  for (const p95 of p95s) expect(p95).toBeLessThanOrEqual(50)
 })

@@ -75,19 +75,20 @@ export function matchesOf(index: SearchIndex, groups: readonly TurnGroup[], word
     const agentText = isLastRunning && g === groups.length - 1 ? (fields.latest ?? fields.last) : fields.last
     let user = false
     let agent = false
-    const pathHit = new Set<number>()
+    /* Built only when a path holds a word: a keystroke runs this for every
+       group, and most hold none. */
+    let pathHit: Set<number> | undefined
     let isAll = true
     for (const word of words) {
       let isFound = false
       if (hasUser && fields.input.includes(word)) isFound = user = true
       if (hasAgent && agentText.includes(word)) isFound = agent = true
       if (hasAgent) {
-        fields.paths.forEach((path, i) => {
-          if (path.includes(word)) {
-            isFound = true
-            pathHit.add(i)
-          }
-        })
+        for (let i = 0; i < fields.paths.length; i++) {
+          if (!fields.paths[i]!.includes(word)) continue
+          isFound = true
+          ;(pathHit ??= new Set()).add(i)
+        }
       }
       if (!isFound) {
         isAll = false
@@ -95,8 +96,11 @@ export function matchesOf(index: SearchIndex, groups: readonly TurnGroup[], word
       }
     }
     if (!isAll) continue
-    const all = [...group.facts.changed, ...group.facts.read]
-    const paths = [...pathHit].sort((a, b) => a - b).map(i => all[i]!)
+    let paths: string[] = []
+    if (pathHit !== undefined) {
+      const { changed, read } = group.facts
+      paths = [...pathHit].sort((a, b) => a - b).map(i => (i < changed.length ? changed[i]! : read[i - changed.length]!))
+    }
     found.push({ group: g, user, agent, files: paths.length > 0, paths })
   }
   return found

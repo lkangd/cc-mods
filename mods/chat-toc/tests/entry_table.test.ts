@@ -4,7 +4,7 @@ import type { EntryOptions } from '../hooks/entries'
 import { tocModel } from '../hooks/model'
 import { newReading, readLines } from '../hooks/regroup'
 import { entryHeight } from '../hooks/pane'
-import { entryOfGroup, entryTable, newEntryCache } from '../hooks/table'
+import { entryOfGroup, entryTable, narrowedTable, newEntryCache } from '../hooks/table'
 import type { Layout, ViewFilter } from '../hooks/view'
 import { transcript } from './fixture'
 import type { Builder, Row } from './fixture'
@@ -55,6 +55,17 @@ test('the table lists what entriesOf lists, with heights and each group’s firs
       expect(table.keys).toEqual(listed.map(e => e.key))
       listed.forEach((e, i) => expect(table.indexOf.get(e.key)).toBe(i))
       groups.forEach((_, g) => expect(entryOfGroup(table, g)).toBe(firstEntryFrom(listed, g)))
+    }
+  }
+})
+
+test('narrowed to every group, the table lists as the whole one does', () => {
+  const groups = tocModel(session(23).jsonl()).groups
+  const every = groups.map((_, g) => g)
+  for (const layout of ['card', 'compact', 'timeline'] as const) {
+    for (const filter of ['all', 'user', 'agent'] as const) {
+      const table = entryTable(newEntryCache(), groups, options(layout, filter))
+      expect(narrowedTable(table, every)).toEqual(table)
     }
   }
 })

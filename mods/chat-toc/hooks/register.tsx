@@ -317,6 +317,8 @@ let isPerfAsked = false
 let isLanguageAsked = false
 let appendedAt: number | undefined
 let isListedNoted = false
+/* The earliest change of the search field no drawing has taken yet. */
+let typedAt: number | undefined
 
 function startOver(): void {
   reading = newReading()
@@ -526,7 +528,9 @@ async function load($: EngineInterface): Promise<void> {
     }
     for (const lines of got.chunks.lines) readLines(reading, lines)
     countUnreadable(reading, got.chunks.overlong)
-    indexGroups(searchIndex, reading.groups)
+    const indexing = perfNow()
+    const built = indexGroups(searchIndex, reading.groups)
+    if (perf.isOn) timed($, 'index', [perfNow() - indexing, built, reading.groups.length])
     resolveSites(sites, chainRows, syncRows(chainRows, reading.chain))
     noteCompactions()
     cursor = at
@@ -1024,6 +1028,18 @@ function labelActions($: EngineInterface, group: TurnGroup, isRunning: boolean, 
 const matchedWords = (match: Match) =>
   words.matched([...(match.user ? ['user' as const] : []), ...(match.agent ? ['agent' as const] : []), ...(match.files ? ['files' as const] : [])])
 
+/* Whether two matches of a group end its meta line and order its files
+   alike: each keystroke matches anew, and the preview is laid out again
+   only when what it shows of the match changed. */
+const isSameMatch = (a: Match | undefined, b: Match | undefined) =>
+  a === b ||
+  (a !== undefined &&
+    b !== undefined &&
+    a.user === b.user &&
+    a.agent === b.agent &&
+    a.paths.length === b.paths.length &&
+    a.paths.every((path, i) => path === b.paths[i]))
+
 function previewOf(
   groups: readonly TurnGroup[],
   plan: { preview: number; state: 'shown' | 'hidden' | 'noRoom' | 'none' },
@@ -1052,7 +1068,7 @@ function previewOf(
     memo.rows === plan.preview &&
     memo.year === year &&
     memo.base === pathBase &&
-    memo.match === match
+    isSameMatch(memo.match, match)
   const body =
     state !== 'shown' || group === undefined
       ? undefined
@@ -1437,7 +1453,10 @@ export const register: Register = on => {
       query: searchText,
       count: search === undefined ? undefined : { matches: search.matches.length, of: groups.length },
       onFind: () => focusSearch($),
-      onInput: value => void setQuery($, value),
+      onInput: value => {
+        if (perf.isOn) typedAt ??= perfNow()
+        void setQuery($, value)
+      },
       onSubmit: value => submitSearch($, value).catch(() => undefined),
       onClear: () => setQuery($, ''),
       onStep: direction => stepTurn($, direction, true),
@@ -1502,6 +1521,10 @@ export const register: Register = on => {
     if (perf.isOn) {
       const ended = perfNow()
       timed($, 'pane', [ended - awaited, ended - began, entries.length, table === wasTable ? 0 : 1])
+      if (isQueryNew && typedAt !== undefined) {
+        timed($, 'search', [ended - awaited, ended - typedAt, search?.matches.length ?? 0, groups.length])
+        typedAt = undefined
+      }
       if (!isListedNoted && entries.length > 0) {
         isListedNoted = true
         timed($, 'listed', [ended - loadedAt])

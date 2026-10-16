@@ -157,8 +157,11 @@ export function entryTable(cache: EntryCache, groups: readonly TurnGroup[], opti
    shown before, and the last entry shown loses its gap. A group not shown
    starts where the next shown one does. */
 export function narrowedTable(table: EntryTable, shown: readonly number[]): EntryTable {
-  const entries: Entry[] = []
   const groups = table.firstOfGroup.length
+  /* Every group shown (`shown` is in order, without repeats): the table
+     itself, as the first keystroke of a search often gives it. */
+  if (shown.length === groups) return table
+  const entries: Entry[] = []
   for (const g of shown) {
     const from = table.firstOfGroup[g]
     if (from === undefined) continue
