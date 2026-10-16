@@ -291,3 +291,64 @@ test('Reuse on the desktop waits for a host that shows fills: off on every known
   expect(hasReuse('mobile', '2.2.0', '2.1.300')).toBe(false)
 })
 
+const local = (iso: string) => {
+  const at = new Date(iso)
+  return `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
+}
+
+test('a compaction is a dashed Svg rule placed as on the terminal, under every View filter', async ($, on) => {
+  const t = transcript(new Date(2026, 9, 10, 9, 4).getTime())
+  t.prompt('CT-SYN zero')
+  t.reply([{ type: 'text', text: 'CT-SYN zero answer' }])
+  const boundary = t.compact('manual')
+  t.command('compact', '', 'local')
+  t.prompt('CT-SYN after')
+  t.reply([{ type: 'text', text: 'CT-SYN after answer' }])
+  const time = local(t.rows.find(r => r.uuid === boundary)!.timestamp as string)
+  const world = host(on, t.jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+
+  const rules = (await svgs(pane)).filter(s => s.alt.startsWith('已压缩'))
+  expect(rules.map(r => r.alt)).toEqual([`已压缩 ${time}`])
+  expect(rules[0]!.source).toContain(`>已压缩 ${time}<`)
+  expect(rules[0]!.source).toContain('stroke-dasharray')
+  /* After the /compact entry, before the next group. */
+  const drawn = JSON.stringify(await pane.drawn())
+  expect(drawn.indexOf('"g1.u"')).toBeLessThan(drawn.indexOf(`"alt":"已压缩 ${time}"`))
+  expect(drawn.indexOf(`"alt":"已压缩 ${time}"`)).toBeLessThan(drawn.indexOf('"g2.u"'))
+
+  await pane.press({ key: 'f-agent' })
+  await world.clock.settle()
+  expect((await svgs(pane)).filter(s => s.alt.startsWith('已压缩')).length).toBe(1)
+})
+
+test('a file starting at a foreign boundary shows the fork line, dim, above the list', async ($, on) => {
+  const t = transcript(new Date(2026, 9, 10, 9, 4).getTime())
+  t.compact('manual')
+  t.rows[0]!.logicalParentUuid = '99999999-0000-4000-8000-999999999999'
+  t.command('compact', '', 'local')
+  t.prompt('CT-SYN forked')
+  t.reply([{ type: 'text', text: 'CT-SYN forked answer' }])
+  await start($, host(on, t.jsonl()))
+  const pane = await desktopPane($)
+
+  const line = await pane.find({ type: 'Text', text: '更早的轮次不在本会话的文件里' })
+  expect(line?.props.dimColor).toBe(true)
+  const drawn = JSON.stringify(await pane.drawn())
+  expect(drawn.indexOf('更早的轮次不在本会话的文件里')).toBeLessThan(drawn.indexOf('"g0.u"'))
+})
+
+test('the context use follows the count on the strip’s line only when the host gives a percent', async ($, on) => {
+  const world = host(on, three().jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+  const strip = async () => (await svgs(pane)).find(s => s.alt.startsWith('3 轮'))!.source
+
+  expect(await strip()).toContain('>3 轮<')
+  expect(await strip()).not.toContain('已用')
+  await $.session.measure({ context: { window: 1_000_000, tokens: 620_000, percent: 62 }, rateLimits: [], changed: ['cost'] } as never)
+  await world.clock.settle()
+  expect(await strip()).toContain('>3 轮 · 上下文已用 62%<')
+})
+
