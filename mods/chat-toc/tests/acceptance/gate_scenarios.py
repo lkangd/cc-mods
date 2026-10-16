@@ -888,18 +888,42 @@ def ui_003(host, run):
         actual["ringAndHighlightApart"] = lit_turns == [2] and len(got) == 1 and not ring_on_lit
         actual["highlightColour"] = sorted({str(fg) for _, fg in lit})
         actual["highlightNotInverse"] = bool(lit) and not reverse_lit
+
+        # the ring steps over ‹ › at the search row's end as over the
+        # Minimap's cells (0.2, ticket 18): `f` puts the keys in the field,
+        # Tab from it lands on an entry, ↑ from there never stops on ‹ or ›
+        t.type("f")
+        time.sleep(0.6)
+        actual["fFocusesField"] = bool((pane(t).search or {}).get("focused"))
+        stops = []
+        for name in ("tab", "up", "up"):
+            t.key(name, pause=0.4)
+            pointer_off(t)
+            got = ring(t)
+            stops.append({"key": name, "ring": got})
+        ev.append(t.snap("ui-003 the ring past ‹ ›"))
+        p = pane(t)
+        first = stops[0]["ring"]
+        actual["ringPastStep"] = stops
+        # the window's top entry may be cut at its top (not parsed): an entry
+        # is a ring row under the search row that is no Minimap cell
+        actual["tabFromFieldOnEntry"] = (len(first) == 1 and first[0][0] > p.filter_row + 2
+                                         and not set(first[0][1].strip()) <= set("▁▂▃▄▅▆▇█"))
+        actual["neverOnStep"] = all(text.strip() not in ("‹", "›", "‹ ›") for s in stops for _, text in s["ring"])
     except (h.ScenarioFailure, StopIteration, IndexError) as failure:
         actual["failure"] = repr(failure)
     finally:
         t.close()
         world.remove()
     ok = all(actual.get(k) is True for k in ("dimmedBeforeKeys", "oneSideAtATime", "ringOnDimmed", "enterJumped",
-                                               "ringAndHighlightApart", "highlightNotInverse")) \
+                                               "ringAndHighlightApart", "highlightNotInverse", "fFocusesField", "tabFromFieldOnEntry",
+                                               "neverOnStep")) \
         and len(actual.get("highlightColour", [])) == 1 and is_lit(actual["highlightColour"][0])
     return ("CT-UI-003", "turns 12 compacted after T0001, --resume: T0000-T0001 dimmed from the start",
             "focused, ↑ walks one side at a time (agent, user, the turn before's agent, ...); Enter on T0002's user side "
             "puts that prompt at the top and lights it; one more ↑ moves the inverse ring off it onto T0001's Agent side "
-            "on its hollow branch (not skipped) while the lit ◉ in the theme's `suggestion` (not inverse) stays on T0002",
+            "on its hollow branch (not skipped) while the lit ◉ in the theme's `suggestion` (not inverse) stays on T0002; "
+            "`f` then Tab from the field lands on an entry, and ↑ from it never stops on ‹ or ›",
             actual, ok, ev)
 
 

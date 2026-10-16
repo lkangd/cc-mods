@@ -18,13 +18,15 @@ view is scrolled): the first line from there down that names a turn.
 - pos2: 180 wheel ticks up the transcript in one go, then 90 down: each
   time the lit group is the group of screen row 1.
 - pos3: the lit group is in the pane's window (it follows); wheeling the
-  pane pauses (「暂停」 at the bottom), the window stays put; the next
-  move of the transcript follows again; /chat-toc (the pane gets the
-  keyboard) pauses too.
+  pane pauses: the window leaves the lit group and stays put (nothing says
+  so: the footer keeps the count); the next move of the transcript follows
+  again; /chat-toc (the pane gets the keyboard) pauses too: the transcript
+  moved past the window, the window stays.
 - coex: the project a git repository with a change; the built-in /diff pane
-  opens in front; chat-toc's tab brought forward and paused; Diff's tab in
+  opens in front and chat-toc's band draws with ‹ ›, taking no focus;
+  chat-toc's tab brought forward (the band goes) and paused; Diff's tab in
   front again; the transcript moves; chat-toc's tab clicked: its first
-  frame back follows the new position, no 「暂停」.
+  frame back follows the new position.
 
 A resumed session draws a local command's echo and output, and a `!`
 command, at no site chat-toc hooks, so a view whose top shows only those
@@ -52,7 +54,10 @@ import pty_harness as h  # noqa: E402
 import toc_verifier as v  # noqa: E402
 
 PLUGIN = HERE.parent.parent
-PAUSED = "⏸ 暂停跟随"
+# The footer's left while the list is listed: the turn count (0.1.1 dropped
+# the "⏸ 暂停跟随" note there; a pause shows only as a window that stays put)
+COUNT = re.compile(r"^\d+ 轮")
+BAND = "☰ ChatTOC"
 TURN = re.compile(r"T(\d{4})|模块 (\d+)")
 SITED = re.compile(r"^[❯⏺] T(\d{4}) |第 \d 行说明：模块 (\d+)")
 # the 300-turn fixture's last group, and the last line of its reply
@@ -114,8 +119,9 @@ def lit(p):
     return [entry_turn(p, i) for i, e in enumerate(p.entries) if e.highlighted]
 
 
-def paused(p):
-    return p.footer == PAUSED
+def counts(p):
+    """The footer shows the turn count, with no note of a pause."""
+    return bool(COUNT.match(p.footer or ""))
 
 
 def settle(t, quiet):
@@ -134,7 +140,7 @@ def look(t, quiet=1.0):
     if p is None:
         raise h.ScenarioFailure("no pane")
     text = h.transcript_text(rows, p.left)
-    return rows, p, {"top": top_group(rows, p), "sitedTop": top_sited_group(rows, p), "lit": lit(p), "paused": paused(p),
+    return rows, p, {"top": top_group(rows, p), "sitedTop": top_sited_group(rows, p), "lit": lit(p), "footerCounts": counts(p),
                      "window": [entry_turn(p, i) for i in range(len(p.entries))],
                      "lastWhole": LAST_LINE in text}
 
@@ -242,17 +248,20 @@ def pos3(run):
         rows, p, s = look(t)
         ev.append(t.snap("transcript scrolled up: the pane follows"))
         actual["follows"] = s
-        ok = s["lit"] == expected_lit(s) and not s["paused"]
+        ok = s["lit"] == expected_lit(s) and s["footerCounts"]
         col, row = h._wheel_point(t)
         t.wheel(col, row, up=True, ticks=12, gap=0.05)
         rows, p, s = look(t)
         ev.append(t.snap("pane wheeled: paused"))
         actual["paneWheeled"] = s
         window = s["window"]
-        ok = ok and s["paused"] and s["lit"] == []
+        # paused: the window left the lit group behind and stays put; the
+        # footer still counts, no note of the pause
+        ok = ok and s["lit"] == [] and s["footerCounts"]
         time.sleep(1.0)
         rows, p, s = look(t)
-        ok = ok and s["window"] == window and s["paused"]
+        actual["paneWheeledLater"] = s
+        ok = ok and s["window"] == window
         before = s["sitedTop"]
         for _ in range(10):
             wheel_transcript(t, up=False, ticks=3, gap=0.1)
@@ -261,20 +270,31 @@ def pos3(run):
                 break
         ev.append(t.snap("transcript moved: following again"))
         actual["transcriptMoved"] = s
-        ok = ok and not s["paused"] and s["lit"] == expected_lit(s)
+        ok = ok and s["lit"] == expected_lit(s)
         t.command("/chat-toc", wait=2.0)
         rows, p, s = look(t)
-        ev.append(t.snap("/chat-toc: the pane has the keyboard"))
-        actual["focused"] = s
-        ok = ok and s["paused"]
+        window = s["window"]
+        # the pane holding the keyboard pauses too: a move of the transcript
+        # leaves the window where it was
+        before = s["sitedTop"]
+        for _ in range(10):
+            wheel_transcript(t, up=True, ticks=10, gap=0.05)
+            rows, p, s = look(t)
+            if s["sitedTop"] not in [before, *window]:
+                break
+        ev.append(t.snap("/chat-toc: the pane has the keyboard, the transcript moved"))
+        actual["focused"] = {**s, "windowBefore": window, "topBefore": before}
+        ok = ok and s["window"] == window and s["sitedTop"] not in window and s["footerCounts"]
     except h.ScenarioFailure as f:
         ok, actual["failure"] = False, str(f)
         ev.append(t.snap("failure"))
     finally:
         t.close()
         world.remove()
-    return record(run, "CT-POS-003", host, "the lit group is in the pane's window; wheeling the pane says 暂停 and keeps "
-                  "the window; the next move of the transcript follows again; the pane focused says 暂停", actual, ok, ev)
+    return record(run, "CT-POS-003", host, "the lit group is in the pane's window; wheeling the pane pauses: the window "
+                  "leaves the lit group and stays put, the footer still counts; the next move of the transcript follows "
+                  "again; the pane holding the keyboard (/chat-toc) pauses too: the transcript moved past the window, the "
+                  "window stays", actual, ok, ev)
 
 
 def git_project(world):
@@ -313,15 +333,33 @@ def coex(run):
         rows = settle(t, 1.5)
         ev.append(t.snap("/diff opened in front"))
         actual["diffInFront"] = "Diff" in rows[0] + rows[1] and (v.parse_pane(rows) is None or not v.parse_pane(rows).entries)
+        # chat-toc a back tab: the band above the prompt carries ‹ › (0.2),
+        # and takes no focus: the focus ring is not on it, the composer
+        # takes the letters typed
+        t._write("\x1b[<35;6;6M")
+        rows = settle(t, 0.8)
+        band = next((y for y, r in enumerate(rows) if BAND in r), None)
+        styles = t.styles()
+        t.type("zz")
+        time.sleep(0.6)
+        typed = any(re.match(r"^❯\s+zz\s*$", r) for r in t.rows())
+        t.key("backspace", "backspace")
+        actual["band"] = {"row": rows[band].strip() if band is not None else None,
+                          "ringOnBand": band is not None and any(c[3] for c in styles[band]), "composerTyped": typed}
+        ok = (actual["diffInFront"] and band is not None and "‹ ›" in rows[band] and not actual["band"]["ringOnBand"]
+              and typed)
         click_tab(t, "目录")
         rows, p, s = look(t, quiet=1.5)
+        actual["bandGoneInFront"] = not any(BAND in r for r in rows)
+        ok = ok and actual["bandGoneInFront"]
         wheel_transcript(t, up=True, ticks=60)
         col, row = h._wheel_point(t)
         t.wheel(col, row, up=True, ticks=12, gap=0.05)
         rows, p, s = look(t)
         ev.append(t.snap("chat-toc in front, paused"))
         actual["pausedBefore"] = s
-        ok = actual["diffInFront"] and s["paused"]
+        # paused: the window left the lit group behind
+        ok = ok and s["lit"] == []
         click_tab(t, "Diff")
         rows = settle(t, 1.5)
         ev.append(t.snap("Diff in front again"))
@@ -334,15 +372,17 @@ def coex(run):
         rows, p, s = look(t, quiet=1.0)
         ev.append(t.snap("chat-toc tab clicked: in front again"))
         actual["back"] = s
-        ok = ok and not s["paused"] and s["lit"] == expected_lit(s) and s["sitedTop"] != actual["pausedBefore"]["sitedTop"]
+        ok = ok and s["lit"] == expected_lit(s) and s["sitedTop"] != actual["pausedBefore"]["sitedTop"] and s["footerCounts"]
     except h.ScenarioFailure as f:
         ok, actual["failure"] = False, str(f)
         ev.append(t.snap("failure"))
     finally:
         t.close()
         world.remove()
-    return record(run, "CT-COEX-001", host, "with /diff in front and chat-toc paused behind it, a move of the transcript "
-                  "ends the pause: back in front its first frame lights and shows the view's group, no 暂停", actual, ok, ev)
+    return record(run, "CT-COEX-001", host, "with /diff in front chat-toc's band draws with ‹ ›, the focus ring not on it "
+                  "and the composer taking the letters typed; chat-toc's tab clicked, the band goes; paused there and Diff "
+                  "in front again, a move of the transcript ends the pause: back in front its first frame lights and shows "
+                  "the view's group", actual, ok, ev)
 
 
 def life6(run):
