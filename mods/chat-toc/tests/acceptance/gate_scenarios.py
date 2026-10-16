@@ -736,7 +736,7 @@ def ui_002(host, run):
         world.remove()
     labels = [x["label"] for x in views]
     ok = (labels == ["卡片", "紧凑", "时间轴"] and all(x["turns"] == list(range(5)) and x["agentSides"] == 5 for x in views)
-          and all(len(x["preview"] or []) >= 3 and PREVIEW_RULE.match(x["preview"][0]) and x["preview"][2] == "用户" for x in views)
+          and all(len(x["preview"] or []) >= 3 and PREVIEW_RULE.match(x["preview"][0]) and x["preview"][2].split()[:1] == ["用户"] for x in views)
           and actual.get("newProcessLayout") == "紧凑" and actual.get("unknownValueLayout") == "卡片" and "failure" not in actual)
     return ("CT-UI-002", f"turns 5 (fits the window in every Layout beside the preview at {TALL} lines)",
             "l and the 布局 button cycle 卡片 → 紧凑 → 时间轴, each listing the same 5 entries with their Agent sides "
@@ -927,6 +927,17 @@ def ui_003(host, run):
             actual, ok, ev)
 
 
+def composer_text(t) -> str:
+    """The prompt box's text: the rows between the last two full-width rules."""
+    rows = t.rows()
+    rules = [i for i, r in enumerate(rows) if r.startswith("─" * 40)]
+    return "\n".join(rows[rules[-2] + 1:rules[-1]]) if len(rules) >= 2 else ""
+
+
+def clipboard() -> str:
+    return subprocess.run(["pbpaste"], capture_output=True).stdout.decode(errors="replace")
+
+
 def sec_001(host, run):
     marker = "CTSEC" + secrets.token_hex(8).upper()
     MARKERS.parent.mkdir(parents=True, exist_ok=True)
@@ -958,6 +969,24 @@ def sec_001(host, run):
         t.wait_for(lambda term: (q := pane(term)) is not None and (q.search or {}).get("text", "").startswith(marker[:12])
                    and len(q.entries) == 1, "the marker in the search field", timeout=10)
         actual["inQuery"] = True
+        t.key("esc")
+        time.sleep(0.5)
+        # the marker reused and copied from the preview, which shows the match
+        # (0.2): into the composer and the clipboard, nowhere else
+        focus_pane(t)
+        t.type("r")
+        t.wait_for(lambda term: marker in composer_text(term), "the marker filled into the composer", timeout=10)
+        actual["inComposer"] = True
+        t._write("\x7f" * 200)
+        time.sleep(0.6)
+        saved = clipboard()
+        try:
+            focus_pane(t)
+            t.type("c")
+            time.sleep(0.8)
+            actual["inClipboard"] = marker in clipboard()
+        finally:
+            subprocess.run(["pbcopy"], input=saved.encode())
         t.key("esc")
         time.sleep(0.5)
         p = pane(t)
@@ -995,11 +1024,12 @@ def sec_001(host, run):
     kept.write_text("\n".join(line.replace(marker, "<marker>") for line in ours) + "\n")
     log.unlink()
     ev.append(kept)
-    ok = (actual.get("drawnInPane") is True and actual.get("inQuery") is True and not found and not found_in_log
+    ok = (actual.get("drawnInPane") is True and actual.get("inQuery") is True and actual.get("inComposer") is True
+          and actual.get("inClipboard") is True and not found and not found_in_log
           and set(actual["storeKeys"]) <= {"viewFilter", "layout", "preview"} and "preview" in actual["storeKeys"]
           and "failure" not in actual)
     return ("CT-SEC-001", "turns 6 + one submitted prompt holding a synthetic unique marker",
-            "the marker is drawn in the Pane and typed into the search field, and appears in none of: chat-toc's $.store file (which holds only viewFilter, "
+            "the marker is drawn in the Pane, typed into the search field, reused into the composer (r) and copied (c), and appears in none of: chat-toc's $.store file (which holds only viewFilter, "
             "layout and preview), its plugin data directory, the debug log's chat-toc lines (CHAT_TOC_PERF on, a jump, a hot reload); "
             "the release evidence is scanned for it too (release_gate.py)", actual, ok, ev)
 

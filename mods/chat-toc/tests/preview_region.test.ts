@@ -42,7 +42,7 @@ test('the region sits above the footer: its rule, the meta line, the User input 
   const pane = await mountPane($)
 
   const keys = drawnButtons(await pane.drawn()).map(b => b.key)
-  expect(keys.slice(-2)).toEqual(['preview', 'layout'])
+  expect(keys.slice(-5)).toEqual(['preview', 'preview.reuse', 'preview.copy.user', 'preview.copy.agent', 'layout'])
   const rule = await pane.find({ type: 'Button', key: 'preview' })
   expect([rule?.text, rule?.props.hotkey, rule?.props.plain]).toEqual(['预览', 'p', true])
   const shown = await texts(pane)

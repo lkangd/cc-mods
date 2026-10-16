@@ -6,6 +6,7 @@
      rewind.ts                                          what a rewind took, before the file says
      view.ts / entries.ts / cells.ts / window.ts        what the pane draws
      facts.ts / preview.ts                              the preview of one Turn group
+     reuse.ts                                           Reuse and copy from the preview
      search.ts                                          which groups a query matches
      pane.tsx / ring.ts                                 how it draws, the keyboard
      sites.ts / jump.ts                                 where a press scrolls
@@ -15,7 +16,7 @@
    this file, so every call on `$` is made here or in one of them. */
 
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, RenderSurface } from 'claude-code'
 import type { Entry } from './entries'
 import { compactionsOf, hasEarlierTurnsElsewhere, layRules } from './compactions'
 import type { Compaction, Listed } from './compactions'
@@ -39,10 +40,12 @@ import {
 import type { Refused } from './jump'
 import { carriesHistory, hidesPane, isClosedByPerson, reopensOn } from './lifecycle'
 import { CLEAR_CONTROL, PANE_COLUMNS, PANE_ID, SEARCH_FIELD, SEARCH_ROWS, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
-import type { ExpandedView, PreviewView, SearchView } from './pane'
+import type { ExpandedView, LabelActions, PreviewView, SearchView } from './pane'
 import { PREVIEW_CONTROL, PREVIEW_KEY, expandedBody, filesLine, isPreviewShown, metaLine, previewBody, previewPlan } from './preview'
 import type { ExpandedBody, PathBase, PreviewBody } from './preview'
 import { FILTER_END, LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
+import { COPIED_MS, fillOf, fillRefusedText, hasReuse, reusableOf } from './reuse'
+import type { CopyWhich } from './reuse'
 import { indexGroups, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
 import type { Match } from './search'
 import { derivedTranscriptPath } from './locate'
@@ -141,6 +144,19 @@ let pathBase: PathBase = { cwd: undefined, home: undefined }
    Undefined draws the list. Closing the pane or the keys leaving it
    returns to the list. */
 let expandedOpener: string | undefined
+/* The group the ring was last on while it is on one of the preview's own
+   Buttons, which then keeps showing it: they act on what it shows. */
+let heldSelection: number | undefined
+/* On the desktop, which reports no Current position: the group the
+   preview shows, by its opener's uuid, the entry pressed last or the match
+   a search's submit put there. Undefined shows the newest. */
+let pressedOpener: string | undefined
+/* The host's release, from `$.session.version()` at `session.start`. */
+let hostBase: string | undefined
+/* The copy Button reading `Copied`: the group's opener, which Button, and
+   which copy, so only its own timer takes it back. */
+let copied: { opener: string; which: CopyWhich; n: number } | undefined
+let copies = 0
 
 /* What the pane drew last, for the keyboard and the next switch: the
    entries, their keys and the table back, their heights, the rows the
@@ -333,6 +349,13 @@ function forget(): void {
 async function readContextUse($: EngineInterface): Promise<void> {
   const usage = await $.session.usage().catch(() => undefined)
   contextPercent = usage?.context.percent
+}
+
+/* The host's release, which says whether the desktop offers Reuse
+   (reuse.ts); undefined while not known. */
+async function askVersion($: EngineInterface): Promise<void> {
+  const version = await $.session.version().catch(() => undefined)
+  hostBase = version?.base
 }
 
 /* The system's language, from the locale variables (text.ts). Asked once a
@@ -828,6 +851,28 @@ async function submitSearch($: EngineInterface, value: string): Promise<void> {
   await setQuery($, '')
 }
 
+/* A press on an entry on the desktop: the preview shows its group, and
+   the press asks to jump as on the terminal (the app refuses it, and the
+   pane says so). */
+async function pressEntry($: EngineInterface, entry: Entry): Promise<void> {
+  pressedOpener = shownGroups()[entry.groupIndex]?.openerUuid
+  await update($, rev, n => n + 1)
+  await jump($, entry)
+}
+
+/* The desktop's submit (Enter, or the field's `show` button): the text
+   stays and the match nearest the Current position goes in the preview,
+   the newest match, the desktop having no Current position. */
+async function showMatch($: EngineInterface, value: string): Promise<void> {
+  const groups = shownGroups()
+  const words = queryWords(value)
+  const found = words.length === 0 ? [] : matchesOf(searchIndex, groups, words, filter, isTurnRunning && groups === reading.groups).map(m => m.group)
+  const target = nearestMatch(found, undefined)
+  if (target === undefined) return
+  pressedOpener = groups[target]?.openerUuid
+  await update($, rev, n => n + 1)
+}
+
 /* The working directory and home the preview's paths are shown against. */
 async function learnPaths($: EngineInterface, cwd: string): Promise<void> {
   const home = await $.env.get('HOME').catch(() => undefined)
@@ -894,15 +939,89 @@ let previewMemo:
   | undefined
 
 /* The group the preview shows: the selected entry's while the pane holds
-   the keys, else the Current position's, else the newest. While a query is
+   the keys (on the desktop, the entry pressed last), else the Current
+   position's, else the newest. While a query is
    set (`matches`, its groups), the selected match, else the match nearest
    the Current position, else the newest; none with no match. */
-function previewGroup(groups: readonly TurnGroup[], position: number | undefined, matches: readonly number[] | undefined): number | undefined {
-  const selected = isPaneFocused ? groupOfKey(ring) : undefined
+function previewGroup(
+  groups: readonly TurnGroup[],
+  position: number | undefined,
+  matches: readonly number[] | undefined,
+  pressed: number | undefined,
+): number | undefined {
+  const onEntry = isPaneFocused ? groupOfKey(ring) : undefined
+  if (onEntry !== undefined) heldSelection = onEntry
+  const selected = pressed ?? onEntry ?? (isPaneFocused && isPreviewControl(ring) ? heldSelection : undefined)
   if (selected !== undefined && selected < groups.length && (matches === undefined || matches.includes(selected))) return selected
   if (matches !== undefined) return nearestMatch(matches, position)
   if (position !== undefined && position < groups.length) return position
   return groups.length - 1
+}
+
+/* The preview's own Buttons: its rule's, the cut line's, the label rows'. */
+const isPreviewControl = (key: string | undefined) => key === PREVIEW_CONTROL || (key?.startsWith(`${PREVIEW_CONTROL}.`) ?? false)
+
+/* The group a label-row Button acts on, found at the press among the
+   groups listed now by its opener: nothing of it is kept from the drawing. */
+function groupAtPress(opener: string): { group: TurnGroup; isRunning: boolean } | undefined {
+  const groups = shownGroups()
+  let at = groups.length - 1
+  while (at >= 0 && groups[at]?.openerUuid !== opener) at--
+  const group = groups[at]
+  return group === undefined ? undefined : { group, isRunning: isTurnRunning && groups === reading.groups && at === groups.length - 1 }
+}
+
+/* `r`: the User input into the composer as a draft, over an empty one,
+   else after the draft; never submitted. A fill that lands says nothing
+   more (the keyboard moves to the composer); one refused says why. */
+async function reuseInput($: EngineInterface, opener: string): Promise<void> {
+  const found = groupAtPress(opener)
+  const offered = found === undefined ? undefined : reusableOf(found.group, found.isRunning)
+  if (offered?.fill === undefined) return
+  const box = await $.prompt.read()
+  const filled = await $.prompt.fill(fillOf(box.text, offered.fill))
+  if (!filled.isFilled) {
+    $.ui.toast(fillRefusedText(filled.refusal))
+    return
+  }
+  if (offered.hasImagesLeft) $.ui.toast(words.imagesLeft)
+}
+
+/* `c` or `a`: the User input or the last text, whole, on the clipboard.
+   The Button reads `Copied` for a while; a copy refused says why. */
+async function copyOut($: EngineInterface, opener: string, which: CopyWhich, surface: RenderSurface): Promise<void> {
+  const found = groupAtPress(opener)
+  const offered = found === undefined ? undefined : reusableOf(found.group, found.isRunning)
+  const text = which === 'input' ? offered?.input : offered?.text
+  if (offered === undefined || text === undefined) return
+  const result = await $.ui.copy({ text, surface })
+  if (!result.isCopied) {
+    $.ui.toast(words.copyFailed(result.reason))
+    return
+  }
+  const n = ++copies
+  copied = { opener, which, n }
+  $.clock.after(COPIED_MS, () => {
+    if (copied?.n !== n) return
+    copied = undefined
+    void update($, rev, x => x + 1).catch(() => undefined)
+  })
+  await update($, rev, x => x + 1)
+  if (which === 'input' && offered.hasImagesLeft) $.ui.toast(words.imagesLeft)
+}
+
+/* The label rows' Buttons for a group, as it offers them. */
+function labelActions($: EngineInterface, group: TurnGroup, isRunning: boolean, surface: RenderSurface): LabelActions {
+  const offered = reusableOf(group, isRunning)
+  const opener = group.openerUuid
+  return {
+    canReuse: offered.fill !== undefined && hasReuse(surface, hostBase),
+    canCopyInput: offered.input !== undefined,
+    canCopyText: offered.text !== undefined,
+    copied: copied?.opener === opener ? copied.which : undefined,
+    onReuse: () => reuseInput($, opener),
+    onCopy: which => copyOut($, opener, which, surface),
+  }
 }
 
 /* A match's fields as the meta line ends with them. */
@@ -931,9 +1050,11 @@ function previewOf(
   nowMs: number,
   onToggle: () => Promise<void>,
   onMore: (opener: string) => Promise<void>,
+  actionsOf: (group: TurnGroup, isRunning: boolean) => LabelActions,
+  pressed: number | undefined,
 ): PreviewView {
   const state = plan.state === 'none' ? 'hidden' : plan.state
-  const at = previewGroup(groups, position, search?.groupsMatched)
+  const at = previewGroup(groups, position, search?.groupsMatched, pressed)
   const group = at === undefined ? undefined : groups[at]
   const match = at === undefined ? undefined : search?.matches.find(m => m.group === at)
   const isRunning = isRunningNow && at === groups.length - 1
@@ -962,7 +1083,14 @@ function previewOf(
             width,
           })
   if (body !== undefined && group !== undefined) previewMemo = { group, isRunning, width, rows: plan.preview, year, base: pathBase, match, body }
-  return { state, rows: plan.preview, body, onToggle, onMore: () => (group === undefined ? Promise.resolve() : onMore(group.openerUuid)) }
+  return {
+    state,
+    rows: plan.preview,
+    body,
+    actions: body === undefined || group === undefined ? undefined : actionsOf(group, isRunning),
+    onToggle,
+    onMore: () => (group === undefined ? Promise.resolve() : onMore(group.openerUuid)),
+  }
 }
 
 /* `e`, or a press on the cut line: the preview expands over the list,
@@ -973,11 +1101,19 @@ async function expandPreview($: EngineInterface, opener: string | undefined): Pr
 }
 
 /* The expanded preview drawn last, kept while its group and width are. */
-let expandedMemo: { group: TurnGroup; isRunning: boolean; width: number; year: number; base: PathBase; body: ExpandedBody } | undefined
+let expandedMemo: { group: TurnGroup; isRunning: boolean; width: number; year: number; base: PathBase; hasHotkeys: boolean; body: ExpandedBody } | undefined
 
 /* The expanded preview of the group it holds; undefined when that group
    is no longer listed (a rewind took it, another file was read). */
-function expandedOf(groups: readonly TurnGroup[], isRunningNow: boolean, width: number, nowMs: number, onBack: () => Promise<void>): ExpandedView | undefined {
+function expandedOf(
+  groups: readonly TurnGroup[],
+  isRunningNow: boolean,
+  width: number,
+  nowMs: number,
+  onBack: () => Promise<void>,
+  actionsOf: (group: TurnGroup, isRunning: boolean) => LabelActions,
+  hasHotkeys: boolean,
+): ExpandedView | undefined {
   let at = groups.length - 1
   while (at >= 0 && groups[at]?.openerUuid !== expandedOpener) at--
   const group = groups[at]
@@ -986,7 +1122,13 @@ function expandedOf(groups: readonly TurnGroup[], isRunningNow: boolean, width: 
   const year = new Date(nowMs).getFullYear()
   const memo = expandedMemo
   const body =
-    memo !== undefined && memo.group === group && memo.isRunning === isRunning && memo.width === width && memo.year === year && memo.base === pathBase
+    memo !== undefined &&
+    memo.group === group &&
+    memo.isRunning === isRunning &&
+    memo.width === width &&
+    memo.year === year &&
+    memo.base === pathBase &&
+    memo.hasHotkeys === hasHotkeys
       ? memo.body
       : expandedBody({
           meta: metaLine(group, isRunning, nowMs, width),
@@ -995,9 +1137,10 @@ function expandedOf(groups: readonly TurnGroup[], isRunningNow: boolean, width: 
           files: group.facts,
           base: pathBase,
           width,
+          hasHotkeys,
         })
-  expandedMemo = { group, isRunning, width, year, base: pathBase, body }
-  return { body, onBack }
+  expandedMemo = { group, isRunning, width, year, base: pathBase, hasHotkeys, body }
+  return { body, actions: actionsOf(group, isRunning), onBack }
 }
 
 export const register: Register = on => {
@@ -1026,6 +1169,7 @@ export const register: Register = on => {
     await loadChoices($)
     await learnPaths($, e.cwd)
     await readContextUse($)
+    await askVersion($)
     await askPerf($)
     await locate($, e.cwd)
     readNow($)
@@ -1243,7 +1387,7 @@ export const register: Register = on => {
             : undefined
     const why = source === 'failed' ? failureText(failure) : isOk && reading.unreadable > 0 ? words.unreadable(reading.unreadable) : undefined
     const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
-    const headRows = HEAD_ROWS + (e.surface === 'terminal' ? SEARCH_ROWS : 0)
+    const headRows = HEAD_ROWS + SEARCH_ROWS
     const hasForkLine = isOk && isEarlierElsewhere && groups.length > 0
     const listRows =
       e.props.scroll.bodyRows - headRows - FOOT_ROWS - (hasForkLine ? 1 : 0) - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
@@ -1289,8 +1433,21 @@ export const register: Register = on => {
     } else if (owed !== undefined && owed === ring && table.indexOf.has(owed)) {
       $.clock.after(0, () => sendRing($, owed))
     }
-    const preview = plan.state === 'none' ? undefined : previewOf(groups, plan, position, search, isRunningNow, width, nowMs, () => togglePreview($), opener => expandPreview($, opener))
-    const expanded = expandedOpener === undefined || e.surface !== 'terminal' ? undefined : expandedOf(groups, isRunningNow, width, nowMs, () => expandPreview($, undefined))
+    const actionsOf = (group: TurnGroup, isRunning: boolean) => labelActions($, group, isRunning, e.surface)
+    /* The desktop reports no Current position: its preview shows the entry
+       pressed last. */
+    const isTerminal = e.surface === 'terminal'
+    let pressed: number | undefined
+    if (!isTerminal && pressedOpener !== undefined) {
+      const at = groups.findIndex(g => g.openerUuid === pressedOpener)
+      if (at !== -1) pressed = at
+    }
+    const preview =
+      plan.state === 'none'
+        ? undefined
+        : previewOf(groups, plan, isTerminal ? position : undefined, search, isRunningNow, width, nowMs, () => togglePreview($), opener => expandPreview($, opener), actionsOf, pressed)
+    const expanded =
+      expandedOpener === undefined ? undefined : expandedOf(groups, isRunningNow, width, nowMs, () => expandPreview($, undefined), actionsOf, isTerminal)
     if (expanded === undefined) expandedOpener = undefined
     const searchView: SearchView = {
       query: searchText,
@@ -1347,6 +1504,16 @@ export const register: Register = on => {
         : drawDesktopPane($.ui.resolve(e), {
             ...shared,
             steps: isOk ? groups.map(g => g.steps) : [],
+            search: {
+              query: searchText,
+              count: searchView.count,
+              onInput: searchView.onInput,
+              onSubmit: value => showMatch($, value).catch(() => undefined),
+            },
+            matches: search?.groupsMatched,
+            preview,
+            expanded,
+            onPress: (entry: Entry) => pressEntry($, entry),
             runningGroup: isRunningNow ? groups.length - 1 : undefined,
             stripLabels: stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs),
             onLayout: to => chooseLayout($, to),
