@@ -33,11 +33,13 @@ transcript file wherever the Pane's entries are judged.
                  entry reads 进行中, 进行中 · 1 步, 进行中 · 2 步, then 2 步
                  and the closing text
   ui-001         1/2/3 switch the View filter at once, each list equals the
-                 verifier's for that filter; the choice survives a new
-                 process; a value chat-toc does not know reads as 全部
+                 verifier's for that filter, the preview region drawn under
+                 it; the choice survives a new process; a value chat-toc does
+                 not know reads as 全部
   ui-002         `l` and the Layout button cycle 卡片/紧凑/时间轴 listing the
-                 same entries; the choice survives a new process; an unknown
-                 value reads as 卡片
+                 same entries, each with the preview region under the list;
+                 the choice survives a new process; an unknown value reads as
+                 卡片 (the region at 36/44/56 columns: ct_preview.py widths)
   ui-003         focused, ↑↓ step one side at a time through the entries
                  without skipping a dimmed one; the inverse ring and the
                  highlight (the dark theme's `suggestion`) are drawn apart;
@@ -47,8 +49,9 @@ transcript file wherever the Pane's entries are judged.
                  /theme from Dark to Light redraws the Pane at once; the
                  daltonized themes and auto are recorded, not judged
   sec-001        a synthetic marker prompt is drawn in the Pane and found in
-                 none of chat-toc's store, its data directory, the debug log's
-                 chat-toc lines, or the run's evidence
+                 none of chat-toc's store (which holds only the View filter,
+                 the Layout and the preview's flag), its data directory, the
+                 debug log's chat-toc lines, or the run's evidence
 """
 import argparse
 import hashlib
@@ -81,6 +84,7 @@ THEMES = {"dark": ("b1b9f9", "999999"), "light": ("5769f7", "666666"),
 DIM = THEMES["dark"][1]                                 # the harness's world is dark
 CHUNK = 4_000_000
 MARKERS = PLUGIN / "build" / "sec-001-markers.txt"     # gitignored; read by release_gate.py's leak scan
+PREVIEW_RULE = re.compile(r"^─ p: 预览 ─+$")
 
 
 # ---------- helpers ----------
@@ -618,9 +622,12 @@ def ui_001(host, run):
             took = round(time.monotonic() - began, 2)
             pointer_off(t)
             ev.append(t.snap(f"ui-001 filter {chosen}"))
+            shown = pane(t)
+            region = shown.preview[0] if shown is not None and shown.preview else None
             result, windows, diff = whole(t, path, chosen)
             ev.append(diff)
-            actual[chosen] = {"redrawSeconds": took, "wholeList": {k: result[k] for k in ("ok", "covered", "missing")}}
+            actual[chosen] = {"redrawSeconds": took, "wholeList": {k: result[k] for k in ("ok", "covered", "missing")},
+                              "previewRule": region}
         t.type("3")
         t.wait_for(lambda term: chosen_filter(term) == "agent", "Agent chosen before quitting", timeout=5)
     except h.ScenarioFailure as failure:
@@ -647,22 +654,23 @@ def ui_001(host, run):
         t.close()
         world.remove()
     ok = (all(actual.get(c, {}).get("wholeList", {}).get("ok") is True and actual[c]["redrawSeconds"] <= 1.0
-              for c in ("user", "agent", "all"))
+              and PREVIEW_RULE.match(actual[c].get("previewRule") or "") for c in ("user", "agent", "all"))
           and actual.get("newProcessFilter") == "agent" and actual.get("unknownValueFilter") == "all"
           and "failure" not in actual)
     return ("CT-UI-001", "turns 9 (a /tui group with a user side only)",
             "2/3/1 switch the filter and the Pane redraws at once (≤ 1 s from the key), each whole list equal to the "
-            "verifier's for that filter (Agent hides the user-only group); the choice survives a new process; an "
-            "unknown stored value reads as 全部", actual, ok, ev)
+            "verifier's for that filter (Agent hides the user-only group), the preview's rule `─ p: 预览 ───` under "
+            "the list; the choice survives a new process; an unknown stored value reads as 全部", actual, ok, ev)
 
 
 def layout_view(t):
     p = v.parse_pane(t.rows())
     if p is None:
-        return {"label": None, "turns": [], "agentSides": 0}
+        return {"label": None, "turns": [], "agentSides": 0, "preview": None}
     turns = sorted({int(n) for e in p.entries for n in re.findall(r"T(\d{4}) 用户问题", e.user_text)})
     agents = sum(e.agent_head is not None for e in p.entries)
-    return {"label": p.layout, "turns": turns, "agentSides": agents}
+    region = [r.strip() for r in p.preview or [] if r.strip()]
+    return {"label": p.layout, "turns": turns, "agentSides": agents, "preview": region[:3]}
 
 
 def click_layout_button(t):
@@ -727,9 +735,11 @@ def ui_002(host, run):
         world.remove()
     labels = [x["label"] for x in views]
     ok = (labels == ["卡片", "紧凑", "时间轴"] and all(x["turns"] == list(range(5)) and x["agentSides"] == 5 for x in views)
+          and all(len(x["preview"] or []) >= 3 and PREVIEW_RULE.match(x["preview"][0]) and x["preview"][2] == "用户" for x in views)
           and actual.get("newProcessLayout") == "紧凑" and actual.get("unknownValueLayout") == "卡片" and "failure" not in actual)
     return ("CT-UI-002", "turns 5 (fits the window in every Layout)",
-            "l and the 布局 button cycle 卡片 → 紧凑 → 时间轴, each listing the same 5 entries with their Agent sides; "
+            "l and the 布局 button cycle 卡片 → 紧凑 → 时间轴, each listing the same 5 entries with their Agent sides "
+            "and the preview region (its rule, the meta line, 用户) under the list; "
             "the choice survives a new process; an unknown stored value reads as 卡片", actual, ok, ev)
 
 
@@ -910,8 +920,8 @@ def sec_001(host, run):
         submit(t, f"{marker} 合成的唯一标记 prompt")
         t.wait_for(lambda term: marker in right_text(term.rows()), "the marker drawn in the Pane", timeout=20)
         actual["drawnInPane"] = True
-        focus_pane(t)                                      # store writes: the filter and the Layout
-        for key in ("2", "1", "l", "l", "l"):
+        focus_pane(t)                                      # store writes: the filter, the Layout, the preview
+        for key in ("2", "1", "l", "l", "l", "p", "p"):
             t.type(key)
             time.sleep(0.5)
         t.key("esc")
@@ -951,10 +961,11 @@ def sec_001(host, run):
     log.unlink()
     ev.append(kept)
     ok = (actual.get("drawnInPane") is True and not found and not found_in_log
-          and set(actual["storeKeys"]) <= {"viewFilter", "layout"} and "failure" not in actual)
+          and set(actual["storeKeys"]) <= {"viewFilter", "layout", "preview"} and "preview" in actual["storeKeys"]
+          and "failure" not in actual)
     return ("CT-SEC-001", "turns 6 + one submitted prompt holding a synthetic unique marker",
-            "the marker is drawn in the Pane and appears in none of: chat-toc's $.store file (which holds only viewFilter "
-            "and layout), its plugin data directory, the debug log's chat-toc lines (CHAT_TOC_PERF on, a jump, a hot reload); "
+            "the marker is drawn in the Pane and appears in none of: chat-toc's $.store file (which holds only viewFilter, "
+            "layout and preview), its plugin data directory, the debug log's chat-toc lines (CHAT_TOC_PERF on, a jump, a hot reload); "
             "the release evidence is scanned for it too (release_gate.py)", actual, ok, ev)
 
 

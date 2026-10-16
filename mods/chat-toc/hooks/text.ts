@@ -65,6 +65,19 @@ const EN = {
   rail: 'Rail',
   stripAlt: (n: number, per: number) =>
     per === 1 ? `${count(n, 'turn', 'turns')}, one bar per turn, height by steps` : `${count(n, 'turn', 'turns')}, ${per} turns per bar, height by steps`,
+  preview: 'Preview',
+  previewNoRoom: 'Preview (no room)',
+  previewUser: 'User',
+  previewAgent: 'Agent',
+  moreLines: (n: number) => `↓ ${count(n, 'more line', 'more lines')} · `,
+  expand: 'expand',
+  changed: (names: string) => `changed ${names}`,
+  readFiles: (n: number) => `read ${n}`,
+  tokensOut: (tokens: string) => `${tokens} out`,
+  underASecond: '<1s',
+  seconds: (s: number) => `${s}s`,
+  minutes: (m: number, s: number) => (s === 0 ? `${m}m` : `${m}m ${s}s`),
+  hours: (h: number, m: number) => (m === 0 ? `${h}h` : `${h}h ${m}m`),
 }
 
 export type Text = typeof EN
@@ -99,6 +112,19 @@ const ZH: Text = {
   filterAlt: name => `筛选：${name}`,
   rail: '轨道',
   stripAlt: (n, per) => (per === 1 ? `${n} 轮，每轮一根竖条，高度按步数` : `${n} 轮，每根竖条 ${per} 轮，高度按步数`),
+  preview: '预览',
+  previewNoRoom: '预览（空间不足）',
+  previewUser: '用户',
+  previewAgent: 'Agent',
+  moreLines: n => `↓ 还有 ${n} 行 · `,
+  expand: '展开',
+  changed: names => `改 ${names}`,
+  readFiles: n => `读 ${n}`,
+  tokensOut: tokens => `输出 ${tokens}`,
+  underASecond: '<1 秒',
+  seconds: s => `${s} 秒`,
+  minutes: (m, s) => (s === 0 ? `${m} 分` : `${m} 分 ${s} 秒`),
+  hours: (h, m) => (m === 0 ? `${h} 小时` : `${h} 小时 ${m} 分`),
 }
 
 /* The words in use. Swapped in place, so a module holding it reads the

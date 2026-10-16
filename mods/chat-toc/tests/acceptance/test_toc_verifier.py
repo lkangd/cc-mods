@@ -346,6 +346,16 @@ class PaneScreen(unittest.TestCase):
         timeline = toc_verifier.parse_pane(screen("timeline-2.1.295.txt"))
         self.assertEqual((timeline.layout, timeline.entries[0].time), ("时间轴", "09:02"))
 
+    def test_reads_the_preview_apart_from_the_entries(self):
+        pane = toc_verifier.parse_pane(screen("card-preview-2.1.295.txt"))
+        self.assertEqual(pane.entries[-1].user_text, "F19 rewind 之后的新分支")
+        self.assertEqual(len(pane.notes), 2)                                # the Minimap's two rows
+        self.assertEqual((pane.layout, pane.footer), ("卡片", "20 轮"))
+        self.assertEqual([r.strip() for r in pane.preview if r.strip()],
+                         ["─ p: 预览 ──────────────────────────────────", "10月9日 09:07 · 输出 20", "用户",
+                          "F19 rewind 之后的新分支", "Agent", "F19 回复：新分支。"])
+        self.assertIsNone(toc_verifier.parse_pane(screen("card-2.1.295.txt")).preview)
+
     def test_reads_the_filter_from_the_tab_rule(self):
         pane = toc_verifier.parse_pane(screen("card-agent-2.1.295.txt"))
         self.assertEqual(pane.filter, "agent")

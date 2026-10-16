@@ -85,12 +85,18 @@ export function clockTime(timestamp: string | undefined): string {
   return clockOf(timeOf(timestamp))
 }
 
+/* The Agent reply's state when it is not finished: in progress,
+   interrupted or ended in an error; '' when it finished. */
+export function agentStateOf(group: TurnGroup, isRunning: boolean): string {
+  return isRunning ? words.running : group.ending === 'interrupted' ? words.interrupted : group.ending === 'error' ? words.error : ''
+}
+
 /* The Agent reply's state, as its header says it: in progress, interrupted
    or ended in an error, each with the steps so far; otherwise the steps,
    and a note when there is no reply text. No steps, no count. */
 export function agentHeadOf(group: TurnGroup, isRunning: boolean): string {
   const steps = group.steps > 0 ? words.steps(group.steps) : ''
-  const state = isRunning ? words.running : group.ending === 'interrupted' ? words.interrupted : group.ending === 'error' ? words.error : ''
+  const state = agentStateOf(group, isRunning)
   if (state) return [state, steps].filter(Boolean).join(' · ')
   if (!group.reply) return [steps, words.noReply].filter(Boolean).join(' · ')
   return steps

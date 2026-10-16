@@ -17,6 +17,8 @@ import { FILTERS, LAYOUT_HOTKEY, filterLabel, layoutLabel } from './view'
 import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
 import { text as words } from './text'
+import { EXPAND_HOTKEY, MORE_CONTROL, PREVIEW_CONTROL, PREVIEW_HOTKEY } from './preview'
+import type { PreviewBody } from './preview'
 
 export const PANE_ID = 'chat-toc'
 export const PANE_COLUMNS = 44
@@ -79,6 +81,64 @@ export function timeColumnOf(entry: Entry): string {
   return entry.lines.map((_, n) => (n === 0 ? entry.time : '').padEnd(TIME_COLUMN)).join('\n')
 }
 
+/* The preview region over the footer (preview.ts): its rule Button, then
+   the group's content when shown. */
+export type PreviewView = {
+  state: 'shown' | 'hidden' | 'noRoom'
+  /* The rows it takes, its rule included. */
+  rows: number
+  body: PreviewBody | undefined
+  onToggle: () => Promise<void>
+  onMore: () => Promise<void>
+}
+
+/* The region: the rule line with the `p` Button, then the meta line, the
+   User input under its label, the last text under its label, the files
+   line, blank rows, and the cut line. The last text is a `Markdown`,
+   which 2.1.287 draws as 2.1.295 does; its Box clips it at the rows it
+   was given. */
+function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: number): RenderElement {
+  const { Box, Text, Button, Markdown } = elements
+  const label = preview.state === 'noRoom' ? words.previewNoRoom : words.preview
+  const ruleRest = Math.max(0, bodyColumns - 2 - textCells(`${PREVIEW_HOTKEY}: ${label}`) - 1)
+  const rule = (
+    <Box flexDirection="row">
+      <Text color="subtle">{'─ '}</Text>
+      <Button key={PREVIEW_CONTROL} plain hotkey={PREVIEW_HOTKEY} dimColor={preview.state !== 'shown'} onPress={() => preview.onToggle()}>
+        {label}
+      </Button>
+      <Text color="subtle">{' ' + '─'.repeat(ruleRest)}</Text>
+    </Box>
+  )
+  const body = preview.state === 'shown' ? preview.body : undefined
+  if (body === undefined) return <Box flexDirection="column">{rule}</Box>
+  const agent = body.agent
+  return (
+    <Box flexDirection="column">
+      {rule}
+      <Text dimColor>{body.meta}</Text>
+      {body.user === undefined ? null : <Text dimColor>{words.previewUser}</Text>}
+      {body.user === undefined || body.user.length === 0 ? null : <Text>{body.user.join('\n')}</Text>}
+      {agent === undefined ? null : <Text dimColor>{words.previewAgent}</Text>}
+      {agent === undefined || agent.rows === 0 ? null : (
+        <Box height={agent.rows} overflow="hidden" flexDirection="column">
+          <Markdown text={agent.text} />
+        </Box>
+      )}
+      {body.files === undefined ? null : <Text dimColor>{body.files}</Text>}
+      {body.blank > 0 ? <Box height={body.blank} /> : null}
+      {body.more === 0 ? null : (
+        <Box flexDirection="row">
+          <Text dimColor>{words.moreLines(body.more)}</Text>
+          <Button key={MORE_CONTROL} plain hotkey={EXPAND_HOTKEY} dimColor onPress={() => preview.onMore()}>
+            {words.expand}
+          </Button>
+        </Box>
+      )}
+    </Box>
+  )
+}
+
 export type PaneView = {
   entries: readonly Entry[]
   window: TocWindow
@@ -105,6 +165,8 @@ export type PaneView = {
   litBar: number | undefined
   /* The times under the cells, and the spaces between them. */
   barLabels: { left: string; right: string; gap: number }
+  /* The preview region; undefined draws none. */
+  preview: PreviewView | undefined
   onBar: (cell: number) => Promise<void>
   onPress: (entry: Entry) => Promise<void>
   onFilter: (filter: ViewFilter) => Promise<void>
@@ -231,7 +293,8 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
     <Text dimColor>{words.turns(view.count)}</Text>
   )
   const whyLines = view.why === undefined ? 0 : view.why.split('\n').length
-  const used = HEAD_ROWS + (hasBars ? BAR_ROWS : 0) + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + FOOT_ROWS
+  const previewRows = view.preview?.rows ?? 0
+  const used = HEAD_ROWS + (hasBars ? BAR_ROWS : 0) + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + previewRows + FOOT_ROWS
   const spare = Math.max(0, view.bodyRows - used)
   return (
     <Box flexDirection="column">
@@ -246,6 +309,7 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
       )}
       {view.why === undefined ? null : <Text dimColor>{view.why}</Text>}
       {spare > 0 ? <Box height={spare} /> : null}
+      {view.preview === undefined ? null : drawPreview(elements, view.preview, view.bodyColumns)}
       <Text color="subtle">{'─'.repeat(view.bodyColumns)}</Text>
       <Box flexDirection="row" justifyContent="space-between">
         {status}

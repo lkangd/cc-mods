@@ -10,10 +10,14 @@ import { isBarKey } from './bars'
 import type { TocWindow } from './window'
 
 /* The controls around the entries, in the ring's order: the filter row's
-   Buttons left to right, the entries, then the footer's Layout Button. */
+   Buttons left to right, the entries, then the preview's Buttons and the
+   footer's Layout Button. */
 export const FIRST_CONTROL = 'f-all'
 export const FILTER_END = 'f-agent'
 export const LAYOUT_CONTROL = 'layout'
+/* The controls after the entries. */
+const AFTER_LIST = new Set([LAYOUT_CONTROL, 'preview', 'preview.more'])
+const isAfterList = (key: string | undefined) => key !== undefined && AFTER_LIST.has(key)
 
 export type RingMove =
   /* Let the ring land where the host moves it. */
@@ -47,13 +51,15 @@ export function pendingShown(pending: string | undefined, indexOf: ReadonlyMap<s
 
 /* The host moving the ring from `from` (where it was; undefined when the
    pane just took the keyboard) to `to` (undefined for one of the host's own
-   stops, or a Minimap cell). `keys[i]` is entry i's key, `indexOf` the table back. */
+   stops, or a Minimap cell). `keys[i]` is entry i's key, `indexOf` the table back.
+   `after` is the first control drawn after the entries. */
 export function ringMove(
   keys: readonly string[],
   indexOf: ReadonlyMap<string, number>,
   window: TocWindow,
   from: string | undefined,
   to: string | undefined,
+  after: string = LAYOUT_CONTROL,
 ): RingMove {
   const was = entryAt(from, indexOf)
   const next = entryAt(to, indexOf)
@@ -63,8 +69,8 @@ export function ringMove(
   if (isBarKey(to)) {
     if (was === undefined) {
       /* Up from the Layout Button, with no entry to land on, goes on to the filter row. */
-      if (from === LAYOUT_CONTROL) return { kind: 'land', key: FILTER_END }
-      return { kind: 'land', key: keys[window.start] !== undefined && window.start < window.end ? keys[window.start]! : LAYOUT_CONTROL }
+      if (isAfterList(from)) return { kind: 'land', key: FILTER_END }
+      return { kind: 'land', key: keys[window.start] !== undefined && window.start < window.end ? keys[window.start]! : after }
     }
     if (was.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
     return { kind: 'land', key: FILTER_END }
@@ -72,7 +78,7 @@ export function ringMove(
   if (next === undefined) {
     /* Down from the window's last entry goes on to the footer: show the
        entry after it instead, while there is one. */
-    if (to === LAYOUT_CONTROL && was?.index === window.end - 1 && window.end < keys.length) return { kind: 'reveal', index: window.end }
+    if (isAfterList(to) && was?.index === window.end - 1 && window.end < keys.length) return { kind: 'reveal', index: window.end }
     /* Up from the window's first entry goes on to the filter row: show the
        entry before it instead, while there is one. */
     if (to === FILTER_END && was?.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
@@ -81,10 +87,10 @@ export function ringMove(
   if (next.line === 0) return { kind: 'accept' }
   /* Down off an entry's first line onto its second: the next entry. */
   if (was?.index === next.index) {
-    const after = next.index + 1
-    if (after < window.end) return { kind: 'land', key: keys[after] ?? LAYOUT_CONTROL }
-    if (after < keys.length) return { kind: 'reveal', index: after }
-    return { kind: 'land', key: LAYOUT_CONTROL }
+    const below = next.index + 1
+    if (below < window.end) return { kind: 'land', key: keys[below] ?? after }
+    if (below < keys.length) return { kind: 'reveal', index: below }
+    return { kind: 'land', key: after }
   }
   /* Up onto an entry's last line, or anything else onto a later line: that
      entry's first line. */
