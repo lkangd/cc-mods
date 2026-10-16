@@ -35,6 +35,7 @@ mods/chat-toc/
 │   ├── view.ts                  the View filter / Layout $.store keys, the default for a value not known
 │   ├── sites.ts                 transcript site records and the four-step requestId → row match
 │   ├── jump.ts                  each side's jump candidates, refusal notes and dimming
+│   ├── memo.ts                  the one-entry memo a drawing keeps its work in (the matches, the narrowed and ruled list, the preview)
 │   ├── position.ts              Current position: on-screen row runs, binary search, the jump lock
 │   ├── perf.ts                  timing samples under CHAT_TOC_PERF (numbers only), written to the host's debug log
 │   ├── lifecycle.ts             the close mark, when to reopen, placement outcomes

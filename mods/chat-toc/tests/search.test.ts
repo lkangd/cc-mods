@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { tocModel } from '../hooks/model'
 import { newReading, readLines } from '../hooks/regroup'
-import { indexGroups, matchesOf, nearestMatch, newSearchIndex, queryWords } from '../hooks/search'
+import { indexGroups, matchShown, matchesOf, nearestMatch, newSearchIndex, queryWords } from '../hooks/search'
 import { transcript } from './fixture'
 import { setLanguage } from '../hooks/text'
 
@@ -125,4 +125,12 @@ test("an input of only images holds no words: the words that say so are not sear
     expect(matched(t.jsonl(), 'image only')).toEqual([])
     expect(matched(t.jsonl(), '只有图片')).toEqual([])
   }
+})
+
+test('two matches the preview draws alike read the same; another field or path does not', () => {
+  const match = (user: boolean, paths: string[]) => ({ group: 3, user, agent: true, files: paths.length > 0, paths })
+  expect(matchShown(match(false, ['/p/a.ts']))).toBe(matchShown(match(false, ['/p/a.ts'])))
+  expect(matchShown(match(true, ['/p/a.ts']))).not.toBe(matchShown(match(false, ['/p/a.ts'])))
+  expect(matchShown(match(false, ['/p/b.ts']))).not.toBe(matchShown(match(false, ['/p/a.ts'])))
+  expect(matchShown(undefined)).toBeUndefined()
 })
