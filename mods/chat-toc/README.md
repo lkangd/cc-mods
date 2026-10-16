@@ -31,7 +31,7 @@ mods/chat-toc/
 │   ├── cells.ts                 terminal cell widths and folding (no closing punctuation at a line's start, English words kept whole)
 │   ├── window.ts                the Pane's own visible window
 │   ├── bars.ts                  the terminal Minimap: a one-cell Button per Turn group, blocks by steps, buckets past the width, the press target, the hide rule
-│   ├── ring.ts                  the host's focus ring on an entry's first line, scrolling at the window's ends
+│   ├── ring.ts                  the host's focus ring on an entry's first line, scrolling at the window's ends, stepping over ‹ › and the Minimap
 │   ├── view.ts                  the View filter / Layout $.store keys, the default for a value not known
 │   ├── sites.ts                 transcript site records and the four-step requestId → row match
 │   ├── jump.ts                  each side's jump candidates, refusal notes and dimming
@@ -43,6 +43,7 @@ mods/chat-toc/
 │   ├── preview.ts               the preview's words (meta line, files line), its size against the rows (and what gives way first), what of a group fits
 │   ├── reuse.ts                 Reuse and copy: which label-row Buttons a group gets, the text each takes, how a fill keeps the draft
 │   ├── search.ts                search: each group's NFKC lower-cased fields indexed at regroup, the matcher (words AND, the View filter's fields), the match nearest a position
+│   ├── step.ts                  ‹ ›: the borrowed actions, the groups the list shows, the walk from the Current position to the previous or next one with a Jump target
 │   ├── pane.tsx                 the terminal Pane (filter row and tab rule, the search row, entries on the time rail, the preview region, footer)
 │   ├── desktop.tsx              the Pane on Desktop / VS Code / mobile (another tree, split on e.surface)
 │   └── minimap.ts               the SVG strip of steps per turn over the desktop list
@@ -126,6 +127,7 @@ Every start is in a temporary HOME and `CLAUDE_CONFIG_DIR`: onboarding done, the
 | CT-PREV-001 (the preview region), CT-PREV-002 (expanded) | `$PY mods/chat-toc/tests/acceptance/ct_preview.py --host 2.1.287 [--host current] [--only which,facts,cut,toggle,short,widths,expand,cap,running]` (`expand`, `cap` and `running` record CT-PREV-002; `running` runs against `fake_api.py`, no model call) |
 | CT-REUSE-001 (Reuse and copy) | `$PY mods/chat-toc/tests/acceptance/ct_reuse.py --host 2.1.287 [--host current] [--only fill,copy,rules,hidden,dialog,running,widths]` (writes the system clipboard and puts the person's back at the end; `running` runs against `fake_api.py`; `widths` also runs in English) |
 | CT-FIND-001, CT-FIND-002 (search) | `$PY mods/chat-toc/tests/acceptance/ct_search.py --host 2.1.287 [--host current] [--only narrow,filter,live,widths,keys,entry,keep,minimap]` (`widths` also runs in English; `keep` makes a temporary project a repository with a change, so `/diff` opens) |
+| CT-STEP-001 (‹ ›, the keys bound) | `$PY mods/chat-toc/tests/acceptance/ct_step.py --host 2.1.287 [--host current] [--only pane,keys]` (`keys` writes the world's `keybindings.json` binding `meta+k`/`meta+j`, runs one turn against `fake_api.py` on 127.0.0.1, and makes the project a repository with a change, so `/diff` opens) |
 | CT-CMPCT-001 (a query's part too), CT-CTX-001, CT-LIFE-003 (live `/compact`) | `$PY mods/chat-toc/tests/acceptance/ct_compaction.py --host 2.1.287 [--only fixture,fork,live]` (`live` runs against `fake_api.py` on 127.0.0.1 stating chosen `usage` figures; no model call) |
 | CT-JUMP-001–003, 005, CT-UI-005 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003 005]` (005 also records CT-UI-005: the notice line's inverse and foreground read about every 30 ms) |
 | CT-POS-001–003, CT-COEX-001, CT-LIFE-006, CT-MAP-001 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6 map1]` (coex runs `git init` on a repository with changes in a temporary project, so `/diff` opens) |

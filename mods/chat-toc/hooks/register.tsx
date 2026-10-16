@@ -10,6 +10,7 @@
      search.ts                                          which groups a query matches
      pane.tsx / ring.ts                                 how it draws, the keyboard
      sites.ts / jump.ts                                 where a press scrolls
+     step.ts                                            the previous and next Turn group
      position.ts                                        what the view is on
    The host's `$` may only be handed to functions declared at the top of
    this file, so every call on `$` is made here or in one of them. */
@@ -48,6 +49,8 @@ import type { CopyWhich } from './reuse'
 import { indexGroups, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
 import type { Match } from './search'
 import { derivedTranscriptPath } from './locate'
+import { listedGroups, stepFrom } from './step'
+import type { StepDirection } from './step'
 import { languageOf, setLanguage, text as words } from './text'
 import type { BandCounts } from './text'
 import { drawBand } from './band'
@@ -201,6 +204,10 @@ let isCompactedMarked = false
 let refusal: { key: string; n: number; text: string; at: number } | undefined
 let refusals = 0
 let isRedrawQueued = false
+/* Whether the band's last drawing was chat-toc's: the host does not draw
+   the band again when the pane comes to the front by a switch of tabs, so
+   the pane's drawing asks for it. */
+let isBandDrawn = false
 
 /* For the Current position (position.ts): the drawable rows' and the group
    openers' places on the chain, the last row drawn, the group a jump
@@ -686,8 +693,9 @@ function bandCounts(): BandCounts | undefined {
 
 /* Only ever called from a press: the host moves the transcript only for
    the person's own input. Tries the side's targets in order; when the host
-   refuses them all, says so at the bottom for a while and dims the side. */
-async function jump($: EngineInterface, entry: Pick<Entry, 'groupIndex' | 'side' | 'key'>): Promise<void> {
+   refuses them all, says so at the bottom for a while (or, pressed while
+   the pane is not on screen, as a toast) and dims the side. */
+async function jump($: EngineInterface, entry: Pick<Entry, 'groupIndex' | 'side' | 'key'>, isPaneOnScreen = true): Promise<void> {
   const group = reading.groups[entry.groupIndex]
   if (!group) return
   const key = sideKeyOf(group, entry.side)
@@ -704,10 +712,43 @@ async function jump($: EngineInterface, entry: Pick<Entry, 'groupIndex' | 'side'
       if (wasShown) await update($, rev, n => n + 1)
       return
     }
-    if (isUnscrollable(got.deny)) return sayRefusal($, entry.key, words.unscrollable)
+    if (isUnscrollable(got.deny)) return say($, entry.key, words.unscrollable, isPaneOnScreen)
   }
   refused.set(key, { side: entry.side, opener: group.openerUuid, groupIndex: entry.groupIndex, why })
-  await sayRefusal($, entry.key, why === 'compacted' ? words.compacted : words.refused)
+  await say($, entry.key, why === 'compacted' ? words.compacted : words.refused, isPaneOnScreen)
+}
+
+/* A refusal said at the bottom of the pane, or as a toast while the pane
+   is not on screen to say it. */
+async function say($: EngineInterface, key: string, text: string, isPaneOnScreen: boolean): Promise<void> {
+  if (isPaneOnScreen) return sayRefusal($, key, text)
+  $.ui.toast(text)
+  await update($, rev, n => n + 1)
+}
+
+/* ‹ or ›, pressed by a click or by a key the person bound to its action:
+   the transcript steps from the Current position (not the selection) to
+   the Turn group before or after it among those the list shows, the View
+   filter's and, during a search, the matches' (step.ts), on the side the
+   View filter shows, without ending the search. The jump locks the Current
+   position on its group, so presses walk group by group. Nothing at either
+   end; groups that way but none with a Jump target say the click's notice.
+   The press hands this promise back: the scroll is the person's. */
+async function stepTurn($: EngineInterface, direction: StepDirection, isPaneOnScreen: boolean): Promise<void> {
+  if (source !== 'ok') return
+  const groups = shownGroups()
+  const isRunning = isTurnRunning && groups === reading.groups
+  const searchWords = queryWords(await read($, query))
+  const matches = searchWords.length === 0 ? undefined : matchesNow(groups, searchWords, isRunning).groupsMatched
+  const shown = listedGroups(groups, filter, isRunning ? groups.length - 1 : undefined, matches)
+  const side = filter === 'agent' ? 'agent' : 'user'
+  const hasTarget = (g: number) => {
+    const group = groups[g]
+    return group !== undefined && !refused.has(sideKeyOf(group, side)) && jumpTargetsOf(group, side, chainRows, sites).length > 0
+  }
+  const to = stepFrom(shown, placing.position, direction, hasTarget)
+  if (to.kind === 'jump') return jump($, { groupIndex: to.group, side, key: `g${to.group}.${side === 'agent' ? 'a' : 'u'}` }, isPaneOnScreen)
+  if (to.kind === 'unjumpable') return say($, `step.${direction}`, words.refused, isPaneOnScreen)
 }
 
 /* Says below the entries why a press did not jump, flashing, for a while. */
@@ -1160,13 +1201,18 @@ export const register: Register = on => {
     return next(e)
   })
 
-  /* While the pane is not on screen, waiting undrawn or closed, one line
-     above the prompt counts the conversation; a press is the person's open,
-     which the host seats at any width. A survey holds the band first. */
+  /* While the pane is not on screen, closed, waiting undrawn or a tab
+     behind another pane, one line above the prompt counts the
+     conversation and carries ‹ ›; a press on its open is the person's
+     open, which the host seats at any width. A survey holds the band
+     first. */
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     await read($, rev)
-    if (e.props.hasSurvey || !(await read($, isPaneHidden))) return next(e)
-    return drawBand($.ui.resolve(e), { counts: bandCounts(), onOpen: () => openAsked($) })
+    await read($, isPaneHidden)
+    const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
+    isBandDrawn = !e.props.hasSurvey && (pane === undefined || !pane.isPlaced || !pane.isShown)
+    if (!isBandDrawn) return next(e)
+    return drawBand($.ui.resolve(e), { counts: bandCounts(), onOpen: () => openAsked($), onStep: direction => stepTurn($, direction, false) })
   })
 
   /* The arrows walk the host's focus ring Button by Button; this keeps it
@@ -1222,6 +1268,9 @@ export const register: Register = on => {
     const searchText = await read($, query)
     /* Drawn: whatever waited is seated. A drawing writes nothing, so after. */
     if (await read($, isPaneHidden)) $.clock.after(0, () => void update($, isPaneHidden, () => false).catch(() => undefined))
+    /* On screen: the band goes, also when a switch of tabs brought the pane
+       to the front, which draws no band. */
+    else if (isBandDrawn) redrawSoon($)
     const nowMs = await $.clock.now()
     const awaited = perfNow()
     const wasFocused = isPaneFocused
@@ -1330,6 +1379,7 @@ export const register: Register = on => {
       onInput: value => void setQuery($, value),
       onSubmit: value => submitSearch($, value).catch(() => undefined),
       onClear: () => setQuery($, ''),
+      onStep: direction => stepTurn($, direction, true),
     }
     /* The Minimap lights the Current position's cell or, while a query is
        set, the cells holding a match. */

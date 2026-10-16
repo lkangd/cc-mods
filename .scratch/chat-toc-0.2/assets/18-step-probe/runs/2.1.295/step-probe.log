@@ -1,0 +1,23 @@
+0.2s band render #1 paneShown=undefined
+0.2s session.start version=[object Object] targets={"prev":"6a3db103-5f5f-4076-811d-9484d8d8dd47","next":"db04a838-f570-43ef-b26b-2b3079ec55a3"}
+0.2s band render #2 paneShown=undefined
+3.7s open step-probe {"isPlaced":true}
+3.7s band render #3 paneShown=true
+3.7s band render #4 paneShown=true
+3.7s band render #5 paneShown=true
+6.3s PRESS#1 next in pane -> scroll db04a838 {}
+8.4s PRESS#2 prev in pane -> scroll 6a3db103 {}
+10.9s open step-probe-2 {"isPlaced":true}
+10.9s band render #6 paneShown=false
+10.9s band render #7 paneShown=false
+26.0s PRESS#3 next in band -> scroll db04a838 {}
+28.2s PRESS#4 prev in band -> scroll 6a3db103 {}
+30.7s closed2
+30.7s band render #8 paneShown=true
+30.7s band render #9 paneShown=true
+33.8s closed
+33.8s band render #10 paneShown=undefined
+33.8s band render #11 paneShown=undefined
+33.8s band render #12 paneShown=undefined
+36.4s PRESS#5 next in band -> scroll db04a838 {}
+38.5s PRESS#6 prev in band -> scroll 6a3db103 {}

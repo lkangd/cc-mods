@@ -1,0 +1,9 @@
+2026-10-16T14:28:58.074Z [DEBUG] hooks module cc-plugin-diff@builtin loaded (native, environment 3, tier builtin); events: session.start,ui.render,command.run,ui.close,ui.focus,ui.scroll,tool.call,prompt.submit
+2026-10-16T14:29:04.248Z [DEBUG] ui.scroll step-probe to db04a838-f570-43ef-b26b-2b3079ec55a3: revealed
+2026-10-16T14:29:06.335Z [DEBUG] ui.scroll step-probe to 6a3db103-5f5f-4076-811d-9484d8d8dd47: revealed
+2026-10-16T14:29:08.871Z [DEBUG] repinScroll(onSubmit, force=false): yanking from scrollTop=210 (max=274)
+2026-10-16T14:29:24.010Z [DEBUG] ui.scroll step-probe to db04a838-f570-43ef-b26b-2b3079ec55a3: revealed
+2026-10-16T14:29:26.177Z [DEBUG] ui.scroll step-probe to 6a3db103-5f5f-4076-811d-9484d8d8dd47: revealed
+2026-10-16T14:29:28.688Z [DEBUG] repinScroll(onSubmit, force=false): yanking from scrollTop=210 (max=275)
+2026-10-16T14:29:34.352Z [DEBUG] ui.scroll step-probe to db04a838-f570-43ef-b26b-2b3079ec55a3: revealed
+2026-10-16T14:29:36.449Z [DEBUG] ui.scroll step-probe to 6a3db103-5f5f-4076-811d-9484d8d8dd47: revealed

@@ -70,6 +70,8 @@ test('the filter row shows the three filters by name, the chosen one at full str
     ['f-user', '2', true],
     ['f-agent', '3', true],
     ['find', 'f', true],
+    ['step.previous', undefined, true],
+    ['step.next', undefined, true],
     ['preview', 'p', true],
     ['preview.reuse', 'r', true],
     ['preview.copy.user', 'c', true],
