@@ -88,6 +88,11 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 | `Ctrl+X` then `←` / `→` | Widens / narrows the contents (a Claude Code feature). A width you set wins |
 | Click ✕ | Closes the contents; they do not open by themselves again this session. A new session (including after `/clear` or `/resume`) opens them again |
 | `/chat-toc` | Opens the contents when closed, brings them to the front when open (also when another pane pushed them back); either way moves the focus into them (with an empty prompt). It never closes them |
+| Claude Code Desktop: click an entry | Shows that turn in the preview. The click also asks to jump, which the Claude app refuses (see [Known limits](#known-limits)) |
+| Claude Code Desktop: type in the search field under the view choices | Narrows the list as on the terminal, at each change; the row of bars draws the matching turns in the accent colour and the rest dim. There is no `f: Find`: click the field |
+| Claude Code Desktop: `Enter` in the search field, or its `show` button | Keeps the search and puts the newest match in the preview (the app cannot jump, nor say which turn you are viewing) |
+| Claude Code Desktop: click `Preview` on the preview's top line, `↓ 12 more lines · expand` on its last line, `← Back` | As `p`, `e` and `e: ← Back` on the terminal. Desktop has no hotkeys, so none of the buttons names a key |
+| Claude Code Desktop: click `Copy` on the preview's `User` or `Agent` line | Copies as `c` and `a` do; a copy the app cannot take says "Too long to copy here". There is no Reuse in Desktop |
 
 The hotkeys `1` `2` `3` `l` `p` `e` `f` `r` `c` `a` work only with the focus in the contents, and not while it is in the search field, which takes every letter typed; `e` only while the preview is cut or expanded; `r` `c` `a` only while the preview shows their button (none while it is folded by `p`, and `a` not while a short preview cuts the `Agent` line, until `e`). `‹` `›` have no hotkey, and `↑` `↓` pass over them.
 
@@ -184,7 +189,8 @@ chat-toc binds no key of its own. `‹` and `›` answer two Claude Code keybind
 - The preview's tokens are the main Agent's output only; what subagents wrote is not counted.
 - A very long prompt or reply is cut in the expanded preview (copying takes the whole text).
 - A forked session does not show the parent session's turns: a line at the top of the list says earlier turns are not in this session's file.
-- Context use in Claude Code Desktop is not promised: it was not measured there, and shows only when the Claude app gives a figure.
+- Context use in Claude Code Desktop is not promised: it was not measured there, and shows only when the Claude app gives a figure, after the turn count under the row of bars.
+- No Reuse in Claude Code Desktop, only copy: the Claude app reports a fill as done while its prompt box sometimes does not show the text. Reuse comes back there when a version of the app shows fills reliably.
 - How the three layouts look, and whether the highlight and the inverse selection tell apart, is checked by a person and does not block a release.
 - No fixed speed is promised on every machine; the release's performance numbers come from one reference machine (an Apple M1 Pro Mac: on a 20 MB-class long session, the contents show within about 0.7 s after Claude Code shows the last turn, and scrolling and jumping do not stutter).
 - Contents opened with `/chat-toc` where they cannot dock, sitting above the prompt: their layouts, following and highlight are not accepted.
