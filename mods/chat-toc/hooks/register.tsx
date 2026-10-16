@@ -909,6 +909,18 @@ function previewGroup(groups: readonly TurnGroup[], position: number | undefined
 const matchedWords = (match: Match) =>
   words.matched([...(match.user ? ['user' as const] : []), ...(match.agent ? ['agent' as const] : []), ...(match.files ? ['files' as const] : [])])
 
+/* Whether two matches of a group end its meta line and order its files
+   alike: each keystroke matches anew, and the preview is laid out again
+   only when what it shows of the match changed. */
+const isSameMatch = (a: Match | undefined, b: Match | undefined) =>
+  a === b ||
+  (a !== undefined &&
+    b !== undefined &&
+    a.user === b.user &&
+    a.agent === b.agent &&
+    a.paths.length === b.paths.length &&
+    a.paths.every((path, i) => path === b.paths[i]))
+
 function previewOf(
   groups: readonly TurnGroup[],
   plan: { preview: number; state: 'shown' | 'hidden' | 'noRoom' | 'none' },
@@ -935,7 +947,7 @@ function previewOf(
     memo.rows === plan.preview &&
     memo.year === year &&
     memo.base === pathBase &&
-    memo.match === match
+    isSameMatch(memo.match, match)
   const body =
     state !== 'shown' || group === undefined
       ? undefined
