@@ -385,7 +385,7 @@ def short(host, run):
             if p is None:
                 actual["heights"].append({"lines": lines, "pane": None})
                 continue
-            top = p.filter_row + 2 + (3 if regions(p)["minimap"] else 0)
+            top = p.filter_row + 2 + (1 if p.search is not None else 0) + (3 if regions(p)["minimap"] else 0)
             rule = next((y for y in range(len(rows)) if (txt := v._right_of(rows[y], p.left)) and v._PREVIEW_RULE.match(txt.strip())), None)
             r = regions(p) | {"lines": lines, "listRows": (rule - top) if rule is not None else None}
             actual["heights"].append(r)

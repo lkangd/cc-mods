@@ -364,6 +364,23 @@ class Compactions(unittest.TestCase):
         self.assertEqual(pane.notes, [])
 
 
+    def test_reads_the_search_row_apart_from_the_notes(self):
+        rows = ["x" * 10 + "│1: 全部   2: 用户   3: Agent",
+                "x" * 10 + "│━━━━━━━──────────────",
+                "x" * 10 + "│f: 搜索 登录 ⏎ 跳转        1 / 8 ✕",
+                "x" * 10 + "│●  修改登录页                09:05",
+                "x" * 10 + "│├╴ 回复",
+                "x" * 10 + "│──────────────────────────",
+                "x" * 10 + "│1 轮            l: 布局 卡片"]
+        pane = toc_verifier.parse_pane(rows)
+        self.assertEqual(pane.search, {"text": "登录", "count": "1 / 8", "clear": True, "focused": True})
+        self.assertEqual([e.user_text for e in pane.entries], ["修改登录页"])
+        self.assertEqual(pane.notes, [])
+        self.assertEqual(toc_verifier.parse_search_row("f: 搜索 词或文件路径"), {"text": "", "count": None, "clear": False, "focused": False})
+        self.assertEqual(toc_verifier.parse_search_row("f: Find nowhere   0 of 3 ✕"), {"text": "nowhere", "count": "0 of 3", "clear": True, "focused": False})
+        self.assertIsNone(toc_verifier.parse_search_row("●  f: 搜索"))
+
+
 TESTDATA = pathlib.Path(__file__).parent / "testdata"
 
 
