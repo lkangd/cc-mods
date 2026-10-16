@@ -124,6 +124,24 @@ test('a file read at the start whose last boundary was answered keeps the figure
   expect((await footer(pane))?.text).toBe('4 轮 · 上下文已用 9%')
 })
 
+test('/clear and /resume start another conversation: the old figure goes, and the one the host has then is read', async ($, on) => {
+  const world = host(on, three().jsonl())
+  world.percent = 62
+  await start($, world)
+  const pane = await mountPane($)
+  expect((await footer(pane))?.text).toBe('3 轮 · 上下文已用 62%')
+
+  world.percent = undefined
+  await $.classic.SessionStart({ source: 'clear', transcript_path: world.path })
+  await world.clock.settle()
+  expect((await footer(pane))?.text).toBe('3 轮')
+
+  world.percent = 17
+  await $.classic.SessionStart({ source: 'resume', transcript_path: world.path })
+  await world.clock.settle()
+  expect((await footer(pane))?.text).toBe('3 轮 · 上下文已用 17%')
+})
+
 test('the band above the prompt adds the context use after its counts', async ($, on) => {
   const world = host(on, three().jsonl())
   world.unplaced = true
