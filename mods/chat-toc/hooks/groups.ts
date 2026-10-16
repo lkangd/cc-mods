@@ -81,6 +81,14 @@ export function inputKindOf(row: TranscriptRow): InputKind | undefined {
   return text.trim() || hasBlock(content, 'image') ? 'prompt' : undefined
 }
 
+/* Whether a chain row is the output Claude Code itself gave a local slash
+   command or a `!` shell command: the input was answered without the
+   model. */
+export function isLocalOutput(row: TranscriptRow): boolean {
+  if (row.type !== 'user' && row.type !== 'system') return false
+  return /^\s*<(local-command-stdout|local-command-stderr|bash-stdout|bash-stderr)>/.test(rowText(row))
+}
+
 /* Whether a chain row is a User input that opens a Turn group. */
 export function opensGroup(row: TranscriptRow): boolean {
   return inputKindOf(row) !== undefined
