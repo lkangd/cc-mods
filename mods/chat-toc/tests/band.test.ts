@@ -55,9 +55,42 @@ test('a pane waiting undrawn puts the counts above the prompt', async ($, on) =>
   const texts = (await band.findAll({ type: 'Text' })).map(t => t.text)
   expect(texts).toContain('☰ ChatTOC')
   expect(texts.join('')).toContain('用户 2 轮 · Agent 2 步')
-  /* Only the open is a Button: the counts are not lit under the pointer. */
+  /* Only the open and ‹ › are Buttons: the counts are not lit under the pointer. */
   expect((await bandButtons(band)).map(b => b.text)).toEqual(['展开目录 ❯'])
-  expect(await band.findAll({ type: 'Button' })).toHaveLength(1)
+  expect((await band.findAll({ type: 'Button' })).map(b => b.key)).toEqual(['chat-toc-band.previous', 'chat-toc-band.next', BAND])
+})
+
+test('the band carries ‹ › with the borrowed actions, as the pane does', async ($, on) => {
+  const world = host(on, three().jsonl())
+  on('ui.render', { component: 'AbovePrompt' }, ENGINE_BAND)
+  world.unplaced = true
+  await start($, world)
+  const band = await mountBand($)
+  await world.clock.settle()
+
+  const previous = await band.find({ type: 'Button', key: 'chat-toc-band.previous' })
+  const next = await band.find({ type: 'Button', key: 'chat-toc-band.next' })
+  expect([previous?.text, previous?.props.plain, previous?.props.action]).toEqual(['‹', true, 'app:toggleDiffNoiseFilter'])
+  expect([next?.text, next?.props.plain, next?.props.action]).toEqual(['›', true, 'app:toggleDiffPreSession'])
+})
+
+test('the band draws while the pane is a tab behind another, and goes when it is in front again', async ($, on) => {
+  const world = host(on, three().jsonl())
+  on('ui.render', { component: 'AbovePrompt' }, ENGINE_BAND)
+  await start($, world)
+  const band = await mountBand($)
+  await world.clock.settle()
+  expect(await bandButtons(band)).toEqual([])
+
+  world.panes = world.panes.map(p => ({ ...p, isShown: false }))
+  await band.redraw({ hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 95, scroll: { offset: 0, bodyRows: 9 }, view: {} } as never)
+  expect((await bandButtons(band)).map(b => b.text)).toEqual(['展开目录 ❯'])
+
+  /* The pane drawn in front again asks the band to go. */
+  world.panes = world.panes.map(p => ({ ...p, isShown: true }))
+  await mountPane($)
+  await world.clock.settle()
+  expect(await bandButtons(band)).toEqual([])
 })
 
 test("the open Button's words are its label, which 2.1.287 takes alone, lit in the accent under the pointer", async ($, on) => {

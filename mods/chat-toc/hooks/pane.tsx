@@ -19,6 +19,8 @@ import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
 import { text as words } from './text'
 import { BACK_CONTROL, EXPAND_HOTKEY, MORE_CONTROL, PREVIEW_CONTROL, PREVIEW_HOTKEY } from './preview'
+import { NEXT_ACTION, NEXT_CONTROL, PREVIOUS_ACTION, PREVIOUS_CONTROL } from './step'
+import type { StepDirection } from './step'
 import type { ExpandedBody, PreviewBody } from './preview'
 
 export const PANE_ID = 'chat-toc'
@@ -53,8 +55,9 @@ export const CLEAR_CONTROL = 'search.clear'
 export const FIND_HOTKEY = 'f'
 
 /* The search row: the `f` Button moving the keys into the field, the field
-   holding the query, and while there is a query the count of matches
-   among all groups and the ✕ that clears it. */
+   holding the query, while there is a query the count of matches among all
+   groups and the ✕ that clears it, then ‹ › stepping to the previous or
+   next Turn group (step.ts). */
 export type SearchView = {
   query: string
   /* Undefined without a query. */
@@ -65,6 +68,8 @@ export type SearchView = {
      while the person's submit is under way. */
   onSubmit: (value: string) => Promise<void>
   onClear: () => Promise<void>
+  /* Hands back its promise, as `onSubmit` does. */
+  onStep: (direction: StepDirection) => Promise<void>
 }
 
 function drawSearch(elements: ElementTable<'terminal'>, search: SearchView): RenderElement {
@@ -93,6 +98,14 @@ function drawSearch(elements: ElementTable<'terminal'>, search: SearchView): Ren
           ✕
         </Button>
       ) : null}
+      <Text> </Text>
+      <Button key={PREVIOUS_CONTROL} plain action={PREVIOUS_ACTION} onPress={() => search.onStep('previous')}>
+        ‹
+      </Button>
+      <Text> </Text>
+      <Button key={NEXT_CONTROL} plain action={NEXT_ACTION} onPress={() => search.onStep('next')}>
+        ›
+      </Button>
     </Box>
   )
 }

@@ -33,7 +33,7 @@ test('a cell per group sits between the filter row and the entries, as tall as i
   const pane = await mountPane($)
 
   const all = drawnButtons(await pane.drawn()).map(b => String(b.key))
-  expect(all.slice(0, 8)).toEqual(['f-all', 'f-user', 'f-agent', 'find', 'm.0', 'm.1', 'm.2', 'm.3'])
+  expect(all.slice(0, 10)).toEqual(['f-all', 'f-user', 'f-agent', 'find', 'step.previous', 'step.next', 'm.0', 'm.1', 'm.2', 'm.3'])
   expect((await cells(pane)).map(b => b.label)).toEqual(['▁', '▃', '▅', '█'])
 })
 
