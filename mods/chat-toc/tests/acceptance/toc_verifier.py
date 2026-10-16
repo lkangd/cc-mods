@@ -60,11 +60,24 @@ class Group:
 
 
 @dataclasses.dataclass
+class Compaction:
+    uuid: str
+    trigger: str            # manual | auto
+    clock: str              # the boundary row's local 「HH:MM」, '' without a time
+    before: int             # the group its rule goes before; len(groups) when after the last
+
+    def public(self) -> dict:
+        return {"uuid": self.uuid, "trigger": self.trigger, "time": self.clock, "before": self.before}
+
+
+@dataclasses.dataclass
 class Toc:
     exists: bool
     groups: list[Group]
     unreadable: int
     chain: list[str]
+    compactions: list[Compaction] = dataclasses.field(default_factory=list)
+    earlier_elsewhere: bool = False     # the fork line: the chain's first boundary precedes its first group
 
 
 # ---------- reading the file ----------
@@ -277,14 +290,83 @@ def turn_groups(chain: list[dict], tz=None, now: datetime.datetime | None = None
     return groups
 
 
+def _is_boundary(row: dict) -> bool:
+    return row.get("type") == "system" and row.get("subtype") == "compact_boundary"
+
+
+def _is_compact_command(group: "Group | None") -> bool:
+    return group is not None and group.kind == "command" and re.match(r"^/compact(\s|$)", group.user_text) is not None
+
+
+def compactions(chain: list[dict], groups: list[Group], tz=None) -> list[Compaction]:
+    """Each boundary on the chain and where its rule goes (spec 0.2 §5): a
+    manual one after the `/compact` entry; an auto one before its group when
+    no agent row of that group came before it (at a submit), else after it
+    (mid-turn, between turns). A group is never cut."""
+    tz = tz or datetime.datetime.now().astimezone().tzinfo
+    where = {row["uuid"]: i for i, row in enumerate(chain)}
+    starts = [where[g.key] for g in groups]
+    out = []
+    for i, row in enumerate(chain):
+        if not _is_boundary(row):
+            continue
+        inside = sum(1 for at in starts if at < i) - 1            # the group the boundary falls in; -1 before any
+        trigger = "auto" if (row.get("compactMetadata") or {}).get("trigger") == "auto" else "manual"
+        if trigger == "manual":
+            own = groups[inside] if inside >= 0 else None
+            following = groups[inside + 1] if inside + 1 < len(groups) else None
+            before = inside + 2 if not _is_compact_command(own) and _is_compact_command(following) else inside + 1
+        else:
+            first = starts[inside] if inside >= 0 else 0
+            answered = inside >= 0 and any(chain[j].get("type") == "assistant" for j in range(first, i))
+            before = inside + 1 if answered else max(inside, 0)
+        stamp = row.get("timestamp")
+        clock = ""
+        if isinstance(stamp, str):
+            try:
+                local = datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00")).astimezone(tz)
+                clock = f"{local.hour:02d}:{local.minute:02d}"
+            except ValueError:
+                clock = ""
+        out.append(Compaction(uuid=row["uuid"], trigger=trigger, clock=clock, before=before))
+    return out
+
+
 def expected_toc(path: pathlib.Path, tz=None, now: datetime.datetime | None = None) -> Toc:
     path = pathlib.Path(path)
     if not path.exists():
         return Toc(exists=False, groups=[], unreadable=0, chain=[])
     rows, unreadable = read_rows(path)
     chain = conversation_chain(rows)
-    return Toc(exists=True, groups=turn_groups(chain, tz, now), unreadable=unreadable,
-               chain=[row["uuid"] for row in chain])
+    groups = turn_groups(chain, tz, now)
+    first_group = next((i for i, row in enumerate(chain) if groups and row["uuid"] == groups[0].key), len(chain))
+    first_boundary = next((i for i, row in enumerate(chain) if _is_boundary(row)), None)
+    return Toc(exists=True, groups=groups, unreadable=unreadable, chain=[row["uuid"] for row in chain],
+               compactions=compactions(chain, groups, tz),
+               earlier_elsewhere=first_boundary is not None and first_boundary < first_group)
+
+
+def rule_label(trigger: str, count: int, clock: str) -> str:
+    words = "自动压缩" if trigger == "auto" else "已压缩"
+    if count > 1:
+        return f"{words} ×{count}" + (f" · {clock}" if clock else "")
+    return f"{words} {clock}".strip()
+
+
+def expected_rules(toc: Toc, chosen: str = "all") -> list[dict]:
+    """The compaction rules the list draws under a View filter: each before
+    the first listed group at or after its place, else after the last listed
+    one; several in one place as one rule with a count and the last one's
+    time. `before` is the listed group's index among those listed."""
+    kept = listed(toc.groups, chosen)
+    shown = [i for i, g in enumerate(toc.groups) if any(g is k for k in kept)]
+    if not shown:
+        return []
+    folded: dict[int, list[Compaction]] = {}
+    for c in toc.compactions:
+        at = next((n for n, g in enumerate(shown) if g >= c.before), len(shown))
+        folded.setdefault(at, []).append(c)
+    return [{"before": at, "text": rule_label(cs[-1].trigger, len(cs), cs[-1].clock)} for at, cs in sorted(folded.items())]
 
 
 # ---------- what the Pane lists (card layout, read from a screen) ----------
@@ -324,8 +406,10 @@ _NODES, _BRANCHES, _RAILS = "●◉○", ("├╴", "┣╸", "├┄"), "│┃
 # A side with no Jump target hangs on a hollow mark.
 _OFF = ("○", "├┄")
 _LIT = "◉┣┃"
-_TIME_COLUMN = re.compile(r"^(\d\d:\d\d| {5}) (?=[●◉├┣│┃])")
+_TIME_COLUMN = re.compile(r"^(\d\d:\d\d| {5}) (?=[●◉○├┣│┃])")
 _DAY_RULE = re.compile(r"^─ (.+?) ─+$")
+_COMPACTION_RULE = re.compile(r"^╌ (.+?) ╌*$")
+_FORK_LINE = "更早的轮次不在本会话的文件里"
 _FOOTER_RULE = re.compile(r"^─{10,}$")
 # The preview's rule over the footer (0.2): shown or folded `─ p: 预览 ───`,
 # or `─ p: 预览（空间不足） ───` when the rows ran short.
@@ -411,6 +495,8 @@ class Pane:
     layout: str | None = None   # 卡片 / 紧凑 / 时间轴, as the footer says it
     footer: str | None = None   # the footer's left: 「N 轮」 or 「⏸ 暂停跟随」
     preview: list[str] | None = None   # the preview's rows, its rule first; None when not drawn
+    rules: list[dict] = dataclasses.field(default_factory=list)   # compaction rules: text, before (entry index)
+    fork_line: bool = False     # 「更早的轮次不在本会话的文件里」 above the list
 
 
 def _chosen_filter(rows: list[str], filter_row: int, left: int) -> str:
@@ -451,6 +537,8 @@ def parse_pane(rows: list[str]) -> Pane | None:
     chosen = _chosen_filter(rows, filter_row, left)
     entries: list[PaneEntry] = []
     notes: list[str] = []
+    rules: list[dict] = []
+    fork_line = False
     partial_top = False
     layout = footer = None
     current: PaneEntry | None = None
@@ -490,6 +578,13 @@ def parse_pane(rows: list[str]) -> Pane | None:
             break
         if m := _DAY_RULE.match(stripped):
             day, current, side = m.group(1), None, None
+            continue
+        if m := _COMPACTION_RULE.match(stripped):
+            rules.append({"text": m.group(1), "before": len(entries)})
+            current, side = None, None
+            continue
+        if stripped == _FORK_LINE:
+            fork_line = True
             continue
         time = None
         rest = text
@@ -550,7 +645,7 @@ def parse_pane(rows: list[str]) -> Pane | None:
         # the window may end inside it, blank filler below or not
         entries[-1].clipped = True
     return Pane(left=left, filter_row=filter_row, filter=chosen, entries=entries, notes=notes, partial_top=partial_top,
-                layout=layout, footer=footer, preview=preview)
+                layout=layout, footer=footer, rules=rules, fork_line=fork_line, preview=preview)
 
 
 # ---------- the diff ----------
@@ -663,6 +758,21 @@ def compare_windows(groups: list[Group], panes: list[Pane], chosen: str | None =
             covered |= {r["index"] for r in diff["entries"]}
     missing = sorted(set(range(total)) - covered)
     return {"ok": ok and not missing, "covered": len(covered), "missing": missing, "windows": windows}
+
+
+def compare_rules(toc: Toc, pane: "Pane | None", chosen: str | None = None) -> dict:
+    """The compaction rules a window shows against those expected for the
+    listed groups it holds: each in place, with its words."""
+    if pane is None:
+        return {"ok": False, "expected": [], "actual": [], "error": "no chat-toc Pane on screen"}
+    chosen = chosen or pane.filter
+    window = compare_window(toc.groups, pane, chosen)
+    start, count = window["start"] or 0, len(pane.entries)
+    last = len(listed(toc.groups, chosen))
+    expected = [{"before": r["before"] - start, "text": r["text"]} for r in expected_rules(toc, chosen)
+                if start <= r["before"] < start + count or (r["before"] == last and start + count == last)]
+    return {"ok": window["ok"] and expected == pane.rules, "expected": expected, "actual": pane.rules,
+            "windowStart": start}
 
 
 # ---------- command line ----------

@@ -1,6 +1,7 @@
 /* chat-toc: a docked table of contents of the current session's
    conversation. This module wires the host's events to the parts:
      transcript.ts / chain.ts / groups.ts / regroup.ts  the file to Turn groups
+     compactions.ts                                     where each compaction's rule goes
      source.ts / reader.ts / locate.ts                  how, when and where it is read
      rewind.ts                                          what a rewind took, before the file says
      view.ts / entries.ts / cells.ts / window.ts        what the pane draws
@@ -14,6 +15,8 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 import type { Entry } from './entries'
+import { compactionsOf, hasEarlierTurnsElsewhere, layRules } from './compactions'
+import type { Compaction, Listed } from './compactions'
 import { drawDesktopPane } from './desktop'
 import { BAR_ROWS, barKey, barLabels, barOfGroup, barTarget, barsOf } from './bars'
 import { stripLabels } from './minimap'
@@ -213,8 +216,36 @@ function shownGroups(): readonly TurnGroup[] {
   return shown
 }
 
-/* The entries kept between drawings (table.ts). */
+/* The chain's compactions as last read, whether earlier turns are not in
+   the file, and the last boundary a read found. */
+let compactions: Compaction[] = []
+let isEarlierElsewhere = false
+let lastCompaction: string | undefined
+/* The context use, a whole percent of the window, as the host last gave
+   it; undefined from a compaction until a measure brings one. */
+let contextPercent: number | undefined
+
+/* The entries kept between drawings (table.ts), and the list with the
+   compactions' rules laid on, kept while neither changes. */
 let entryCache = newEntryCache()
+let ruled: { table: EntryTable; compactions: readonly Compaction[]; listed: Listed } | undefined
+
+function listedWithRules(table: EntryTable): Listed {
+  if (ruled?.table === table && ruled.compactions === compactions) return ruled.listed
+  ruled = { table, compactions, listed: layRules(table, compactions) }
+  return ruled.listed
+}
+
+/* What a read found of the chain's compactions. A new boundary no response
+   has followed yet hides the context use, as `session.compact` does: the
+   host's figure is from before it. */
+function noteCompactions(): void {
+  compactions = compactionsOf(reading.chain, reading.groups)
+  isEarlierElsewhere = hasEarlierTurnsElsewhere(reading.chain, reading.groups)
+  const last = compactions[compactions.length - 1]
+  if (last !== undefined && last.uuid !== lastCompaction && !last.isAnswered) contextPercent = undefined
+  lastCompaction = last?.uuid
+}
 const NO_ENTRIES: EntryTable = { entries: [], heights: [], keys: [], indexOf: new Map(), firstOfGroup: [] }
 
 /* The long-session timings (perf.ts): on when the host runs with
@@ -246,6 +277,16 @@ function forget(): void {
   refusal = undefined
   placing = newPositioning()
   entryCache = newEntryCache()
+  compactions = []
+  isEarlierElsewhere = false
+  ruled = undefined
+}
+
+/* The context use the host has now: at the start, and after a hot reload,
+   which starts the module over. */
+async function readContextUse($: EngineInterface): Promise<void> {
+  const usage = await $.session.usage().catch(() => undefined)
+  contextPercent = usage?.context.percent
 }
 
 /* The system's language, from the locale variables (text.ts). Asked once a
@@ -419,6 +460,7 @@ async function load($: EngineInterface): Promise<void> {
     for (const lines of got.chunks.lines) readLines(reading, lines)
     countUnreadable(reading, got.chunks.overlong)
     resolveSites(sites, chainRows, syncRows(chainRows, reading.chain))
+    noteCompactions()
     cursor = at
     lastSize = got.size
     source = 'ok'
@@ -427,6 +469,8 @@ async function load($: EngineInterface): Promise<void> {
     await markCompacted($)
   } else {
     startOver()
+    compactions = []
+    isEarlierElsewhere = false
     source = got.kind
     if (got.kind === 'failed') failure = got.reason
   }
@@ -589,7 +633,7 @@ async function openAsked($: EngineInterface): Promise<void> {
 function bandCounts(): BandCounts | undefined {
   if (source !== 'ok') return undefined
   const groups = shownGroups()
-  return { turns: groups.length, steps: groups.reduce((sum, g) => sum + g.steps, 0) }
+  return { turns: groups.length, steps: groups.reduce((sum, g) => sum + g.steps, 0), percent: contextPercent }
 }
 
 /* Only ever called from a press: the host moves the transcript only for
@@ -800,6 +844,7 @@ export const register: Register = on => {
     await $.command.register({ name: 'chat-toc', description: words.commandDescription, immediate: true })
     await loadChoices($)
     await learnPaths($, e.cwd)
+    await readContextUse($)
     await askPerf($)
     await locate($, e.cwd)
     readNow($)
@@ -838,6 +883,29 @@ export const register: Register = on => {
       requestRead($)
     }
     return next(e)
+  })
+
+  /* The context use as each measure gives it, whatever moved. */
+  on('session.measure', async ($, e, next) => {
+    contextPercent = e.context.percent
+    await update($, rev, n => n + 1).catch(() => undefined)
+    return next(e)
+  })
+
+  /* A compaction of the main conversation hides the context use at once:
+     no measure follows it, and the host's figure is gone until the next
+     response. One skipped leaves the figure as it was. */
+  on('session.compact', async ($, e, next) => {
+    if (e.agentId !== undefined || e.trigger === 'precompute') return next(e)
+    const was = contextPercent
+    contextPercent = undefined
+    await update($, rev, n => n + 1).catch(() => undefined)
+    const result = await next(e)
+    if (result.skip !== undefined && contextPercent === undefined) {
+      contextPercent = was
+      await update($, rev, n => n + 1).catch(() => undefined)
+    }
+    return result
   })
 
   /* The redraw waits for the read the turn's first rows ask for, so the
@@ -948,7 +1016,8 @@ export const register: Register = on => {
     const wasTable = entryCache.table
     const groups = shownGroups()
     const table = isOk ? entryTable(entryCache, groups, { layout, filter, width, nowMs, isRunning: isTurnRunning && groups === reading.groups }) : NO_ENTRIES
-    const entries = dimRefused(table.entries, groups, refused)
+    const listed = listedWithRules(table)
+    const entries = dimRefused(listed.entries as Entry[], groups, refused)
     /* A resumed or forked session shows its history in the transcript
        before its own file is written; it is not without a conversation. */
     const missing = isCarried ? words.notWritten : words.empty
@@ -956,7 +1025,9 @@ export const register: Register = on => {
     const why = source === 'failed' ? failureText(failure) : isOk && reading.unreadable > 0 ? words.unreadable(reading.unreadable) : undefined
     const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
     const headRows = HEAD_ROWS
-    const listRows = e.props.scroll.bodyRows - headRows - FOOT_ROWS - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
+    const hasForkLine = isOk && isEarlierElsewhere && groups.length > 0
+    const listRows =
+      e.props.scroll.bodyRows - headRows - FOOT_ROWS - (hasForkLine ? 1 : 0) - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
     /* The Minimap, the list and the preview share the rows (preview.ts). */
     const plan = previewPlan({ rows: listRows, groups: isOk ? groups.length : 0, isShown: isPreviewOn })
     /* The Minimap's cells: a group with no Jump target is one the host
@@ -964,7 +1035,7 @@ export const register: Register = on => {
     const isOff = (g: number) => refused.has(sideKeyOf(groups[g] as TurnGroup, 'user'))
     const bars = isOk && plan.hasBars ? barsOf(groups.map(g => g.steps), width, isOff) : []
     const rows = listRows - (bars.length === 0 ? 0 : BAR_ROWS) - plan.preview
-    const drawnEntries = { heights: table.heights, rows, keys: table.keys, indexOf: table.indexOf }
+    const drawnEntries = { heights: listed.heights, rows, keys: table.keys, indexOf: table.indexOf }
     const kept = anchor
     anchor = undefined
     const anchorIndex = kept === undefined ? undefined : entryOfGroup(table, kept.group)
@@ -975,7 +1046,7 @@ export const register: Register = on => {
     })
     top = placed.top
     if (placed.refocusKey !== undefined) pendingRing = placed.refocusKey
-    const window = windowOf(table.heights, rows, top)
+    const window = windowOf(listed.heights, rows, top)
     lastDrawing = { ...drawnEntries, entries, window }
     afterList = plan.state === 'none' || e.surface !== 'terminal' ? LAYOUT_CONTROL : PREVIEW_CONTROL
     /* The ring move owed to an entry goes once this drawing shows it, and
@@ -1007,6 +1078,8 @@ export const register: Register = on => {
       alert,
       why,
       count: isOk && groups.length > 0 ? groups.length : undefined,
+      contextPercent,
+      isEarlierElsewhere: hasForkLine,
       onPress: (entry: Entry) => jump($, entry),
       onFilter: (chosen: ViewFilter) => chooseFilter($, chosen),
     }

@@ -85,6 +85,9 @@ export type Host = {
      as the host does. */
   messages: HostMessage[]
   messageCalls: number
+  /* The context use `$.session.usage()` gives: absent before the first
+     response and from a compaction until the next. */
+  percent: number | undefined
 }
 
 /* What the shell and Windows PowerShell commands of a chunked read write:
@@ -133,6 +136,7 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     sessionId: 'synthetic-session',
     messages: [],
     messageCalls: 0,
+    percent: undefined,
   }
   on('env.get', (_$, e) => ({ value: world.env[e.name] }))
   on('session.turns', () => ({ value: world.messages.filter(m => m.role === 'user' && !(m.toolResults?.length ?? 0)).length }))
@@ -140,6 +144,15 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     world.messageCalls += 1
     return { value: world.messages as never }
   })
+  on('session.usage', () => ({
+    value: {
+      startedAt: NOW,
+      context: { window: 1_000_000, ...(world.percent === undefined ? {} : { tokens: world.percent * 10_000, percent: world.percent }) },
+      rateLimits: [],
+    },
+  }))
+  on('session.measure', (_$, e) => ({ changed: e.changed }))
+  on('session.compact', (_$, e) => ({ messages: e.messages }))
   on('session.id', () => {
     if (world.sessionId === undefined) throw new Error('CT-SYN no session id')
     return { value: world.sessionId }

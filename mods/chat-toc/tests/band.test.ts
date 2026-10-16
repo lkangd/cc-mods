@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { PANE, host, mountPane, start } from './host'
+import { PANE, drawnButtons, host, mountPane, start } from './host'
 import { transcript } from './fixture'
 
 /* While the pane is off screen (chat-toc's own open waiting undrawn on a
@@ -58,6 +58,18 @@ test('a pane waiting undrawn puts the counts above the prompt', async ($, on) =>
   /* Only the open is a Button: the counts are not lit under the pointer. */
   expect((await bandButtons(band)).map(b => b.text)).toEqual(['展开目录 ❯'])
   expect(await band.findAll({ type: 'Button' })).toHaveLength(1)
+})
+
+test("the open Button's words are its label, which 2.1.287 takes alone, lit in the accent under the pointer", async ($, on) => {
+  const world = host(on, three().jsonl())
+  on('ui.render', { component: 'AbovePrompt' }, ENGINE_BAND)
+  world.unplaced = true
+  await start($, world)
+  const band = await mountBand($)
+  await world.clock.settle()
+
+  const open = drawnButtons(await band.drawn()).find(b => b.key === BAND)
+  expect([open?.label, open?.hover]).toEqual(['展开目录 ❯', { scope: BAND, color: 'suggestion' }])
 })
 
 test('a press on the band opens the pane as asked, and the band goes once it is drawn', async ($, on) => {
