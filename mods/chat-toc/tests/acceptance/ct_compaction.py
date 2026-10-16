@@ -42,7 +42,7 @@ import transcript_fixture as tf  # noqa: E402
 PLUGIN = HERE.parent.parent
 SESSION = "00000000-0000-4000-8000-0000000014c0"
 FAKE_KEY = "sk-ant-api03-fake-chat-toc-gate-000000000000"
-LINES = 50
+LINES = 64                                              # every group in one window beside the preview (ticket 13)
 
 
 def pane(t):
