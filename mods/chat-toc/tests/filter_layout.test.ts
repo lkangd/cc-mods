@@ -69,6 +69,7 @@ test('the filter row shows the three filters by name, the chosen one at full str
     ['f-all', '1', true],
     ['f-user', '2', true],
     ['f-agent', '3', true],
+    ['find', 'f', true],
     ['preview', 'p', true],
     ['layout', 'l', true],
   ])

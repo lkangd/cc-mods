@@ -270,7 +270,7 @@ test('a view holding only standalone tool rows, such as file edits, lights their
 
 test('the Minimap\'s cell of the lit group is the only one not dim, and moves with the view', async ($, on) => {
   /* Rows for the Minimap beside the preview and the list's eight. */
-  const { pane, view } = await session($, on, 22)
+  const { pane, view } = await session($, on, 23)
   const bright = async () =>
     drawnButtons(await pane.drawn())
       .filter(b => isBarKey(b.key))
@@ -281,4 +281,29 @@ test('the Minimap\'s cell of the lit group is the only one not dim, and moves wi
   expect(await bright()).toEqual(['m.4'])
   await view(11)
   expect(await bright()).toEqual(['m.11'])
+})
+
+/* CT-FIND-001: while a query is set the rail lights the Current position
+   only when its group matches, and the list keeps the match nearest it in
+   view (at or before it, else the first after it). */
+test('under a query the lit group shows only when it matches, and the nearest match stays in view', async ($, on) => {
+  const { pane, view, world } = await session($, on, 20)
+  const search = (text: string) => $.ui.input({ plugin: 'chat-toc', key: 'search', text, kind: 'change' })
+
+  await view(4)
+  await search('prompt 4')
+  await world.clock.settle()
+  expect(await litKeys(pane)).toEqual(['g4.u', 'g4.a'])
+
+  /* Groups 1 and 10..19 match: the nearest at or before group 4 is 1. */
+  await search('prompt 1')
+  await world.clock.settle()
+  expect(await litKeys(pane)).toEqual([])
+  expect(await prompts(pane)).toContain('CT-SYN prompt 1')
+  expect(await prompts(pane)).not.toContain('CT-SYN prompt 19')
+
+  /* None at or before group 4 matches: the first after it. */
+  await search('prompt 7')
+  await world.clock.settle()
+  expect(await prompts(pane)).toEqual(['CT-SYN prompt 7', 'CT-SYN prompt 17'])
 })

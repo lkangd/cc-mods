@@ -123,18 +123,18 @@ test('at a short height the Minimap goes first, then the preview shrinks to 4 ro
   const bars = async (pane: Awaited<ReturnType<typeof mountPane>>) => drawnButtons(await pane.drawn()).some(b => /^m\.\d+$/.test(String(b.key)))
 
   const rows = (bodyRows: number) => ({ title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows }, view: {} })
-  /* 22 rows: 18 left, the region 7, the Minimap 3, the list 8. */
-  const pane = await mountPane($, 22)
+  /* 23 rows: 18 left, the region 7, the Minimap 3, the list 8. */
+  const pane = await mountPane($, 23)
   expect(await bars(pane)).toBe(true)
   expect(await pane.find({ type: 'Markdown' })).toBeDefined()
 
-  /* 16 rows: 12 left, the Minimap gone, the region 4. */
-  await pane.redraw(rows(16))
+  /* 17 rows: 12 left, the Minimap gone, the region 4. */
+  await pane.redraw(rows(17))
   expect(await bars(pane)).toBe(false)
   expect(await texts(pane)).toContain('用户')
 
-  /* 15 rows: no room. */
-  await pane.redraw(rows(15))
+  /* 16 rows: no room. */
+  await pane.redraw(rows(16))
   const tiny = pane
   expect((await tiny.find({ type: 'Button', key: 'preview' }))?.text).toBe('预览（空间不足）')
   expect(await texts(tiny)).not.toContain('用户')
