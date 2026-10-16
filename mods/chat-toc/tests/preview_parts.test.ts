@@ -21,6 +21,10 @@ test('output tokens under 1000 as is, then k and M', () => {
   expect([0, 999, 1_000, 3_456, 12_345, 999_999, 1_234_567, 25_000_000].map(tokensText)).toEqual(['0', '999', '1k', '3.5k', '12k', '1M', '1.2M', '25M'])
 })
 
+test('output tokens that round up to a thousand k are said in M, never 1000k', () => {
+  expect([999_499, 999_500, 999_949, 999_950].map(tokensText)).toEqual(['999k', '1M', '1M', '1M'])
+})
+
 function groupOf(build: (t: ReturnType<typeof transcript>) => void, start = new Date(2026, 9, 16, 14, 31).getTime()): TurnGroup {
   const t = transcript(start)
   build(t)
