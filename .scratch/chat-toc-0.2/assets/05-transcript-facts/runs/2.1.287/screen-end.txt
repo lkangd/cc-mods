@@ -1,0 +1,48 @@
+
+
+  Read 1 file
+
+⏺ first part
+
+⏺ second part
+
+✻ Sautéed for 6s · done 10:48 AM
+
+❯ USAGE-PROBE-SLOW interrupt meUSAGE-PROBE-SLOW the running one
+
+⏺ ok
+
+✻ Cogitated for 12s · done 10:49 AM
+
+❯ USAGE-PROBE queued while running
+
+⏺ ok
+
+✻ Cooked for 0s · done 10:49 AM
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+  ⎿  Read notes.txt (2 lines)
+
+❯ USAGE-PROBE after compact
+
+⏺ ok
+
+✻ Cooked for 0s · done 10:49 AM
+
+❯ USAGE-PROBE near the end
+
+⏺ ok
+
+✻ Cogitated for 0s · done 10:49 AM
+
+❯ USAGE-PROBE after the end
+
+⏺ ok
+
+✻ Sautéed for 0s · done 10:49 AM
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents

@@ -1,0 +1,48 @@
+
+❯ USAGE-PROBE-STEPS two steps
+
+  Read 1 file
+
+⏺ first part
+
+⏺ second part
+
+✻ Crunched for 6s · done 10:48 AM
+
+❯ USAGE-PROBE-SLOW interrupt meUSAGE-PROBE-SLOW the running one
+
+⏺ ok
+
+✻ Baked for 12s · done 10:49 AM
+
+❯ USAGE-PROBE queued while running
+
+⏺ ok
+
+✻ Churned for 0s · done 10:49 AM
+
+❯ /compact
+  ⎿  Compacted (ctrl+o to see full summary)
+
+❯ USAGE-PROBE after compact
+
+⏺ ok
+
+✻ Cooked for 0s · done 10:49 AM
+
+❯ USAGE-PROBE near the end
+
+⏺ ok
+
+✻ Churned for 0s · done 10:49 AM
+
+❯ USAGE-PROBE after the end
+
+⏺ ok
+
+✻ Sautéed for 0s · done 10:49 AM
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents

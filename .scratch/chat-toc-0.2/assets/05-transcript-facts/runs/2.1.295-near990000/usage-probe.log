@@ -1,0 +1,47 @@
+2026-10-16T02:51:05.912Z +0.10s session.start version={"version":"2.1.295","base":"2.1.295","builtAt":"2026-10-08T16:50:59Z"} reason=undefined
+2026-10-16T02:51:05.914Z +0.10s usage (session.start) {"startedAt":1792119064698,"context":{"window":1000000},"cost":{"usd":0},"rateLimits":[]}
+2026-10-16T02:51:07.808Z +2.00s usage (command) {"startedAt":1792119064698,"context":{"window":1000000},"cost":{"usd":0},"rateLimits":[]}
+2026-10-16T02:51:09.875Z +4.07s turn.start {"text":"USAGE-PROBE plain","turnId":"5d631c2f-672a-4467-92f0-91af4df20c2f"}
+2026-10-16T02:51:10.097Z +4.29s turn.complete {"answer":"<string>","durationMs":274,"isAborted":false,"turnId":"5d631c2f-672a-4467-92f0-91af4df20c2f","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":40000,"cache_creation_input_tokens":2000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:51:10.116Z +4.31s usage (after turn.complete) {"startedAt":1792119064698,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.023787299999999997},"rateLimits":[]}
+2026-10-16T02:51:10.118Z +4.31s session.measure {"context":{"tokens":42003,"window":1000000,"percent":4},"rateLimits":[],"cost":{"usd":0.023787299999999997},"changed":["context","cost"]}
+2026-10-16T02:51:15.403Z +9.59s usage (summary) {"context":{"tokens":42003,"window":1000000,"percent":4,"breakdown":"<undefined>"},"measured":{"totalTokens":42003,"rawMaxTokens":1000000,"percentage":4,"autoCompactThreshold":967000,"isAutoCompactEnabled":true,"apiUsage":{"input_tokens":3,"output_tokens":250,"cache_creation_input_tokens":2000,"cache_read_input_tokens":40000}}}
+2026-10-16T02:51:19.951Z +14.14s turn.start {"text":"USAGE-PROBE-STEPS two steps","turnId":"912a4ae8-f4e1-4453-9770-1d650b56ccda"}
+2026-10-16T02:51:26.075Z +20.27s turn.complete {"answer":"<string>","durationMs":6128,"isAborted":false,"turnId":"912a4ae8-f4e1-4453-9770-1d650b56ccda","reason":"answer","usage":{"input_tokens":9,"output_tokens":750,"cache_read_input_tokens":120000,"cache_creation_input_tokens":6000,"model":"fake-model"},"answerLength":11}
+2026-10-16T02:51:26.086Z +20.28s usage (after turn.complete) {"startedAt":1792119064698,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.0935986},"rateLimits":[]}
+2026-10-16T02:51:26.088Z +20.28s session.measure {"context":{"tokens":42003,"window":1000000,"percent":4},"rateLimits":[],"cost":{"usd":0.0935986},"changed":["cost"]}
+2026-10-16T02:51:30.507Z +24.70s turn.start {"text":"USAGE-PROBE-SLOW interrupt me","turnId":"b0f80c76-edf0-4340-b5ff-de7a791171d6"}
+2026-10-16T02:51:33.714Z +27.90s turn.complete {"answer":"<string>","durationMs":3207,"isAborted":true,"turnId":"b0f80c76-edf0-4340-b5ff-de7a791171d6","reason":"aborted","answerLength":0}
+2026-10-16T02:51:33.728Z +27.92s usage (after turn.complete) {"startedAt":1792119064698,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.09437390000000001},"rateLimits":[]}
+2026-10-16T02:51:33.730Z +27.92s session.measure {"context":{"tokens":42003,"window":1000000,"percent":4},"rateLimits":[],"cost":{"usd":0.09437390000000001},"changed":["cost"]}
+2026-10-16T02:51:37.227Z +31.42s turn.start {"text":"USAGE-PROBE-SLOW interrupt meUSAGE-PROBE-SLOW the running one","turnId":"3dd22a7c-d635-4f13-8e15-9a22c6f940c1"}
+2026-10-16T02:51:49.261Z +43.45s turn.complete {"answer":"<string>","durationMs":12038,"isAborted":false,"turnId":"3dd22a7c-d635-4f13-8e15-9a22c6f940c1","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":40000,"cache_creation_input_tokens":2000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:51:49.286Z +43.48s usage (after turn.complete) {"startedAt":1792119064698,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.11816120000000002},"rateLimits":[]}
+2026-10-16T02:51:49.300Z +43.49s session.measure {"context":{"tokens":42003,"window":1000000,"percent":4},"rateLimits":[],"cost":{"usd":0.14194850000000003},"changed":["cost"]}
+2026-10-16T02:51:49.303Z +43.49s turn.start {"text":"USAGE-PROBE queued while running","turnId":"23b676f6-7187-4edf-ac19-12034a87d979"}
+2026-10-16T02:51:49.305Z +43.49s turn.complete {"answer":"<string>","durationMs":21,"isAborted":false,"turnId":"23b676f6-7187-4edf-ac19-12034a87d979","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":40000,"cache_creation_input_tokens":2000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:51:49.305Z +43.49s usage (after turn.complete) {"startedAt":1792119064698,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.14194850000000003},"rateLimits":[]}
+2026-10-16T02:51:58.500Z +52.69s session.compact in {"trigger":"manual","messages":"<number>"}
+2026-10-16T02:51:58.671Z +52.86s session.compact out {"tokensBefore":42253,"tokensAfter":258,"usage":{"input_tokens":0,"output_tokens":250,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"messages":"<number>"}
+2026-10-16T02:51:58.673Z +52.86s usage (after session.compact) {"startedAt":1792119064698,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.16496050000000004},"rateLimits":[]}
+2026-10-16T02:51:59.185Z +53.38s usage (500 ms after session.compact) {"startedAt":1792119064698,"context":{"window":1000000},"cost":{"usd":0.16496050000000004},"rateLimits":[]}
+2026-10-16T02:52:08.975Z +63.16s usage (command) {"startedAt":1792119064698,"context":{"window":1000000},"cost":{"usd":0.16496050000000004},"rateLimits":[]}
+2026-10-16T02:52:11.495Z +65.69s turns=7 messages=16 roles="userassistantuserassistantuserassistantuserassistantassistantuserassistantuseruserassistantuseruser"
+2026-10-16T02:52:13.206Z +67.40s turn.start {"text":"USAGE-PROBE after compact","turnId":"ac138b96-b483-4cc4-9228-86403f13d81a"}
+2026-10-16T02:52:13.248Z +67.44s turn.complete {"answer":"<string>","durationMs":48,"isAborted":false,"turnId":"ac138b96-b483-4cc4-9228-86403f13d81a","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":40000,"cache_creation_input_tokens":2000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:52:13.258Z +67.45s usage (after turn.complete) {"startedAt":1792119064698,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.18874780000000005},"rateLimits":[]}
+2026-10-16T02:52:13.259Z +67.45s session.measure {"context":{"tokens":42003,"window":1000000,"percent":4},"rateLimits":[],"cost":{"usd":0.18874780000000005},"changed":["cost"]}
+2026-10-16T02:52:18.761Z +72.95s turn.start {"text":"USAGE-PROBE near the end","turnId":"b717cee3-1bed-4239-9976-19936328466c"}
+2026-10-16T02:52:18.774Z +72.96s turn.complete {"answer":"<string>","durationMs":16,"isAborted":false,"turnId":"b717cee3-1bed-4239-9976-19936328466c","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":990000,"cache_creation_input_tokens":1000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:52:18.786Z +72.98s usage (after turn.complete) {"startedAt":1792119064698,"context":{"tokens":991003,"window":1000000,"percent":99},"cost":{"usd":0.44751130000000006},"rateLimits":[]}
+2026-10-16T02:52:18.788Z +72.98s session.measure {"context":{"tokens":991003,"window":1000000,"percent":99},"rateLimits":[],"cost":{"usd":0.44751130000000006},"changed":["context","cost"]}
+2026-10-16T02:52:24.337Z +78.53s usage (summary) {"context":{"tokens":991003,"window":1000000,"percent":99,"breakdown":"<undefined>"},"measured":{"totalTokens":991003,"rawMaxTokens":1000000,"percentage":99,"autoCompactThreshold":967000,"isAutoCompactEnabled":true,"apiUsage":{"input_tokens":3,"output_tokens":250,"cache_creation_input_tokens":1000,"cache_read_input_tokens":990000}}}
+2026-10-16T02:52:28.888Z +83.08s turn.start {"text":"USAGE-PROBE after the end","turnId":"75e49f42-1699-466c-af68-6951ccac6125"}
+2026-10-16T02:52:28.894Z +83.08s session.compact in {"trigger":"auto","messages":"<number>"}
+2026-10-16T02:52:28.923Z +83.11s session.compact out {"tokensBefore":991281,"tokensAfter":286,"usage":{"input_tokens":0,"output_tokens":250,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"messages":"<number>"}
+2026-10-16T02:52:28.927Z +83.12s usage (after session.compact) {"startedAt":1792119064698,"context":{"tokens":991003,"window":1000000,"percent":99},"cost":{"usd":0.4691986},"rateLimits":[]}
+2026-10-16T02:52:28.960Z +83.15s turn.complete {"answer":"<string>","durationMs":77,"isAborted":false,"turnId":"75e49f42-1699-466c-af68-6951ccac6125","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":30000,"cache_creation_input_tokens":2000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:52:28.971Z +83.16s usage (after turn.complete) {"startedAt":1792119064698,"context":{"tokens":32003,"window":1000000,"percent":3},"cost":{"usd":0.49021060000000005},"rateLimits":[]}
+2026-10-16T02:52:28.975Z +83.17s session.measure {"context":{"tokens":32003,"window":1000000,"percent":3},"rateLimits":[],"cost":{"usd":0.49021060000000005},"changed":["context","cost"]}
+2026-10-16T02:52:29.430Z +83.62s usage (500 ms after session.compact) {"startedAt":1792119064698,"context":{"tokens":32003,"window":1000000,"percent":3},"cost":{"usd":0.49021060000000005},"rateLimits":[]}
+2026-10-16T02:52:44.456Z +98.65s usage (command) {"startedAt":1792119064698,"context":{"tokens":32003,"window":1000000,"percent":3},"cost":{"usd":0.49021060000000005},"rateLimits":[]}

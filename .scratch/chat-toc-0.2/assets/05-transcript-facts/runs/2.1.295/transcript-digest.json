@@ -1,0 +1,849 @@
+[
+ {
+  "type": "mode",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "permission-mode",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "file-history-snapshot",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "eeedb7ad",
+  "parent": "",
+  "ts": "2026-10-16T02:48:23.746Z",
+  "origin": {
+   "kind": "human"
+  },
+  "textLength": 17,
+  "head": "USAGE-PROBE plain"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "3340d420",
+  "parent": "eeedb7ad",
+  "ts": "2026-10-16T02:48:23.744Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "53f1a398",
+  "parent": "3340d420",
+  "ts": "2026-10-16T02:48:23.744Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "88993078",
+  "parent": "53f1a398",
+  "ts": "2026-10-16T02:48:23.744Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "d8d1ca9f",
+  "parent": "88993078",
+  "ts": "2026-10-16T02:48:23.744Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "fca88a5c",
+  "parent": "d8d1ca9f",
+  "ts": "2026-10-16T02:48:23.744Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "fc1e00fc",
+  "parent": "fca88a5c",
+  "ts": "2026-10-16T02:48:23.744Z"
+ },
+ {
+  "type": "atis-latch",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "11dec39b",
+  "parent": "fc1e00fc",
+  "ts": "2026-10-16T02:48:24.075Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "ef708b49",
+  "parent": "11dec39b",
+  "ts": "2026-10-16T02:48:24.075Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "38a13f52",
+  "parent": "ef708b49",
+  "ts": "2026-10-16T02:48:24.078Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "084ff59c",
+  "parent": "38a13f52",
+  "ts": "2026-10-16T02:48:24.079Z"
+ },
+ {
+  "type": "last-prompt",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "mode",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "permission-mode",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "atis-latch",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "assistant",
+  "subtype": null,
+  "uuid": "4468d9ef",
+  "parent": "084ff59c",
+  "ts": "2026-10-16T02:48:24.133Z",
+  "msg": "msg_fake_0002",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  },
+  "blocks": [
+   "text"
+  ]
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "12d7deb5",
+  "parent": "4468d9ef",
+  "ts": "2026-10-16T02:48:24.137Z"
+ },
+ {
+  "type": "system",
+  "subtype": "turn_duration",
+  "uuid": "e051358b",
+  "parent": "12d7deb5",
+  "ts": "2026-10-16T02:48:24.148Z",
+  "isMeta": false,
+  "durationMs": 424,
+  "messageCount": 13
+ },
+ {
+  "type": "last-prompt",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "mode",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "permission-mode",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "atis-latch",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "file-history-snapshot",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "39e45007",
+  "parent": "e051358b",
+  "ts": "2026-10-16T02:48:33.851Z",
+  "origin": {
+   "kind": "human"
+  },
+  "textLength": 27,
+  "head": "USAGE-PROBE-STEPS two st"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "c66e0a6b",
+  "parent": "39e45007",
+  "ts": "2026-10-16T02:48:33.850Z"
+ },
+ {
+  "type": "assistant",
+  "subtype": null,
+  "uuid": "c13b5a34",
+  "parent": "c66e0a6b",
+  "ts": "2026-10-16T02:48:35.879Z",
+  "msg": "msg_fake_0004",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  },
+  "blocks": [
+   "tool_use"
+  ]
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "e8043c05",
+  "parent": "c13b5a34",
+  "ts": "2026-10-16T02:48:35.929Z",
+  "blocks": [
+   "tool_result"
+  ]
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "bc84381a",
+  "parent": "e8043c05",
+  "ts": "2026-10-16T02:48:35.940Z"
+ },
+ {
+  "type": "assistant",
+  "subtype": null,
+  "uuid": "d5b6d1d9",
+  "parent": "bc84381a",
+  "ts": "2026-10-16T02:48:37.957Z",
+  "msg": "msg_fake_0005",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  },
+  "blocks": [
+   "tool_use"
+  ]
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "ed2437ea",
+  "parent": "d5b6d1d9",
+  "ts": "2026-10-16T02:48:37.973Z",
+  "blocks": [
+   "tool_result"
+  ]
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "6ad88d3d",
+  "parent": "ed2437ea",
+  "ts": "2026-10-16T02:48:37.983Z"
+ },
+ {
+  "type": "assistant",
+  "subtype": null,
+  "uuid": "4661f1e6",
+  "parent": "6ad88d3d",
+  "ts": "2026-10-16T02:48:39.996Z",
+  "msg": "msg_fake_0006",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  },
+  "blocks": [
+   "text"
+  ]
+ },
+ {
+  "type": "assistant",
+  "subtype": null,
+  "uuid": "a9efd340",
+  "parent": "4661f1e6",
+  "ts": "2026-10-16T02:48:39.997Z",
+  "msg": "msg_fake_0006",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  },
+  "blocks": [
+   "text"
+  ]
+ },
+ {
+  "type": "system",
+  "subtype": "turn_duration",
+  "uuid": "8b4efd78",
+  "parent": "a9efd340",
+  "ts": "2026-10-16T02:48:40.001Z",
+  "isMeta": false,
+  "durationMs": 6152,
+  "messageCount": 24
+ },
+ {
+  "type": "file-history-snapshot",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "dd714650",
+  "parent": "8b4efd78",
+  "ts": "2026-10-16T02:48:44.428Z",
+  "origin": {
+   "kind": "human"
+  },
+  "textLength": 29,
+  "head": "USAGE-PROBE-SLOW interru"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "0bd7db48",
+  "parent": "dd714650",
+  "ts": "2026-10-16T02:48:44.428Z"
+ },
+ {
+  "type": "file-history-snapshot",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "81d3cf22",
+  "parent": "8b4efd78",
+  "ts": "2026-10-16T02:48:51.121Z",
+  "origin": {
+   "kind": "human"
+  },
+  "textLength": 61,
+  "head": "USAGE-PROBE-SLOW interru"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "6eb06a25",
+  "parent": "81d3cf22",
+  "ts": "2026-10-16T02:48:51.121Z"
+ },
+ {
+  "type": "last-prompt",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "queue-operation",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": "2026-10-16T02:48:53.720Z",
+  "operation": "enqueue"
+ },
+ {
+  "type": "queue-operation",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": "2026-10-16T02:49:03.284Z",
+  "operation": "dequeue"
+ },
+ {
+  "type": "assistant",
+  "subtype": null,
+  "uuid": "266658d1",
+  "parent": "6eb06a25",
+  "ts": "2026-10-16T02:49:03.189Z",
+  "msg": "msg_fake_0010",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  },
+  "blocks": [
+   "text"
+  ]
+ },
+ {
+  "type": "system",
+  "subtype": "turn_duration",
+  "uuid": "5b408d3e",
+  "parent": "266658d1",
+  "ts": "2026-10-16T02:49:03.216Z",
+  "isMeta": false,
+  "durationMs": 12096,
+  "messageCount": 28
+ },
+ {
+  "type": "file-history-snapshot",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "a88750f6",
+  "parent": "5b408d3e",
+  "ts": "2026-10-16T02:49:03.327Z",
+  "origin": {
+   "kind": "human"
+  },
+  "textLength": 32,
+  "head": "USAGE-PROBE queued while"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "95d72930",
+  "parent": "a88750f6",
+  "ts": "2026-10-16T02:49:03.326Z"
+ },
+ {
+  "type": "assistant",
+  "subtype": null,
+  "uuid": "136a1af4",
+  "parent": "95d72930",
+  "ts": "2026-10-16T02:49:03.383Z",
+  "msg": "msg_fake_0011",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  },
+  "blocks": [
+   "text"
+  ]
+ },
+ {
+  "type": "system",
+  "subtype": "turn_duration",
+  "uuid": "f7162ced",
+  "parent": "136a1af4",
+  "ts": "2026-10-16T02:49:03.390Z",
+  "isMeta": false,
+  "durationMs": 104,
+  "messageCount": 32
+ },
+ {
+  "type": "last-prompt",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "mode",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "permission-mode",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "atis-latch",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "file-history-snapshot",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "385ebcbd",
+  "parent": "f7162ced",
+  "ts": "2026-10-16T02:49:12.234Z",
+  "textLength": 8,
+  "head": ""
+ },
+ {
+  "type": "system",
+  "subtype": "compact_boundary",
+  "uuid": "85c6959d",
+  "parent": "",
+  "ts": "2026-10-16T02:49:12.312Z",
+  "logicalParent": "f7162ced",
+  "compactMetadata": {
+   "trigger": "manual",
+   "preTokens": 42253,
+   "postTokens": 258,
+   "cumulativeDroppedTokens": 41995,
+   "durationMs": 56
+  }
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "90c285f0",
+  "parent": "85c6959d",
+  "ts": "2026-10-16T02:49:12.293Z",
+  "isCompactSummary": true,
+  "textLength": 1026,
+  "head": ""
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "39ec290c",
+  "parent": "90c285f0",
+  "ts": "2026-10-16T02:49:12.238Z",
+  "isMeta": true,
+  "textLength": 217,
+  "head": "<local-command-caveat>Th"
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "d57a083d",
+  "parent": "39ec290c",
+  "ts": "2026-10-16T02:49:12.238Z",
+  "textLength": 134,
+  "head": "<command-name>/compact</"
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "d861e7ca",
+  "parent": "d57a083d",
+  "ts": "2026-10-16T02:49:12.412Z",
+  "textLength": 92,
+  "head": "<local-command-stdout>\u001b["
+ },
+ {
+  "type": "file-history-snapshot",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "b82780b7",
+  "parent": "d861e7ca",
+  "ts": "2026-10-16T02:49:26.915Z",
+  "origin": {
+   "kind": "human"
+  },
+  "textLength": 25,
+  "head": "USAGE-PROBE after compac"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "40273b37",
+  "parent": "b82780b7",
+  "ts": "2026-10-16T02:49:26.914Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "c77a8cee",
+  "parent": "40273b37",
+  "ts": "2026-10-16T02:49:26.914Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "87a1f237",
+  "parent": "c77a8cee",
+  "ts": "2026-10-16T02:49:26.914Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "5a4d3306",
+  "parent": "87a1f237",
+  "ts": "2026-10-16T02:49:27.018Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "ed008bee",
+  "parent": "5a4d3306",
+  "ts": "2026-10-16T02:49:27.018Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "38117a8e",
+  "parent": "ed008bee",
+  "ts": "2026-10-16T02:49:27.019Z"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "d67b283a",
+  "parent": "38117a8e",
+  "ts": "2026-10-16T02:49:27.020Z"
+ },
+ {
+  "type": "assistant",
+  "subtype": null,
+  "uuid": "d380325b",
+  "parent": "d67b283a",
+  "ts": "2026-10-16T02:49:27.108Z",
+  "msg": "msg_fake_0015",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  },
+  "blocks": [
+   "text"
+  ]
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "13d24391",
+  "parent": "d380325b",
+  "ts": "2026-10-16T02:49:27.116Z"
+ },
+ {
+  "type": "system",
+  "subtype": "turn_duration",
+  "uuid": "8621737a",
+  "parent": "13d24391",
+  "ts": "2026-10-16T02:49:27.122Z",
+  "isMeta": false,
+  "durationMs": 209,
+  "messageCount": 48
+ },
+ {
+  "type": "last-prompt",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "mode",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "permission-mode",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "atis-latch",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "file-history-snapshot",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "17477985",
+  "parent": "8621737a",
+  "ts": "2026-10-16T02:49:32.484Z",
+  "origin": {
+   "kind": "human"
+  },
+  "textLength": 24,
+  "head": "USAGE-PROBE near the end"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "cd174f39",
+  "parent": "17477985",
+  "ts": "2026-10-16T02:49:32.483Z"
+ },
+ {
+  "type": "assistant",
+  "subtype": null,
+  "uuid": "9a00ca63",
+  "parent": "cd174f39",
+  "ts": "2026-10-16T02:49:32.496Z",
+  "msg": "msg_fake_0017",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 1000,
+   "cache_read_input_tokens": 196000,
+   "output_tokens": 250
+  },
+  "blocks": [
+   "text"
+  ]
+ },
+ {
+  "type": "system",
+  "subtype": "turn_duration",
+  "uuid": "abd98901",
+  "parent": "9a00ca63",
+  "ts": "2026-10-16T02:49:32.498Z",
+  "isMeta": false,
+  "durationMs": 17,
+  "messageCount": 52
+ },
+ {
+  "type": "file-history-snapshot",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "user",
+  "subtype": null,
+  "uuid": "30a1d39e",
+  "parent": "abd98901",
+  "ts": "2026-10-16T02:49:42.613Z",
+  "origin": {
+   "kind": "human"
+  },
+  "textLength": 25,
+  "head": "USAGE-PROBE after the en"
+ },
+ {
+  "type": "attachment",
+  "subtype": null,
+  "uuid": "3d2a3e85",
+  "parent": "30a1d39e",
+  "ts": "2026-10-16T02:49:42.613Z"
+ },
+ {
+  "type": "assistant",
+  "subtype": null,
+  "uuid": "d013b968",
+  "parent": "3d2a3e85",
+  "ts": "2026-10-16T02:49:42.634Z",
+  "msg": "msg_fake_0019",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 30000,
+   "output_tokens": 250
+  },
+  "blocks": [
+   "text"
+  ]
+ },
+ {
+  "type": "system",
+  "subtype": "turn_duration",
+  "uuid": "53759509",
+  "parent": "d013b968",
+  "ts": "2026-10-16T02:49:42.636Z",
+  "isMeta": false,
+  "durationMs": 25,
+  "messageCount": 56
+ },
+ {
+  "type": "cost-state",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "last-prompt",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ },
+ {
+  "type": "cost-state",
+  "subtype": null,
+  "uuid": "",
+  "parent": "",
+  "ts": null
+ }
+]

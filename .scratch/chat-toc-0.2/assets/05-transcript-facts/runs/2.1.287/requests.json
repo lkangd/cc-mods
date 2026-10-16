@@ -1,0 +1,230 @@
+[
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 0,
+  "model": "claude-haiku-4-5-20251001",
+  "last": "<session>\nUSAGE-PROBE plain\n</session>\n\n",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "<system-reminder>\nAttribution for git co",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 0,
+  "model": "claude-haiku-4-5-20251001",
+  "last": "<session>\nUSAGE-PROBE-STEPS two steps\n</",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "USAGE-PROBE-STEPS two steps",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "USAGE-PROBE-STEPS two steps",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "USAGE-PROBE-STEPS two steps",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 0,
+  "model": "claude-haiku-4-5-20251001",
+  "last": "<session>\nUSAGE-PROBE-SLOW interrupt me\n",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "USAGE-PROBE-SLOW interrupt me",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 0,
+  "model": "claude-haiku-4-5-20251001",
+  "last": "<session>\nUSAGE-PROBE-SLOW interrupt meU",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "USAGE-PROBE-SLOW interrupt meUSAGE-PROBE",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 0,
+  "model": "claude-haiku-4-5-20251001",
+  "last": "<session>\nUSAGE-PROBE queued while runni",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "USAGE-PROBE queued while running",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "USAGE-PROBE queued while running\n\nCRITIC",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 0,
+  "model": "claude-haiku-4-5-20251001",
+  "last": "<session>\nUSAGE-PROBE after compact\n</se",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "<system-reminder>\nAttribution for git co",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 40000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 0,
+  "model": "claude-haiku-4-5-20251001",
+  "last": "<session>\nUSAGE-PROBE near the end\n</ses",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 1000,
+   "cache_read_input_tokens": 196000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "USAGE-PROBE near the end",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 1000,
+   "cache_read_input_tokens": 196000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 0,
+  "model": "claude-haiku-4-5-20251001",
+  "last": "<session>\nUSAGE-PROBE after the end\n</se",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 30000,
+   "output_tokens": 250
+  }
+ },
+ {
+  "path": "/v1/messages?beta=true",
+  "tools": 23,
+  "model": "claude-opus-5-5",
+  "last": "USAGE-PROBE after the end",
+  "usage": {
+   "input_tokens": 3,
+   "cache_creation_input_tokens": 2000,
+   "cache_read_input_tokens": 30000,
+   "output_tokens": 250
+  }
+ }
+]

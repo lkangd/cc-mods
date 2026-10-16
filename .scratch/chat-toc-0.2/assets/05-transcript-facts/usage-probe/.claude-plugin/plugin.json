@@ -1,0 +1,1 @@
+{ "name": "usage-probe", "version": "0.0.1", "description": "Throwaway probe: session.usage, session.measure, turn.complete, session.compact", "author": { "name": "probe" }, "types": "./types/index.d.ts" }
