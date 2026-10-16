@@ -13,3 +13,5 @@ How does a person find a Turn group by what was said or what was touched?
 - How it combines with the View filter, and what the Minimap shows for matches, given a cell can only be dimmed or not and the Current position already uses that.
 - How the person starts, edits and leaves a search by mouse and keyboard; what the empty result says; what survives a Layout switch, a filter switch, a new turn arriving.
 - The words on screen in both languages, and the glossary term.
+
+Settled by the layout ticket (06): the search row is always drawn under the tab rule, and `/` focuses it through a hotkey Button calling `$.ui.focus`. Still to check here: whether the host takes `/` as a `hotkey`, and how that Button draws on the row.

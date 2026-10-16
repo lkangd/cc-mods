@@ -13,3 +13,5 @@ How does a person read a whole Turn group without jumping (and on Desktop, where
 - How long text scrolls inside it, and how it follows when the selected group changes or a running turn grows.
 - Whether the Minimap can switch its bar height from steps to tokens (or duration), and where that switch lives.
 - The words on screen in both languages, and the glossary term.
+
+Settled by the layout ticket (06): the preview is a bottom region above the footer that follows the Current position (on Desktop, the last entry clicked), `p` shows or hides it, and it shrinks to 4 rows and then leaves when rows run short. Still open here: what it holds and what goes first inside it at 4–5 rows, how it scrolls, and whether its size rule (40%, 4–14 rows in the prototype) stands.
