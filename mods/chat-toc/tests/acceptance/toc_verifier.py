@@ -417,7 +417,7 @@ _FOOTER_RULE = re.compile(r"^─{10,}$")
 _PREVIEW_RULE = re.compile(r"^─ p: 预览(（空间不足）)? ─*$")
 # The search row under the tab rule (0.2): `f: 搜索`, the field (the query
 # or the dim placeholder; `⏎ 跳转` after it while it holds the keys), then
-# with a query the count `4 / 38` and the clear mark `✕`.
+# with a query the count `4 / 38` and the clear mark `✕`, then `‹ ›` (ticket 18).
 _SEARCH_ROW = re.compile(r"^f: (?:搜索|Find)(?: (?P<rest>.*))?$")
 _SEARCH_COUNT = re.compile(r"\s*(\d+ (?:/|of) \d+)$")
 _SEARCH_SUBMIT = re.compile(r"\s*⏎ (?:跳转|jump)\s*")
@@ -667,6 +667,9 @@ def parse_search_row(text: str) -> dict | None:
     if m is None:
         return None
     rest = (m.group("rest") or "").rstrip()
+    step = rest.endswith("‹ ›")
+    if step:
+        rest = rest[:-3].rstrip()
     clear = rest.endswith("✕")
     if clear:
         rest = rest[:-1].rstrip()
@@ -675,7 +678,7 @@ def parse_search_row(text: str) -> dict | None:
         count, rest = c.group(1), rest[: c.start()]
     focused = _SEARCH_SUBMIT.search(rest) is not None
     rest = _SEARCH_SUBMIT.sub(" ", rest).strip()
-    return {"text": "" if rest in SEARCH_PLACEHOLDERS else rest, "count": count, "clear": clear, "focused": focused}
+    return {"text": "" if rest in SEARCH_PLACEHOLDERS else rest, "count": count, "clear": clear, "focused": focused, "step": step}
 
 
 # ---------- the diff ----------

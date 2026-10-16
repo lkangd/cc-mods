@@ -13,7 +13,7 @@ CT-FIND-001
   live     a turn submitted while a query is set joins the list when it
            matches
   widths   at 36, 44 and 56 columns, in Chinese and English, the search row
-           holds `f:`, the query, the count and ✕ on one row
+           holds `f:`, the query, the count, ✕ and ‹ › on one row
 CT-FIND-002
   keys     `f` (the keys in the Pane) and a click focus the field; Enter jumps
            to the nearest match and ends the search; Esc keeps the query and
@@ -245,7 +245,7 @@ def narrow(host, run):
     finally:
         t.close()
         world.remove()
-    ok = ("failure" not in actual and actual["idle"] == {"text": "", "count": None, "clear": False, "focused": False}
+    ok = ("failure" not in actual and {k: x for k, x in actual["idle"].items() if k != "step"} == {"text": "", "count": None, "clear": False, "focused": False}
           and all(actual[q]["listed"] == want and actual[q]["search"]["count"] == f"{len(want)} / {GROUPS}"
                   and actual[q]["search"]["clear"] for q, want in cases)
           and "没有匹配的轮次" in actual["nowhere"]["notes"])
@@ -359,7 +359,7 @@ def widths(host, run):
                 border = next(r for r in t.rows() if "│" in r and r.rsplit("│", 1)[1].strip().startswith("f: "))
                 columns = 170 - (cell_of(border, border.rfind("│")) + 1)
                 actual[f"{language} {width}"] = {"paneColumns": columns, "row": row,
-                                                 "whole": row.startswith(word) and query in row and row.endswith(f"{count} ✕")}
+                                                 "whole": row.startswith(word) and query in row and row.endswith(f"{count} ✕ ‹ ›")}
                 ev.append(t.snap(f"widths {language} {width}"))
             del p
         except h.ScenarioFailure as failure:
@@ -372,7 +372,7 @@ def widths(host, run):
     ok = (not any(k.endswith("failure") for k in actual) and len(views) == 6 and all(x["whole"] for x in views)
           and sorted({x["paneColumns"] for x in views}) == [36, 44, 56])
     return ("S fixture, Chinese and English", "at 36, 56 and 44 columns the search row holds `f: 搜索` / `f: Find`, the query, "
-            "the count (`1 / 8`, `2 of 8`) and ✕ on one row; nothing gives way", actual, bool(ok), ev)
+            "the count (`1 / 8`, `2 of 8`), ✕ and ‹ › on one row; nothing gives way", actual, bool(ok), ev)
 
 
 # ---------- CT-FIND-002 ----------
