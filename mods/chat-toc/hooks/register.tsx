@@ -43,7 +43,7 @@ import type { ExpandedView, LabelActions, PreviewView, SearchView } from './pane
 import { PREVIEW_CONTROL, PREVIEW_KEY, expandedBody, filesLine, isPreviewShown, metaLine, previewBody, previewPlan } from './preview'
 import type { ExpandedBody, PathBase, PreviewBody } from './preview'
 import { FILTER_END, LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
-import { COPIED_MS, fillOf, reusableOf } from './reuse'
+import { COPIED_MS, fillOf, fillRefusedText, reusableOf } from './reuse'
 import type { CopyWhich } from './reuse'
 import { indexGroups, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
 import type { Match } from './search'
@@ -895,7 +895,7 @@ async function reuseInput($: EngineInterface, opener: string): Promise<void> {
   const box = await $.prompt.read()
   const filled = await $.prompt.fill(fillOf(box.text, offered.fill))
   if (!filled.isFilled) {
-    $.ui.toast(filled.refusal === 'dialog' ? words.fillDialog : filled.refusal === 'no_composer' ? words.fillNoComposer : words.fillRefused)
+    $.ui.toast(fillRefusedText(filled.refusal))
     return
   }
   if (offered.hasImagesLeft) $.ui.toast(words.imagesLeft)
