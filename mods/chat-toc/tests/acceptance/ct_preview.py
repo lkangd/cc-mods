@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""CT-PREV-001 in a real host (chat-toc 0.2 spec §1, §3, §4; ticket 13): the
-preview region at the bottom of the Pane.
+"""CT-PREV-001 and CT-PREV-002 in a real host (chat-toc 0.2 spec §1, §3, §4;
+tickets 13 and 15): the preview region at the bottom of the Pane, and the
+preview expanded over the list.
 
-    $PY ct_preview.py --host 2.1.287 [--host current] [--only which,facts,cut,toggle,short,widths] [--out DIR]
+    $PY ct_preview.py --host 2.1.287 [--host current] [--only which,facts,cut,toggle,short,widths,expand,cap,running] [--out DIR]
+
+CT-PREV-001:
 
   which    not focused, the preview shows the Current position's group (the
            lit one); with the keys in the Pane, every step of the ring onto an
@@ -22,6 +25,17 @@ preview region at the bottom of the Pane.
            preview shows, the list keeps 8 rows
   widths   the three Layouts at 36, 44 and 56 columns each draw the region
            whole: its rule across the Pane, the meta line, the footer below
+
+CT-PREV-002:
+  expand   `e` on the cut line expands the preview over the list, the filter
+           row kept, `e: ← 返回` at its top; the host scrolls the whole tree
+           (wheel, PgDn/PgUp, ↓); `e` with the Back Button scrolled away, a
+           click on it, and Esc each return to the list, its head at the top
+  cap      a 200,000-character pasted input: expanded, it stops at the cap
+           with `… 还有 N 字未显示 · c: 复制`, the reply and the footer after it
+  running  a live turn against fake_api.py (no model): a click on its cut
+           line expands it while it runs, and the expanded meta line and
+           text follow the turn as it grows
 
 The session is a synthetic transcript built here (the V fixture), resumed
 in the harness's isolated, logged-out world: no model call.
