@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { durationText, filesLine, metaLine, previewBody, previewPlan, previewRows, shownPath, tokensText } from '../hooks/preview'
+import { capTexts, durationText, filesLine, markdownParts, metaLine, previewBody, previewPlan, previewRows, shownPath, tokensText } from '../hooks/preview'
 import { tocModel } from '../hooks/model'
 import type { TurnGroup } from '../hooks/groups'
 import { setLanguage } from '../hooks/text'
@@ -151,4 +151,39 @@ test('the Agent text is cut at the rows it gets, whole source lines first, never
   expect(cut.agent?.text).toBe('a long first paragraph')
   const huge = body('q', 'x'.repeat(30_000), undefined, 14, 3_000)
   expect((huge.agent?.text.length ?? 0) <= 10_000).toBe(true)
+})
+
+/* The expanded preview (spec §3 "Expanded", "Text cap"). */
+
+test('the expanded text is whole while the User input and the last text together stay within the cap', () => {
+  expect(capTexts('ab', 'cd', 10)).toEqual({ input: { shown: 'ab', left: 0 }, agent: { shown: 'cd', left: 0 } })
+  expect(capTexts('ab', undefined, 10)).toEqual({ input: { shown: 'ab', left: 0 }, agent: undefined })
+})
+
+test('past the cap a long part gives way and a short one stays whole; two long parts take half each', () => {
+  const long = 'x'.repeat(200_000)
+  const capped = capTexts(long, 'short reply', 60_000)
+  expect(capped.agent).toEqual({ shown: 'short reply', left: 0 })
+  expect(capped.input.shown.length).toBe(60_000 - 'short reply'.length)
+  expect(capped.input.left).toBe(200_000 - capped.input.shown.length)
+
+  const both = capTexts('u'.repeat(50_000), 'a'.repeat(40_000), 60_000)
+  expect([both.input.shown.length, both.input.left, both.agent?.shown.length, both.agent?.left]).toEqual([30_000, 20_000, 30_000, 10_000])
+})
+
+test('a text longer than one Markdown takes is split over several, at a blank line, else a line break, else anywhere', () => {
+  expect(markdownParts('short', 20)).toEqual(['short'])
+  expect(markdownParts('para one\n\npara two\n\npara three', 20)).toEqual(['para one\n\npara two\n', 'para three'])
+  expect(markdownParts('aaaa\nbbbb\ncccc', 10)).toEqual(['aaaa\nbbbb', 'cccc'])
+  expect(markdownParts('x'.repeat(25), 10)).toEqual(['x'.repeat(10), 'x'.repeat(10), 'x'.repeat(5)])
+  const parts = markdownParts('y'.repeat(25_000))
+  expect(parts.map(p => p.length)).toEqual([10_000, 10_000, 5_000])
+})
+
+test('a code block split over two Markdowns is closed in the first and opened again in the next', () => {
+  expect(markdownParts('```ts\nline1\nline2\nline3\n```', 20)).toEqual(['```ts\nline1\n```', '```ts\nline2\n```', '```ts\nline3\n```'])
+})
+
+test('the cap never splits a character, and counts what it leaves out in characters', () => {
+  expect(capTexts('ab😀😀', undefined, 3).input).toEqual({ shown: 'ab', left: 2 })
 })

@@ -189,6 +189,100 @@ function agentCut(text: string, width: number, rows: number): string {
   return kept.join('\n').slice(0, MARKDOWN_LIMIT)
 }
 
+/* The expanded preview's text cap: a tree draws only its first 100,000
+   characters, so the User input and the last text share about 60,000. */
+export const TEXT_CAP = 60_000
+
+/* A part of the text as drawn, and how many characters were left out. */
+export type Capped = { shown: string; left: number }
+
+/* The characters (code points) in `text`. */
+function characters(text: string): number {
+  let n = 0
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i)
+    if (c < 0xd800 || c > 0xdbff) n++
+  }
+  return n
+}
+
+/* `text` cut to at most `size` UTF-16 units, never inside a character. */
+function capped(text: string, size: number): Capped {
+  if (text.length <= size) return { shown: text, left: 0 }
+  const c = text.charCodeAt(size - 1)
+  const end = size > 0 && c >= 0xd800 && c <= 0xdbff ? size - 1 : size
+  return { shown: text.slice(0, end), left: characters(text.slice(end)) }
+}
+
+/* The User input and the last text cut to `cap` together: a short part
+   stays whole, the other takes the rest; two long parts take half each. */
+export function capTexts(input: string, agent: string | undefined, cap = TEXT_CAP): { input: Capped; agent: Capped | undefined } {
+  const agentLength = agent?.length ?? 0
+  const inputSize = Math.min(input.length, Math.max(Math.floor(cap / 2), cap - agentLength))
+  return {
+    input: capped(input, inputSize),
+    agent: agent === undefined ? undefined : capped(agent, cap - inputSize),
+  }
+}
+
+const FENCE = /^ {0,3}(`{3,}|~{3,})/
+
+/* The fence a code block open at the end of `text` was opened with, its
+   whole line; undefined when none is open. */
+function openFence(text: string): string | undefined {
+  let open: { line: string; mark: string } | undefined
+  for (const line of text.split('\n')) {
+    const m = FENCE.exec(line)
+    if (m === null) continue
+    const mark = m[1] ?? ''
+    if (open === undefined) open = { line, mark }
+    else if (mark[0] === open.mark[0] && mark.length >= open.mark.length && line.trim() === mark) open = undefined
+  }
+  return open?.line
+}
+
+/* Where to end a part of `text` within `size` units: after a blank line,
+   else at a line break (the break itself dropped), else at `size`, never
+   inside a character. Returns the part's end and where the next begins. */
+function partEnd(text: string, size: number): { end: number; next: number } {
+  const blank = text.lastIndexOf('\n\n', size - 1)
+  if (blank > 0) return { end: blank + 1, next: blank + 2 }
+  const line = text.lastIndexOf('\n', size)
+  if (line > 0) return { end: line, next: line + 1 }
+  const c = text.charCodeAt(size - 1)
+  const end = c >= 0xd800 && c <= 0xdbff ? size - 1 : size
+  return { end, next: end }
+}
+
+/* Markdown source split into parts of at most `limit` characters, one
+   `Markdown` each: at a blank line, else a line break, else anywhere. A
+   code block split over two parts is closed in the first and opened again
+   in the next, so each draws as code. */
+export function markdownParts(text: string, limit = MARKDOWN_LIMIT): string[] {
+  const parts: string[] = []
+  let rest = text
+  while (rest.length > limit) {
+    let { end, next } = partEnd(rest, limit)
+    const opened = openFence(rest.slice(0, end))
+    if (opened !== undefined) {
+      const closing = `\n${FENCE.exec(opened)?.[1] ?? ''}`
+      ;({ end, next } = partEnd(rest, limit - closing.length))
+      const fence = openFence(rest.slice(0, end))
+      const reopened = fence === undefined ? '' : `${fence}\n${rest.slice(next)}`
+      /* Only while it gets shorter: a fence line near the limit is cut. */
+      if (fence !== undefined && reopened.length < rest.length) {
+        parts.push(rest.slice(0, end) + closing)
+        rest = reopened
+        continue
+      }
+    }
+    parts.push(rest.slice(0, end))
+    rest = rest.slice(next)
+  }
+  parts.push(rest)
+  return parts
+}
+
 export type PreviewBody = {
   meta: string
   /* The User input's lines under its label; undefined draws no label. */
