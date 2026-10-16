@@ -14,7 +14,9 @@ import { GUTTER, RUNNING_MARK, dayRuleBefore } from './entries'
 import type { Entry } from './entries'
 import { MINIMAP_HEIGHT, minimapOf } from './minimap'
 import type { StripLabels } from './minimap'
-import { SEARCH_FIELD } from './pane'
+import { SEARCH_FIELD, expandedContent, previewContent } from './pane'
+import type { ExpandedView, PreviewView } from './pane'
+import { BACK_CONTROL, MORE_CONTROL, PREVIEW_CONTROL } from './preview'
 import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
 import { FILTERS, filterLabel, layoutLabel, layoutName, layoutOf } from './view'
 import { text as words } from './text'
@@ -62,6 +64,11 @@ export type DesktopView = {
   search: DesktopSearch
   /* The matching groups while a query is set, for the strip. */
   matches: readonly number[] | undefined
+  /* The preview under the list; undefined draws none. */
+  preview: PreviewView | undefined
+  /* The expanded preview, drawn in place of the strip, the list and the
+     preview; undefined draws those. */
+  expanded: ExpandedView | undefined
   bodyColumns: number
   onPress: (entry: Entry) => Promise<void>
   onFilter: (filter: ViewFilter) => Promise<void>
@@ -146,6 +153,39 @@ function ruleSvg(day: string, width: number): string {
     ROW_PX,
     RAIL_STYLE,
     `<text class="t" x="0" y="${ROW_PX / 2 + 4}" font-size="12" font-family="${FONT}">${xml(day)}</text><rect class="l" x="${px(end)}" y="${ROW_PX / 2}" width="${px(Math.max(0, width - end))}" height="1"/>`,
+  )
+}
+
+/* A thin rule across `width` px, beside the preview's Button. */
+function lineSvg(width: number): string {
+  return svgOf(width, ROW_PX, RAIL_STYLE, `<rect class="l" x="0" y="${ROW_PX / 2}" width="${px(width)}" height="1"/>`)
+}
+
+/* The preview as on the terminal, its hotkeys gone: the rule a Button
+   showing or hiding it, the cut line a Button expanding it. */
+function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: number): RenderElement {
+  const { Box, Button } = elements
+  const label = preview.state === 'noRoom' ? words.previewNoRoom : words.preview
+  const rest = Math.max(0, bodyColumns - textCells(label) - 1) * CELL_PX
+  const rule = (
+    <Box flexDirection="row" alignItems="center" columnGap={1}>
+      <Button key={PREVIEW_CONTROL} plain dimColor={preview.state !== 'shown'} onPress={() => preview.onToggle()}>
+        {label}
+      </Button>
+      {'Svg' in elements ? <elements.Svg source={lineSvg(rest)} alt="" width={px(rest)} height={ROW_PX} /> : null}
+    </Box>
+  )
+  const body = preview.state === 'shown' ? preview.body : undefined
+  return (
+    <Box flexDirection="column">
+      {rule}
+      {body === undefined ? null : previewContent(elements, body, preview.actions, false)}
+      {body === undefined || body.more === 0 ? null : (
+        <Button key={MORE_CONTROL} plain dimColor onPress={() => preview.onMore()}>
+          {words.moreLines(body.more) + words.expand}
+        </Button>
+      )}
+    </Box>
   )
 }
 
@@ -255,18 +295,37 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
       }
     }
   }
+  const head = (
+    <Box flexDirection="row" justifyContent="space-between" alignItems="center">
+      {filters}
+      {layoutControl}
+    </Box>
+  )
+  if (view.expanded !== undefined) {
+    const expanded = view.expanded
+    return (
+      <Box flexDirection="column" gap={1}>
+        {head}
+        {searchRow}
+        <Box flexDirection="column">
+          <Button key={BACK_CONTROL} plain onPress={() => expanded.onBack()}>
+            {words.back}
+          </Button>
+          {expandedContent(elements, expanded, false)}
+        </Box>
+      </Box>
+    )
+  }
   return (
     <Box flexDirection="column" gap={1}>
-      <Box flexDirection="row" justifyContent="space-between" alignItems="center">
-        {filters}
-        {layoutControl}
-      </Box>
+      {head}
       {searchRow}
       {strip}
       {view.notice === undefined ? null : <Text dimColor>{view.notice}</Text>}
       <Box flexDirection="column">{rows}</Box>
       {view.alert === undefined ? null : <Text color="warning">{`⚠ ${view.alert.text}`}</Text>}
       {view.why === undefined ? null : <Text dimColor>{view.why}</Text>}
+      {view.preview === undefined ? null : drawPreview(elements, view.preview, view.bodyColumns)}
       {strip === null && view.count !== undefined ? <Text dimColor>{words.turns(view.count)}</Text> : null}
     </Box>
   )
