@@ -8,10 +8,13 @@
                         row) before that group;
      auto mid-turn      after the group (a running group's at the list's
                         end until the next group comes);
-     auto between turns between the two groups. */
+     auto between turns between the two groups, also after a group the
+                        model never worked on (a local slash command, a
+                        `!` shell command), which its own output answered. */
 
 import { entryRows } from './entries'
 import type { Entry } from './entries'
+import { isLocalOutput } from './groups'
 import type { TurnGroup } from './groups'
 import type { TranscriptRow } from './transcript'
 
@@ -40,23 +43,25 @@ const isCompactCommand = (group: TurnGroup | undefined) => group?.kind === 'comm
    (the chain's Turn groups, as `groupTurns` gives them). */
 export function compactionsOf(chain: readonly TranscriptRow[], groups: readonly TurnGroup[]): Compaction[] {
   const found: Compaction[] = []
-  /* The group the rows walked belong to; -1 before the first. */
+  /* The group the rows walked belong to; -1 before the first. Whether it
+     was answered yet: by the agent, or by Claude Code's own output. */
   let g = -1
-  let hasAgentRow = false
+  let isAnswered = false
   for (const row of chain) {
     if (row.uuid === groups[g + 1]?.openerUuid) {
       g += 1
-      hasAgentRow = false
+      isAnswered = false
     }
+    if (isLocalOutput(row)) isAnswered = true
     if (row.type === 'assistant') {
-      hasAgentRow = true
+      isAnswered = true
       for (let i = found.length - 1; i >= 0 && !found[i]!.isAnswered; i--) found[i]!.isAnswered = true
     }
     if (!isBoundary(row)) continue
     const trigger = triggerOf(row)
     let at: number
     if (trigger === 'manual') at = isCompactCommand(groups[g]) || !isCompactCommand(groups[g + 1]) ? g + 1 : g + 2
-    else at = hasAgentRow ? g + 1 : Math.max(0, g)
+    else at = isAnswered ? g + 1 : Math.max(0, g)
     found.push({ uuid: row.uuid, trigger, timestamp: row.timestamp, at, isAnswered: false })
   }
   return found

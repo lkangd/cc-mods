@@ -81,6 +81,44 @@ test('an auto compaction between turns goes between the two groups', () => {
   expect(facts(t).map(c => [c.uuid, c.at])).toEqual([[boundary, 1]])
 })
 
+test('an auto compaction between turns after a ! shell command goes after the shell command, not before it', () => {
+  const t = transcript()
+  turn(t, 'CT-SYN zero')
+  t.bash('ls')
+  t.bashOutput('CT-SYN listing')
+  const boundary = t.compact('auto')
+  turn(t, 'CT-SYN one')
+
+  expect(facts(t).map(c => [c.uuid, c.at])).toEqual([[boundary, 2]])
+})
+
+test('an auto compaction between turns after a local slash command goes after the command, in either way it is recorded', () => {
+  const t = transcript()
+  turn(t, 'CT-SYN zero')
+  t.localCommand('model', 'opus')
+  t.localOutput('CT-SYN model set')
+  const first = t.compact('auto')
+  t.command('cost', '', 'local')
+  t.row({ type: 'user', message: { role: 'user', content: '<local-command-stdout>CT-SYN cost</local-command-stdout>' } })
+  const second = t.compact('auto')
+  turn(t, 'CT-SYN one')
+
+  expect(facts(t).map(c => [c.uuid, c.at])).toEqual([
+    [first, 2],
+    [second, 3],
+  ])
+})
+
+test('an auto compaction after a ! shell command that is the last group goes after it', () => {
+  const t = transcript()
+  turn(t, 'CT-SYN zero')
+  t.bash('ls')
+  t.bashOutput('CT-SYN listing')
+  t.compact('auto')
+
+  expect(facts(t).map(c => c.at)).toEqual([2])
+})
+
 test('a compaction before any group goes before the first; a rewound-away one is not on the chain', () => {
   const t = transcript()
   const first = t.compact('manual')
