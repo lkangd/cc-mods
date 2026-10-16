@@ -1,0 +1,45 @@
+==== wheel down (44 rows)
+  V02 第 33 行                                                                                                               │                                          ✕
+  V02 第 34 行                                                                                                               │PROBE row 4
+  V02 第 35 行                                                                                                               │PROBE row 5
+  V02 第 36 行                                                                                                               │PROBE row 6
+  V02 第 37 行                                                                                                               │PROBE row 7
+  V02 第 38 行                                                                                                               │PROBE row 8
+  V02 第 39 行                                                                                                               │PROBE row 9
+                                                                                                                             │PROBE row 10
+✻ Baked for 9s · done Friday, Oct 9 at 9:01 AM                                                                               │PROBE row 11
+                                                                                                                             │PROBE row 12
+❯ V03 小问题 3                                                                                                               │PROBE row 13
+                                                                                                                             │PROBE row 14
+⏺ V03 回复                                                                                                                   │PROBE row 15
+                                                                                                                             │PROBE row 16
+✻ Cooked for 0s · done Friday, Oct 9 at 9:02 AM                                                                              │PROBE row 17
+                                                                                                                             │PROBE row 18
+❯ V04 小问题 4                                                                                                               │PROBE row 19
+                                                                                                                             │PROBE row 20
+⏺ V04 回复                                                                                                                   │PROBE row 21
+                                                                                                                             │PROBE row 22
+✻ Cooked for 0s · done Friday, Oct 9 at 9:02 AM                                                                              │PROBE row 23
+                                                                                                                             │PROBE row 24
+❯ V05 小问题 5                                                                                                               │PROBE row 25
+                                                                                                                             │PROBE row 26
+⏺ V05 回复                                                                                                                   │PROBE row 27
+                                                                                                                             │PROBE row 28
+✻ Churned for 0s · done Friday, Oct 9 at 9:03 AM                                                                             │PROBE row 29
+                                                                                                                             │PROBE row 30
+❯ V06 小问题 6                                                                                                               │PROBE row 31
+                                                                                                                             │PROBE row 32
+⏺ V06 回复                                                                                                                   │PROBE row 33
+                                                                                                                             │PROBE row 34
+✻ Brewed for 0s · done Friday, Oct 9 at 9:03 AM                                                                              │PROBE row 35
+                                                                                                                             │PROBE row 36
+❯ V07 小问题 7                                                                                                               │PROBE row 37
+                                                                                                                             │PROBE row 38
+⏺ V07 回复                                                                                                                   │PROBE row 39
+                                                                                                                             │PROBE row 40
+✻ Worked for 0s · done Friday, Oct 9 at 9:03 AM                                                                              │PROBE row 41
+                                                                                                 Not logged in · Run /login  │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
