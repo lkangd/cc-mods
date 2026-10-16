@@ -1,0 +1,1 @@
+{ "name": "step-probe", "version": "0.0.1", "description": "Throwaway probe: whether a press by a bound key may scroll the transcript, and whether the band redraws on a back tab", "author": { "name": "probe" } }
