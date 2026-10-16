@@ -6,15 +6,24 @@
    plain Buttons, the strip of bars, and beside each entry its time, node or
    branch and rail, as tall as its lines, so the rails of neighbours meet.
    A Box's width and height count cells there, as on the terminal. The
-   desktop reports no Current position: nothing is lit, nothing pauses. */
+   desktop reports no Current position: nothing is lit, nothing pauses.
+
+   The 0.2 additions (spec §8): a native search field under the segmented
+   control (no `f` Button), the strip drawing the matches in the accent
+   colour and the context use after its count; the compaction rules as
+   dashed Svgs placed as on the terminal, and the fork line; the preview
+   with its content drawn by pane.tsx, its hotkeys gone, so the rule, the
+   cut line and Back are plain Buttons; copy without Reuse (reuse.ts). No
+   ‹ ›: nothing steps on the desktop. */
 
 import type { ElementTable, RenderElement } from 'claude-code'
 import { textCells } from './cells'
 import { GUTTER, RUNNING_MARK, dayRuleBefore } from './entries'
 import type { Entry } from './entries'
+import type { CompactionRule } from './compactions'
 import { MINIMAP_HEIGHT, minimapOf } from './minimap'
 import type { StripLabels } from './minimap'
-import { SEARCH_FIELD, expandedContent, previewContent } from './pane'
+import { SEARCH_FIELD, compactionLabel, expandedContent, previewContent } from './pane'
 import type { ExpandedView, PreviewView } from './pane'
 import { BACK_CONTROL, MORE_CONTROL, PREVIEW_CONTROL } from './preview'
 import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
@@ -59,6 +68,9 @@ export type DesktopView = {
   alert: { text: string; isInverse: boolean } | undefined
   why: string | undefined
   count: number | undefined
+  /* Whether the list starts with the line saying earlier turns are not in
+     this session's file. */
+  isEarlierElsewhere: boolean
   /* The context use, a whole percent; undefined leaves it out. */
   contextPercent: number | undefined
   search: DesktopSearch
@@ -189,6 +201,18 @@ function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: 
   )
 }
 
+/* A compaction's rule across the body, like the day's but dashed: its
+   words, dim, then a dashed line. */
+function compactionSvg(label: string, width: number): string {
+  const end = textCells(label) * 6.4 + 10
+  return svgOf(
+    width,
+    ROW_PX,
+    RAIL_STYLE + '.c{stroke:#d3d2cd;stroke-width:1;stroke-dasharray:3 3}@media (prefers-color-scheme: dark){.c{stroke:#41413e}}',
+    `<text class="t" x="0" y="${ROW_PX / 2 + 4}" font-size="12" font-family="${FONT}">${xml(label)}</text><line class="c" x1="${px(end)}" y1="${ROW_PX / 2 + 0.5}" x2="${px(width)}" y2="${ROW_PX / 2 + 0.5}"/>`,
+  )
+}
+
 export function drawDesktopPane(elements: ElementTable, view: DesktopView): RenderElement {
   const { Box, Text, Button } = elements
   const hasSvg = 'Svg' in elements
@@ -256,14 +280,20 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
       </Box>
     ) : null
   const hasTime = view.layout !== 'card'
+  /* Not pressable, breaking the rail as the day's rule does. */
+  const compactionRow = (rule: CompactionRule) => {
+    const label = compactionLabel(rule)
+    return hasSvg ? svg(compactionSvg(label, width), label, width, ROW_PX)! : <Text dimColor>{label}</Text>
+  }
   const rows: RenderElement[] = []
   for (let i = view.window.start; i < view.window.end; i++) {
     const entry = view.entries[i]
     if (!entry) continue
     const rule = dayRuleBefore(view.entries, i)
     if (rule !== undefined) rows.push(hasSvg ? svg(ruleSvg(rule, width), rule, width, ROW_PX)! : <Text dimColor>{rule}</Text>)
+    if (entry.compactionBefore !== undefined) rows.push(compactionRow(entry.compactionBefore))
     const press = () => view.onPress(entry)
-    const rail = railSvg(entry, hasTime, i === view.window.start || rule !== undefined)
+    const rail = railSvg(entry, hasTime, i === view.window.start || rule !== undefined || entry.compactionBefore !== undefined)
     const line = (text: string, n: number, dim: boolean) => (
       <Button key={n === 0 ? entry.key : `${entry.key}.${n}`} plain dimColor={dim} onPress={press}>
         {text || ' '}
@@ -288,12 +318,13 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
     )
     const hasGap = entry.gapAfter && i < view.window.end - 1
     if (hasGap) {
-      if (dayRuleBefore(view.entries, i + 1) !== undefined) rows.push(<Text> </Text>)
+      if (dayRuleBefore(view.entries, i + 1) !== undefined || view.entries[i + 1]?.compactionBefore !== undefined) rows.push(<Text> </Text>)
       else {
         const gap = gapSvg(hasTime)
         rows.push(<Box flexDirection="row">{svg(gap.source, words.rail, gap.width, ROW_PX)}</Box>)
       }
     }
+    if (entry.compactionAfter !== undefined) rows.push(compactionRow(entry.compactionAfter))
   }
   const head = (
     <Box flexDirection="row" justifyContent="space-between" alignItems="center">
@@ -321,6 +352,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
       {head}
       {searchRow}
       {strip}
+      {view.isEarlierElsewhere ? <Text dimColor>{words.earlierElsewhere}</Text> : null}
       {view.notice === undefined ? null : <Text dimColor>{view.notice}</Text>}
       <Box flexDirection="column">{rows}</Box>
       {view.alert === undefined ? null : <Text color="warning">{`⚠ ${view.alert.text}`}</Text>}
