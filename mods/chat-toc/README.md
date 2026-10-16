@@ -20,6 +20,7 @@ mods/chat-toc/
 │   ├── transcript.ts            parses JSONL rows
 │   ├── chain.ts                 the current branch's conversation chain (parentUuid; across a compaction boundary, logicalParentUuid)
 │   ├── groups.ts                when a group opens, the User input text, steps, last text, ending
+│   ├── facts.ts                 each group's facts for the preview, search and reuse: the input as typed, files changed/read, duration, output tokens, the last text as Markdown
 │   ├── regroup.ts               incremental regrouping (only from the last group's opening row)
 │   ├── compactions.ts           compaction boundaries placed between groups, their rules among the groups shown (×N fold), the fork line's condition
 │   ├── model.ts                 whole regrouping; a test oracle only, register does not use it
@@ -39,7 +40,8 @@ mods/chat-toc/
 │   ├── lifecycle.ts             the close mark, when to reopen, placement outcomes
 │   ├── locate.ts                works out the transcript path when enabled mid-session (the host's project folder naming)
 │   ├── rewind.ts                after a rewind, lines the host's messages up with the file to find the groups no longer held
-│   ├── pane.tsx                 the terminal Pane (filter row and tab rule, entries on the time rail, footer)
+│   ├── preview.ts               the preview's words (meta line, files line), its size against the rows (and what gives way first), what of a group fits
+│   ├── pane.tsx                 the terminal Pane (filter row and tab rule, entries on the time rail, the preview region, footer)
 │   ├── desktop.tsx              the Pane on Desktop / VS Code / mobile (another tree, split on e.surface)
 │   └── minimap.ts               the SVG strip of steps per turn over the desktop list
 └── tests/
@@ -119,6 +121,7 @@ Every start is in a temporary HOME and `CLAUDE_CONFIG_DIR`: onboarding done, the
 | CT-LIFE-001, 002, 005 (fork) | `$PY mods/chat-toc/tests/acceptance/ct_life.py --host 2.1.287 --host current [--scenario 001\|002\|fork]` |
 | CT-LIFE-007 | `$PY mods/chat-toc/tests/acceptance/ct_mid_session.py --host 2.1.287 --host current [--scenario cli\|ui]` (installs from a folder marketplace set up in the run folder, disabled first, then enabled mid-session from the CLI and from the `/plugin` screen) |
 | CT-LIFE-003, 004, 005, 008, CT-DATA-006 | `$PY mods/chat-toc/tests/acceptance/chain_scenarios.py --host 2.1.287 [--only life-003,...]` |
+| CT-PREV-001 (the preview region) | `$PY mods/chat-toc/tests/acceptance/ct_preview.py --host 2.1.287 [--host current] [--only which,facts,cut,toggle,short,widths]` |
 | CT-CMPCT-001, CT-CTX-001, CT-LIFE-003 (live `/compact`) | `$PY mods/chat-toc/tests/acceptance/ct_compaction.py --host 2.1.287 [--only fixture,fork,live]` (`live` runs against `fake_api.py` on 127.0.0.1 stating chosen `usage` figures; no model call) |
 | CT-JUMP-001–003, 005, CT-UI-005 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003 005]` (005 also records CT-UI-005: the notice line's inverse and foreground read about every 30 ms) |
 | CT-POS-001–003, CT-COEX-001, CT-LIFE-006, CT-MAP-001 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6 map1]` (coex runs `git init` on a repository with changes in a temporary project, so `/diff` opens) |
