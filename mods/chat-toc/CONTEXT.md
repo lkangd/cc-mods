@@ -28,6 +28,14 @@ _Avoid_: Assistant message, output
 Which side of each Turn group the Chat TOC shows: all, User inputs only, or Agent replies only.
 _Avoid_: Mode, tab
 
+**Search**:
+Narrowing the Chat TOC to the Turn groups that match a query the person typed: each of its words found, in any case, somewhere in the User input as typed, the Agent reply's last text, or the paths of the files the Turn group's tool calls read or changed, looking only at the sides the View filter shows. A Turn group it keeps is a match.
+_Avoid_: Filter, find
+
+**Preview**:
+The region at the bottom of the Chat TOC that shows one Turn group whole without jumping: its User input as typed, the Agent reply's last text, the files its tool calls changed or read, and, when the Transcript states them, its duration and the main agent's output tokens. It shows the selected Turn group while the Chat TOC holds the keys, otherwise the Current position's, or where there is none, the last one pressed. Expanded, it takes the list's place until the person goes back.
+_Avoid_: Detail, peek, inspector
+
 **Layout**:
 How the Chat TOC draws each Turn group, chosen by the person and kept across sessions: card (up to two lines per side, the time at the right of the User input), compact (one line per side, the time in a left column), or timeline (up to two lines per side, the time in a left column). Every Layout hangs the sides on a rail, a day's rule where the day changes. It changes the drawing only, never which entries show.
 _Avoid_: Theme, variant, style
