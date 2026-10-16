@@ -17,6 +17,7 @@
 
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderSurface } from 'claude-code'
+import { entryKey, groupOfKey } from './entries'
 import type { Entry } from './entries'
 import { compactionsOf, hasEarlierTurnsElsewhere, layRules } from './compactions'
 import type { Compaction, Listed } from './compactions'
@@ -55,7 +56,7 @@ import { languageOf, setLanguage, text as words } from './text'
 import type { BandCounts } from './text'
 import { drawBand } from './band'
 import { rewoundFrom } from './rewind'
-import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
+import { FILTER_KEY, LAYOUT_KEY, filterOf, jumpSide, layoutOf, nextLayout } from './view'
 import type { Layout, ViewFilter } from './view'
 import { PERF_FLUSH_MS, newPerf, note, perfNow, takeLines } from './perf'
 import type { PerfMetric } from './perf'
@@ -758,13 +759,13 @@ async function walkTurn($: EngineInterface, direction: WalkDirection, isPaneOnSc
   const searchWords = queryWords(await read($, query))
   const matches = searchWords.length === 0 ? undefined : matchesNow(groups, searchWords, isRunning).groupsMatched
   const shown = listedGroups(groups, filter, isRunning ? groups.length - 1 : undefined, matches)
-  const side = filter === 'agent' ? 'agent' : 'user'
+  const side = jumpSide(filter)
   const hasTarget = (g: number) => {
     const group = groups[g]
     return group !== undefined && !refused.has(sideKeyOf(group, side)) && jumpTargetsOf(group, side, chainRows, sites).length > 0
   }
   const to = walkFrom(shown, placing.position, direction, hasTarget)
-  if (to.kind === 'jump') return jump($, { groupIndex: to.group, side, key: `g${to.group}.${side === 'agent' ? 'a' : 'u'}` }, isPaneOnScreen)
+  if (to.kind === 'jump') return jump($, { groupIndex: to.group, side, key: entryKey(to.group, side) }, isPaneOnScreen)
   if (to.kind === 'unjumpable') return say($, `walk.${direction}`, words.refused, isPaneOnScreen)
 }
 
@@ -784,12 +785,6 @@ async function sayRefusal($: EngineInterface, key: string, text: string): Promis
     void update($, rev, x => x + 1).catch(() => undefined)
   })
   await update($, rev, x => x + 1)
-}
-
-/* The group an entry Button's key belongs to: `g3.u.1` is group 3's. */
-function groupOfKey(key: string | undefined): number | undefined {
-  const m = key === undefined ? null : /^g(\d+)\./.exec(key)
-  return m === null ? undefined : Number(m[1])
 }
 
 /* Whether a Button key is one of an entry's lines. */
@@ -845,8 +840,8 @@ async function submitSearch($: EngineInterface, value: string): Promise<void> {
   const found = words.length === 0 ? [] : matchesOf(searchIndex, groups, words, filter, isTurnRunning && groups === reading.groups).map(m => m.group)
   const target = nearestMatch(found, (await read($, currentPosition)) ?? undefined)
   if (target !== undefined) {
-    const side = filter === 'agent' ? 'agent' : 'user'
-    await jump($, { groupIndex: target, side, key: `g${target}.${side === 'agent' ? 'a' : 'u'}` })
+    const side = jumpSide(filter)
+    await jump($, { groupIndex: target, side, key: entryKey(target, side) })
   }
   await setQuery($, '')
 }
