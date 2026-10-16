@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pane Layout Prototype</title>
+<!--
+  PROTOTYPE, throwaway (chat-toc 0.2, ticket 06). Three variants of the docked
+  Pane with a search field, a Turn group preview, compaction rules and the
+  context use in the footer, switchable via ?variant=A|B|C and the bottom bar.
+  The pane is drawn cell by cell as the terminal draws it (CJK = 2 cells);
+  Desktop is a rough sketch. Sample data is made up. Nothing here ships.
+-->
+<style>
+:root {
+  --bg: #1e1e1e; --page: #141414; --fg: #e6e6e6; --dim: #999999; --subtle: #505050;
+  --accent: #7aa2f7; --claude: #d97757; --warn: #e0af68; --dock: rgb(38,38,38);
+  --panel: #202020; --line: #333; --hit: rgba(122,162,247,.18); --over: #e05561;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #fff; --page: #f4f4f4; --fg: #1a1a1a; --dim: #666; --subtle: #c4c4c4;
+    --accent: #2563eb; --claude: #c2410c; --warn: #b45309; --dock: rgb(245,245,245);
+    --panel: #fff; --line: #ddd; --hit: rgba(37,99,235,.12); --over: #dc2626;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--fg); font: 13px/1.4 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+header { padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; border-bottom: 1px solid var(--line); background: var(--panel); }
+header label { display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+header input[type=range] { width: 120px; }
+header .seg button { font: inherit; padding: 2px 8px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
+header .seg button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+main { display: flex; gap: 20px; padding: 16px; align-items: flex-start; flex-wrap: wrap; padding-bottom: 80px; }
+.stage { display: flex; gap: 0; }
+.transcript { width: 220px; background: var(--bg); color: var(--dim); font: 12px/18px Menlo, monospace; padding: 0 8px; overflow: hidden; border-right: 1px solid var(--subtle); }
+.pane { background: var(--dock); font: 13px/18px Menlo, "PingFang SC", monospace; padding: 0; position: relative; }
+.row { display: flex; height: 18px; white-space: pre; }
+.c1, .c2 { display: inline-block; height: 18px; text-align: left; overflow: visible; }
+.c1 { width: 8px; } .c2 { width: 16px; }
+.pane .dim { color: var(--dim); } .pane .subtle { color: var(--subtle); } .pane .acc { color: var(--accent); }
+.pane .claude { color: var(--claude); } .pane .warn { color: var(--warn); } .pane .inv { background: var(--fg); color: var(--dock); }
+.pane .btn { cursor: pointer; } .pane .btn:hover { background: var(--hit); }
+.pane .field { background: rgba(127,127,127,.15); }
+.pane .caret { animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.region { position: absolute; left: -6px; width: 3px; border-radius: 2px; }
+/* Desktop: proportional font, bare text, a native field. */
+.pane.desktop { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 0; }
+.pane.desktop .row { height: 19px; overflow: hidden; }
+.pane.desktop .c1, .pane.desktop .c2 { height: 19px; }
+.pane.desktop .c1 { width: 8.2px; } .pane.desktop .c2 { width: 16.4px; }
+.pane.desktop .field { background: transparent; outline: 1px solid var(--line); border-radius: 4px; }
+.pane.desktop .natbtn { outline: 1px solid var(--line); border-radius: 4px; background: rgba(127,127,127,.18); }
+.side { width: 320px; display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.card h3 { margin: 0 0 6px; font-size: 13px; }
+.card table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.card td { padding: 1px 4px; } .card td:last-child { text-align: right; }
+.card .bad { color: var(--over); font-weight: 600; } .card .ok { color: #3fa66b; }
+.card ul { margin: 4px 0 0; padding-left: 18px; } .card li { margin: 2px 0; }
+kbd { font: 11px Menlo, monospace; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+.sw { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; background: #111; color: #fff; padding: 8px 14px; border-radius: 999px; box-shadow: 0 6px 24px rgba(0,0,0,.4); font-weight: 600; z-index: 10; }
+.sw button { background: #333; color: #fff; border: 0; border-radius: 999px; width: 28px; height: 28px; cursor: pointer; font-size: 14px; }
+#ime { position: fixed; left: -1000px; top: 0; opacity: 0; }
+@media (max-width: 700px) { .transcript { display: none; } main { padding: 16px; } }
+</style>
+</head>
+<body>
+<header>
+  <strong>PROTOTYPE · Pane layout (ticket 06)</strong>
+  <label>Columns <input id="cols" type="range" min="36" max="56" value="44"><span id="colsV"></span></label>
+  <label>Body rows <input id="rows" type="range" min="10" max="48" value="34"><span id="rowsV"></span></label>
+  <span class="seg" id="surface"><button data-v="terminal">Terminal</button><button data-v="desktop">Desktop</button></span>
+  <span class="seg" id="lang"><button data-v="en">EN</button><button data-v="zh">中文</button></span>
+  <span class="seg" id="layout"><button data-v="card">Card</button><button data-v="compact">Compact</button></span>
+  <label><input id="ctx" type="checkbox" checked> context in footer</label>
+  <label><input id="cmp" type="checkbox" checked> compactions</label>
+</header>
+<main>
+  <div class="stage">
+    <div class="transcript" id="tx"></div>
+    <div class="pane" id="pane" tabindex="0"></div>
+  </div>
+  <div class="side">
+    <div class="card" id="budget"></div>
+    <div class="card" id="about"></div>
+    <div class="card" id="keys"></div>
+  </div>
+</main>
+<input id="ime" autocomplete="off">
+<div class="sw"><button id="prev">←</button><span id="swLabel"></span><button id="next">→</button></div>
+<script>
+'use strict'
+/* ---------- cells ---------- */
+const WIDE = /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦]/
+const cw = ch => (WIDE.test(ch) ? 2 : 1)
+const cells = s => [...s].reduce((a, c) => a + cw(c), 0)
+function cut(s, w) {
+  if (w <= 0) return ''
+  if (cells(s) <= w) return s
+  let out = '', n = 0
+  for (const c of s) { if (n + cw(c) > w - 1) break; out += c; n += cw(c) }
+  return out + '…'
+}
+const padTo = (s, w) => s + ' '.repeat(Math.max(0, w - cells(s)))
+function fold(s, w, max = Infinity) {
+  const lines = []
+  for (const para of s.split('\n')) {
+    const toks = para.match(/[⺀-￿]|[^\s⺀-￿]+\s*|\s+/g) || ['']
+    let cur = ''
+    for (let t of toks) {
+      if (cells(cur + t.trimEnd()) > w && cur.trim() !== '') { lines.push(cur.trimEnd()); cur = t.trimStart() }
+      else cur += t
+      while (cells(cur) > w) { let a = '', n = 0; for (const c of cur) { if (n + cw(c) > w) break; a += c; n += cw(c) } lines.push(a); cur = cur.slice(a.length) }
+    }
+    lines.push(cur.trimEnd())
+  }
+  if (lines.length > max) {
+    const keep = lines.slice(0, max), l = keep[max - 1]
+    keep[max - 1] = cells(l) + 1 <= w ? l + '…' : cut(l, w)
+    return keep
+  }
+  return lines
+}
+
+/* ---------- words ---------- */
+const WORDS = {
+  en: {
+    filters: ['All', 'User', 'Agent'], layout: { card: 'Card', compact: 'Compact' }, layoutBtn: n => `Layout: ${n}`,
+    turns: n => `${n} turns`, steps: n => `${n} step${n === 1 ? '' : 's'}`, ctx: p => `context ${p}%`, ctxShort: p => `ctx ${p}%`,
+    search: 'search', of: (a, b) => `${a} of ${b}`, none: 'No turn matches', compacted: t => `compacted · ${t}`, autoCompacted: t => `auto-compacted · ${t}`,
+    you: 'You', claude: 'Claude', files: 'Files', close: 'esc close', back: 'esc back', more: n => `↓ ${n} more`, preview: 'preview',
+    done: 'done', running: 'working', interrupted: 'interrupted', tok: t => `${t} tok`, previewHint: 'space: preview', tooShort: 'p: preview (no room)',
+  },
+  zh: {
+    filters: ['全部', '用户', 'Agent'], layout: { card: '卡片', compact: '紧凑' }, layoutBtn: n => `布局 ${n}`,
+    turns: n => `${n} 轮`, steps: n => `${n} 步`, ctx: p => `上下文 ${p}%`, ctxShort: p => `上下文 ${p}%`,
+    search: '搜索', of: (a, b) => `${a}/${b}`, none: '没有匹配的轮次', compacted: t => `已压缩 · ${t}`, autoCompacted: t => `自动压缩 · ${t}`,
+    you: '你', claude: 'Claude', files: '文件', close: 'esc 关闭', back: 'esc 返回', more: n => `↓ 还有 ${n} 行`, preview: '预览',
+    done: '完成', running: '进行中', interrupted: '已中断', tok: t => `${t} token`, previewHint: '空格：预览', tooShort: 'p：预览（放不下）',
+  },
+}
+
+/* ---------- made-up sample conversation ---------- */
+const PROMPTS = [
+  ['Why does the pane flicker when a turn finishes? Look at register.tsx and the redraw path.', 'The flicker comes from two draws in a row: `turn.complete` sets state and the transcript reload sets it again. I folded them into one `$.clock.after(0)` so the pane draws once.', ['mods/chat-toc/hooks/register.tsx', 'mods/chat-toc/hooks/window.ts']],
+  ['把 Minimap 的时间标签改成只显示首尾两个，中间不要了', '改好了：`barLabels` 只给出最左和最右的时间，中间的空白按格数补齐。36 列下两个时间之间至少隔一个空格。', ['mods/chat-toc/hooks/minimap.ts', 'mods/chat-toc/hooks/bars.ts', 'mods/chat-toc/tests/bars.test.ts']],
+  ['run the tests', 'All 214 tests pass on 2.1.295. Two are skipped on 2.1.287 as before (append-driven).', []],
+  ['/compact', '', []],
+  ['The day rule is drawn twice after midnight when the list is filtered to User. Can you reproduce it?', 'Reproduced with a session that crosses midnight: `dayRuleBefore` compared against the previous *drawn* entry, which under the User filter is two groups back. It now compares group days. Added a test.', ['mods/chat-toc/hooks/entries.ts', 'mods/chat-toc/tests/card_entries.test.ts']],
+  ['README 里 "not promised" 那节补一条：Desktop 上无法跳转', '已补在 "Not promised" 最后：Desktop 拒绝滚动转录，所以点条目不跳转，只能看。附了 issue 链接 anthropics/claude-code#100610。', ['mods/chat-toc/README.md']],
+  ['git status and commit what is staged', 'Committed `chat-toc: keep the day rule once per day under a filter` (3 files).', []],
+  ['Can the footer say how full the context is without looking like an alarm?', 'It can read `$.session.usage().context.percent`; it is absent until the first response and again right after a compaction, so the footer should hide it then rather than show a stale number.', ['mods/chat-toc/hooks/register.tsx']],
+  ['!ls mods/chat-toc/hooks', '', []],
+  ['这个 Pane 在 36 列下页脚会不会挤掉布局按钮？给我量一下', '量了：中文 `300 轮` + `l: 布局 卡片` 共 20 格，36 列放得下；英文 `300 turns` + `l: Layout: Card` 共 27 格，也放得下。加上下文用量后英文会超，需要缩写。', []],
+  ['Refactor jump.ts so the flash timing lives in one place', 'Moved `FLASH_MS` and `FLASHES` into `jump.ts` and made `alertOf` the only reader. No behaviour change; tests unchanged.', ['mods/chat-toc/hooks/jump.ts', 'mods/chat-toc/hooks/register.tsx']],
+  ['Write the PTY scenario for search: type a query, check the list narrows, Esc restores it', 'Drafted `CT-SEARCH-001` with three steps and the screens to capture. It needs the search field to take keys after Ctrl+X Tab then Tab.', ['mods/chat-toc/tests/acceptance/ct-search-001.md']],
+]
+const STATES = ['done', 'done', 'done', 'done', 'interrupted', 'done', 'done']
+function makeGroups() {
+  const out = []
+  let min = 9 * 60 + 2
+  for (let i = 0; i < 38; i++) {
+    const [u, r, files] = PROMPTS[i % PROMPTS.length]
+    const isSlash = u.startsWith('/') || u.startsWith('!')
+    const steps = isSlash ? 0 : 1 + ((i * 7) % 9)
+    min += 3 + ((i * 5) % 11)
+    const day = i < 14 ? 'Oct 15' : 'Oct 16'
+    if (i === 14) min = 8 * 60 + 40
+    const t = `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+    const state = i === 37 ? 'running' : STATES[i % STATES.length]
+    out.push({
+      i, t, day, user: u, reply: r, steps, state, files,
+      dur: isSlash ? '' : `${1 + (i % 5)}m ${String((i * 13) % 60).padStart(2, '0')}s`,
+      tok: isSlash ? '' : `${12 + ((i * 17) % 90)}k`,
+      compactBefore: u === '/compact' ? 'manual' : undefined,
+      compactInside: i === 26 ? 'auto' : undefined,
+    })
+  }
+  return out
+}
+const GROUPS = makeGroups()
+
+/* ---------- state ---------- */
+const VARIANTS = {
+  A: { name: 'Always there', about: [
+    'Search field: always shown, one row under the tab rule.',
+    'Preview: a fixed region at the bottom that follows the Current position (the lit group); <kbd>p</kbd> hides or shows it.',
+    'When rows run short: the Minimap goes first, then the preview shrinks to 4 rows, then the preview goes.',
+  ] },
+  B: { name: 'Summoned, in place', about: [
+    'Search field: opened by <kbd>/</kbd>, takes the filter row\'s place until <kbd>Esc</kbd>; costs no row.',
+    'Preview: <kbd>Space</kbd> expands the selected group in place inside the list, capped and scrollable; the list around it shrinks.',
+    'When rows run short: only the Minimap goes; search and preview never need rows of their own.',
+  ] },
+  C: { name: 'Views', about: [
+    'Search field: opened by <kbd>/</kbd> on the footer\'s status row, like a command line; the count and context step aside.',
+    'Preview: <kbd>Space</kbd> replaces the list with the whole group until <kbd>Esc</kbd>; <kbd>[</kbd> <kbd>]</kbd> step to the previous or next group. The Minimap stays.',
+    'When rows run short: only the Minimap goes.',
+  ] },
+}
+const S = {
+  variant: 'A', cols: 44, rows: 34, surface: 'terminal', lang: 'en', layout: 'card', ctx: true, cmp: true,
+  filter: 0, sel: 37, query: '', searching: false, preview: true, open: false, scroll: 0, flash: 0,
+}
+const qs = new URLSearchParams(location.search)
+if (VARIANTS[qs.get('variant')]) S.variant = qs.get('variant')
+/* Other state from the URL, for shareable screens: cols, rows, surface, lang, layout, q, open, sel. */
+for (const k of ['cols', 'rows', 'sel']) if (qs.has(k)) S[k] = +qs.get(k)
+for (const k of ['surface', 'lang', 'layout']) if (qs.has(k)) S[k] = qs.get(k)
+if (qs.has('q')) S.query = qs.get('q')
+if (qs.has('open')) S.open = true
+const W = () => WORDS[S.lang]
+
+/* ---------- model ---------- */
+function visibleGroups() {
+  let gs = GROUPS
+  if (S.filter === 2) gs = gs.filter(g => g.reply !== '' || g.state === 'running')
+  const q = S.query.trim().toLowerCase()
+  if (q) gs = gs.filter(g => [g.user, g.reply, ...g.files].some(f => f.toLowerCase().includes(q)))
+  return gs
+}
+const isLitAllowed = () => S.surface === 'terminal'
+
+/* A line is a list of segments: { t, k (class), act }. */
+const L = (...segs) => segs.filter(Boolean)
+const seg = (t, k = '', act) => ({ t, k, act })
+const rule = (label, w, k = 'dim') => L(seg('─ ', 'subtle'), seg(label, k), seg(' ' + '─'.repeat(Math.max(0, w - 3 - cells(label))), 'subtle'))
+
+function groupLines(g, w, lit, prev) {
+  const w0 = W(), lines = []
+  const time = S.layout === 'compact'
+  const gutter = time ? 9 : 3
+  const room = w - gutter
+  if (S.cmp && g.compactBefore) lines.push(rule('⟲ ' + w0.compacted(g.t), w, 'warn'))
+  if (!prev || prev.day !== g.day) lines.push(rule(g.day === 'Oct 16' ? (S.lang === 'zh' ? '今天' : 'Today') : (S.lang === 'zh' ? '10月15日' : g.day), w))
+  const acc = lit ? 'acc' : ''
+  const node = lit ? '◉  ' : '●  ', branch = lit ? '┣╸ ' : '├╴ ', bar = lit ? '┃  ' : '│  '
+  const tcol = n => (time ? seg(padTo(n === 0 ? g.t : '', 6), lit ? 'acc' : 'dim') : null)
+  const act = { go: g.i }
+  if (S.filter !== 2) {
+    const max = S.layout === 'compact' ? 1 : 2
+    const u = fold(g.user, room - (S.layout === 'card' ? 6 : 0), max)
+    u.forEach((t, n) => lines.push(L(tcol(n), seg(n === 0 ? node : bar, lit ? 'acc' : n === 0 ? 'dim' : 'subtle'), seg(t, '', act),
+      n === 0 && S.layout === 'card' ? seg(' '.repeat(Math.max(1, room - cells(t) - 5)) + g.t, lit ? 'acc' : 'dim') : null)))
+  }
+  if (S.cmp && g.compactInside) lines.push(L(time ? seg('      ') : null, seg(lit ? '┃' : '│', lit ? 'acc' : 'subtle'), seg(' ⟲ ' + W().autoCompacted('10:41') + ' ', 'warn'), seg('─'.repeat(Math.max(0, w - gutter - 14 - (S.lang === 'zh' ? 0 : 6))), 'subtle')))
+  if (S.filter !== 1 && (g.reply || g.state === 'running')) {
+    const head = g.state === 'running' ? '◐ ' : ''
+    const text = `${w0.steps(g.steps)} · ${g.state === 'interrupted' ? w0.interrupted + ' · ' : ''}${g.reply || '…'}`
+    const max = S.layout === 'compact' ? 1 : 2
+    const r = fold(text, room - cells(head), max)
+    r.forEach((t, n) => lines.push(L(time ? seg('      ') : null, seg(n === 0 ? branch : bar, lit ? 'acc' : 'subtle'), n === 0 && head ? seg(head, 'claude') : (head ? seg('  ') : null), seg(t, 'dim', act))))
+  }
+  if (S.layout === 'card') lines.push(L(seg(lit ? '┃' : '│', lit ? 'acc' : 'subtle')))
+  return lines
+}
+
+function previewLines(g, w, closeWord) {
+  const w0 = W(), out = []
+  const st = g.state === 'running' ? w0.running : g.state === 'interrupted' ? w0.interrupted : w0.done
+  const meta = [`${g.t}`, st, g.steps ? w0.steps(g.steps) : '', g.dur, g.tok ? w0.tok(g.tok) : ''].filter(Boolean).join(' · ')
+  fold(meta, w).forEach(t => out.push(L(seg(t, 'acc'))))
+  out.push(L(seg(w0.you, 'dim')))
+  fold(g.user, w).forEach(t => out.push(L(seg(t))))
+  if (g.reply) {
+    out.push(L(seg(w0.claude, 'dim')))
+    fold(g.reply, w).forEach(t => out.push(L(seg(t))))
+  }
+  if (g.files.length) {
+    out.push(L(seg(w0.files, 'dim')))
+    g.files.forEach(f => { const s = cells(f) > w ? '…' + f.slice(-(w - 1)) : f; out.push(L(seg(s, 'dim'))) })
+  }
+  return out
+}
+
+/* Clip a preview to `rows`, with a "more" line when it overflows; S.scroll offsets it. */
+function clip(lines, rows, w) {
+  if (rows <= 0) return []
+  if (lines.length <= rows) return lines
+  const max = Math.max(0, lines.length - (rows - 1))
+  S.scroll = Math.min(Math.max(0, S.scroll), max)
+  const shown = lines.slice(S.scroll, S.scroll + rows - 1)
+  const left = lines.length - S.scroll - shown.length
+  shown.push(L(seg(left > 0 ? W().more(left) : '↑', 'dim')))
+  return shown
+}
+
+function minimapLines(w, gs) {
+  const vis = new Set(gs.map(g => g.i))
+  const most = Math.max(...GROUPS.map(g => g.steps))
+  const lv = '▁▂▃▄▅▆▇█'
+  const cellsRow = GROUPS.map(g => {
+    const glyph = g.steps === 0 || !vis.has(g.i) ? '▁' : lv[1 + Math.min(6, Math.floor(6 * Math.sqrt(g.steps / most)))]
+    return seg(glyph, isLitAllowed() && g.i === S.sel ? 'acc' : 'dim', { go: g.i })
+  }).slice(0, w)
+  const rest = w - cellsRow.length
+  const first = GROUPS[0].t, last = GROUPS[GROUPS.length - 1].t
+  return [L(...cellsRow, rest > 0 ? seg('▁'.repeat(rest), 'subtle') : null), L(seg(first + ' '.repeat(Math.max(1, Math.min(GROUPS.length, w) - 10)) + last, 'dim')), L(seg(' '))]
+}
+
+/* Fill `rows` with group blocks so the selected one shows; `expand` swaps in extra lines after the selected block. */
+function listLines(gs, w, rows, expand) {
+  if (rows <= 0) return []
+  if (gs.length === 0) return [L(seg(W().none, 'dim'))]
+  const blocks = gs.map((g, n) => {
+    const lit = isLitAllowed() && g.i === S.sel
+    let b = groupLines(g, w, lit, gs[n - 1])
+    if (expand && g.i === S.sel) {
+      const room = Math.max(4, rows - 6)
+      const body = clip(previewLines(g, w - 3, true), room, w - 3).map(l => L(seg('┃  ', 'acc'), ...l))
+      const at = S.layout === 'card' ? b.length - 1 : b.length
+      b = [...b.slice(0, at), ...body, ...b.slice(at)]
+    }
+    return b
+  })
+  let at = gs.findIndex(g => g.i === S.sel)
+  if (at < 0) at = gs.length - 1
+  const out = [...blocks[at]]
+  let up = at - 1, down = at + 1
+  while (out.length < rows && (up >= 0 || down < blocks.length)) {
+    if (down < blocks.length && (up < 0 || down - at <= 1)) { out.push(...blocks[down++]); continue }
+    if (up >= 0) out.unshift(...blocks[up--])
+  }
+  // keep the selected block visible: drop from the top if the overflow is below
+  const selTop = out.indexOf(blocks[at][0])
+  let start = Math.max(0, Math.min(selTop, out.length - rows))
+  if (selTop + blocks[at].length > start + rows) start = selTop
+  return out.slice(start, start + rows)
+}
+
+/* ---------- regions per variant ---------- */
+function head(w) {
+  const w0 = W()
+  const labels = w0.filters.map((f, n) => `${n + 1}: ${f}`)
+  const row = []
+  labels.forEach((l, n) => { row.push(seg(l, n === S.filter ? '' : 'dim', { filter: n })); if (n < 2) row.push(seg('   ')) })
+  let start = 0
+  for (let n = 0; n < S.filter; n++) start += cells(labels[n]) + 3
+  const end = Math.min(w, start + cells(labels[S.filter]))
+  const tab = L(seg('─'.repeat(start), 'subtle'), seg('━'.repeat(end - start), 'acc'), seg('─'.repeat(Math.max(0, w - end)), 'subtle'))
+  return [L(...row), tab]
+}
+function searchRow(w, prompt) {
+  const w0 = W(), gs = visibleGroups()
+  const count = S.query ? w0.of(gs.length, GROUPS.length) : ''
+  if (S.surface === 'desktop') {
+    const field = S.query || w0.search
+    const btn = ' ' + w0.search + ' '
+    const fw = w - cells(btn) - 1 - (count ? cells(count) + 1 : 0)
+    return L(seg(padTo(cut(field, fw), fw), 'field' + (S.query ? '' : ' dim'), { search: 1 }), seg(' '), count ? seg(count + ' ', 'dim') : null, seg(btn, 'natbtn'))
+  }
+  const active = S.searching
+  const text = S.query || (active ? '' : w0.search)
+  const tail = count ? ' ' + count : ''
+  const fw = w - cells(prompt) - cells(tail)
+  const shown = cut(text, Math.max(1, fw - 1))
+  return L(seg(prompt, active ? 'acc' : 'dim', { search: 1 }), seg(shown, (S.query ? '' : 'dim') + (active ? ' field' : ''), { search: 1 }), active ? seg('▏', 'acc caret') : null,
+    seg(' '.repeat(Math.max(0, fw - cells(shown) - (active ? 1 : 0))), active ? 'field' : '', { search: 1 }), count ? seg(tail, 'dim') : null)
+}
+function footer(w) {
+  const w0 = W()
+  const btn = 'l: ' + w0.layoutBtn(w0.layout[S.layout])
+  let left = w0.turns(visibleGroups().length)
+  if (S.ctx) {
+    const full = `${left} · ${w0.ctx(62)}`, short = `${left} · ${w0.ctxShort(62)}`
+    left = cells(full) + 1 + cells(btn) <= w ? full : cells(short) + 1 + cells(btn) <= w ? short : cut(short, w - cells(btn) - 1)
+  }
+  return [L(seg('─'.repeat(w), 'subtle')), L(seg(left, 'dim'), seg(' '.repeat(Math.max(1, w - cells(left) - cells(btn)))), seg(btn, '', { layout: 1 }))]
+}
+
+function compose() {
+  const w = S.cols, R = S.rows, v = S.variant, gs = visibleGroups()
+  const sel = GROUPS[S.sel]
+  const regions = [] // [name, lines, colorVar]
+  const hidden = []
+  const desk = S.surface === 'desktop'
+  const add = (name, lines) => regions.push([name, lines])
+  let h = head(w)
+  if (v === 'B' && (S.searching || S.query) && !desk) h = [searchRow(w, '/ '), h[1]]
+  if (v === 'B' && desk && (S.searching || S.query)) h = [searchRow(w, ''), h[1]]
+  let foot = footer(w)
+  if (v === 'C' && (S.searching || S.query)) foot = [foot[0], desk ? searchRow(w, '') : searchRow(w, '/')]
+  const fixed = h.length + foot.length + (v === 'A' ? 1 : 0)
+  let avail = R - fixed
+  let mini = gs.length >= 2 || GROUPS.length >= 2
+  let pv = 0
+  const wantPreview = v === 'A' ? S.preview : false
+  if (v === 'A' && wantPreview) {
+    pv = Math.max(4, Math.min(14, Math.floor(avail * 0.4)))
+    if (avail - 3 - (1 + pv) < 8) { mini = false; hidden.push('Minimap') }
+    if (avail - (1 + pv) < 8) pv = Math.max(4, avail - 1 - 8)
+    if (avail - (1 + pv) < 8) { pv = 0; hidden.push('preview') }
+  } else if (avail - 3 < 8) { mini = false; hidden.push('Minimap') }
+  add('head', h)
+  if (v === 'A') add('search', [searchRow(w, '⌕ ')])
+  if (mini) add('Minimap', minimapLines(w, gs))
+  const used = regions.reduce((a, [, l]) => a + l.length, 0) + foot.length
+  let listRows = R - used - (pv ? pv + 1 : 0)
+  if (v === 'A' && S.preview && pv === 0) listRows -= 1
+  if (v === 'C' && S.open) {
+    const top = L(seg('‹ [', 'dim', { step: -1 }), seg(' ' + W().of(gs.findIndex(g => g.i === S.sel) + 1, gs.length) + ' ', 'acc'), seg('] ›', 'dim', { step: 1 }), seg(' '.repeat(Math.max(1, w - 12 - cells(W().of(1, 1)) - cells(W().back))) + W().back, 'dim', { close: 1 }))
+    add('preview', [top, ...clip(previewLines(sel, w, false), listRows - 1, w)])
+  } else {
+    add('list', listLines(gs, w, listRows, v === 'B' && S.open))
+  }
+  if (v === 'A' && S.preview && pv === 0) add('hint', [L(seg(W().tooShort, 'dim'))])
+  if (pv) add('preview', [rule(W().preview + ' · ' + (desk ? '' : 'p'), w, 'dim'), ...clip(previewLines(sel, w, false), pv, w)])
+  // spacer up to the footer
+  const drawn = regions.reduce((a, [, l]) => a + l.length, 0) + foot.length
+  if (drawn < R) {
+    const at = regions.findIndex(([n]) => n === 'list' || n === 'preview')
+    const target = regions[at >= 0 ? at : regions.length - 1]
+    target[1].push(...Array.from({ length: R - drawn }, () => L(seg(' '))))
+  }
+  add('footer', foot)
+  const list = regions.find(([n]) => n === 'list' || (n === 'preview' && v === 'C'))
+  return { regions, hidden, listRows, pv }
+}
+
+/* ---------- draw ---------- */
+const COLORS = { head: '#7aa2f7', search: '#bb9af7', Minimap: '#9ece6a', list: '#e0af68', preview: '#f7768e', hint: '#888', footer: '#73daca' }
+function draw() {
+  const pane = document.getElementById('pane')
+  const w = S.cols
+  // a search keeps the Current position on a match: snap to the nearest one
+  const gs0 = visibleGroups()
+  if (gs0.length && !gs0.some(g => g.i === S.sel)) S.sel = gs0.reduce((a, g) => (Math.abs(g.i - S.sel) < Math.abs(a.i - S.sel) ? g : a)).i
+  const { regions, hidden, listRows, pv } = compose()
+  pane.className = 'pane' + (S.surface === 'desktop' ? ' desktop' : '')
+  pane.innerHTML = ''
+  const rowPx = S.surface === 'desktop' ? 19 : 18
+  // the host's close-mark row
+  const closeRow = document.createElement('div'); closeRow.className = 'row'
+  closeRow.innerHTML = `<span style="margin-left:${(w - 2) * (S.surface === 'desktop' ? 8.2 : 8)}px" class="dim">✕</span>`
+  if (S.surface === 'terminal') pane.appendChild(closeRow)
+  let y = S.surface === 'terminal' ? 1 : 0
+  let total = 0
+  for (const [name, lines] of regions) {
+    const mark = document.createElement('div'); mark.className = 'region'
+    mark.style.top = (y * rowPx + (S.surface === 'desktop' ? 6 : 0)) + 'px'; mark.style.height = (lines.length * rowPx - 2) + 'px'; mark.style.background = COLORS[name] || '#888'
+    mark.title = `${name}: ${lines.length} rows`
+    pane.appendChild(mark)
+    for (const line of lines) {
+      const row = document.createElement('div'); row.className = 'row'
+      let n = 0
+      for (const s of line) {
+        const sp = document.createElement('span'); sp.className = s.k + (s.act ? ' btn' : '')
+        if (s.act) sp.dataset.act = JSON.stringify(s.act)
+        if (S.surface === 'desktop') { const t = cut(s.t, w - n); sp.textContent = t; sp.style.whiteSpace = 'pre'; n += cells(t); row.appendChild(sp); continue }
+        for (const ch of s.t) { if (n + cw(ch) > w) break; const c = document.createElement('span'); c.className = cw(ch) === 2 ? 'c2' : 'c1'; c.textContent = ch; sp.appendChild(c); n += cw(ch) }
+        row.appendChild(sp)
+      }
+      pane.appendChild(row)
+      y++; total++
+    }
+  }
+  // the host's blank last row beside the status line
+  if (S.surface === 'terminal') { const r = document.createElement('div'); r.className = 'row'; pane.appendChild(r) }
+  pane.style.width = (w * (S.surface === 'desktop' ? 8.2 : 8)) + 'px'
+  if (S.flash) { const f = document.createElement('div'); f.className = 'row'; f.innerHTML = `<span class="warn">jumped to ${GROUPS[S.sel].t} (stand-in)</span>`; pane.appendChild(f) }
+  // budget
+  const rowsOf = n => regions.filter(([m]) => m === n).reduce((a, [, l]) => a + l.length, 0)
+  const listShown = S.variant === 'C' && S.open ? rowsOf('preview') : rowsOf('list')
+  const listLabel = S.variant === 'C' && S.open ? 'preview (in place of list)' : 'list'
+  const floorOk = listRows >= 8
+  document.getElementById('budget').innerHTML = `<h3>Rows: ${total} drawn of ${S.rows} body rows · ${w} columns</h3><table>` +
+    regions.map(([n, l]) => `<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${COLORS[n] || '#888'}"></span> ${n === 'list' || (n === 'preview' && S.variant === 'C' && S.open) ? listLabel : n}</td><td>${l.length}</td></tr>`).join('') +
+    `</table><p>List rows (floor 8): <span class="${floorOk ? 'ok' : 'bad'}">${listRows}${floorOk ? '' : ' — below the floor'}</span></p>` +
+    `<p>Hidden: ${hidden.length ? hidden.join(', ') : 'nothing'}</p>`
+  const V = VARIANTS[S.variant]
+  document.getElementById('about').innerHTML = `<h3>${S.variant} · ${V.name}</h3><ul>${V.about.map(a => `<li>${a}</li>`).join('')}</ul>` +
+    (S.surface === 'desktop' ? `<p><b>Desktop:</b> a click never jumps (refused), so a click on an entry opens the preview the variant uses; no Current position, so nothing is lit; the search field is a native field with its button.</p>` : '')
+  document.getElementById('keys').innerHTML = `<h3>Try</h3><ul>
+    <li><kbd>↑</kbd><kbd>↓</kbd> move the Current position (stand-in for scrolling the transcript)</li>
+    <li>Click an entry: ${S.surface === 'desktop' ? 'preview' : 'jump (stand-in)'}; click a Minimap cell too</li>
+    <li>${S.variant === 'A' ? 'Click the search row or' : ''} <kbd>/</kbd> search, type (IME works), <kbd>Enter</kbd> keeps the query, <kbd>Esc</kbd> clears it</li>
+    <li>${S.variant === 'A' ? '<kbd>p</kbd> hide/show the preview' : '<kbd>Space</kbd> open/close the preview'}${S.variant === 'C' ? ', <kbd>[</kbd> <kbd>]</kbd> step' : ''}; wheel or <kbd>PgUp</kbd><kbd>PgDn</kbd> scroll it</li>
+    <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> filter, <kbd>l</kbd> Layout, <kbd>←</kbd><kbd>→</kbd> variant</li></ul>`
+  document.getElementById('swLabel').textContent = `${S.variant} (${V.name})`
+  document.getElementById('colsV').textContent = S.cols
+  document.getElementById('rowsV').textContent = S.rows
+  for (const [id, key] of [['surface', 'surface'], ['lang', 'lang'], ['layout', 'layout']])
+    document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset.v === S[key]))
+  // a sliver of transcript beside the pane, for context
+  const tx = document.getElementById('tx'); tx.style.height = ((S.rows + 2) * rowPx) + 'px'
+  tx.textContent = GROUPS.slice(Math.max(0, S.sel - 3), S.sel + 1).map(g => `❯ ${g.user}\n\n⏺ ${g.reply || '…'}\n`).join('\n')
+  tx.style.whiteSpace = 'pre-wrap'
+}
+
+/* ---------- input ---------- */
+const ime = document.getElementById('ime')
+function startSearch() { S.searching = true; ime.value = S.query; ime.focus(); draw() }
+function endSearch(keep) { S.searching = false; if (!keep) S.query = ''; ime.blur(); draw() }
+ime.addEventListener('input', () => { S.query = ime.value; draw() })
+ime.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); endSearch(false) }
+  else if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); endSearch(true) }
+  else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); move(e.key === 'ArrowUp' ? -1 : 1) }
+})
+function move(d) {
+  const gs = visibleGroups(); if (!gs.length) return
+  let at = gs.findIndex(g => g.i === S.sel); if (at < 0) at = gs.length - 1
+  S.sel = gs[Math.min(gs.length - 1, Math.max(0, at + d))].i; S.scroll = 0; draw()
+}
+function setVariant(v) { S.variant = v; S.open = false; S.searching = false; const u = new URL(location); u.searchParams.set('variant', v); history.replaceState(null, '', u); draw() }
+const ORDER = ['A', 'B', 'C']
+document.getElementById('prev').onclick = () => setVariant(ORDER[(ORDER.indexOf(S.variant) + 2) % 3])
+document.getElementById('next').onclick = () => setVariant(ORDER[(ORDER.indexOf(S.variant) + 1) % 3])
+document.addEventListener('keydown', e => {
+  if (e.target === ime || e.target.tagName === 'INPUT' && e.target.type !== 'range') return
+  if (e.metaKey || e.ctrlKey || e.altKey) return
+  const k = e.key
+  if (k === 'ArrowLeft' || k === 'ArrowRight') { e.preventDefault(); return k === 'ArrowLeft' ? document.getElementById('prev').click() : document.getElementById('next').click() }
+  if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); return move(k === 'ArrowUp' ? -1 : 1) }
+  if (k === '/') { e.preventDefault(); return startSearch() }
+  if (k === 'Escape') { if (S.open) { S.open = false; return draw() } if (S.query) return endSearch(false) }
+  if (k === ' ' && S.variant !== 'A') { e.preventDefault(); S.open = !S.open; S.scroll = 0; return draw() }
+  if (k === 'p' && S.variant === 'A') { S.preview = !S.preview; return draw() }
+  if ((k === '[' || k === ']') && S.variant === 'C' && S.open) return move(k === '[' ? -1 : 1)
+  if (k === 'PageDown' || k === 'PageUp') { e.preventDefault(); S.scroll += k === 'PageDown' ? 5 : -5; return draw() }
+  if (k >= '1' && k <= '3') { S.filter = +k - 1; return draw() }
+  if (k === 'l') { S.layout = S.layout === 'card' ? 'compact' : 'card'; return draw() }
+})
+document.getElementById('pane').addEventListener('wheel', e => { e.preventDefault(); S.scroll += e.deltaY > 0 ? 1 : -1; draw() }, { passive: false })
+document.getElementById('pane').addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return
+  const a = JSON.parse(el.dataset.act)
+  if ('go' in a) {
+    S.sel = a.go; S.scroll = 0
+    if (S.surface === 'desktop') { if (S.variant !== 'A') S.open = true }
+    else { S.flash = 1; setTimeout(() => { S.flash = 0; draw() }, 700) }
+  }
+  if ('filter' in a) S.filter = a.filter
+  if ('layout' in a) S.layout = S.layout === 'card' ? 'compact' : 'card'
+  if ('search' in a) return startSearch()
+  if ('step' in a) return move(a.step)
+  if ('close' in a) S.open = false
+  draw()
+})
+const bind = (id, key, num) => { const el = document.getElementById(id); el.value = S[key]; el.oninput = () => { S[key] = num ? +el.value : el.value; draw() } }
+bind('cols', 'cols', true); bind('rows', 'rows', true)
+document.getElementById('ctx').onchange = e => { S.ctx = e.target.checked; draw() }
+document.getElementById('cmp').onchange = e => { S.cmp = e.target.checked; draw() }
+for (const [id, key] of [['surface', 'surface'], ['lang', 'lang'], ['layout', 'layout']])
+  document.querySelectorAll(`#${id} button`).forEach(b => (b.onclick = () => { S[key] = b.dataset.v; draw() }))
+draw()
+</script>
+</body>
+</html>
