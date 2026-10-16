@@ -47,6 +47,33 @@ export function reusableOf(group: TurnGroup, isRunning: boolean): Reusable {
   }
 }
 
+/* The first host whose Claude app shows a fill in its composer every time;
+   undefined while none does. The app answers `isFilled: true` while the
+   text sometimes never shows (2.1.295), so the desktop offers copy only. */
+export const DESKTOP_REUSE_SINCE: string | undefined = undefined
+
+/* A release's numbers: `2.1.300-dev` is 2.1.300. */
+const releaseOf = (base: string) => base.split('-')[0]!.split('.').map(n => Number(n) || 0)
+
+function isAtLeast(base: string, since: string): boolean {
+  const a = releaseOf(base)
+  const b = releaseOf(since)
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (a[i] ?? 0) - (b[i] ?? 0)
+    if (d !== 0) return d > 0
+  }
+  return true
+}
+
+/* Whether the surface offers Reuse: the terminal always; the desktop from
+   the host `since` names on (`$.session.version()`'s base), never while it
+   names none; the other surfaces never. */
+export function hasReuse(surface: string, base: string | undefined, since = DESKTOP_REUSE_SINCE): boolean {
+  if (surface === 'terminal') return true
+  if (surface !== 'desktop' || since === undefined || base === undefined) return false
+  return isAtLeast(base, since)
+}
+
 /* How a fill goes in: over an empty composer, else after the draft and a
    blank line, so a draft is never lost. */
 export function fillOf(draft: string, text: string): { text: string; mode: 'replace' | 'append' } {

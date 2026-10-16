@@ -44,7 +44,7 @@ import type { ExpandedView, LabelActions, PreviewView, SearchView } from './pane
 import { PREVIEW_CONTROL, PREVIEW_KEY, expandedBody, filesLine, isPreviewShown, metaLine, previewBody, previewPlan } from './preview'
 import type { ExpandedBody, PathBase, PreviewBody } from './preview'
 import { FILTER_END, LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
-import { COPIED_MS, fillOf, fillRefusedText, reusableOf } from './reuse'
+import { COPIED_MS, fillOf, fillRefusedText, hasReuse, reusableOf } from './reuse'
 import type { CopyWhich } from './reuse'
 import { indexGroups, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
 import type { Match } from './search'
@@ -151,6 +151,8 @@ let heldSelection: number | undefined
    preview shows, by its opener's uuid, the entry pressed last or the match
    a search's submit put there. Undefined shows the newest. */
 let pressedOpener: string | undefined
+/* The host's release, from `$.session.version()` at `session.start`. */
+let hostBase: string | undefined
 /* The copy Button reading `Copied`: the group's opener, which Button, and
    which copy, so only its own timer takes it back. */
 let copied: { opener: string; which: CopyWhich; n: number } | undefined
@@ -345,6 +347,13 @@ function forget(): void {
 async function readContextUse($: EngineInterface): Promise<void> {
   const usage = await $.session.usage().catch(() => undefined)
   contextPercent = usage?.context.percent
+}
+
+/* The host's release, which says whether the desktop offers Reuse
+   (reuse.ts); undefined while not known. */
+async function askVersion($: EngineInterface): Promise<void> {
+  const version = await $.session.version().catch(() => undefined)
+  hostBase = version?.base
 }
 
 /* The system's language, from the locale variables (text.ts). Asked once a
@@ -1002,7 +1011,7 @@ function labelActions($: EngineInterface, group: TurnGroup, isRunning: boolean, 
   const offered = reusableOf(group, isRunning)
   const opener = group.openerUuid
   return {
-    canReuse: offered.fill !== undefined,
+    canReuse: offered.fill !== undefined && hasReuse(surface, hostBase),
     canCopyInput: offered.input !== undefined,
     canCopyText: offered.text !== undefined,
     copied: copied?.opener === opener ? copied.which : undefined,
@@ -1144,6 +1153,7 @@ export const register: Register = on => {
     await loadChoices($)
     await learnPaths($, e.cwd)
     await readContextUse($)
+    await askVersion($)
     await askPerf($)
     await locate($, e.cwd)
     readNow($)

@@ -3,6 +3,7 @@ import type { Engine } from 'claude-code/testing'
 import { PANE, drawnButtons, host, isEntryKey, start } from './host'
 import { ROW_PX } from '../hooks/desktop'
 import type { Builder } from './fixture'
+import { hasReuse } from '../hooks/reuse'
 import { transcript } from './fixture'
 
 /* The pane on Claude Code Desktop (and the other remote surfaces), drawn
@@ -251,5 +252,42 @@ test('the cut line is a Button without e:, expanding the preview; ← Back is a 
   await world.clock.settle()
   expect(await pane.find({ type: 'Button', key: 'preview.back' })).toBeUndefined()
   expect((await entryKeys(pane)).length).toBeGreaterThan(0)
+})
+
+test('each label row carries a 复制 Button with no hotkey and there is no Reuse; a press copies on the desktop and reads 已复制', async ($, on) => {
+  const world = host(on, three().jsonl())
+  on('session.version', () => ({ value: { version: '2.1.295', base: '2.1.295' } }))
+  await start($, world)
+  const pane = await desktopPane($)
+
+  const user = await pane.find({ type: 'Button', key: 'preview.copy.user' })
+  const agent = await pane.find({ type: 'Button', key: 'preview.copy.agent' })
+  expect([user?.text, user?.props.hotkey, agent?.text, agent?.props.hotkey]).toEqual(['复制', undefined, '复制', undefined])
+  expect(await pane.find({ type: 'Button', key: 'preview.reuse' })).toBeUndefined()
+
+  await pane.press({ key: 'preview.copy.agent' })
+  expect(world.copies).toEqual([{ text: 'CT-SYN third answer', surface: 'desktop' }])
+  expect((await pane.find({ type: 'Button', key: 'preview.copy.agent' }))?.text).toBe('已复制')
+})
+
+test('a copy the desktop cannot take says it is too long', async ($, on) => {
+  const world = host(on, three().jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+
+  world.refuseCopy = 'no-clipboard'
+  await pane.press({ key: 'preview.copy.user' })
+  expect(world.toasts).toEqual(['太长，无法在此复制'])
+})
+
+test('Reuse on the desktop waits for a host that shows fills: off on every known version, on from the one named', () => {
+  for (const base of ['2.1.287', '2.1.295', '2.1.300', '3.0.0', undefined]) expect(hasReuse('desktop', base)).toBe(false)
+  expect(hasReuse('terminal', '2.1.287')).toBe(true)
+  expect(hasReuse('terminal', undefined)).toBe(true)
+  expect(hasReuse('desktop', '2.1.299', '2.1.300')).toBe(false)
+  expect(hasReuse('desktop', '2.1.300', '2.1.300')).toBe(true)
+  expect(hasReuse('desktop', '2.2.0', '2.1.300')).toBe(true)
+  expect(hasReuse('desktop', '2.1.300-dev', '2.1.300')).toBe(true)
+  expect(hasReuse('mobile', '2.2.0', '2.1.300')).toBe(false)
 })
 
