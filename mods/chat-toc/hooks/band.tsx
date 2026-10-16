@@ -27,10 +27,9 @@ export function drawBand(elements: ElementTable, view: BandView): RenderElement 
       <Text color="subtle">{'  │  '}</Text>
       {counts.map(part => (part.isNumber ? <Text bold>{part.text}</Text> : <Text dimColor>{part.text}</Text>))}
       {counts.length > 0 ? <Text>{'   '}</Text> : null}
-      <Button key={BAND_OPEN} plain onPress={() => view.onOpen()}>
-        <Text color="suggestion" hover={{ bold: true, underline: true }}>
-          {words.bandOpen}
-        </Text>
+      {/* 2.1.287 takes a Button's label alone: one string child. */}
+      <Button key={BAND_OPEN} plain hover={{ scope: BAND_OPEN, color: 'suggestion' }} onPress={() => view.onOpen()}>
+        {words.bandOpen}
       </Button>
     </Box>
   )

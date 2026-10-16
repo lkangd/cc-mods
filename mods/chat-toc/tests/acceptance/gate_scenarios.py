@@ -85,6 +85,7 @@ DIM = THEMES["dark"][1]                                 # the harness's world is
 CHUNK = 4_000_000
 MARKERS = PLUGIN / "build" / "sec-001-markers.txt"     # gitignored; read by release_gate.py's leak scan
 PREVIEW_RULE = re.compile(r"^─ p: 预览 ─+$")
+TALL = 60                                               # lines: room for 5 card groups beside the preview's 14 rows
 
 
 # ---------- helpers ----------
@@ -107,9 +108,9 @@ def flat(text):
     return "".join(text.split())
 
 
-def launch(world, host, run, args=(), plugin=PLUGIN, log=None, env=None, columns=170):
+def launch(world, host, run, args=(), plugin=PLUGIN, log=None, env=None, columns=170, lines=44):
     extra = list(args) + (["--debug-file", str(log)] if log else [])
-    return h.launch(world, host, [plugin], extra, run=run, env=env, columns=columns)
+    return h.launch(world, host, [plugin], extra, run=run, env=env, columns=columns, lines=lines)
 
 
 def submit(t, text):
@@ -685,7 +686,7 @@ def ui_002(host, run):
     world = h.World(token="")
     fx = world.fixture("turns", turns=5, version=host.version)
     actual, ev, views = {}, [], []
-    t = launch(world, host, run, ["--resume", fx["session"]])
+    t = launch(world, host, run, ["--resume", fx["session"]], lines=TALL)
     try:
         t.wait_for(listed, "the Pane with entries", timeout=40)
         t.settle()
@@ -716,7 +717,7 @@ def ui_002(host, run):
         t.close()
     shown = lambda term: layout_view(term)["label"] is not None and layout_view(term)["turns"]  # noqa: E731
     try:
-        t = launch(world, host, run, ["--resume", fx["session"]])
+        t = launch(world, host, run, ["--resume", fx["session"]], lines=TALL)
         t.wait_for(shown, "the Pane in a new process", timeout=40)
         t.settle()
         ev.append(t.snap("ui-002 new process"))
@@ -724,7 +725,7 @@ def ui_002(host, run):
         t.close()
         for store in store_files(world):
             store.write_text(json.dumps({"viewFilter": "all", "layout": "spiral"}))
-        t = launch(world, host, run, ["--resume", fx["session"]])
+        t = launch(world, host, run, ["--resume", fx["session"]], lines=TALL)
         t.wait_for(shown, "the Pane after an unknown stored value", timeout=40)
         t.settle()
         actual["unknownValueLayout"] = layout_view(t)["label"]
@@ -737,7 +738,7 @@ def ui_002(host, run):
     ok = (labels == ["卡片", "紧凑", "时间轴"] and all(x["turns"] == list(range(5)) and x["agentSides"] == 5 for x in views)
           and all(len(x["preview"] or []) >= 3 and PREVIEW_RULE.match(x["preview"][0]) and x["preview"][2] == "用户" for x in views)
           and actual.get("newProcessLayout") == "紧凑" and actual.get("unknownValueLayout") == "卡片" and "failure" not in actual)
-    return ("CT-UI-002", "turns 5 (fits the window in every Layout)",
+    return ("CT-UI-002", f"turns 5 (fits the window in every Layout beside the preview at {TALL} lines)",
             "l and the 布局 button cycle 卡片 → 紧凑 → 时间轴, each listing the same 5 entries with their Agent sides "
             "and the preview region (its rule, the meta line, 用户) under the list; "
             "the choice survives a new process; an unknown stored value reads as 卡片", actual, ok, ev)

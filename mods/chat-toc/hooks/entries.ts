@@ -12,6 +12,7 @@
    an entry carries what it needs, its `time` and whether it runs. */
 
 import { textCells, wrapCells } from './cells'
+import type { CompactionRule } from './compactions'
 import type { TurnGroup } from './groups'
 import type { Layout, ViewFilter } from './view'
 import { text as words } from './text'
@@ -42,6 +43,10 @@ export type Entry = {
   /* Whether a blank line follows: one parts each Turn group from the next
      in the card and timeline Layouts. */
   gapAfter: boolean
+  /* A compaction's rule drawn above the entry (below its day's rule), and,
+     on the list's last entry, one drawn below it (compactions.ts). */
+  compactionBefore?: CompactionRule
+  compactionAfter?: CompactionRule
 }
 
 /* The gutter each Layout keeps left of its Buttons, in cells: the rail and
@@ -179,11 +184,13 @@ export function dayRuleBefore(entries: readonly Entry[], i: number): string | un
   return entry.day
 }
 
-/* The rows entry `i` takes: its day's rule, its lines, the gap after it. */
+/* The rows entry `i` takes: its day's rule, its compaction rules, its
+   lines, the gap after it. */
 export function entryRows(entries: readonly Entry[], i: number): number {
   const entry = entries[i]
   if (entry === undefined) return 0
-  return (dayRuleBefore(entries, i) === undefined ? 0 : 1) + entry.lines.length + (entry.gapAfter ? 1 : 0)
+  const rules = (dayRuleBefore(entries, i) === undefined ? 0 : 1) + (entry.compactionBefore ? 1 : 0) + (entry.compactionAfter ? 1 : 0)
+  return rules + entry.lines.length + (entry.gapAfter ? 1 : 0)
 }
 
 /* The list's last entry, which has nothing after it to part from. */
