@@ -51,15 +51,18 @@ export type PreviewPlan = {
   hasBars: boolean
 }
 
-/* How `rows` (left after the head, the footer and the notes) are shared
-   between the Minimap, the list and the preview. When they run short the
-   Minimap goes first, then the preview shrinks down to 4 rows, then it
-   leaves one line; the list keeps its 8. */
-export function previewPlan({ rows, groups, isShown }: { rows: number; groups: number; isShown: boolean }): PreviewPlan {
+/* How `rows` (left after the head, the search row, the footer, the fork
+   line and the notes) are shared between the Minimap, the list and the
+   preview. The region's height comes from `region`, the rows left after
+   the head, the search row and the footer alone, so a note coming and
+   going does not move it. When rows run short the Minimap goes first, then
+   the preview shrinks down to 4 rows, then it leaves one line; the list
+   keeps its 8. */
+export function previewPlan({ rows, region = rows, groups, isShown }: { rows: number; region?: number; groups: number; isShown: boolean }): PreviewPlan {
   const barsFit = (preview: number) => groups >= MIN_BAR_GROUPS && rows - preview - BAR_ROWS >= MIN_LIST_ROWS
   if (groups === 0) return { preview: 0, state: 'none', hasBars: false }
   if (!isShown) return { preview: 1, state: 'hidden', hasBars: barsFit(1) }
-  const wanted = previewRows(rows)
+  const wanted = previewRows(region)
   if (barsFit(wanted)) return { preview: wanted, state: 'shown', hasBars: true }
   const preview = Math.min(wanted, rows - MIN_LIST_ROWS)
   if (preview >= MIN_ROWS) return { preview, state: 'shown', hasBars: false }

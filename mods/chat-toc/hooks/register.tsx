@@ -1389,10 +1389,11 @@ export const register: Register = on => {
     const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
     const headRows = HEAD_ROWS + SEARCH_ROWS
     const hasForkLine = isOk && isEarlierElsewhere && groups.length > 0
-    const listRows =
-      e.props.scroll.bodyRows - headRows - FOOT_ROWS - (hasForkLine ? 1 : 0) - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
-    /* The Minimap, the list and the preview share the rows (preview.ts). */
-    const plan = previewPlan({ rows: listRows, groups: isOk ? groups.length : 0, isShown: isPreviewOn })
+    const region = e.props.scroll.bodyRows - headRows - FOOT_ROWS
+    const listRows = region - (hasForkLine ? 1 : 0) - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
+    /* The Minimap, the list and the preview share the rows (preview.ts);
+       the region's height comes from the rows before the notes. */
+    const plan = previewPlan({ rows: listRows, region, groups: isOk ? groups.length : 0, isShown: isPreviewOn })
     /* The Minimap's cells: a group with no Jump target is one the host
        refused or a compaction took. */
     const isOff = (g: number) => refused.has(sideKeyOf(groups[g] as TurnGroup, 'user'))

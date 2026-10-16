@@ -113,6 +113,29 @@ test('content past the region is cut, the last row saying how many lines are lef
   expect((await pane.find({ type: 'Markdown' }))?.props.text).toBe('CT-SYN line 0\nCT-SYN line 1\nCT-SYN line 2\nCT-SYN line 3')
 })
 
+test("the region's height is set by the rows after the head, the search row and the footer, not by a note under the list", async ($, on) => {
+  const t = transcript()
+  t.prompt('CT-SYN short')
+  t.reply([{ type: 'text', text: Array.from({ length: 30 }, (_, i) => `CT-SYN line ${i}`).join('\n') }])
+  const world = host(on, t.jsonl())
+  await start($, world)
+  /* 32 rows: 27 left after the head, the search row and the footer, the
+     region 11: the rule, the meta line, User and its line, Agent and 5
+     lines, the cut line. */
+  const pane = await mountPane($, 32)
+  await world.clock.settle()
+  const cutLine = async () => (await texts(pane)).find(x => x.startsWith('↓ '))
+  const before = await cutLine()
+  expect(before).toBe('↓ 还有 25 行 · ')
+
+  /* A line that is no row adds the note under the list; the region keeps its rows. */
+  world.file = `${t.jsonl()}CT-SYN not a row\n`
+  await appendRow($, 'CT-SYN appended')
+  await world.clock.advance(300)
+  expect(await texts(pane)).toContain('有 1 行无法识别，目录可能不完整')
+  expect(await cutLine()).toBe(before)
+})
+
 test('at a short height the Minimap goes first, then the preview shrinks to 4 rows, then leaves one line; the list keeps 8 rows', async ($, on) => {
   const t = transcript()
   for (let i = 0; i < 6; i++) {
