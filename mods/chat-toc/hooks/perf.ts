@@ -32,6 +32,14 @@ export type PerfMetric =
   | 'position'
   /* The first drawing with entries, in ms since the module loaded. */
   | 'listed'
+  /* A keystroke in the search field to the pane redrawn with its query
+     (CT-PERF-002): the drawing's own work, then the ms since the field's
+     change, both from the earliest change the drawing took; then the
+     matches and the groups searched. */
+  | 'search'
+  /* The search index built as a read regrouped: the ms, the groups built
+     and the groups there are. */
+  | 'index'
 
 export type Perf = {
   isOn: boolean
