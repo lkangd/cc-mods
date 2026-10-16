@@ -75,18 +75,19 @@ export function durationText(ms: number): string {
   return words.hours(Math.floor(s / 3600), Math.floor((s % 3600) / 60))
 }
 
-/* One decimal below ten units, whole above: `3.5k`, `12k`, `1.2M`. */
-function scaled(n: number, unit: number, mark: string): string {
+/* `n` in units of `unit` as shown: one decimal below ten, whole above. */
+function scaled(n: number, unit: number): number {
   const value = n / unit
-  const shown = value < 10 ? Math.round(value * 10) / 10 : Math.round(value)
-  return `${shown}${mark}`
+  return value < 10 ? Math.round(value * 10) / 10 : Math.round(value)
 }
 
-/* Output tokens: under 1000 as is, then `3.5k`, `1.2M`. */
+/* Output tokens: under 1000 as is, then `3.5k`, `1.2M`; a count whose k
+   would round up to 1000 is said in M. */
 export function tokensText(n: number): string {
   if (n < 1000) return String(n)
-  if (Math.round(n / 100) < 10_000) return scaled(n, 1000, 'k')
-  return scaled(n, 1_000_000, 'M')
+  const k = scaled(n, 1000)
+  if (k < 1000) return `${k}k`
+  return `${scaled(n, 1_000_000)}M`
 }
 
 /* The meta line: the date and time (the date always, today too), a state
