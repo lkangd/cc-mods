@@ -14,6 +14,7 @@ import { GUTTER, RUNNING_MARK, dayRuleBefore } from './entries'
 import type { Entry } from './entries'
 import { MINIMAP_HEIGHT, minimapOf } from './minimap'
 import type { StripLabels } from './minimap'
+import { SEARCH_FIELD } from './pane'
 import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
 import { FILTERS, filterLabel, layoutLabel, layoutName, layoutOf } from './view'
 import { text as words } from './text'
@@ -33,6 +34,16 @@ const FONT = "-apple-system,BlinkMacSystemFont,'SF Pro Text','PingFang SC',sans-
 const SLOT_PAD = 4
 const WELL_ROWS = 2
 
+/* The search field under the segmented control: a native field whose
+   submit (Enter, or its `show` button) keeps the text and puts the nearest
+   match in the preview; while there is a query, the count of matches. */
+export type DesktopSearch = {
+  query: string
+  count: { matches: number; of: number } | undefined
+  onInput: (value: string) => void
+  onSubmit: (value: string) => Promise<void>
+}
+
 export type DesktopView = {
   entries: readonly Entry[]
   window: TocWindow
@@ -46,6 +57,11 @@ export type DesktopView = {
   alert: { text: string; isInverse: boolean } | undefined
   why: string | undefined
   count: number | undefined
+  /* The context use, a whole percent; undefined leaves it out. */
+  contextPercent: number | undefined
+  search: DesktopSearch
+  /* The matching groups while a query is set, for the strip. */
+  matches: readonly number[] | undefined
   bodyColumns: number
   onPress: (entry: Entry) => Promise<void>
   onFilter: (filter: ViewFilter) => Promise<void>
@@ -179,10 +195,26 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
   const strip =
     hasSvg && view.steps.length > 0
       ? (() => {
-          const map = minimapOf(view.steps, view.runningGroup, width, view.stripLabels)
+          const map = minimapOf(view.steps, view.runningGroup, width, view.stripLabels, { matches: view.matches, percent: view.contextPercent })
           return svg(map.source, map.alt, width, MINIMAP_HEIGHT)
         })()
       : null
+  const searchRow =
+    'Input' in elements ? (
+      <Box flexDirection="row" alignItems="center">
+        <Box flexGrow={1} flexShrink={1}>
+          <elements.Input
+            key={SEARCH_FIELD}
+            placeholder={words.searchPlaceholder}
+            value={view.search.query}
+            submitLabel={words.searchShow}
+            onInput={(value: string) => view.search.onInput(value)}
+            onSubmit={(value: string) => view.search.onSubmit(value)}
+          />
+        </Box>
+        {view.search.count === undefined ? null : <Text dimColor>{' ' + words.matchCount(view.search.count.matches, view.search.count.of)}</Text>}
+      </Box>
+    ) : null
   const hasTime = view.layout !== 'card'
   const rows: RenderElement[] = []
   for (let i = view.window.start; i < view.window.end; i++) {
@@ -229,6 +261,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
         {filters}
         {layoutControl}
       </Box>
+      {searchRow}
       {strip}
       {view.notice === undefined ? null : <Text dimColor>{view.notice}</Text>}
       <Box flexDirection="column">{rows}</Box>
