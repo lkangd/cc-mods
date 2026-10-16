@@ -22,6 +22,7 @@ the host's own claude-code.d.ts for tsc on a version newer than the minimum
   gate_scenarios.py    CT-COMPAT-001, CT-DATA-001..005, CT-TURN-001..005, CT-UI-001..004, CT-SEC-001
   ct_preview.py        CT-PREV-001, CT-PREV-002 (0.2: the preview region, expanded)
   ct_search.py         CT-FIND-001, CT-FIND-002 (0.2: search)
+  ct_step.py           CT-STEP-001 (0.2: the previous and next Turn group, keys bound)
   perf_scenarios.py    CT-PERF-001 (20 MiB many and heavy, 3 runs each)
 
 `report` gathers every run.jsonl record, checks that each MUST scenario of
@@ -53,7 +54,7 @@ MUST = (["CT-COMPAT-001", "CT-COMPAT-002", "CT-COMPAT-003"]
         + [f"CT-LIFE-00{i}" for i in range(1, 9)] + [f"CT-UI-00{i}" for i in range(1, 6)]
         + [f"CT-JUMP-00{i}" for i in (1, 2, 3, 5)] + [f"CT-POS-00{i}" for i in range(1, 4)]
         + ["CT-PERF-001", "CT-SEC-001", "CT-COEX-001", "CT-CMPCT-001", "CT-CTX-001"]
-        + ["CT-PREV-001", "CT-PREV-002", "CT-FIND-001", "CT-FIND-002"])
+        + ["CT-PREV-001", "CT-PREV-002", "CT-FIND-001", "CT-FIND-002", "CT-STEP-001"])
 MARKERS = PLUGIN / "build" / "sec-001-markers.txt"
 LAYOUTS = REPOSITORY / ".scratch" / "chat-toc" / "assets" / "25-layouts"
 
@@ -104,6 +105,7 @@ def run_gate(args) -> int:
             ("gate", [py, HERE / "gate_scenarios.py", "--host", v, "--out", runs / "gate"]),
             ("ct-preview", [py, HERE / "ct_preview.py", "--host", v, "--out", runs / "ct-preview"]),
             ("ct-search", [py, HERE / "ct_search.py", "--host", v, "--out", runs / "ct-search"]),
+            ("ct-step", [py, HERE / "ct_step.py", "--host", v, "--out", runs / "ct-step"]),
         ]
         for name, argv in scripts:
             codes[name] = sh([str(a) for a in argv], logs / f"{name}.log", env=env, timeout=5400)

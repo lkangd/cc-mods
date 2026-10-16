@@ -43,6 +43,23 @@ test('without a query ‹ › follow the field', async ($, on) => {
   expect(keys.slice(keys.indexOf('find'), keys.indexOf('find') + 3)).toEqual(['find', 'step.previous', 'step.next'])
 })
 
+test('Desktop draws no ‹ ›: it cannot move the transcript', async ($, on) => {
+  const world = host(on, session().jsonl())
+  await start($, world)
+  const pane = await $.ui.mount({
+    plugin: 'chat-toc',
+    surface: 'desktop',
+    component: 'Pane',
+    requestId: PANE,
+    props: { title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+  } as never)
+  await world.clock.settle()
+  const keys = drawnButtons(await pane.drawn()).map(b => b.key)
+  expect(keys.length).toBeGreaterThan(0)
+  expect(keys).not.toContain('step.previous')
+  expect(keys).not.toContain('step.next')
+})
+
 test('the focus ring steps over ‹ ›: down from the search row lands on the first entry, up from it on the search row', async ($, on) => {
   const world = host(on, session().jsonl())
   await start($, world)
