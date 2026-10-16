@@ -61,7 +61,9 @@ export type SearchView = {
   count: { matches: number; of: number } | undefined
   onFind: () => Promise<void>
   onInput: (value: string) => void
-  onSubmit: (value: string) => void
+  /* Hands back its promise: the host lets the transcript move only
+     while the person's submit is under way. */
+  onSubmit: (value: string) => Promise<void>
   onClear: () => Promise<void>
 }
 

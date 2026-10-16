@@ -762,16 +762,20 @@ function setQuery($: EngineInterface, value: string): Promise<void> {
 
 /* Enter in the field: the search ends (the host empties the field) and,
    when a group matches, the transcript jumps to the match nearest the
-   Current position, on the side the View filter shows. */
+   Current position, on the side the View filter shows. The host moves the
+   transcript only within the person's own submit: the Input's handler
+   hands this promise back, and the scroll goes before anything else is
+   written. */
 async function submitSearch($: EngineInterface, value: string): Promise<void> {
   const groups = shownGroups()
   const words = queryWords(value)
   const found = words.length === 0 ? [] : matchesOf(searchIndex, groups, words, filter, isTurnRunning && groups === reading.groups).map(m => m.group)
   const target = nearestMatch(found, (await read($, currentPosition)) ?? undefined)
+  if (target !== undefined) {
+    const side = filter === 'agent' ? 'agent' : 'user'
+    await jump($, { groupIndex: target, side, key: `g${target}.${side === 'agent' ? 'a' : 'u'}` })
+  }
   await setQuery($, '')
-  if (target === undefined) return
-  const side = filter === 'agent' ? 'agent' : 'user'
-  await jump($, { groupIndex: target, side, key: `g${target}.${side === 'agent' ? 'a' : 'u'}` })
 }
 
 /* The working directory and home the preview's paths are shown against. */
@@ -1175,7 +1179,7 @@ export const register: Register = on => {
       count: search === undefined ? undefined : { matches: search.matches.length, of: groups.length },
       onFind: () => focusSearch($),
       onInput: value => void setQuery($, value),
-      onSubmit: value => void submitSearch($, value).catch(() => undefined),
+      onSubmit: value => submitSearch($, value).catch(() => undefined),
       onClear: () => setQuery($, ''),
     }
     /* The Minimap lights the Current position's cell or, while a query is
