@@ -136,9 +136,9 @@ test('a native search field sits under the segmented control, with no f Button, 
   expect(field?.props?.value).toBe('')
   expect(field?.props?.autoFocus).toBeUndefined()
   const keys = drawnButtons(await pane.drawn()).map(b => b.key)
-  expect(keys).not.toContain('find')
-  expect(keys).not.toContain('step.previous')
-  expect(keys).not.toContain('step.next')
+  expect(keys).not.toContain('search.focus')
+  expect(keys).not.toContain('walk.previous')
+  expect(keys).not.toContain('walk.next')
   expect((await all(pane, 'Button')).some(b => b.props?.hotkey !== undefined || b.props?.action !== undefined)).toBe(false)
   /* Under the filters and the Layout, above the strip. */
   const order = JSON.stringify(await pane.drawn())

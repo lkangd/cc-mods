@@ -56,6 +56,10 @@ _Avoid_: Active item, scroll-spy, selection
 A temporary association from one side of a Turn group to the transcript row a jump scrolls to. The row need not have been drawn yet; it is good while Claude Code still lists it, and a side whose jump Claude Code refuses has no Jump target until the row is listed again. When that side's own row is shown but cannot be targeted, as with a slash command or `!` shell command, its Jump target is the nearest targetable row after it, or before it when none follows. A side known beforehand to have no Jump target, as a turn compacted away before the session was resumed, hangs on a hollow mark like a refused one.
 _Avoid_: Anchor, link
 
+**Walk**:
+Moving the transcript to the Turn group before or after the Current position, among the Turn groups the Chat TOC lists (under the View filter and, during a Search, only its matches), with `‹ ›` or a key the person bound to them. Each press locks the Current position on the group it reached, so presses go group by group.
+_Avoid_: step (a step is one tool call of an Agent reply), next/previous turn
+
 **Compaction**:
 The point where Claude Code replaced the conversation so far with a summary. The Turn groups before it stay in the Transcript, but from then on Claude holds them only as that summary. The Chat TOC marks it between Turn groups, never inside one.
 _Avoid_: Summary, reset, clear

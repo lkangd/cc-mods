@@ -43,7 +43,7 @@ mods/chat-toc/
 │   ├── preview.ts               the preview's words (meta line, files line), its size against the rows (and what gives way first), what of a group fits
 │   ├── reuse.ts                 Reuse and copy: which label-row Buttons a group gets, the text each takes, how a fill keeps the draft
 │   ├── search.ts                search: each group's NFKC lower-cased fields indexed at regroup, the matcher (words AND, the View filter's fields), the match nearest a position
-│   ├── step.ts                  ‹ ›: the borrowed actions, the groups the list shows, the walk from the Current position to the previous or next one with a Jump target
+│   ├── walk.ts                  ‹ ›: the borrowed actions, the groups the list shows, the walk from the Current position to the previous or next one with a Jump target
 │   ├── pane.tsx                 the terminal Pane (filter row and tab rule, the search row, entries on the time rail, the preview region, footer)
 │   ├── desktop.tsx              the Pane on Desktop / VS Code / mobile (another tree, split on e.surface)
 │   └── minimap.ts               the SVG strip of steps per turn over the desktop list

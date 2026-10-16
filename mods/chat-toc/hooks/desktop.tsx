@@ -14,7 +14,7 @@
    dashed Svgs placed as on the terminal, and the fork line; the preview
    with its content drawn by pane.tsx, its hotkeys gone, so the rule, the
    cut line and Back are plain Buttons; copy without Reuse (reuse.ts). No
-   ‹ ›: nothing steps on the desktop. */
+   ‹ ›: nothing walks on the desktop. */
 
 import type { ElementTable, RenderElement } from 'claude-code'
 import { textCells } from './cells'

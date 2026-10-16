@@ -43,9 +43,9 @@ async function opened(on: Parameters<typeof host>[0], $: Engine, t = session(), 
 test('the search row sits under the tab rule: the f Button and the field, no count and no ✕ without a query', async ($, on) => {
   const { pane } = await opened(on, $)
   const keys = drawnButtons(await pane.drawn()).map(b => b.key)
-  expect(keys.slice(0, 4)).toEqual(['f-all', 'f-user', 'f-agent', 'find'])
+  expect(keys.slice(0, 4)).toEqual(['f-all', 'f-user', 'f-agent', 'search.focus'])
   expect(keys).not.toContain('search.clear')
-  const find = await pane.find({ type: 'Button', key: 'find' })
+  const find = await pane.find({ type: 'Button', key: 'search.focus' })
   expect([find?.text, find?.props.hotkey, find?.props.plain]).toEqual(['搜索', 'f', true])
   const input = await field(pane)
   expect(input?.props.placeholder).toBe('词或文件路径')
@@ -84,7 +84,7 @@ test('the words are English under an English locale', async ($, on) => {
   world.env = { LANG: 'en_US.UTF-8' }
   await start($, world)
   const pane = await mountPane($, 40)
-  expect((await pane.find({ type: 'Button', key: 'find' }))?.text).toBe('Find')
+  expect((await pane.find({ type: 'Button', key: 'search.focus' }))?.text).toBe('Find')
   expect((await field(pane))?.props.placeholder).toBe('words or a file path')
   expect((await field(pane))?.props.submitLabel).toBe('jump')
   await type($, 'login')
