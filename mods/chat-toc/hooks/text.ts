@@ -17,8 +17,8 @@ export function languageOf(locale: Locale): Language {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 /* What the band above the prompt counts: the listed turns, and the agent's
-   steps (tool calls) across them. */
-export type BandCounts = { turns: number; steps: number }
+   steps (tool calls) across them; then the context use, when there is one. */
+export type BandCounts = { turns: number; steps: number; percent?: number | undefined }
 
 /* A run of the band's counts; the numbers are drawn stronger. */
 export type BandPart = { text: string; isNumber: boolean }
@@ -51,6 +51,7 @@ const EN = {
     w(' · '),
     n(c.steps),
     w(c.steps === 1 ? ' agent step' : ' agent steps'),
+    ...(c.percent === undefined ? [] : [w(` · context ${c.percent}% used`)]),
   ],
   bandOpen: 'Open contents ❯',
   running: 'Running',
@@ -63,6 +64,10 @@ const EN = {
   today: (monthDay: string) => `Today · ${monthDay}`,
   filterAlt: (name: string) => `Filter: ${name}`,
   rail: 'Rail',
+  compactionRule: (isAuto: boolean, count: number, time: string) =>
+    [isAuto ? 'Auto-compacted' : 'Compacted', count > 1 ? `×${count}` : '', count > 1 && time ? `· ${time}` : time].filter(Boolean).join(' '),
+  earlierElsewhere: "Earlier turns are not in this session's file",
+  contextUse: (percent: number, isShort: boolean) => (isShort ? `${percent}% used` : `context ${percent}% used`),
   stripAlt: (n: number, per: number) =>
     per === 1 ? `${count(n, 'turn', 'turns')}, one bar per turn, height by steps` : `${count(n, 'turn', 'turns')}, ${per} turns per bar, height by steps`,
 }
@@ -86,7 +91,14 @@ const ZH: Text = {
   layoutButton: name => `布局 ${name}`,
   turns: n => `${n} 轮`,
   steps: n => `${n} 步`,
-  bandCounts: c => [w('用户 '), n(c.turns), w(' 轮 · Agent '), n(c.steps), w(' 步')],
+  bandCounts: c => [
+    w('用户 '),
+    n(c.turns),
+    w(' 轮 · Agent '),
+    n(c.steps),
+    w(' 步'),
+    ...(c.percent === undefined ? [] : [w(` · 上下文已用 ${c.percent}%`)]),
+  ],
   bandOpen: '展开目录 ❯',
   running: '进行中',
   interrupted: '已中断',
@@ -98,6 +110,10 @@ const ZH: Text = {
   today: monthDay => `今天 · ${monthDay}`,
   filterAlt: name => `筛选：${name}`,
   rail: '轨道',
+  compactionRule: (isAuto, count, time) =>
+    [isAuto ? '自动压缩' : '已压缩', count > 1 ? `×${count}` : '', count > 1 && time ? `· ${time}` : time].filter(Boolean).join(' '),
+  earlierElsewhere: '更早的轮次不在本会话的文件里',
+  contextUse: (percent, isShort) => (isShort ? `已用 ${percent}%` : `上下文已用 ${percent}%`),
   stripAlt: (n, per) => (per === 1 ? `${n} 轮，每轮一根竖条，高度按步数` : `${n} 轮，每根竖条 ${per} 轮，高度按步数`),
 }
 

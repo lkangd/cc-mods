@@ -10,7 +10,8 @@ import type { ElementTable, RenderElement } from 'claude-code'
 import { BAR_ROWS, barKey } from './bars'
 import type { Bar } from './bars'
 import { textCells } from './cells'
-import { GUTTER, dayRuleBefore, entryRows } from './entries'
+import type { CompactionRule } from './compactions'
+import { GUTTER, clockTime, dayRuleBefore, entryRows } from './entries'
 import type { Entry } from './entries'
 import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
 import { FILTERS, LAYOUT_HOTKEY, filterLabel, layoutLabel } from './view'
@@ -79,6 +80,27 @@ export function timeColumnOf(entry: Entry): string {
   return entry.lines.map((_, n) => (n === 0 ? entry.time : '').padEnd(TIME_COLUMN)).join('\n')
 }
 
+/* A compaction's words, as its rule says them. */
+export function compactionLabel(rule: CompactionRule): string {
+  return words.compactionRule(rule.trigger === 'auto', rule.count, clockTime(rule.timestamp))
+}
+
+/* The gap between the footer's left and the Layout Button. */
+const FOOT_GAP = 2
+
+/* The footer's left: the turn count, then the context use as long as it
+   fits beside the Layout Button, shorter, else left out. */
+export function footerStatus(count: number, percent: number | undefined, bodyColumns: number, layout: Layout): string {
+  const turns = words.turns(count)
+  if (percent === undefined) return turns
+  const room = bodyColumns - FOOT_GAP - controlCells(layoutLabel(layout))
+  for (const isShort of [false, true]) {
+    const status = `${turns} · ${words.contextUse(percent, isShort)}`
+    if (textCells(status) <= room) return status
+  }
+  return turns
+}
+
 export type PaneView = {
   entries: readonly Entry[]
   window: TocWindow
@@ -97,6 +119,11 @@ export type PaneView = {
   why: string | undefined
   /* The Turn groups the list holds, for the footer; undefined says none. */
   count: number | undefined
+  /* The context use, a whole percent; undefined leaves it out. */
+  contextPercent: number | undefined
+  /* Whether the list starts with the line saying earlier turns are not in
+     this session's file. */
+  isEarlierElsewhere: boolean
   /* The body's rows: the footer sits on the last two. */
   bodyRows: number
   /* The Minimap's cells; none draws no Minimap. */
@@ -160,6 +187,17 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
       <Text> </Text>
     </Box>
   ) : null
+  /* A compaction's rule: dashed, breaking the rail, not pressable. */
+  const compactionRow = (key: string, rule: CompactionRule) => {
+    const label = compactionLabel(rule)
+    return (
+      <Box key={key} flexDirection="row">
+        <Text color="subtle">{'╌ '}</Text>
+        <Text dimColor>{label}</Text>
+        <Text color="subtle">{' ' + '╌'.repeat(Math.max(0, view.bodyColumns - 3 - textCells(label)))}</Text>
+      </Box>
+    )
+  }
   const rows: RenderElement[] = []
   let drawnRows = 0
   const hasTimeColumn = view.layout !== 'card'
@@ -183,8 +221,10 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
         <Text color="subtle">{rails[n]}</Text>
       )
     const timeColumn = hasTimeColumn ? isLit ? <Text color="suggestion">{timeColumnOf(entry)}</Text> : <Text dimColor>{timeColumnOf(entry)}</Text> : null
-    /* The gap goes on with the rail, unless a new day's rule comes next. */
-    const gap = !hasGap ? null : dayRuleBefore(view.entries, i + 1) !== undefined ? (
+    /* The gap goes on with the rail, unless a new day's rule or a
+       compaction's comes next. */
+    const isRuleNext = dayRuleBefore(view.entries, i + 1) !== undefined || view.entries[i + 1]?.compactionBefore !== undefined
+    const gap = !hasGap ? null : isRuleNext ? (
       <Text> </Text>
     ) : (
       <Text color={isLit ? 'suggestion' : 'subtle'}>{(hasTimeColumn ? ' '.repeat(TIME_COLUMN) : '') + (isLit ? '┃' : '│')}</Text>
@@ -203,6 +243,7 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
             <Text color="subtle">{' ' + '─'.repeat(Math.max(0, view.bodyColumns - 3 - textCells(rule)))}</Text>
           </Box>
         )}
+        {entry.compactionBefore === undefined ? null : compactionRow(`compaction-${entry.key}`, entry.compactionBefore)}
         <Box flexDirection="row">
           {timeColumn}
           <Box flexDirection="column">{entry.lines.map((_, n) => railTone(n))}</Box>
@@ -221,22 +262,25 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
           </Box>
         </Box>
         {gap}
+        {entry.compactionAfter === undefined ? null : compactionRow(`compaction-after-${entry.key}`, entry.compactionAfter)}
       </Box>,
     )
-    drawnRows += (rule === undefined ? 0 : 1) + entry.lines.length + (hasGap ? 1 : 0)
+    const compactionRows = (entry.compactionBefore === undefined ? 0 : 1) + (entry.compactionAfter === undefined ? 0 : 1)
+    drawnRows += (rule === undefined ? 0 : 1) + compactionRows + entry.lines.length + (hasGap ? 1 : 0)
   }
   const status = view.count === undefined ? (
     <Text> </Text>
   ) : (
-    <Text dimColor>{words.turns(view.count)}</Text>
+    <Text dimColor>{footerStatus(view.count, view.contextPercent, view.bodyColumns, view.layout)}</Text>
   )
   const whyLines = view.why === undefined ? 0 : view.why.split('\n').length
-  const used = HEAD_ROWS + (hasBars ? BAR_ROWS : 0) + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + FOOT_ROWS
+  const used = HEAD_ROWS + (hasBars ? BAR_ROWS : 0) + (view.isEarlierElsewhere ? 1 : 0) + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + FOOT_ROWS
   const spare = Math.max(0, view.bodyRows - used)
   return (
     <Box flexDirection="column">
       {head}
       {barRows}
+      {view.isEarlierElsewhere ? <Text dimColor>{words.earlierElsewhere}</Text> : null}
       {view.notice === undefined ? null : <Text dimColor>{view.notice}</Text>}
       {rows}
       {view.alert === undefined ? null : (
