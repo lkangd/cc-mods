@@ -37,9 +37,9 @@ import {
 import type { Refused } from './jump'
 import { carriesHistory, hidesPane, isClosedByPerson, reopensOn } from './lifecycle'
 import { PANE_COLUMNS, PANE_ID, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
-import type { PreviewView } from './pane'
-import { PREVIEW_CONTROL, PREVIEW_KEY, filesLine, isPreviewShown, metaLine, previewBody, previewPlan } from './preview'
-import type { PathBase, PreviewBody } from './preview'
+import type { ExpandedView, PreviewView } from './pane'
+import { PREVIEW_CONTROL, PREVIEW_KEY, expandedBody, filesLine, isPreviewShown, metaLine, previewBody, previewPlan } from './preview'
+import type { ExpandedBody, PathBase, PreviewBody } from './preview'
 import { LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
 import { derivedTranscriptPath } from './locate'
 import { languageOf, setLanguage, text as words } from './text'
@@ -127,6 +127,11 @@ let isPreviewOn = true
 /* What the preview shows paths against: the session's working directory
    and the home directory, from `session.start`. */
 let pathBase: PathBase = { cwd: undefined, home: undefined }
+/* The group the expanded preview holds, by its opener's uuid, which a
+   regroup keeps: neither the Current position nor new turns change it.
+   Undefined draws the list. Closing the pane or the keys leaving it
+   returns to the list. */
+let expandedOpener: string | undefined
 
 /* What the pane drew last, for the keyboard and the next switch: the
    entries, their keys and the table back, their heights, the rows the
@@ -793,6 +798,7 @@ function previewOf(
   width: number,
   nowMs: number,
   onToggle: () => Promise<void>,
+  onMore: (opener: string) => Promise<void>,
 ): PreviewView {
   const state = plan.state === 'none' ? 'hidden' : plan.state
   const at = previewGroup(groups, position)
@@ -815,8 +821,42 @@ function previewOf(
             width,
           })
   if (body !== undefined && group !== undefined) previewMemo = { group, isRunning, width, rows: plan.preview, year, base: pathBase, body }
-  /* The cut line's press expands the preview (ticket 15). */
-  return { state, rows: plan.preview, body, onToggle, onMore: () => Promise.resolve() }
+  return { state, rows: plan.preview, body, onToggle, onMore: () => (group === undefined ? Promise.resolve() : onMore(group.openerUuid)) }
+}
+
+/* `e`, or a press on the cut line: the preview expands over the list,
+   holding the group it showed; `e` again, or ← Back, returns. */
+async function expandPreview($: EngineInterface, opener: string | undefined): Promise<void> {
+  expandedOpener = opener
+  await update($, rev, n => n + 1)
+}
+
+/* The expanded preview drawn last, kept while its group and width are. */
+let expandedMemo: { group: TurnGroup; isRunning: boolean; width: number; year: number; base: PathBase; body: ExpandedBody } | undefined
+
+/* The expanded preview of the group it holds; undefined when that group
+   is no longer listed (a rewind took it, another file was read). */
+function expandedOf(groups: readonly TurnGroup[], isRunningNow: boolean, width: number, nowMs: number, onBack: () => Promise<void>): ExpandedView | undefined {
+  let at = groups.length - 1
+  while (at >= 0 && groups[at]?.openerUuid !== expandedOpener) at--
+  const group = groups[at]
+  if (group === undefined) return undefined
+  const isRunning = isRunningNow && at === groups.length - 1
+  const year = new Date(nowMs).getFullYear()
+  const memo = expandedMemo
+  const body =
+    memo !== undefined && memo.group === group && memo.isRunning === isRunning && memo.width === width && memo.year === year && memo.base === pathBase
+      ? memo.body
+      : expandedBody({
+          meta: metaLine(group, isRunning, nowMs, width),
+          input: group.facts.input,
+          agent: isRunning ? group.facts.latestText : group.facts.lastText,
+          files: group.facts,
+          base: pathBase,
+          width,
+        })
+  expandedMemo = { group, isRunning, width, year, base: pathBase, body }
+  return { body, onBack }
 }
 
 export const register: Register = on => {
@@ -872,7 +912,10 @@ export const register: Register = on => {
     if (isClosedByPerson(e)) {
       await update($, isClosed, () => true).catch(() => undefined)
     }
-    if (hidesPane(e)) await update($, isPaneHidden, () => true).catch(() => undefined)
+    if (hidesPane(e)) {
+      expandedOpener = undefined
+      await update($, isPaneHidden, () => true).catch(() => undefined)
+    }
     return closed
   })
 
@@ -927,7 +970,8 @@ export const register: Register = on => {
   })
 
   on('ui.scroll', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
-    if (e.origin.kind !== 'person') return next(e)
+    /* Expanded, the host scrolls the whole tree. */
+    if (e.origin.kind !== 'person' || expandedOpener !== undefined) return next(e)
     top = scrolledTop(lastDrawing.window, e.by)
     isPaused = true
     await update($, rev, n => n + 1)
@@ -951,6 +995,12 @@ export const register: Register = on => {
   /* The arrows walk the host's focus ring Button by Button; this keeps it
      on entries' first lines and scrolls the window at its ends (ring.ts). */
   on('ui.focus', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
+    /* Expanded, no entry is drawn: the ring goes where the host moves it. */
+    if (expandedOpener !== undefined) {
+      const result = await next(e)
+      if (result.deny === undefined) ring = e.element
+      return result
+    }
     const drawn = lastDrawing
     const move = e.origin.kind === 'person' ? ringMove(drawn.keys, drawn.indexOf, drawn.window, ring, e.element, afterList) : { kind: 'accept' as const }
     if (move.kind === 'reveal') {
@@ -1005,6 +1055,7 @@ export const register: Register = on => {
     /* The keyboard pauses following; once it is given back, a position
        that moved meanwhile, or moves next, is followed again. */
     if (isPaneFocused && !wasFocused) isPaused = true
+    if (wasFocused && !isPaneFocused) expandedOpener = undefined
     if (!isPaneFocused && position !== positionFollowed) {
       positionFollowed = position
       isPaused = false
@@ -1066,7 +1117,10 @@ export const register: Register = on => {
       $.clock.after(0, () => sendRing($, owed))
     }
     const isRunningNow = isTurnRunning && groups === reading.groups
-    const preview = plan.state === 'none' ? undefined : previewOf(groups, plan, position, isRunningNow, width, nowMs, () => togglePreview($))
+    const preview =
+      plan.state === 'none' ? undefined : previewOf(groups, plan, position, isRunningNow, width, nowMs, () => togglePreview($), opener => expandPreview($, opener))
+    const expanded = expandedOpener === undefined || e.surface !== 'terminal' ? undefined : expandedOf(groups, isRunningNow, width, nowMs, () => expandPreview($, undefined))
+    if (expanded === undefined) expandedOpener = undefined
     const shared = {
       entries,
       window,
@@ -1092,6 +1146,7 @@ export const register: Register = on => {
             litBar: barOfGroup(bars, position),
             barLabels: barLabels(stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs), width),
             preview,
+            expanded,
             onBar: (cell: number) => {
               const bar = bars[cell]
               return bar === undefined ? Promise.resolve() : jump($, { groupIndex: barTarget(bar, isOff), side: 'user', key: barKey(cell) })

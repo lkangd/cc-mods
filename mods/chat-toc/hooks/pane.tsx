@@ -18,8 +18,8 @@ import { FILTERS, LAYOUT_HOTKEY, filterLabel, layoutLabel } from './view'
 import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
 import { text as words } from './text'
-import { EXPAND_HOTKEY, MORE_CONTROL, PREVIEW_CONTROL, PREVIEW_HOTKEY } from './preview'
-import type { PreviewBody } from './preview'
+import { BACK_CONTROL, EXPAND_HOTKEY, MORE_CONTROL, PREVIEW_CONTROL, PREVIEW_HOTKEY } from './preview'
+import type { ExpandedBody, PreviewBody } from './preview'
 
 export const PANE_ID = 'chat-toc'
 export const PANE_COLUMNS = 44
@@ -140,6 +140,47 @@ function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: 
   )
 }
 
+/* The expanded preview (preview.ts): one group whole in the list's place,
+   the Back Button at its top. */
+export type ExpandedView = {
+  body: ExpandedBody
+  onBack: () => Promise<void>
+}
+
+/* The Back Button, the meta line, the User input under its label, the last
+   text in one `Markdown` per part under its label, a line after a part the
+   cap cut, then the files one per line under their headings. Drawn uncut:
+   the host scrolls the tree. */
+function drawExpanded(elements: ElementTable, expanded: ExpandedView): RenderElement {
+  const { Box, Text, Button, Markdown } = elements
+  const { body } = expanded
+  const files = (heading: string, paths: readonly string[]) =>
+    paths.length === 0 ? null : (
+      <Box flexDirection="column">
+        <Text dimColor>{heading}</Text>
+        {paths.map(path => (
+          <Text>{path}</Text>
+        ))}
+      </Box>
+    )
+  return (
+    <Box flexDirection="column">
+      <Button key={BACK_CONTROL} plain hotkey={EXPAND_HOTKEY} onPress={() => expanded.onBack()}>
+        {words.back}
+      </Button>
+      <Text dimColor>{body.meta}</Text>
+      <Text dimColor>{words.previewUser}</Text>
+      {body.user.text === '' ? null : <Text>{body.user.text}</Text>}
+      {body.user.cut === undefined ? null : <Text dimColor>{body.user.cut}</Text>}
+      {body.agent === undefined ? null : <Text dimColor>{words.previewAgent}</Text>}
+      {body.agent === undefined ? null : body.agent.parts.map(part => <Markdown text={part} />)}
+      {body.agent?.cut === undefined ? null : <Text dimColor>{body.agent.cut}</Text>}
+      {files(words.changedHeading, body.changed)}
+      {files(words.readHeading, body.read)}
+    </Box>
+  )
+}
+
 /* A compaction's words, as its rule says them. */
 export function compactionLabel(rule: CompactionRule): string {
   return words.compactionRule(rule.trigger === 'auto', rule.count, clockTime(rule.timestamp))
@@ -194,6 +235,9 @@ export type PaneView = {
   barLabels: { left: string; right: string; gap: number }
   /* The preview region; undefined draws none. */
   preview: PreviewView | undefined
+  /* The expanded preview, drawn in place of the Minimap, the list and the
+     region; undefined draws those. */
+  expanded?: ExpandedView | undefined
   onBar: (cell: number) => Promise<void>
   onPress: (entry: Entry) => Promise<void>
   onFilter: (filter: ViewFilter) => Promise<void>
@@ -234,6 +278,31 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
       </Box>
     </Box>
   )
+  const status = view.count === undefined ? (
+    <Text> </Text>
+  ) : (
+    <Text dimColor>{footerStatus(view.count, view.contextPercent, view.bodyColumns, view.layout)}</Text>
+  )
+  const footer = (
+    <Box flexDirection="column">
+      <Text color="subtle">{'─'.repeat(view.bodyColumns)}</Text>
+      <Box flexDirection="row" justifyContent="space-between">
+        {status}
+        {layoutButton}
+      </Box>
+    </Box>
+  )
+  if (view.expanded !== undefined) {
+    const spare = Math.max(0, view.bodyRows - HEAD_ROWS - view.expanded.body.rows - FOOT_ROWS)
+    return (
+      <Box flexDirection="column">
+        {head}
+        {drawExpanded(elements, view.expanded)}
+        {spare > 0 ? <Box height={spare} /> : null}
+        {footer}
+      </Box>
+    )
+  }
   const hasBars = view.bars.length > 0
   const barRows = hasBars ? (
     <Box flexDirection="column">
@@ -330,11 +399,6 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
     const compactionRows = (entry.compactionBefore === undefined ? 0 : 1) + (entry.compactionAfter === undefined ? 0 : 1)
     drawnRows += (rule === undefined ? 0 : 1) + compactionRows + entry.lines.length + (hasGap ? 1 : 0)
   }
-  const status = view.count === undefined ? (
-    <Text> </Text>
-  ) : (
-    <Text dimColor>{footerStatus(view.count, view.contextPercent, view.bodyColumns, view.layout)}</Text>
-  )
   const whyLines = view.why === undefined ? 0 : view.why.split('\n').length
   const previewRows = view.preview?.rows ?? 0
   const used = HEAD_ROWS + (hasBars ? BAR_ROWS : 0) + (view.isEarlierElsewhere ? 1 : 0) + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + previewRows + FOOT_ROWS
@@ -354,11 +418,7 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
       {view.why === undefined ? null : <Text dimColor>{view.why}</Text>}
       {spare > 0 ? <Box height={spare} /> : null}
       {view.preview === undefined ? null : drawPreview(elements, view.preview, view.bodyColumns)}
-      <Text color="subtle">{'─'.repeat(view.bodyColumns)}</Text>
-      <Box flexDirection="row" justifyContent="space-between">
-        {status}
-        {layoutButton}
-      </Box>
+      {footer}
     </Box>
   )
 }
