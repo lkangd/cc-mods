@@ -147,6 +147,10 @@ let expandedOpener: string | undefined
 /* The group the ring was last on while it is on one of the preview's own
    Buttons, which then keeps showing it: they act on what it shows. */
 let heldSelection: number | undefined
+/* On the desktop, which reports no Current position: the group the
+   preview shows, by its opener's uuid, the entry pressed last or the match
+   a search's submit put there. Undefined shows the newest. */
+let pressedOpener: string | undefined
 /* The copy Button reading `Copied`: the group's opener, which Button, and
    which copy, so only its own timer takes it back. */
 let copied: { opener: string; which: CopyWhich; n: number } | undefined
@@ -834,6 +838,19 @@ async function submitSearch($: EngineInterface, value: string): Promise<void> {
   await setQuery($, '')
 }
 
+/* The desktop's submit (Enter, or the field's `show` button): the text
+   stays and the match nearest the Current position goes in the preview,
+   the newest match, the desktop having no Current position. */
+async function showMatch($: EngineInterface, value: string): Promise<void> {
+  const groups = shownGroups()
+  const words = queryWords(value)
+  const found = words.length === 0 ? [] : matchesOf(searchIndex, groups, words, filter, isTurnRunning && groups === reading.groups).map(m => m.group)
+  const target = nearestMatch(found, undefined)
+  if (target === undefined) return
+  pressedOpener = groups[target]?.openerUuid
+  await update($, rev, n => n + 1)
+}
+
 /* The working directory and home the preview's paths are shown against. */
 async function learnPaths($: EngineInterface, cwd: string): Promise<void> {
   const home = await $.env.get('HOME').catch(() => undefined)
@@ -1320,7 +1337,7 @@ export const register: Register = on => {
             : undefined
     const why = source === 'failed' ? failureText(failure) : isOk && reading.unreadable > 0 ? words.unreadable(reading.unreadable) : undefined
     const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
-    const headRows = HEAD_ROWS + (e.surface === 'terminal' ? SEARCH_ROWS : 0)
+    const headRows = HEAD_ROWS + SEARCH_ROWS
     const hasForkLine = isOk && isEarlierElsewhere && groups.length > 0
     const listRows =
       e.props.scroll.bodyRows - headRows - FOOT_ROWS - (hasForkLine ? 1 : 0) - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
@@ -1424,6 +1441,13 @@ export const register: Register = on => {
         : drawDesktopPane($.ui.resolve(e), {
             ...shared,
             steps: isOk ? groups.map(g => g.steps) : [],
+            search: {
+              query: searchText,
+              count: searchView.count,
+              onInput: searchView.onInput,
+              onSubmit: value => showMatch($, value).catch(() => undefined),
+            },
+            matches: search?.groupsMatched,
             runningGroup: isRunningNow ? groups.length - 1 : undefined,
             stripLabels: stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs),
             onLayout: to => chooseLayout($, to),

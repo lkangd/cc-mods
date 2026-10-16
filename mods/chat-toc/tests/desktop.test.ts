@@ -2,6 +2,7 @@ import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import { PANE, drawnButtons, host, isEntryKey, start } from './host'
 import { ROW_PX } from '../hooks/desktop'
+import type { Builder } from './fixture'
 import { transcript } from './fixture'
 
 /* The pane on Claude Code Desktop (and the other remote surfaces), drawn
@@ -114,5 +115,45 @@ test('each entry hangs on a drawn rail as tall as its lines; the day is a drawn 
   const rails = all3.filter(s => s.alt === '轨道')
   expect(rails.map(s => s.height)).toEqual([2 * ROW_PX, ROW_PX, ROW_PX, ROW_PX, ROW_PX, ROW_PX, ROW_PX])
   expect(all3.some(s => s.alt === '今天 · 10月10日' && s.source.includes('>今天 · 10月10日<'))).toBe(true)
+})
+
+/* The 0.2 additions on the desktop (spec §8). */
+
+const type = ($: Engine, text: string) => $.ui.input({ plugin: 'chat-toc', key: 'search', text, kind: 'change' })
+const enter = ($: Engine, text: string) => $.ui.input({ plugin: 'chat-toc', key: 'search', text })
+const entryKeys = async (pane: Pane) => drawnButtons(await pane.drawn()).filter(b => isEntryKey(b.key)).map(b => b.key)
+
+test('a native search field sits under the segmented control, with no f Button, no hotkey and no ‹ ›', async ($, on) => {
+  await start($, host(on, three().jsonl()))
+  const pane = await desktopPane($)
+
+  const field = (await all(pane, 'Input'))[0]
+  expect(field?.props?.placeholder).toBe('词或文件路径')
+  expect(field?.props?.submitLabel).toBe('预览')
+  expect(field?.props?.value).toBe('')
+  expect(field?.props?.autoFocus).toBeUndefined()
+  const keys = drawnButtons(await pane.drawn()).map(b => b.key)
+  expect(keys).not.toContain('find')
+  expect(keys).not.toContain('step.previous')
+  expect(keys).not.toContain('step.next')
+  expect((await all(pane, 'Button')).some(b => b.props?.hotkey !== undefined || b.props?.action !== undefined)).toBe(false)
+  /* Under the filters and the Layout, above the strip. */
+  const order = JSON.stringify(await pane.drawn())
+  expect(order.indexOf('"Select"')).toBeLessThan(order.indexOf('"Input"'))
+  expect(order.indexOf('"Input"')).toBeLessThan(order.indexOf('轮，每轮一根竖条'))
+})
+
+test('each change filters the list; the strip draws the matches in the accent colour and the rest dim', async ($, on) => {
+  const world = host(on, three().jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+
+  await type($, 'third')
+  await world.clock.settle()
+  expect((await all(pane, 'Input'))[0]?.props?.value).toBe('third')
+  expect(await entryKeys(pane)).toEqual(['g2.u', 'g2.a'])
+  const strip = (await svgs(pane)).find(s => s.alt.startsWith('3 轮'))!
+  expect((strip.source.match(/<rect class="[a-z]"/g) ?? []).map(r => r.slice(13, 14))).toEqual(['d', 'd', 'm'])
+  expect(strip.source).toMatch(/\.m\{fill:/)
 })
 
