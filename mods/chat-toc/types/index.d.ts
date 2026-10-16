@@ -32,6 +32,9 @@ declare module 'claude-code' {
          the file had then (the host lists no row before it): '' until the
          first read finds it, null for none or not resumed. */
       compactedAt: string | null
+      /* The search field's text, '' for no query. Conversation text: held
+         here for the process only, never in `$.store`. */
+      query: string
     }
   }
 }

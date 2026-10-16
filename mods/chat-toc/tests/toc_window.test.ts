@@ -91,12 +91,12 @@ test('the wheel over the pane moves its window, and the newest shows first', asy
   const world = host(on, t.jsonl())
   await start($, world)
   /* The preview keeps one line: no room for more. */
-  const pane = await mountPane($, 11)
+  const pane = await mountPane($, 12)
 
   const shown = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN'))
   expect(await shown()).toEqual(['CT-SYN prompt 9', 'CT-SYN prompt 10', 'CT-SYN prompt 11'])
 
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -3, bodyRows: 11, contentRows: 11, origin: { kind: 'person' } } as never)
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -3, bodyRows: 12, contentRows: 12, origin: { kind: 'person' } } as never)
   /* Scrolled, the window keeps its rows. */
   expect(await shown()).toEqual(['CT-SYN prompt 6', 'CT-SYN prompt 7', 'CT-SYN prompt 8'])
 })

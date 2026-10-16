@@ -58,8 +58,8 @@ test('a blank line parts one turn group from the next, not the two sides of one'
   const world = host(on, t.jsonl())
   await start($, world)
 
-  /* The head, a day's rule, two groups of two 1-line sides and one blank line between, the footer: 11 rows. */
-  const pane = await mountPane($, 11)
+  /* The head, the search row, a day's rule, two groups of two 1-line sides and one blank line between, the footer: 12 rows. */
+  const pane = await mountPane($, 12)
 
   expect((await entryTexts(pane)).filter(s => s.includes('CT-SYN'))).toEqual([
     'CT-SYN first prompt',

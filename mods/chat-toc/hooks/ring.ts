@@ -10,8 +10,8 @@ import { isBarKey } from './bars'
 import type { TocWindow } from './window'
 
 /* The controls around the entries, in the ring's order: the filter row's
-   Buttons left to right, the entries, then the preview's Buttons and the
-   footer's Layout Button. */
+   Buttons left to right, the search row's, the entries, then the
+   preview's Buttons and the footer's Layout Button. */
 export const FIRST_CONTROL = 'f-all'
 export const FILTER_END = 'f-agent'
 export const LAYOUT_CONTROL = 'layout'
@@ -52,7 +52,8 @@ export function pendingShown(pending: string | undefined, indexOf: ReadonlyMap<s
 /* The host moving the ring from `from` (where it was; undefined when the
    pane just took the keyboard) to `to` (undefined for one of the host's own
    stops, or a Minimap cell). `keys[i]` is entry i's key, `indexOf` the table back.
-   `after` is the first control drawn after the entries. */
+   `after` is the first control drawn after the entries, `before` the last
+   one drawn before them (the search row's). */
 export function ringMove(
   keys: readonly string[],
   indexOf: ReadonlyMap<string, number>,
@@ -60,28 +61,29 @@ export function ringMove(
   from: string | undefined,
   to: string | undefined,
   after: string = LAYOUT_CONTROL,
+  before: string = FILTER_END,
 ): RingMove {
   const was = entryAt(from, indexOf)
   const next = entryAt(to, indexOf)
   /* The Minimap's cells are for the pointer: the ring steps over them,
-     from the filter row down to the first entry in the window, from an
-     entry up to the filter row. */
+     from the search row down to the first entry in the window, from an
+     entry up to the search row. */
   if (isBarKey(to)) {
     if (was === undefined) {
-      /* Up from the Layout Button, with no entry to land on, goes on to the filter row. */
-      if (isAfterList(from)) return { kind: 'land', key: FILTER_END }
+      /* Up from the Layout Button, with no entry to land on, goes on to the search row. */
+      if (isAfterList(from)) return { kind: 'land', key: before }
       return { kind: 'land', key: keys[window.start] !== undefined && window.start < window.end ? keys[window.start]! : after }
     }
     if (was.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
-    return { kind: 'land', key: FILTER_END }
+    return { kind: 'land', key: before }
   }
   if (next === undefined) {
     /* Down from the window's last entry goes on to the footer: show the
        entry after it instead, while there is one. */
     if (isAfterList(to) && was?.index === window.end - 1 && window.end < keys.length) return { kind: 'reveal', index: window.end }
-    /* Up from the window's first entry goes on to the filter row: show the
+    /* Up from the window's first entry goes on to the search row: show the
        entry before it instead, while there is one. */
-    if (to === FILTER_END && was?.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
+    if (to === before && was?.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
     return { kind: 'accept' }
   }
   if (next.line === 0) return { kind: 'accept' }
