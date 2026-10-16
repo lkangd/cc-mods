@@ -23,7 +23,7 @@ the host's own claude-code.d.ts for tsc on a version newer than the minimum
   ct_preview.py        CT-PREV-001, CT-PREV-002 (0.2: the preview region, expanded)
   ct_search.py         CT-FIND-001, CT-FIND-002 (0.2: search)
   ct_step.py           CT-STEP-001 (0.2: the previous and next Turn group, keys bound)
-  perf_scenarios.py    CT-PERF-001 (20 MiB many and heavy, 3 runs each)
+  perf_scenarios.py    CT-PERF-001, CT-PERF-002 (20 MiB many and heavy, 3 runs each; 0.2: search)
 
 `report` gathers every run.jsonl record, checks that each MUST scenario of
 the acceptance contract has records on every version and that all of them
@@ -54,7 +54,7 @@ MUST = (["CT-COMPAT-001", "CT-COMPAT-002", "CT-COMPAT-003"]
         + [f"CT-LIFE-00{i}" for i in range(1, 9)] + [f"CT-UI-00{i}" for i in range(1, 6)]
         + [f"CT-JUMP-00{i}" for i in (1, 2, 3, 5)] + [f"CT-POS-00{i}" for i in range(1, 4)]
         + ["CT-PERF-001", "CT-SEC-001", "CT-COEX-001", "CT-CMPCT-001", "CT-CTX-001"]
-        + ["CT-PREV-001", "CT-PREV-002", "CT-FIND-001", "CT-FIND-002", "CT-STEP-001"])
+        + ["CT-PREV-001", "CT-PREV-002", "CT-FIND-001", "CT-FIND-002", "CT-STEP-001", "CT-PERF-002"])
 MARKERS = PLUGIN / "build" / "sec-001-markers.txt"
 LAYOUTS = REPOSITORY / ".scratch" / "chat-toc" / "assets" / "25-layouts"
 
@@ -271,7 +271,7 @@ def report(args) -> int:
     (out / "report.json").write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n")
     perf_dirs = [p.parent for p in args.gate.glob("*/runs/perf-*/run.jsonl")]
     perf = subprocess.run([sys.executable, str(HERE / "perf_scenarios.py"), "table", *map(str, perf_dirs)],
-                          capture_output=True, text=True).stdout.strip() if perf_dirs else "(no CT-PERF-001 runs)"
+                          capture_output=True, text=True).stdout.strip() if perf_dirs else "(no CT-PERF runs)"
     (out / "report.md").write_text(markdown(data, perf), encoding="utf-8")
     print(f"overall {overall}: {counts}, missing {len(missing)}, gates failing {[g['name'] for g in bad_gates]}, leaks {len(leaks)}")
     return 0 if overall == "pass" else 1
@@ -302,7 +302,7 @@ def markdown(d: dict, perf: str) -> str:
             cells.append("**missing**" if not c else ("pass" if not c["fail"] and not c["skip"] else "**fail**")
                          + f" ({c['pass']}/{c['pass'] + c['fail'] + c['skip']})" if c else "**missing**")
         lines.append(f"| {sid} | " + " | ".join(cells) + " |")
-    lines += ["", "## CT-PERF-001 (20 MiB, two fixtures × two versions × 3 runs, the worst p95 of the runs)", "", perf, "",
+    lines += ["", "## CT-PERF-001 and CT-PERF-002 (20 MiB, two fixtures × two versions × 3 runs, the worst p95 of the runs)", "", perf, "",
               "## Visual check (awaiting the user's sign-off)", "",
               "> Not a release blocker (contract §3, §5). The implementer does not sign it: the user looks at the screens below "
               "(and once in their own terminal), confirms how the three Layouts (Card, Compact, Timeline) look and that the "
