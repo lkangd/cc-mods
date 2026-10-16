@@ -7,6 +7,8 @@
    scroll of it, so the arrows reach every entry. */
 
 import { isBarKey } from './bars'
+import { MORE_CONTROL, PREVIEW_CONTROL } from './preview'
+import { COPY_INPUT_CONTROL, COPY_TEXT_CONTROL, REUSE_CONTROL } from './reuse'
 import { isWalkKey } from './walk'
 import type { TocWindow } from './window'
 
@@ -17,7 +19,7 @@ export const FIRST_CONTROL = 'f-all'
 export const FILTER_END = 'f-agent'
 export const LAYOUT_CONTROL = 'layout'
 /* The controls after the entries. */
-const AFTER_LIST = new Set([LAYOUT_CONTROL, 'preview', 'preview.reuse', 'preview.copy.user', 'preview.copy.agent', 'preview.more'])
+const AFTER_LIST = new Set([LAYOUT_CONTROL, PREVIEW_CONTROL, REUSE_CONTROL, COPY_INPUT_CONTROL, COPY_TEXT_CONTROL, MORE_CONTROL])
 const isAfterList = (key: string | undefined) => key !== undefined && AFTER_LIST.has(key)
 
 export type RingMove =

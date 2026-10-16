@@ -22,6 +22,10 @@ const LAYOUTS: readonly Layout[] = ['card', 'compact', 'timeline']
 export const layoutName = (layout: Layout): string => words.layouts[layout]
 export const LAYOUT_HOTKEY = 'l'
 
+/* The side a jump that is not an entry's press goes to (a walk, a search's
+   submit): the Agent reply's under Agent, else the User input's. */
+export const jumpSide = (filter: ViewFilter): 'user' | 'agent' => (filter === 'agent' ? 'agent' : 'user')
+
 export function filterOf(value: unknown): ViewFilter {
   return FILTERS.some(f => f.filter === value) ? (value as ViewFilter) : 'all'
 }

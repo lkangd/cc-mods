@@ -107,11 +107,22 @@ export function agentHeadOf(group: TurnGroup, isRunning: boolean): string {
   return steps
 }
 
+/* An entry's key, `g3.u` or `g3.a`: group 3's User input or Agent reply
+   side. Its later lines' Buttons add `.<n>`. */
+export const entryKey = (groupIndex: number, side: 'user' | 'agent'): string => `g${groupIndex}.${side === 'user' ? 'u' : 'a'}`
+
+/* The group an entry's Button key belongs to: `g3.u.1` is group 3's;
+   undefined for a key that is no entry's. */
+export function groupOfKey(key: string | undefined): number | undefined {
+  const m = key === undefined ? null : /^g(\d+)\./.exec(key)
+  return m === null ? undefined : Number(m[1])
+}
+
 type Side = Omit<Entry, 'time' | 'gapAfter' | 'isRunning' | 'day'>
 
 function sideOf(group: TurnGroup, groupIndex: number, side: 'user' | 'agent', lines: EntryLine[]): Side {
   return {
-    key: `g${groupIndex}.${side === 'user' ? 'u' : 'a'}`,
+    key: entryKey(groupIndex, side),
     groupIndex,
     side,
     jumpUuid: side === 'user' ? group.openerUuid : (group.reply?.uuid ?? group.lastAgentUuid ?? group.openerUuid),
