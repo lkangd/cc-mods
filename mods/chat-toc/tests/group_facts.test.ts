@@ -24,7 +24,7 @@ test('a slash command reads as /name args, a shell command as !cmd, both with th
   expect(factsOf(t.jsonl()).map(f => f?.input)).toEqual(['/review src/a.ts   --quick', '/model', '!ls -la\necho two'])
 })
 
-test('an image-only prompt reads as (image only) and a prompt with images says it held them', () => {
+test('an image-only prompt reads as empty and a prompt with images says it held them', () => {
   setLanguage('en')
   const t = transcript()
   const image = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'AAAA' } }
@@ -32,7 +32,7 @@ test('an image-only prompt reads as (image only) and a prompt with images says i
   t.prompt('', { message: { role: 'user', content: [{ type: 'text', text: 'CT-SYN see [Image #1]' }, image] } })
   const facts = factsOf(t.jsonl())
   expect(facts.map(f => [f?.input, f?.hasImages])).toEqual([
-    ['(image only)', true],
+    ['', true],
     ['CT-SYN see', true],
   ])
 })

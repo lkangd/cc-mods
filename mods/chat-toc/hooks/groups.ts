@@ -138,7 +138,8 @@ const isInterruption = (row: TranscriptRow) => row.type === 'user' && /^\s*\[Req
 const isApiError = (row: TranscriptRow) => (row as { isApiErrorMessage?: unknown }).isApiErrorMessage === true
 
 /* The User input as typed (facts.ts): a command's and a shell command's
-   text with their own spacing, a prompt's with code and pasted content. */
+   text with their own spacing, a prompt's with code and pasted content; an
+   input of only images is empty, its words drawn only at display time. */
 function typedInputOf(row: TranscriptRow, kind: InputKind): { text: string; hasImages: boolean } {
   const text = rowText(row)
   const hasImages = hasBlock(row.message?.content, 'image')
@@ -149,7 +150,7 @@ function typedInputOf(row: TranscriptRow, kind: InputKind): { text: string; hasI
   }
   if (kind === 'shell') return { text: `!${tagged(text, 'bash-input').trim()}`, hasImages }
   const typed = typedPrompt(text)
-  return { text: typed || (hasImages ? words.imageOnly : ''), hasImages }
+  return { text: typed, hasImages }
 }
 
 /* A text block the agent wrote after its latest tool call. */

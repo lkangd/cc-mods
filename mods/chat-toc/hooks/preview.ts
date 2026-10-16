@@ -114,6 +114,11 @@ export function metaLine(group: TurnGroup, isRunning: boolean, nowMs: number, wi
   return lineOf()
 }
 
+/* The User input as the preview draws it: as typed, or for an input of
+   only images the words saying so, in the language drawn now. */
+export const typedInput = (facts: { input: string; hasImages: boolean }): string =>
+  facts.input === '' && facts.hasImages ? words.imageOnly : facts.input
+
 export type PathBase = { cwd: string | undefined; home: string | undefined }
 
 const under = (path: string, dir: string | undefined) =>

@@ -2,7 +2,8 @@ import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import { PANE, appendRow, drawnButtons, host, mountPane, start } from './host'
 import { transcript } from './fixture'
-import { fillRefusedText } from '../hooks/reuse'
+import { fillRefusedText, reusableOf } from '../hooks/reuse'
+import { tocModel } from '../hooks/model'
 import { setLanguage } from '../hooks/text'
 
 /* CT-REUSE-001's automated half: Reuse and copy from the preview's label
@@ -101,6 +102,19 @@ test('an image-only input has neither r nor c', async ($, on) => {
   expect(drawn).not.toContain('preview.reuse')
   expect(drawn).not.toContain('preview.copy.user')
   expect(drawn).toContain('preview.copy.agent')
+  const texts = (await pane.findAll({ type: 'Text' })).map(x => x.text)
+  expect(texts).toContain('（只有图片）')
+})
+
+test('an image-only input read in one language offers neither r nor c in the other', () => {
+  const t = transcript()
+  t.prompt('', { message: { role: 'user', content: [IMAGE] } })
+  setLanguage('zh')
+  const group = tocModel(t.jsonl()).groups[0]!
+  setLanguage('en')
+  const offered = reusableOf(group, false)
+  expect([offered.fill, offered.input, offered.hasImagesLeft]).toEqual([undefined, undefined, false])
+  setLanguage('zh')
 })
 
 test('text with images fills and copies only the text, and a toast says the images were not included', async ($, on) => {

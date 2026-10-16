@@ -13,8 +13,9 @@ import type { TranscriptRow } from './transcript'
 export type GroupFacts = {
   /* The User input as typed: a prompt's text with code blocks and pasted
      content as they were (the paste tags and image placeholders gone), a
-     slash command as `/name args`, a shell command as `!cmd`; an input of
-     only images as the words for that. */
+     slash command as `/name args`, a shell command as `!cmd`; empty for an
+     input of only images (`hasImages`), which the preview names in words
+     at display time (preview.ts `typedInput`). */
   input: string
   /* Whether the User input held images. */
   hasImages: boolean
