@@ -21,6 +21,7 @@ mods/chat-toc/
 │   ├── chain.ts                 the current branch's conversation chain (parentUuid; across a compaction boundary, logicalParentUuid)
 │   ├── groups.ts                when a group opens, the User input text, steps, last text, ending
 │   ├── regroup.ts               incremental regrouping (only from the last group's opening row)
+│   ├── compactions.ts           compaction boundaries placed between groups, their rules among the groups shown (×N fold), the fork line's condition
 │   ├── model.ts                 whole regrouping; a test oracle only, register does not use it
 │   ├── source.ts                whole read up to 4 MiB, 4,000,000 B chunks past it (sh dd+head / Windows PowerShell 5.1)
 │   ├── reader.ts                the gate: 300 ms trailing, reads merged while one runs
@@ -118,6 +119,7 @@ Every start is in a temporary HOME and `CLAUDE_CONFIG_DIR`: onboarding done, the
 | CT-LIFE-001, 002, 005 (fork) | `$PY mods/chat-toc/tests/acceptance/ct_life.py --host 2.1.287 --host current [--scenario 001\|002\|fork]` |
 | CT-LIFE-007 | `$PY mods/chat-toc/tests/acceptance/ct_mid_session.py --host 2.1.287 --host current [--scenario cli\|ui]` (installs from a folder marketplace set up in the run folder, disabled first, then enabled mid-session from the CLI and from the `/plugin` screen) |
 | CT-LIFE-003, 004, 005, 008, CT-DATA-006 | `$PY mods/chat-toc/tests/acceptance/chain_scenarios.py --host 2.1.287 [--only life-003,...]` |
+| CT-CMPCT-001, CT-CTX-001, CT-LIFE-003 (live `/compact`) | `$PY mods/chat-toc/tests/acceptance/ct_compaction.py --host 2.1.287 [--only fixture,fork,live]` (`live` runs against `fake_api.py` on 127.0.0.1 stating chosen `usage` figures; no model call) |
 | CT-JUMP-001–003, 005, CT-UI-005 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003 005]` (005 also records CT-UI-005: the notice line's inverse and foreground read about every 30 ms) |
 | CT-POS-001–003, CT-COEX-001, CT-LIFE-006, CT-MAP-001 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6 map1]` (coex runs `git init` on a repository with changes in a temporary project, so `/diff` opens) |
 | CT-PERF-001 (20 MiB many/heavy, 3 runs each) | `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py run 2.1.287 many --runs 3` (then `heavy`, `current`); the release report's table: `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py table <run folder>...`. The Current position and the entry table under 3000 stale on-screen records are measured in `tests/long_session.test.ts` (`claude plugin test` prints `CT-PERF` lines) |
