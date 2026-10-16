@@ -237,11 +237,17 @@ function characters(text: string): number {
   return n
 }
 
+/* Where to cut `text` at most `size` UTF-16 units in: `size`, or one unit
+   short when that would split a character in two. */
+function unitEnd(text: string, size: number): number {
+  const c = text.charCodeAt(size - 1)
+  return size > 0 && c >= 0xd800 && c <= 0xdbff ? size - 1 : size
+}
+
 /* `text` cut to at most `size` UTF-16 units, never inside a character. */
 function capped(text: string, size: number): Capped {
   if (text.length <= size) return { shown: text, left: 0 }
-  const c = text.charCodeAt(size - 1)
-  const end = size > 0 && c >= 0xd800 && c <= 0xdbff ? size - 1 : size
+  const end = unitEnd(text, size)
   return { shown: text.slice(0, end), left: characters(text.slice(end)) }
 }
 
@@ -280,23 +286,31 @@ function partEnd(text: string, size: number): { end: number; next: number } {
   if (blank > 0) return { end: blank + 1, next: blank + 2 }
   const line = text.lastIndexOf('\n', size)
   if (line > 0) return { end: line, next: line + 1 }
-  const c = text.charCodeAt(size - 1)
-  const end = c >= 0xd800 && c <= 0xdbff ? size - 1 : size
+  const end = unitEnd(text, size)
   return { end, next: end }
 }
+
+/* `text` in parts of at most `limit` characters: `cut` takes what is left
+   and gives the next part and what follows it. */
+function splitParts(text: string, limit: number, cut: (rest: string) => { part: string; rest: string }): string[] {
+  const parts: string[] = []
+  let rest = text
+  while (rest.length > limit) {
+    const next = cut(rest)
+    parts.push(next.part)
+    rest = next.rest
+  }
+  parts.push(rest)
+  return parts
+}
+
+/* The part of `rest` up to `end` and what follows from `next`. */
+const partAt = (rest: string, { end, next }: { end: number; next: number }) => ({ part: rest.slice(0, end), rest: rest.slice(next) })
 
 /* Plain text split into parts of at most `limit` characters, one `Text`
    each: at a blank line, else a line break, else anywhere. */
 export function textParts(text: string, limit = MARKDOWN_LIMIT): string[] {
-  const parts: string[] = []
-  let rest = text
-  while (rest.length > limit) {
-    const { end, next } = partEnd(rest, limit)
-    parts.push(rest.slice(0, end))
-    rest = rest.slice(next)
-  }
-  parts.push(rest)
-  return parts
+  return splitParts(text, limit, rest => partAt(rest, partEnd(rest, limit)))
 }
 
 /* Markdown source split into parts of at most `limit` characters, one
@@ -304,28 +318,18 @@ export function textParts(text: string, limit = MARKDOWN_LIMIT): string[] {
    code block split over two parts is closed in the first and opened again
    in the next, so each draws as code. */
 export function markdownParts(text: string, limit = MARKDOWN_LIMIT): string[] {
-  const parts: string[] = []
-  let rest = text
-  while (rest.length > limit) {
-    let { end, next } = partEnd(rest, limit)
-    const opened = openFence(rest.slice(0, end))
-    if (opened !== undefined) {
-      const closing = `\n${FENCE.exec(opened)?.[1] ?? ''}`
-      ;({ end, next } = partEnd(rest, limit - closing.length))
-      const fence = openFence(rest.slice(0, end))
-      const reopened = fence === undefined ? '' : `${fence}\n${rest.slice(next)}`
-      /* Only while it gets shorter: a fence line near the limit is cut. */
-      if (fence !== undefined && reopened.length < rest.length) {
-        parts.push(rest.slice(0, end) + closing)
-        rest = reopened
-        continue
-      }
-    }
-    parts.push(rest.slice(0, end))
-    rest = rest.slice(next)
-  }
-  parts.push(rest)
-  return parts
+  return splitParts(text, limit, rest => {
+    const at = partEnd(rest, limit)
+    const opened = openFence(rest.slice(0, at.end))
+    if (opened === undefined) return partAt(rest, at)
+    const closing = `\n${FENCE.exec(opened)?.[1] ?? ''}`
+    const { end, next } = partEnd(rest, limit - closing.length)
+    const fence = openFence(rest.slice(0, end))
+    const reopened = fence === undefined ? '' : `${fence}\n${rest.slice(next)}`
+    /* Only while it gets shorter: a fence line near the limit is cut. */
+    if (fence !== undefined && reopened.length < rest.length) return { part: rest.slice(0, end) + closing, rest: reopened }
+    return partAt(rest, { end, next })
+  })
 }
 
 /* The expanded preview: one group drawn whole in the list's place. */
