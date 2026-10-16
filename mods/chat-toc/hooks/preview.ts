@@ -34,7 +34,7 @@ const COPY_TEXT_HOTKEY = 'a'
 const MIN_ROWS = 4
 const MAX_ROWS = 14
 const SHARE = 0.4
-/* What a `Markdown` takes at most. */
+/* What a `Markdown` takes at most, and on 2.1.287 a `Text` child too. */
 const MARKDOWN_LIMIT = 10_000
 
 /* The region's rows, its rule included, for `rows` rows left after the
@@ -260,6 +260,20 @@ function partEnd(text: string, size: number): { end: number; next: number } {
   return { end, next: end }
 }
 
+/* Plain text split into parts of at most `limit` characters, one `Text`
+   each: at a blank line, else a line break, else anywhere. */
+export function textParts(text: string, limit = MARKDOWN_LIMIT): string[] {
+  const parts: string[] = []
+  let rest = text
+  while (rest.length > limit) {
+    const { end, next } = partEnd(rest, limit)
+    parts.push(rest.slice(0, end))
+    rest = rest.slice(next)
+  }
+  parts.push(rest)
+  return parts
+}
+
 /* Markdown source split into parts of at most `limit` characters, one
    `Markdown` each: at a blank line, else a line break, else anywhere. A
    code block split over two parts is closed in the first and opened again
@@ -292,8 +306,9 @@ export function markdownParts(text: string, limit = MARKDOWN_LIMIT): string[] {
 /* The expanded preview: one group drawn whole in the list's place. */
 export type ExpandedBody = {
   meta: string
-  /* The User input up to the cap, and the line after it when it was cut. */
-  user: { text: string; cut: string | undefined }
+  /* The User input up to the cap, one `Text` per part, and the line after
+     it when it was cut. */
+  user: { parts: string[]; cut: string | undefined }
   /* The last text up to the cap, one `Markdown` per part; undefined draws
      no label. */
   agent: { parts: string[]; cut: string | undefined } | undefined
@@ -315,7 +330,7 @@ export function expandedBody(o: {
 }): ExpandedBody {
   const capped = capTexts(o.input, o.agent || undefined)
   const cutLine = (left: number, key: string) => (left > 0 ? words.notShown(left, key) : undefined)
-  const user = { text: capped.input.shown, cut: cutLine(capped.input.left, COPY_INPUT_HOTKEY) }
+  const user = { parts: textParts(capped.input.shown), cut: cutLine(capped.input.left, COPY_INPUT_HOTKEY) }
   const agent = capped.agent === undefined ? undefined : { parts: markdownParts(capped.agent.shown), cut: cutLine(capped.agent.left, COPY_TEXT_HOTKEY) }
   const changed = o.files.changed.map(path => shownPath(path, o.base))
   const read = o.files.read.map(path => shownPath(path, o.base))
@@ -323,7 +338,7 @@ export function expandedBody(o: {
   const rows =
     2 +
     1 +
-    foldedRows(user.text, o.width) +
+    user.parts.reduce((n, part) => n + foldedRows(part, o.width), 0) +
     (user.cut === undefined ? 0 : 1) +
     (agent === undefined ? 0 : 1 + agent.parts.reduce((n, part) => n + foldedRows(part, o.width), 0) + (agent.cut === undefined ? 0 : 1)) +
     listRows(changed) +

@@ -190,7 +190,7 @@ test('expanded, everything is drawn uncut: the files one per line under their he
   const body = expandedBody({ meta: 'META', input: 'hello', agent: 'one\ntwo', files: { changed: ['/p/a.ts', '/h/b.md'], read: ['/p/c.ts'] }, base, width: 20 })
   expect(body).toEqual({
     meta: 'META',
-    user: { text: 'hello', cut: undefined },
+    user: { parts: ['hello'], cut: undefined },
     agent: { parts: ['one\ntwo'], cut: undefined },
     changed: ['a.ts', '~/b.md'],
     read: ['c.ts'],
@@ -207,6 +207,8 @@ test('a part cut by the cap is followed by a line saying how many characters are
   setLanguage('en')
   const body = expandedBody({ meta: 'M', input: 'x'.repeat(212_345), agent: 'a'.repeat(100_000), files, base, width: 40 })
   expect(body.user.cut).toBe('… 182,345 more characters not shown · c: Copy')
+  /* 2.1.287 refuses a text child over 10,000 characters: the input is split too. */
+  expect(body.user.parts.map(p => p.length)).toEqual([10_000, 10_000, 10_000])
   expect(body.agent?.cut).toBe('… 70,000 more characters not shown · a: Copy')
   expect(body.agent?.parts.map(p => p.length)).toEqual([10_000, 10_000, 10_000])
   setLanguage('zh')
