@@ -111,6 +111,8 @@ test('a 200,000-character pasted input is cut by the cap with a line saying so; 
   expect(await markdown(pane)).toEqual([LONG])
   const characters = [...shown, ...(await markdown(pane))].reduce((n: number, s) => n + String(s).length, 0)
   expect(characters).toBeLessThan(100_000)
+  /* 2.1.287 refuses the whole tree for one text child over 10,000 characters. */
+  expect(shown.every(s => s.length <= 10_000)).toBe(true)
   expect(await keys(pane)).toContain('layout')
 })
 

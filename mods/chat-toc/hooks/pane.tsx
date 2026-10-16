@@ -170,7 +170,7 @@ function drawExpanded(elements: ElementTable, expanded: ExpandedView): RenderEle
       </Button>
       <Text dimColor>{body.meta}</Text>
       <Text dimColor>{words.previewUser}</Text>
-      {body.user.text === '' ? null : <Text>{body.user.text}</Text>}
+      {body.user.parts.map(part => (part === '' ? null : <Text>{part}</Text>))}
       {body.user.cut === undefined ? null : <Text dimColor>{body.user.cut}</Text>}
       {body.agent === undefined ? null : <Text dimColor>{words.previewAgent}</Text>}
       {body.agent === undefined ? null : body.agent.parts.map(part => <Markdown text={part} />)}

@@ -41,6 +41,8 @@ sys.path.insert(0, str(HERE))
 import pty_harness as h  # noqa: E402
 import toc_verifier as v  # noqa: E402
 import transcript_fixture as tf  # noqa: E402
+import fake_api  # noqa: E402
+from gate_scenarios import FAKE_KEY, fake_api_world  # noqa: E402
 
 PLUGIN = HERE.parent.parent
 SESSION = "00000000-0000-4000-8000-0000000013a0"
@@ -448,7 +450,228 @@ def widths(host, run):
             "shows under it and the footer below it", actual, bool(ok), ev)
 
 
-SCENARIOS = {"which": which, "facts": facts, "cut": cut, "toggle": toggle, "short": short, "widths": widths}
+# ---------- CT-PREV-002: the expanded preview ----------
+
+BACK = "e: ← 返回"
+
+
+def pane_rows(t, left) -> list[str]:
+    """The Pane's rows right of its border, as drawn now (the head may have
+    scrolled away, so the Pane is found by the column it was at)."""
+    return [r for r in (v._right_of(row, left) for row in t.rows()) if r is not None]
+
+
+def walk_to(t, prefix: str) -> bool:
+    """↑ through the entries until the preview shows the group whose input starts with `prefix`."""
+    for _ in range(40):
+        t.key("up")
+        if (shown_input(pane(t)) or "").startswith(prefix):
+            return True
+    return False
+
+
+def expanded_view(rows: list[str]) -> dict:
+    lines = [r.strip() for r in rows]
+    return {"back": BACK in lines, "entries": any(v._is_entry_line(r) for r in rows),
+            "first": next((r for r in lines if r), None), "filterRow": any(v._is_filter_row(r) for r in rows),
+            "replyLines": [int(m.group(1)) for r in lines if (m := re.match(r"^V02 第 (\d+) 行$", r))],
+            "footer": any(re.match(r"^\d+ 轮", r) for r in lines)}
+
+
+def expand(host, run):
+    world = h.World(token="")
+    v_fixture(world, host)
+    actual, ev = {}, []
+    t = launch(world, host, run)
+    try:
+        t.wait_for(listed, "the Pane with its preview", timeout=60)
+        left = pane(t).left
+        focus(t)
+        if not walk_to(t, "V02"):
+            raise h.ScenarioFailure("the preview never showed V02")
+        t.type("e")
+        t.wait_for(lambda term: expanded_view(pane_rows(term, left))["back"], "the expanded preview", timeout=5)
+        pointer_off(t)
+        actual["expanded"] = expanded_view(pane_rows(t, left))
+        actual["expandedRows"] = pane_rows(t, left)[:8]
+        ev.append(t.snap("expand expanded"))
+        t.wheel(left + 5, 20, up=False, ticks=5)
+        t.settle(quiet=0.8)
+        actual["wheel"] = expanded_view(pane_rows(t, left))
+        ev.append(t.snap("expand wheel down"))
+        t.key("pgdn")
+        t.settle(quiet=0.8)
+        actual["pgdn"] = expanded_view(pane_rows(t, left))
+        ev.append(t.snap("expand pgdn"))
+        t.key("pgup")
+        t.settle(quiet=0.8)
+        actual["pgup"] = expanded_view(pane_rows(t, left))
+        t.key("down")
+        t.settle(quiet=0.8)
+        actual["down"] = expanded_view(pane_rows(t, left))
+        ev.append(t.snap("expand down"))
+        t.wheel(left + 5, 20, up=False, ticks=10)
+        t.settle(quiet=0.8)
+        actual["scrolledAway"] = expanded_view(pane_rows(t, left))
+        t.type("e")
+        t.settle(quiet=0.8)
+        pointer_off(t)
+        actual["eAgain"] = expanded_view(pane_rows(t, left))
+        ev.append(t.snap("expand e again"))
+        t.type("e")
+        t.wait_for(lambda term: expanded_view(pane_rows(term, left))["back"], "expanded again", timeout=5)
+        y, x = t.find(BACK)
+        t.click(x + 4, y)
+        t.settle(quiet=0.8)
+        pointer_off(t)
+        actual["backPressed"] = expanded_view(pane_rows(t, left))
+        ev.append(t.snap("expand back pressed"))
+        t.type("e")
+        t.wait_for(lambda term: expanded_view(pane_rows(term, left))["back"], "expanded once more", timeout=5)
+        t.key("esc")
+        time.sleep(0.6)
+        t.settle(quiet=0.8)
+        actual["esc"] = expanded_view(pane_rows(t, left))
+        ev.append(t.snap("expand esc"))
+    except h.ScenarioFailure as failure:
+        actual["failure"] = str(failure)
+    finally:
+        t.close()
+        world.remove()
+    x = actual
+    top = lambda view: view["back"] and view["filterRow"] and not view["entries"] and view["replyLines"][:1] == [0]
+    listed_again = lambda view: view["entries"] and view["filterRow"] and not view["back"]
+    last = lambda view: max(view["replyLines"], default=-1)
+    checks = {}
+    if "failure" not in x:
+        checks = {
+            "expanded": top(x["expanded"]) and not x["expanded"]["footer"],
+            "wheel": not x["wheel"]["back"] and last(x["wheel"]) >= last(x["expanded"]) + 3,
+            "pgdn": x["pgdn"]["footer"] and last(x["pgdn"]) == LONG_LINES - 1,
+            "pgup": top(x["pgup"]),
+            "down": last(x["down"]) == last(x["pgup"]) + 1,
+            "eWithBackScrolledAway": not x["scrolledAway"]["back"] and listed_again(x["eAgain"]),
+            "backPressed": listed_again(x["backPressed"]),
+            "escLeaves": listed_again(x["esc"]),
+        }
+    x["checks"] = checks
+    ok = "failure" not in x and all(checks.values())
+    return ("V fixture: V02's reply of 40 lines, the Pane focused on V02",
+            "e expands the preview over the list (the filter row kept, the Back Button `e: ← 返回` at its top, no entry); "
+            "the host scrolls the whole tree: 5 wheel ticks, PgDn to the end with the footer, PgUp to the top, ↓ one row; "
+            "e with the Back Button scrolled away, a click on it, and Esc each return to the list with its head at the top",
+            actual, bool(ok), ev)
+
+
+PASTED_LINES = 4_000
+CAP_LINE = re.compile(r"^… 还有 (\d{1,3}(?:,\d{3})*) 字未显示 · c: 复制$")
+
+
+def cap(host, run):
+    """P01's input is a 200,000-character paste of PASTED_LINES lines."""
+    world = h.World(token="")
+    project = str(world.project)
+    t_ = tf.Transcript(world.transcript(SESSION), project, SESSION, version=host.version)
+    pasted = "\n".join(f"P01 pasted line {i:04d} " + "x" * 30 for i in range(PASTED_LINES))
+    for i, prompt in enumerate(["P00 小问题", pasted, "P02 小问题"]):
+        t_.prompt(prompt)
+        _assistant(t_, [{"type": "text", "text": f"P0{i} 回复"}], f"msg_p{i}", 20)
+    t_.close()
+    actual, ev = {"pasted": len(pasted)}, []
+    t = launch(world, host, run)
+    try:
+        t.wait_for(listed, "the Pane with its preview", timeout=60)
+        left = pane(t).left
+        focus(t)
+        if not walk_to(t, "P01"):
+            raise h.ScenarioFailure("the preview never showed P01")
+        ev.append(t.snap("cap region"))
+        t.type("e")
+        t.wait_for(lambda term: BACK in [r.strip() for r in pane_rows(term, left)], "the expanded preview", timeout=10)
+        top = [r.strip() for r in pane_rows(t, left)]
+        actual["top"] = top[:8]
+        ev.append(t.snap("cap expanded top"))
+        t.key("end")
+        t.settle(quiet=1.0)
+        bottom = [r.strip() for r in pane_rows(t, left)]
+        actual["bottom"] = bottom[-12:]
+        ev.append(t.snap("cap expanded end"))
+    except h.ScenarioFailure as failure:
+        actual["failure"] = str(failure)
+    finally:
+        t.close()
+        world.remove()
+    bottom = actual.get("bottom", [])
+    cut = next((CAP_LINE.match(r) for r in bottom if CAP_LINE.match(r)), None)
+    left_out = int(cut.group(1).replace(",", "")) if cut else None
+    shown = [r for r in bottom if r.startswith("P01 pasted line ")]
+    actual["cut"] = left_out
+    ok = ("failure" not in actual and "P01 pasted line 0000" in actual.get("top", [])
+          and left_out is not None and 130_000 <= left_out < len(pasted) and shown
+          and int(shown[-1].split()[3]) < PASTED_LINES - 1
+          and "P01 回复" in bottom and any(re.match(r"^\d+ 轮", r) for r in bottom))
+    return ("P fixture: P01's input a paste of 4,000 lines (about 200,000 characters), a short reply",
+            "expanded, the input starts whole at the top; at the end (End) it stops early with "
+            "`… 还有 N 字未显示 · c: 复制` (N about 140,000), the reply and the footer drawn after it",
+            actual, bool(ok), ev)
+
+
+LIVE = "CT-PREV-002 进行中的合成一轮 " + "很长的输入用来让预览区切掉它，" * 30
+
+
+def running(host, run):
+    """A live turn against fake_api.py, its input long enough to be cut by
+    the region; a click on the cut line expands it while it runs."""
+    world = h.World(token="")
+    fake_api_world(world)
+    (world.project / "notes.txt").write_text("CT-SYN notes\n")
+    v_fixture(world, host)
+    actual, ev, metas = {}, [], []
+    with fake_api.FakeApi("CT-PREV-002", str(world.project / "notes.txt"), steps=2, delay=4.0, reply="完成") as api:
+        t = h.launch(world, host, [PLUGIN], ["--resume", SESSION], run=run,
+                     env={"ANTHROPIC_BASE_URL": api.url, "ANTHROPIC_API_KEY": FAKE_KEY})
+        try:
+            t.wait_for(listed, "the Pane with its preview", timeout=60)
+            left = pane(t).left
+            t.type(LIVE)
+            time.sleep(0.4)
+            t.key("enter")
+            t.wait_for(lambda term: term.find("e: 展开") is not None and any(r.startswith("CT-PREV-002") for r in (body(pane(term)) if pane(term) else [])),
+                       "the running group cut in the region", timeout=20)
+            y, x = t.find("e: 展开")
+            t.click(x + 3, y)
+            t.wait_for(lambda term: BACK in [r.strip() for r in pane_rows(term, left)], "the expanded preview", timeout=5)
+            end = time.monotonic() + 40
+            while time.monotonic() < end:
+                rows = [r.strip() for r in pane_rows(t, left)]
+                at = rows.index(BACK) if BACK in rows else None
+                meta = rows[at + 1] if at is not None and at + 1 < len(rows) else None
+                if meta and (not metas or metas[-1] != meta):
+                    metas.append(meta)
+                    ev.append(t.snap(f"running {meta}"))
+                if meta and "进行中" not in meta and "完成" in rows:
+                    break
+                time.sleep(0.2)
+            actual["final"] = [r.strip() for r in pane_rows(t, left)]
+        except h.ScenarioFailure as failure:
+            actual["failure"] = str(failure)
+        finally:
+            t.close()
+            world.remove()
+    actual["metas"] = metas
+    states = [re.sub(r"^\S+ \d\d:\d\d · ", "", m) for m in metas]
+    actual["states"] = states
+    ok = ("failure" not in actual and any(s.startswith("进行中 · 1 步") for s in states)
+          and any(s.startswith("进行中 · 2 步") for s in states) and states[-1].startswith("2 步")
+          and "完成" in actual.get("final", []) and BACK in actual.get("final", []))
+    return ("V fixture + one live turn against fake_api.py (two Read steps, 4 s apart; no model)",
+            "a click on the running group's cut line expands it; still expanded, its meta line goes 进行中 · 1 步, "
+            "进行中 · 2 步, then 2 步 with the closing text 完成 under Agent", actual, bool(ok), ev)
+
+
+SCENARIOS = {"which": which, "facts": facts, "cut": cut, "toggle": toggle, "short": short, "widths": widths,
+             "expand": expand, "cap": cap, "running": running}
+IDS = {"expand": "CT-PREV-002", "cap": "CT-PREV-002", "running": "CT-PREV-002"}
 
 
 def main() -> int:
@@ -466,10 +689,10 @@ def main() -> int:
                 fixture, expected, actual, ok, evidence = SCENARIOS[name](host, run)
             except Exception as error:                      # a scenario that crashed is a failed scenario
                 fixture, expected, actual, ok, evidence = name, name, {"error": repr(error)}, False, []
-            run.record(ID, host=host.version, plugin=str(PLUGIN), fixture=fixture, expected=expected,
+            run.record(IDS.get(name, ID), host=host.version, plugin=str(PLUGIN), fixture=fixture, expected=expected,
                        actual=json.loads(json.dumps(actual, ensure_ascii=False, default=str)),
                        result="pass" if ok else "fail", evidence=evidence, notes=name)
-            print(f"{name} ({ID}) on {host.version}: {'pass' if ok else 'fail'}", flush=True)
+            print(f"{name} ({IDS.get(name, ID)}) on {host.version}: {'pass' if ok else 'fail'}", flush=True)
             failed += not ok
         print("run directory:", run.dir)
     return 1 if failed else 0
