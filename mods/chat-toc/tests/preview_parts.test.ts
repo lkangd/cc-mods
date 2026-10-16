@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { capTexts, durationText, filesLine, markdownParts, metaLine, previewBody, previewPlan, previewRows, shownPath, tokensText } from '../hooks/preview'
+import { capTexts, durationText, expandedBody, filesLine, markdownParts, metaLine, previewBody, previewPlan, previewRows, shownPath, tokensText } from '../hooks/preview'
 import { tocModel } from '../hooks/model'
 import type { TurnGroup } from '../hooks/groups'
 import { setLanguage } from '../hooks/text'
@@ -182,6 +182,36 @@ test('a text longer than one Markdown takes is split over several, at a blank li
 
 test('a code block split over two Markdowns is closed in the first and opened again in the next', () => {
   expect(markdownParts('```ts\nline1\nline2\nline3\n```', 20)).toEqual(['```ts\nline1\n```', '```ts\nline2\n```', '```ts\nline3\n```'])
+})
+
+test('expanded, everything is drawn uncut: the files one per line under their headings, the rows reckoned at the width', () => {
+  setLanguage('en')
+  const base = { cwd: '/p', home: '/h' }
+  const body = expandedBody({ meta: 'META', input: 'hello', agent: 'one\ntwo', files: { changed: ['/p/a.ts', '/h/b.md'], read: ['/p/c.ts'] }, base, width: 20 })
+  expect(body).toEqual({
+    meta: 'META',
+    user: { text: 'hello', cut: undefined },
+    agent: { parts: ['one\ntwo'], cut: undefined },
+    changed: ['a.ts', '~/b.md'],
+    read: ['c.ts'],
+    /* Back, meta, User + 1, Agent + 2, Changed + 2, Read + 1. */
+    rows: 12,
+  })
+  const bare = expandedBody({ meta: 'META', input: '!ls', agent: undefined, files: { changed: [], read: [] }, base, width: 20 })
+  expect([bare.agent, bare.changed, bare.read, bare.rows]).toEqual([undefined, [], [], 4])
+})
+
+test('a part cut by the cap is followed by a line saying how many characters are not shown and which key copies it, in both languages', () => {
+  const base = { cwd: undefined, home: undefined }
+  const files = { changed: [], read: [] }
+  setLanguage('en')
+  const body = expandedBody({ meta: 'M', input: 'x'.repeat(212_345), agent: 'a'.repeat(100_000), files, base, width: 40 })
+  expect(body.user.cut).toBe('… 182,345 more characters not shown · c: Copy')
+  expect(body.agent?.cut).toBe('… 70,000 more characters not shown · a: Copy')
+  expect(body.agent?.parts.map(p => p.length)).toEqual([10_000, 10_000, 10_000])
+  setLanguage('zh')
+  const zh = expandedBody({ meta: 'M', input: 'x'.repeat(60_001), agent: undefined, files, base, width: 40 })
+  expect(zh.user.cut).toBe('… 还有 1 字未显示 · c: 复制')
 })
 
 test('the cap never splits a character, and counts what it leaves out in characters', () => {

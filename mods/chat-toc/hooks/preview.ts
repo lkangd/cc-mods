@@ -24,6 +24,12 @@ export const PREVIEW_CONTROL = 'preview'
 export const MORE_CONTROL = 'preview.more'
 export const PREVIEW_HOTKEY = 'p'
 export const EXPAND_HOTKEY = 'e'
+/* The expanded preview's Back Button, hotkey `e` too. */
+export const BACK_CONTROL = 'preview.back'
+/* The keys that copy the User input and the last text (ticket 17's
+   Buttons on the label rows); the cap lines name them. */
+const COPY_INPUT_HOTKEY = 'c'
+const COPY_TEXT_HOTKEY = 'a'
 
 const MIN_ROWS = 4
 const MAX_ROWS = 14
@@ -281,6 +287,48 @@ export function markdownParts(text: string, limit = MARKDOWN_LIMIT): string[] {
   }
   parts.push(rest)
   return parts
+}
+
+/* The expanded preview: one group drawn whole in the list's place. */
+export type ExpandedBody = {
+  meta: string
+  /* The User input up to the cap, and the line after it when it was cut. */
+  user: { text: string; cut: string | undefined }
+  /* The last text up to the cap, one `Markdown` per part; undefined draws
+     no label. */
+  agent: { parts: string[]; cut: string | undefined } | undefined
+  /* The files, one per line under their headings; none draws no heading. */
+  changed: string[]
+  read: string[]
+  /* The rows it folds to at the width, the Back Button included: a close
+     reckoning, as the host folds the Markdown itself. */
+  rows: number
+}
+
+export function expandedBody(o: {
+  meta: string
+  input: string
+  agent: string | undefined
+  files: { changed: readonly string[]; read: readonly string[] }
+  base: PathBase
+  width: number
+}): ExpandedBody {
+  const capped = capTexts(o.input, o.agent || undefined)
+  const cutLine = (left: number, key: string) => (left > 0 ? words.notShown(left, key) : undefined)
+  const user = { text: capped.input.shown, cut: cutLine(capped.input.left, COPY_INPUT_HOTKEY) }
+  const agent = capped.agent === undefined ? undefined : { parts: markdownParts(capped.agent.shown), cut: cutLine(capped.agent.left, COPY_TEXT_HOTKEY) }
+  const changed = o.files.changed.map(path => shownPath(path, o.base))
+  const read = o.files.read.map(path => shownPath(path, o.base))
+  const listRows = (paths: readonly string[]) => (paths.length === 0 ? 0 : 1 + paths.reduce((n, path) => n + rowsOf(path, o.width), 0))
+  const rows =
+    2 +
+    1 +
+    foldedRows(user.text, o.width) +
+    (user.cut === undefined ? 0 : 1) +
+    (agent === undefined ? 0 : 1 + agent.parts.reduce((n, part) => n + foldedRows(part, o.width), 0) + (agent.cut === undefined ? 0 : 1)) +
+    listRows(changed) +
+    listRows(read)
+  return { meta: o.meta, user, agent, changed, read, rows }
 }
 
 export type PreviewBody = {

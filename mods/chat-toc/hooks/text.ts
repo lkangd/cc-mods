@@ -28,6 +28,9 @@ const w = (text: string): BandPart => ({ text, isNumber: false })
 
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
+/* A number with its thousands grouped: `12,345`. */
+const grouped = (n: number) => String(n).replace(/\B(?=(\d{3})+$)/g, ',')
+
 const EN = {
   paneTitle: 'Contents',
   commandDescription: 'Open the conversation contents',
@@ -76,6 +79,10 @@ const EN = {
   previewAgent: 'Agent',
   moreLines: (n: number) => `↓ ${count(n, 'more line', 'more lines')} · `,
   expand: 'expand',
+  back: '← Back',
+  changedHeading: 'Changed',
+  readHeading: 'Read',
+  notShown: (n: number, key: string) => `… ${grouped(n)} more ${n === 1 ? 'character' : 'characters'} not shown · ${key}: Copy`,
   changed: (names: string) => `changed ${names}`,
   readFiles: (n: number) => `read ${n}`,
   tokensOut: (tokens: string) => `${tokens} out`,
@@ -134,6 +141,10 @@ const ZH: Text = {
   previewAgent: 'Agent',
   moreLines: n => `↓ 还有 ${n} 行 · `,
   expand: '展开',
+  back: '← 返回',
+  changedHeading: '改过',
+  readHeading: '读过',
+  notShown: (n, key) => `… 还有 ${grouped(n)} 字未显示 · ${key}: 复制`,
   changed: names => `改 ${names}`,
   readFiles: n => `读 ${n}`,
   tokensOut: tokens => `输出 ${tokens}`,
