@@ -392,9 +392,9 @@ MAP_TURNS = 30
 
 
 def bar_cells(t, rows, p):
-    """The Minimap's cells under the tab rule: (column, block, dim), with the
+    """The Minimap's cells under the search row: (column, block, dim), with the
     row they are on; the row is the one under the tab rule, made of blocks."""
-    y = p.filter_row + 2
+    y = p.filter_row + 2 + (1 if p.search is not None else 0)
     styles = t.styles()
     cells = []
     for x, char in v._cells(rows[y]):

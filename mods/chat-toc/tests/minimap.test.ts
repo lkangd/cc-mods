@@ -33,7 +33,7 @@ test('a cell per group sits between the filter row and the entries, as tall as i
   const pane = await mountPane($)
 
   const all = drawnButtons(await pane.drawn()).map(b => String(b.key))
-  expect(all.slice(0, 7)).toEqual(['f-all', 'f-user', 'f-agent', 'm.0', 'm.1', 'm.2', 'm.3'])
+  expect(all.slice(0, 8)).toEqual(['f-all', 'f-user', 'f-agent', 'find', 'm.0', 'm.1', 'm.2', 'm.3'])
   expect((await cells(pane)).map(b => b.label)).toEqual(['▁', '▃', '▅', '█'])
 })
 
@@ -87,16 +87,16 @@ test('with rows for the list to keep eight, the Minimap is drawn; with fewer, it
   const { t } = session()
   await start($, host(on, t.jsonl()))
 
-  /* The head and the footer take four rows, the preview 7 of the 18
-     left, the Minimap three. */
-  expect((await cells(await mountPane($, 22))).length).toBe(4)
+  /* The head, the search row and the footer take five rows, the preview
+     7 of the 18 left, the Minimap three. */
+  expect((await cells(await mountPane($, 23))).length).toBe(4)
 })
 
 test('with one row fewer the list keeps its rows and the Minimap goes', async ($, on) => {
   const { t } = session()
   await start($, host(on, t.jsonl()))
 
-  expect(await cells(await mountPane($, 21))).toEqual([])
+  expect(await cells(await mountPane($, 22))).toEqual([])
 })
 
 test('past the cells the width holds, a cell stands for several groups, the first cell the first group', async ($, on) => {
@@ -131,7 +131,7 @@ test('a filter that hides every entry does not say the session is empty while th
   t.localCommand('tui', '')
   t.localCommand('help', '')
   await start($, host(on, t.jsonl()))
-  const pane = await mountPane($, 22)
+  const pane = await mountPane($, 23)
 
   await pane.press({ key: 'f-agent' })
 

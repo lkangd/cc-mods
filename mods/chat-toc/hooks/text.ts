@@ -90,6 +90,14 @@ const EN = {
   seconds: (s: number) => `${s}s`,
   minutes: (m: number, s: number) => (s === 0 ? `${m}m` : `${m}m ${s}s`),
   hours: (h: number, m: number) => (m === 0 ? `${h}h` : `${h}h ${m}m`),
+  find: 'Find',
+  searchPlaceholder: 'words or a file path',
+  searchSubmit: 'jump',
+  matchCount: (matches: number, of: number) => `${matches} of ${of}`,
+  noMatch: 'No turns match',
+  matched: (fields: readonly ('user' | 'agent' | 'files')[]) =>
+    `matched: ${fields.map(f => (f === 'user' ? 'User' : f === 'agent' ? 'Agent' : 'files')).join(' · ')}`,
+  readNamed: (names: string) => `read ${names}`,
 }
 
 export type Text = typeof EN
@@ -152,6 +160,13 @@ const ZH: Text = {
   seconds: s => `${s} 秒`,
   minutes: (m, s) => (s === 0 ? `${m} 分` : `${m} 分 ${s} 秒`),
   hours: (h, m) => (m === 0 ? `${h} 小时` : `${h} 小时 ${m} 分`),
+  find: '搜索',
+  searchPlaceholder: '词或文件路径',
+  searchSubmit: '跳转',
+  matchCount: (matches, of) => `${matches} / ${of}`,
+  noMatch: '没有匹配的轮次',
+  matched: fields => `匹配：${fields.map(f => (f === 'user' ? '用户' : f === 'agent' ? 'Agent' : '文件')).join(' · ')}`,
+  readNamed: names => `读 ${names}`,
 }
 
 /* The words in use. Swapped in place, so a module holding it reads the

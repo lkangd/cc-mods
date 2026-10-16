@@ -6,6 +6,7 @@
      rewind.ts                                          what a rewind took, before the file says
      view.ts / entries.ts / cells.ts / window.ts        what the pane draws
      facts.ts / preview.ts                              the preview of one Turn group
+     search.ts                                          which groups a query matches
      pane.tsx / ring.ts                                 how it draws, the keyboard
      sites.ts / jump.ts                                 where a press scrolls
      position.ts                                        what the view is on
@@ -36,11 +37,13 @@ import {
 } from './jump'
 import type { Refused } from './jump'
 import { carriesHistory, hidesPane, isClosedByPerson, reopensOn } from './lifecycle'
-import { PANE_COLUMNS, PANE_ID, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
-import type { ExpandedView, PreviewView } from './pane'
+import { CLEAR_CONTROL, PANE_COLUMNS, PANE_ID, SEARCH_FIELD, SEARCH_ROWS, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
+import type { ExpandedView, PreviewView, SearchView } from './pane'
 import { PREVIEW_CONTROL, PREVIEW_KEY, expandedBody, filesLine, isPreviewShown, metaLine, previewBody, previewPlan } from './preview'
 import type { ExpandedBody, PathBase, PreviewBody } from './preview'
-import { LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
+import { FILTER_END, LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
+import { indexGroups, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
+import type { Match } from './search'
 import { derivedTranscriptPath } from './locate'
 import { languageOf, setLanguage, text as words } from './text'
 import type { BandCounts } from './text'
@@ -70,7 +73,7 @@ import {
   siteReport,
 } from './position'
 import type { JumpLock } from './position'
-import { entryOfGroup, entryTable, newEntryCache } from './table'
+import { entryOfGroup, entryTable, narrowedTable, newEntryCache } from './table'
 import type { EntryTable } from './table'
 import { scrolledTop, topOfDrawing, topRevealing, windowOf } from './window'
 import type { SwitchAnchor, TocWindow } from './window'
@@ -82,6 +85,9 @@ const isCarriedOver = atom({ plugin: 'chat-toc', key: 'isCarriedOver' } as const
 const isPaneHidden = atom({ plugin: 'chat-toc', key: 'isPaneHidden' } as const, false)
 const currentPosition = atom({ plugin: 'chat-toc', key: 'currentPosition' } as const, null as number | null)
 const compactedAt = atom({ plugin: 'chat-toc', key: 'compactedAt' } as const, null as string | null)
+/* The search field's text: conversation text, so `$.state` only, never
+   `$.store`; it lasts the process, across closing the pane. */
+const query = atom({ plugin: 'chat-toc', key: 'query' } as const, '')
 
 type SourceState = 'unknown' | 'missing' | 'ok' | 'failed'
 
@@ -149,8 +155,10 @@ let lastDrawing: Drawing = { entries: [], keys: [], indexOf: new Map(), heights:
    as its moves and chat-toc's own sends left it. */
 let ring: string | undefined
 let isPaneFocused = false
-/* The first control the last drawing put after the entries. */
+/* The first control the last drawing put after the entries, and the last
+   one before them. */
 let afterList = LAYOUT_CONTROL
+let beforeList = FILTER_END
 /* An entry the ring goes to once a drawing shows it: after a switch, or
    after the window moved to bring the next entry in. That drawing sends
    it, and sends it again a few times while the host refuses it (its new
@@ -234,6 +242,30 @@ let contextPercent: number | undefined
    compactions' rules laid on, kept while neither changes. */
 let entryCache = newEntryCache()
 let ruled: { table: EntryTable; compactions: readonly Compaction[]; listed: Listed } | undefined
+
+/* Each group's searchable text (search.ts), built as reads regroup; the
+   matches of the query last drawn; the list narrowed to them; the query
+   the last drawing showed. */
+const searchIndex = newSearchIndex()
+type Searched = { groups: readonly TurnGroup[]; words: string; filter: ViewFilter; isRunning: boolean; matches: Match[]; groupsMatched: number[] }
+let searched: Searched | undefined
+let narrowed: { table: EntryTable; matches: readonly number[]; narrowed: EntryTable } | undefined
+let queryDrawn = ''
+
+function matchesNow(groups: readonly TurnGroup[], words: readonly string[], isRunning: boolean): Searched {
+  const key = words.join(' ')
+  const was = searched
+  if (was !== undefined && was.groups === groups && was.words === key && was.filter === filter && was.isRunning === isRunning) return was
+  const matches = matchesOf(searchIndex, groups, words, filter, isRunning)
+  searched = { groups, words: key, filter, isRunning, matches, groupsMatched: matches.map(m => m.group) }
+  return searched
+}
+
+function narrowedTo(table: EntryTable, matches: readonly number[]): EntryTable {
+  if (narrowed?.table === table && narrowed.matches === matches) return narrowed.narrowed
+  narrowed = { table, matches, narrowed: narrowedTable(table, matches) }
+  return narrowed.narrowed
+}
 
 function listedWithRules(table: EntryTable): Listed {
   if (ruled?.table === table && ruled.compactions === compactions) return ruled.listed
@@ -464,6 +496,7 @@ async function load($: EngineInterface): Promise<void> {
     }
     for (const lines of got.chunks.lines) readLines(reading, lines)
     countUnreadable(reading, got.chunks.overlong)
+    indexGroups(searchIndex, reading.groups)
     resolveSites(sites, chainRows, syncRows(chainRows, reading.chain))
     noteCompactions()
     cursor = at
@@ -718,6 +751,38 @@ async function togglePreview($: EngineInterface): Promise<void> {
   await $.store.set(PREVIEW_KEY, isPreviewOn ? 'shown' : 'hidden').catch(() => undefined)
 }
 
+/* `f`: the keys into the search field. The host does not raise this
+   plugin's own move to its `ui.focus` hook, so the ring is noted here. */
+async function focusSearch($: EngineInterface): Promise<void> {
+  const moved = await $.ui.focus({ requestId: PANE_ID, key: SEARCH_FIELD }).catch((error: unknown) => ({ deny: String(error) }))
+  if (moved.deny === undefined) ring = SEARCH_FIELD
+}
+
+function setQuery($: EngineInterface, value: string): Promise<void> {
+  return update($, query, () => value).then(
+    () => undefined,
+    () => undefined,
+  )
+}
+
+/* Enter in the field: the search ends (the host empties the field) and,
+   when a group matches, the transcript jumps to the match nearest the
+   Current position, on the side the View filter shows. The host moves the
+   transcript only within the person's own submit: the Input's handler
+   hands this promise back, and the scroll goes before anything else is
+   written. */
+async function submitSearch($: EngineInterface, value: string): Promise<void> {
+  const groups = shownGroups()
+  const words = queryWords(value)
+  const found = words.length === 0 ? [] : matchesOf(searchIndex, groups, words, filter, isTurnRunning && groups === reading.groups).map(m => m.group)
+  const target = nearestMatch(found, (await read($, currentPosition)) ?? undefined)
+  if (target !== undefined) {
+    const side = filter === 'agent' ? 'agent' : 'user'
+    await jump($, { groupIndex: target, side, key: `g${target}.${side === 'agent' ? 'a' : 'u'}` })
+  }
+  await setQuery($, '')
+}
+
 /* The working directory and home the preview's paths are shown against. */
 async function learnPaths($: EngineInterface, cwd: string): Promise<void> {
   const home = await $.env.get('HOME').catch(() => undefined)
@@ -779,21 +844,31 @@ function sendRing($: EngineInterface, key: string, left = RING_RETRIES): void {
 
 /* The preview drawn last, kept while its group and the room are the same:
    a long reply is folded once, not at every redraw. */
-let previewMemo: { group: TurnGroup; isRunning: boolean; width: number; rows: number; year: number; base: PathBase; body: PreviewBody } | undefined
+let previewMemo:
+  | { group: TurnGroup; isRunning: boolean; width: number; rows: number; year: number; base: PathBase; match: Match | undefined; body: PreviewBody }
+  | undefined
 
 /* The group the preview shows: the selected entry's while the pane holds
-   the keys, else the Current position's, else the newest. */
-function previewGroup(groups: readonly TurnGroup[], position: number | undefined): number {
+   the keys, else the Current position's, else the newest. While a query is
+   set (`matches`, its groups), the selected match, else the match nearest
+   the Current position, else the newest; none with no match. */
+function previewGroup(groups: readonly TurnGroup[], position: number | undefined, matches: readonly number[] | undefined): number | undefined {
   const selected = isPaneFocused ? groupOfKey(ring) : undefined
-  if (selected !== undefined && selected < groups.length) return selected
+  if (selected !== undefined && selected < groups.length && (matches === undefined || matches.includes(selected))) return selected
+  if (matches !== undefined) return nearestMatch(matches, position)
   if (position !== undefined && position < groups.length) return position
   return groups.length - 1
 }
+
+/* A match's fields as the meta line ends with them. */
+const matchedWords = (match: Match) =>
+  words.matched([...(match.user ? ['user' as const] : []), ...(match.agent ? ['agent' as const] : []), ...(match.files ? ['files' as const] : [])])
 
 function previewOf(
   groups: readonly TurnGroup[],
   plan: { preview: number; state: 'shown' | 'hidden' | 'noRoom' | 'none' },
   position: number | undefined,
+  search: Searched | undefined,
   isRunningNow: boolean,
   width: number,
   nowMs: number,
@@ -801,26 +876,35 @@ function previewOf(
   onMore: (opener: string) => Promise<void>,
 ): PreviewView {
   const state = plan.state === 'none' ? 'hidden' : plan.state
-  const at = previewGroup(groups, position)
-  const group = groups[at]
+  const at = previewGroup(groups, position, search?.groupsMatched)
+  const group = at === undefined ? undefined : groups[at]
+  const match = at === undefined ? undefined : search?.matches.find(m => m.group === at)
   const isRunning = isRunningNow && at === groups.length - 1
   const year = new Date(nowMs).getFullYear()
   const memo = previewMemo
-  const isSame = memo !== undefined && memo.group === group && memo.isRunning === isRunning && memo.width === width && memo.rows === plan.preview && memo.year === year && memo.base === pathBase
+  const isSame =
+    memo !== undefined &&
+    memo.group === group &&
+    memo.isRunning === isRunning &&
+    memo.width === width &&
+    memo.rows === plan.preview &&
+    memo.year === year &&
+    memo.base === pathBase &&
+    memo.match === match
   const body =
     state !== 'shown' || group === undefined
       ? undefined
       : isSame
         ? memo.body
         : previewBody({
-            meta: metaLine(group, isRunning, nowMs, width),
+            meta: metaLine(group, isRunning, nowMs, width, match === undefined ? undefined : matchedWords(match)),
             input: group.facts.input,
             agent: isRunning ? group.facts.latestText : group.facts.lastText,
-            files: filesLine(group.facts, pathBase, width),
+            files: filesLine(group.facts, pathBase, width, match?.paths),
             rows: plan.preview,
             width,
           })
-  if (body !== undefined && group !== undefined) previewMemo = { group, isRunning, width, rows: plan.preview, year, base: pathBase, body }
+  if (body !== undefined && group !== undefined) previewMemo = { group, isRunning, width, rows: plan.preview, year, base: pathBase, match, body }
   return { state, rows: plan.preview, body, onToggle, onMore: () => (group === undefined ? Promise.resolve() : onMore(group.openerUuid)) }
 }
 
@@ -1002,7 +1086,7 @@ export const register: Register = on => {
       return result
     }
     const drawn = lastDrawing
-    const move = e.origin.kind === 'person' ? ringMove(drawn.keys, drawn.indexOf, drawn.window, ring, e.element, afterList) : { kind: 'accept' as const }
+    const move = e.origin.kind === 'person' ? ringMove(drawn.keys, drawn.indexOf, drawn.window, ring, e.element, afterList, beforeList) : { kind: 'accept' as const }
     if (move.kind === 'reveal') {
       const key = drawn.keys[move.index]
       if (key === undefined) return next(e)
@@ -1042,6 +1126,7 @@ export const register: Register = on => {
     await read($, rev)
     const position = (await read($, currentPosition)) ?? undefined
     const isCarried = await read($, isCarriedOver)
+    const searchText = await read($, query)
     /* Drawn: whatever waited is seated. A drawing writes nothing, so after. */
     if (await read($, isPaneHidden)) $.clock.after(0, () => void update($, isPaneHidden, () => false).catch(() => undefined))
     const nowMs = await $.clock.now()
@@ -1066,16 +1151,34 @@ export const register: Register = on => {
     const width = e.props.bodyColumns
     const wasTable = entryCache.table
     const groups = shownGroups()
-    const table = isOk ? entryTable(entryCache, groups, { layout, filter, width, nowMs, isRunning: isTurnRunning && groups === reading.groups }) : NO_ENTRIES
+    const isRunningNow = isTurnRunning && groups === reading.groups
+    const whole = isOk ? entryTable(entryCache, groups, { layout, filter, width, nowMs, isRunning: isRunningNow }) : NO_ENTRIES
+    /* A query narrows the list to its matches; the rules go between them. */
+    const searchWords = queryWords(searchText)
+    const search = isOk && searchWords.length > 0 ? matchesNow(groups, searchWords, isRunningNow) : undefined
+    const table = search === undefined ? whole : narrowedTo(whole, search.groupsMatched)
+    /* A new query shows the match nearest the Current position, held or
+       not: the list it was on is gone. */
+    const isQueryNew = searchText !== queryDrawn
+    queryDrawn = searchText
+    if (isQueryNew) top = undefined
     const listed = listedWithRules(table)
     const entries = dimRefused(listed.entries as Entry[], groups, refused)
     /* A resumed or forked session shows its history in the transcript
        before its own file is written; it is not without a conversation. */
     const missing = isCarried ? words.notWritten : words.empty
-    const notice = isUnlocated ? words.unlocated : source === 'missing' ? missing : isOk && groups.length === 0 ? words.empty : undefined
+    const notice = isUnlocated
+      ? words.unlocated
+      : source === 'missing'
+        ? missing
+        : isOk && groups.length === 0
+          ? words.empty
+          : search !== undefined && search.matches.length === 0
+            ? words.noMatch
+            : undefined
     const why = source === 'failed' ? failureText(failure) : isOk && reading.unreadable > 0 ? words.unreadable(reading.unreadable) : undefined
     const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
-    const headRows = HEAD_ROWS
+    const headRows = HEAD_ROWS + (e.surface === 'terminal' ? SEARCH_ROWS : 0)
     const hasForkLine = isOk && isEarlierElsewhere && groups.length > 0
     const listRows =
       e.props.scroll.bodyRows - headRows - FOOT_ROWS - (hasForkLine ? 1 : 0) - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
@@ -1090,9 +1193,13 @@ export const register: Register = on => {
     const kept = anchor
     anchor = undefined
     const anchorIndex = kept === undefined ? undefined : entryOfGroup(table, kept.group)
+    /* While a query is set the list follows the match nearest the Current
+       position. */
+    const followed = search === undefined ? position : nearestMatch(search.groupsMatched, position)
+    const lastShown = search === undefined ? groups.length - 1 : search.groupsMatched[search.groupsMatched.length - 1]
     const placed = topOfDrawing(drawnEntries, {
       top,
-      follow: isHeld ? undefined : { index: position === undefined ? undefined : entryOfGroup(table, position), isLast: position === groups.length - 1 },
+      follow: isHeld && !isQueryNew ? undefined : { index: followed === undefined ? undefined : entryOfGroup(table, followed), isLast: followed === lastShown },
       anchor: kept === undefined || anchorIndex === undefined ? undefined : { ...kept, index: anchorIndex },
     })
     top = placed.top
@@ -1100,6 +1207,7 @@ export const register: Register = on => {
     const window = windowOf(listed.heights, rows, top)
     lastDrawing = { ...drawnEntries, entries, window }
     afterList = plan.state === 'none' || e.surface !== 'terminal' ? LAYOUT_CONTROL : PREVIEW_CONTROL
+    beforeList = e.surface !== 'terminal' ? FILTER_END : searchText === '' ? SEARCH_FIELD : CLEAR_CONTROL
     /* The ring move owed to an entry goes once this drawing shows it, and
        once more from the drawing after, which the confirm timer asks for. */
     const ringTo = pendingShown(pendingRing, table.indexOf, window)
@@ -1116,11 +1224,24 @@ export const register: Register = on => {
     } else if (owed !== undefined && owed === ring && table.indexOf.has(owed)) {
       $.clock.after(0, () => sendRing($, owed))
     }
-    const isRunningNow = isTurnRunning && groups === reading.groups
-    const preview =
-      plan.state === 'none' ? undefined : previewOf(groups, plan, position, isRunningNow, width, nowMs, () => togglePreview($), opener => expandPreview($, opener))
+    const preview = plan.state === 'none' ? undefined : previewOf(groups, plan, position, search, isRunningNow, width, nowMs, () => togglePreview($), opener => expandPreview($, opener))
     const expanded = expandedOpener === undefined || e.surface !== 'terminal' ? undefined : expandedOf(groups, isRunningNow, width, nowMs, () => expandPreview($, undefined))
     if (expanded === undefined) expandedOpener = undefined
+    const searchView: SearchView = {
+      query: searchText,
+      count: search === undefined ? undefined : { matches: search.matches.length, of: groups.length },
+      onFind: () => focusSearch($),
+      onInput: value => void setQuery($, value),
+      onSubmit: value => submitSearch($, value).catch(() => undefined),
+      onClear: () => setQuery($, ''),
+    }
+    /* The Minimap lights the Current position's cell or, while a query is
+       set, the cells holding a match. */
+    const litBars = new Set<number>()
+    for (const g of search === undefined ? (position === undefined ? [] : [position]) : search.groupsMatched) {
+      const cell = barOfGroup(bars, g)
+      if (cell !== undefined) litBars.add(cell)
+    }
     const shared = {
       entries,
       window,
@@ -1143,10 +1264,11 @@ export const register: Register = on => {
             ...shared,
             bodyRows: e.props.scroll.bodyRows,
             bars,
-            litBar: barOfGroup(bars, position),
+            litBars,
             barLabels: barLabels(stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs), width),
             preview,
             expanded,
+            search: searchView,
             onBar: (cell: number) => {
               const bar = bars[cell]
               return bar === undefined ? Promise.resolve() : jump($, { groupIndex: barTarget(bar, isOff), side: 'user', key: barKey(cell) })

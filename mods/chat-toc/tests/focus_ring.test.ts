@@ -129,12 +129,12 @@ test('down past the window scrolls it one entry and puts the ring there', async 
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
-  /* The head, three 1-line prompts with their gaps, the preview's one
-     line (no room for more), the footer. */
-  const pane = await mountPane($, 11)
+  /* The head, the search row, three 1-line prompts with their gaps, the
+     preview's one line (no room for more), the footer. */
+  const pane = await mountPane($, 12)
   const prompts = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN'))
 
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 11, contentRows: 11, origin: { kind: 'person' } } as never)
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 12, contentRows: 12, origin: { kind: 'person' } } as never)
   expect(await prompts()).toEqual(['CT-SYN prompt 3', 'CT-SYN prompt 4', 'CT-SYN prompt 5'])
 
   await arrow($, 'g5.u')
@@ -147,9 +147,9 @@ test('down past the window scrolls it one entry and puts the ring there', async 
   expect(await prompts()).toEqual(['CT-SYN prompt 4', 'CT-SYN prompt 5', 'CT-SYN prompt 6'])
   expect(world.focuses.map(f => f.element)).toEqual(['g5.u'])
 
-  /* Up past the top scrolls back. */
+  /* Up past the top, onto the search field, scrolls back. */
   await arrow($, 'g4.u')
-  expect((await arrow($, 'f-agent')).deny).toBeDefined()
+  expect((await arrow($, 'search')).deny).toBeDefined()
   await world.clock.advance(1)
   expect(await prompts()).toEqual(['CT-SYN prompt 3', 'CT-SYN prompt 4', 'CT-SYN prompt 5'])
 })
@@ -196,9 +196,9 @@ test('switching the Layout of a scrolled window keeps its top group at the top',
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await mountPane($, 10)
+  const pane = await mountPane($, 11)
 
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 11, contentRows: 11, origin: { kind: 'person' } } as never)
   await pane.press({ key: 'layout' })
 
   expect((await entryTexts(pane))[0]).toBe('CT-SYN prompt 3')

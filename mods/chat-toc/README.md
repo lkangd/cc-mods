@@ -27,7 +27,7 @@ mods/chat-toc/
 │   ├── source.ts                whole read up to 4 MiB, 4,000,000 B chunks past it (sh dd+head / Windows PowerShell 5.1)
 │   ├── reader.ts                the gate: 300 ms trailing, reads merged while one runs
 │   ├── entries.ts               entries for the three Layouts and the View filter, day rules, time format, the Agent side's state words
-│   ├── table.ts                 the entry table: entries cached per group, rebuilt only when the data, width, filter or Layout change; group-to-entry lookup
+│   ├── table.ts                 the entry table: entries cached per group, rebuilt only when the data, width, filter or Layout change; group-to-entry lookup; the table narrowed to a query's matches
 │   ├── cells.ts                 terminal cell widths and folding (no closing punctuation at a line's start, English words kept whole)
 │   ├── window.ts                the Pane's own visible window
 │   ├── bars.ts                  the terminal Minimap: a one-cell Button per Turn group, blocks by steps, buckets past the width, the press target, the hide rule
@@ -41,7 +41,8 @@ mods/chat-toc/
 │   ├── locate.ts                works out the transcript path when enabled mid-session (the host's project folder naming)
 │   ├── rewind.ts                after a rewind, lines the host's messages up with the file to find the groups no longer held
 │   ├── preview.ts               the preview's words (meta line, files line), its size against the rows (and what gives way first), what of a group fits
-│   ├── pane.tsx                 the terminal Pane (filter row and tab rule, entries on the time rail, the preview region, footer)
+│   ├── search.ts                search: each group's NFKC lower-cased fields indexed at regroup, the matcher (words AND, the View filter's fields), the match nearest a position
+│   ├── pane.tsx                 the terminal Pane (filter row and tab rule, the search row, entries on the time rail, the preview region, footer)
 │   ├── desktop.tsx              the Pane on Desktop / VS Code / mobile (another tree, split on e.surface)
 │   └── minimap.ts               the SVG strip of steps per turn over the desktop list
 └── tests/
@@ -122,7 +123,8 @@ Every start is in a temporary HOME and `CLAUDE_CONFIG_DIR`: onboarding done, the
 | CT-LIFE-007 | `$PY mods/chat-toc/tests/acceptance/ct_mid_session.py --host 2.1.287 --host current [--scenario cli\|ui]` (installs from a folder marketplace set up in the run folder, disabled first, then enabled mid-session from the CLI and from the `/plugin` screen) |
 | CT-LIFE-003, 004, 005, 008, CT-DATA-006 | `$PY mods/chat-toc/tests/acceptance/chain_scenarios.py --host 2.1.287 [--only life-003,...]` |
 | CT-PREV-001 (the preview region) | `$PY mods/chat-toc/tests/acceptance/ct_preview.py --host 2.1.287 [--host current] [--only which,facts,cut,toggle,short,widths]` |
-| CT-CMPCT-001, CT-CTX-001, CT-LIFE-003 (live `/compact`) | `$PY mods/chat-toc/tests/acceptance/ct_compaction.py --host 2.1.287 [--only fixture,fork,live]` (`live` runs against `fake_api.py` on 127.0.0.1 stating chosen `usage` figures; no model call) |
+| CT-FIND-001, CT-FIND-002 (search) | `$PY mods/chat-toc/tests/acceptance/ct_search.py --host 2.1.287 [--host current] [--only narrow,filter,live,widths,keys,entry,keep,minimap]` (`widths` also runs in English; `keep` makes a temporary project a repository with a change, so `/diff` opens) |
+| CT-CMPCT-001 (a query's part too), CT-CTX-001, CT-LIFE-003 (live `/compact`) | `$PY mods/chat-toc/tests/acceptance/ct_compaction.py --host 2.1.287 [--only fixture,fork,live]` (`live` runs against `fake_api.py` on 127.0.0.1 stating chosen `usage` figures; no model call) |
 | CT-JUMP-001–003, 005, CT-UI-005 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003 005]` (005 also records CT-UI-005: the notice line's inverse and foreground read about every 30 ms) |
 | CT-POS-001–003, CT-COEX-001, CT-LIFE-006, CT-MAP-001 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6 map1]` (coex runs `git init` on a repository with changes in a temporary project, so `/diff` opens) |
 | CT-PERF-001 (20 MiB many/heavy, 3 runs each) | `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py run 2.1.287 many --runs 3` (then `heavy`, `current`); the release report's table: `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py table <run folder>...`. The Current position and the entry table under 3000 stale on-screen records are measured in `tests/long_session.test.ts` (`claude plugin test` prints `CT-PERF` lines) |
@@ -133,7 +135,7 @@ Every start is in a temporary HOME and `CLAUDE_CONFIG_DIR`: onboarding done, the
 
 CT-TURN-004's in-progress state (`进行中 · N 步`) needs a turn actually running: `gate_scenarios.py`'s `turn-004-live` uses `fake_api.py` (a local stand-in for the Messages API that answers from a script; `ANTHROPIC_BASE_URL` points at it) to run two Read steps and finish, with no model call. The fixture generator `transcript_fixture.py` has four kinds, with fixed seeds: `forms` (every row shape the spec names), `turns`, `many` (20 MiB, about 4500 turns), `heavy` (20 MiB, about 108 turns with large tool results).
 
-The PTY worlds check the Chinese words (see Language). The English words are covered by `tests/language.test.ts` only; no PTY scenario runs in English yet.
+The PTY worlds check the Chinese words (see Language). The English words are covered by `tests/language.test.ts`; in the PTY only `ct_search.py widths` runs in English.
 
 **cmux**. The scenario scripts use pyte by default (headless, sized at will, colours readable). To watch a run in cmux, `pty_harness.py smoke --terminal cmux` opens a `--focus false` split in the current workspace and closes it at the end; it only touches the split it opened. Note:
 
