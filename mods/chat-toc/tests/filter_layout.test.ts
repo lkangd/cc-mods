@@ -71,6 +71,9 @@ test('the filter row shows the three filters by name, the chosen one at full str
     ['f-agent', '3', true],
     ['find', 'f', true],
     ['preview', 'p', true],
+    ['preview.reuse', 'r', true],
+    ['preview.copy.user', 'c', true],
+    ['preview.copy.agent', 'a', true],
     ['layout', 'l', true],
   ])
 })

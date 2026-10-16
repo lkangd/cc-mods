@@ -16,7 +16,7 @@ export const FIRST_CONTROL = 'f-all'
 export const FILTER_END = 'f-agent'
 export const LAYOUT_CONTROL = 'layout'
 /* The controls after the entries. */
-const AFTER_LIST = new Set([LAYOUT_CONTROL, 'preview', 'preview.more'])
+const AFTER_LIST = new Set([LAYOUT_CONTROL, 'preview', 'preview.reuse', 'preview.copy.user', 'preview.copy.agent', 'preview.more'])
 const isAfterList = (key: string | undefined) => key !== undefined && AFTER_LIST.has(key)
 
 export type RingMove =
