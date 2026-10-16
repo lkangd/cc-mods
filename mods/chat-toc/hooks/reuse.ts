@@ -37,8 +37,8 @@ export type Reusable = {
 
 export function reusableOf(group: TurnGroup, isRunning: boolean): Reusable {
   const { input, hasImages, lastText } = group.facts
-  const isImageOnly = group.kind === 'prompt' && hasImages && input === words.imageOnly
-  const typed = input === '' || isImageOnly ? undefined : input
+  /* An input of only images is empty: nothing to fill or copy. */
+  const typed = input === '' ? undefined : input
   return {
     fill: group.kind === 'shell' ? undefined : typed,
     input: typed,

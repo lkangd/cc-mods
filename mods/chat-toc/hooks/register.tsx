@@ -41,7 +41,7 @@ import type { Refused } from './jump'
 import { carriesHistory, hidesPane, isClosedByPerson, reopensOn } from './lifecycle'
 import { CLEAR_CONTROL, PANE_COLUMNS, PANE_ID, SEARCH_FIELD, SEARCH_ROWS, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
 import type { ExpandedView, LabelActions, PreviewView, SearchView } from './pane'
-import { PREVIEW_CONTROL, PREVIEW_KEY, expandedBody, filesLine, isPreviewShown, metaLine, previewBody, previewPlan } from './preview'
+import { PREVIEW_CONTROL, PREVIEW_KEY, expandedBody, filesLine, isPreviewShown, metaLine, previewBody, previewPlan, typedInput } from './preview'
 import type { ExpandedBody, PathBase, PreviewBody } from './preview'
 import { FILTER_END, LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
 import { COPIED_MS, fillOf, fillRefusedText, hasReuse, reusableOf } from './reuse'
@@ -1076,7 +1076,7 @@ function previewOf(
         ? memo.body
         : previewBody({
             meta: metaLine(group, isRunning, nowMs, width, match === undefined ? undefined : matchedWords(match)),
-            input: group.facts.input,
+            input: typedInput(group.facts),
             agent: isRunning ? group.facts.latestText : group.facts.lastText,
             files: filesLine(group.facts, pathBase, width, match?.paths),
             rows: plan.preview,
@@ -1132,7 +1132,7 @@ function expandedOf(
       ? memo.body
       : expandedBody({
           meta: metaLine(group, isRunning, nowMs, width),
-          input: group.facts.input,
+          input: typedInput(group.facts),
           agent: isRunning ? group.facts.latestText : group.facts.lastText,
           files: group.facts,
           base: pathBase,

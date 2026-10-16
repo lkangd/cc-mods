@@ -3,6 +3,7 @@ import { tocModel } from '../hooks/model'
 import { newReading, readLines } from '../hooks/regroup'
 import { indexGroups, matchesOf, nearestMatch, newSearchIndex, queryWords } from '../hooks/search'
 import { transcript } from './fixture'
+import { setLanguage } from '../hooks/text'
 
 /* Search's index and matcher (spec §2): the words of a query, which groups
    hold every one of them, and in which fields. */
@@ -111,5 +112,17 @@ test('the index is built at regroup for the groups a read changed only, and agre
       const words = queryWords(query)
       expect(matchesOf(index, reading.groups, words, filter, false)).toEqual(matchesOf(newSearchIndex(), whole, words, filter, false))
     }
+  }
+})
+
+test("an input of only images holds no words: the words that say so are not searched, in either language", () => {
+  const t = transcript()
+  const image = { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'AAAA' } }
+  t.prompt('', { message: { role: 'user', content: [image] } })
+  t.reply([{ type: 'text', text: 'CT-SYN a picture' }])
+  for (const language of ['en', 'zh'] as const) {
+    setLanguage(language)
+    expect(matched(t.jsonl(), 'image only')).toEqual([])
+    expect(matched(t.jsonl(), '只有图片')).toEqual([])
   }
 })
