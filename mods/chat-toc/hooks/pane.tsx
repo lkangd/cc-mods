@@ -43,6 +43,57 @@ const FILTER_GAP = 3
 export const HEAD_ROWS = 2
 /* The footer's rows: a rule, then the count or the pause and the Layout Button. */
 export const FOOT_ROWS = 2
+/* The search row under the tab rule, always drawn. */
+export const SEARCH_ROWS = 1
+
+/* The search row's controls: the `f` Button, the field, the clear mark. */
+export const FIND_CONTROL = 'find'
+export const SEARCH_FIELD = 'search'
+export const CLEAR_CONTROL = 'search.clear'
+export const FIND_HOTKEY = 'f'
+
+/* The search row: the `f` Button moving the keys into the field, the field
+   holding the query, and while there is a query the count of matches
+   among all groups and the ✕ that clears it. */
+export type SearchView = {
+  query: string
+  /* Undefined without a query. */
+  count: { matches: number; of: number } | undefined
+  onFind: () => Promise<void>
+  onInput: (value: string) => void
+  onSubmit: (value: string) => void
+  onClear: () => Promise<void>
+}
+
+function drawSearch(elements: ElementTable<'terminal'>, search: SearchView): RenderElement {
+  const { Box, Text, Button, Input } = elements
+  const hasQuery = search.query !== ''
+  return (
+    <Box flexDirection="row">
+      <Button key={FIND_CONTROL} plain hotkey={FIND_HOTKEY} onPress={() => search.onFind()}>
+        {words.find}
+      </Button>
+      <Text> </Text>
+      <Box flexGrow={1} flexShrink={1}>
+        <Input
+          key={SEARCH_FIELD}
+          placeholder={words.searchPlaceholder}
+          value={search.query}
+          submitLabel={words.searchSubmit}
+          onInput={(value: string) => search.onInput(value)}
+          onSubmit={(value: string) => search.onSubmit(value)}
+        />
+      </Box>
+      {search.count === undefined ? null : <Text dimColor>{' ' + words.matchCount(search.count.matches, search.count.of)}</Text>}
+      {hasQuery ? <Text> </Text> : null}
+      {hasQuery ? (
+        <Button key={CLEAR_CONTROL} plain dimColor onPress={() => search.onClear()}>
+          ✕
+        </Button>
+      ) : null}
+    </Box>
+  )
+}
 
 /* The tab rule under the filter row, as runs: heavy under the chosen
    filter's Button, thin elsewhere, across the body's width. */
@@ -112,7 +163,15 @@ function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: 
     </Box>
   )
   const body = preview.state === 'shown' ? preview.body : undefined
-  if (body === undefined) return <Box flexDirection="column">{rule}</Box>
+  /* Shown with nothing to show (no match): the region keeps its rows. */
+  const empty = preview.state === 'shown' && preview.rows > 1 ? <Box height={preview.rows - 1} /> : null
+  if (body === undefined)
+    return (
+      <Box flexDirection="column">
+        {rule}
+        {empty}
+      </Box>
+    )
   const agent = body.agent
   return (
     <Box flexDirection="column">
@@ -188,19 +247,20 @@ export type PaneView = {
   bodyRows: number
   /* The Minimap's cells; none draws no Minimap. */
   bars: readonly Bar[]
-  /* The cell holding the Current position; undefined lights none. */
-  litBar: number | undefined
+  /* The cells drawn lit: the Current position's, or a query's matches. */
+  litBars: ReadonlySet<number>
   /* The times under the cells, and the spaces between them. */
   barLabels: { left: string; right: string; gap: number }
   /* The preview region; undefined draws none. */
   preview: PreviewView | undefined
+  search: SearchView
   onBar: (cell: number) => Promise<void>
   onPress: (entry: Entry) => Promise<void>
   onFilter: (filter: ViewFilter) => Promise<void>
   onLayout: () => Promise<void>
 }
 
-export function drawPane(elements: ElementTable, view: PaneView): RenderElement {
+export function drawPane(elements: ElementTable<'terminal'>, view: PaneView): RenderElement {
   const { Box, Text, Button } = elements
   const filters = (
     <Box flexDirection="row" columnGap={FILTER_GAP}>
@@ -239,7 +299,7 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
     <Box flexDirection="column">
       <Box flexDirection="row">
         {view.bars.map((bar, cell) => (
-          <Button key={barKey(cell)} plain dimColor={cell !== view.litBar} onPress={() => view.onBar(cell)}>
+          <Button key={barKey(cell)} plain dimColor={!view.litBars.has(cell)} onPress={() => view.onBar(cell)}>
             {bar.glyph}
           </Button>
         ))}
@@ -337,11 +397,12 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
   )
   const whyLines = view.why === undefined ? 0 : view.why.split('\n').length
   const previewRows = view.preview?.rows ?? 0
-  const used = HEAD_ROWS + (hasBars ? BAR_ROWS : 0) + (view.isEarlierElsewhere ? 1 : 0) + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + previewRows + FOOT_ROWS
+  const used = HEAD_ROWS + SEARCH_ROWS + (hasBars ? BAR_ROWS : 0) + (view.isEarlierElsewhere ? 1 : 0) + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + previewRows + FOOT_ROWS
   const spare = Math.max(0, view.bodyRows - used)
   return (
     <Box flexDirection="column">
       {head}
+      {drawSearch(elements, view.search)}
       {barRows}
       {view.isEarlierElsewhere ? <Text dimColor>{words.earlierElsewhere}</Text> : null}
       {view.notice === undefined ? null : <Text dimColor>{view.notice}</Text>}

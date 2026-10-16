@@ -90,8 +90,9 @@ export function tokensText(n: number): string {
    when not finished, the steps (none left out), the duration and the output
    tokens; whatever the file does not state is left out. It is one row: the
    fields that do not fit the width are left out from the end, whole, so no
-   figure is ever cut. */
-export function metaLine(group: TurnGroup, isRunning: boolean, nowMs: number, width = Number.POSITIVE_INFINITY): string {
+   figure is ever cut. While a query is set, `matched` (the fields that
+   matched, in words) ends it, and the fields before it give way first. */
+export function metaLine(group: TurnGroup, isRunning: boolean, nowMs: number, width = Number.POSITIVE_INFINITY, matched?: string): string {
   const day = dayLabel(group.timestamp, nowMs, false)
   const when = [day, clockTime(group.timestamp)].filter(Boolean).join(' ')
   const { durationMs, outputTokens } = group.facts
@@ -102,8 +103,11 @@ export function metaLine(group: TurnGroup, isRunning: boolean, nowMs: number, wi
     durationMs === undefined ? '' : durationText(durationMs),
     outputTokens === undefined ? '' : words.tokensOut(tokensText(outputTokens)),
   ].filter(Boolean)
-  while (fields.length > 1 && textCells(fields.join(' · ')) > width) fields.pop()
-  return fields.join(' · ')
+  const end = matched === undefined ? [] : [matched]
+  const lineOf = () => [...fields, ...end].join(' · ')
+  while (fields.length > 1 && textCells(lineOf()) > width) fields.pop()
+  if (end.length > 0 && textCells(lineOf()) > width) end.pop()
+  return lineOf()
 }
 
 export type PathBase = { cwd: string | undefined; home: string | undefined }
@@ -119,12 +123,27 @@ export function shownPath(path: string, { cwd, home }: PathBase): string {
   return path
 }
 
+/* `paths` with those in `first` (a query's matching paths) moved to the
+   front, the rest in order. */
+const firstOf = (paths: readonly string[], first: readonly string[]) =>
+  first.length === 0 ? paths : [...paths.filter(p => first.includes(p)), ...paths.filter(p => !first.includes(p))]
+
 /* The files line: the changed files that fit the width by name, the rest
-   counted, then how many were read; undefined when the group touched none. */
-export function filesLine(files: { changed: readonly string[]; read: readonly string[] }, base: PathBase, width: number): string | undefined {
-  const read = files.read.length > 0 ? words.readFiles(files.read.length) : ''
-  if (files.changed.length === 0) return read || undefined
-  const names = files.changed.map(path => shownPath(path, base))
+   counted, then how many were read; undefined when the group touched none.
+   While a query is set, the paths in `first` go first: a matching changed
+   file leads the names, and a matching read file is named. */
+export function filesLine(
+  files: { changed: readonly string[]; read: readonly string[] },
+  base: PathBase,
+  width: number,
+  first: readonly string[] = [],
+): string | undefined {
+  const readFirst = files.read.filter(p => first.includes(p)).map(path => shownPath(path, base))
+  const readRest = files.read.length - readFirst.length
+  const read =
+    files.read.length === 0 ? '' : readFirst.length === 0 ? words.readFiles(files.read.length) : words.readNamed(readFirst.join(', ') + (readRest > 0 ? ` +${readRest}` : ''))
+  if (files.changed.length === 0) return read === '' ? undefined : textCells(read) <= width ? read : wrapCells(read, width, 1)[0]
+  const names = firstOf(files.changed, first).map(path => shownPath(path, base))
   const lineOf = (n: number) => {
     const rest = names.length - n
     const changed = words.changed(names.slice(0, n).join(', ') + (rest > 0 ? ` +${rest}` : ''))
