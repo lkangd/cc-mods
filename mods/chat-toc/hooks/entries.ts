@@ -195,6 +195,12 @@ export function dayRuleBefore(entries: readonly Entry[], i: number): string | un
   return entry.day
 }
 
+/* Whether a rule, the day's or a compaction's, is drawn above entry `i`:
+   the gap before it then breaks the rail. */
+export function isRuleBefore(entries: readonly Entry[], i: number): boolean {
+  return dayRuleBefore(entries, i) !== undefined || entries[i]?.compactionBefore !== undefined
+}
+
 /* The rows entry `i` takes: its day's rule, its compaction rules, its
    lines, the gap after it. */
 export function entryRows(entries: readonly Entry[], i: number): number {

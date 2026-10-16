@@ -18,13 +18,13 @@
 
 import type { ElementTable, RenderElement } from 'claude-code'
 import { textCells } from './cells'
-import { GUTTER, RUNNING_MARK, dayRuleBefore } from './entries'
+import { GUTTER, RUNNING_MARK, dayRuleBefore, isRuleBefore } from './entries'
 import type { Entry } from './entries'
 import type { CompactionRule } from './compactions'
 import { MINIMAP_HEIGHT, minimapOf } from './minimap'
 import type { StripLabels } from './minimap'
-import { SEARCH_FIELD, compactionLabel, expandedContent, previewContent } from './pane'
-import type { ExpandedView, PreviewView } from './pane'
+import { SEARCH_FIELD, compactionLabel, expandedContent, matchCount, previewContent } from './pane'
+import type { ExpandedView, PreviewView, SearchView } from './pane'
 import { BACK_CONTROL, MORE_CONTROL, PREVIEW_CONTROL } from './preview'
 import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
 import { FILTERS, filterLabel, layoutLabel, layoutName, layoutOf } from './view'
@@ -48,12 +48,7 @@ const WELL_ROWS = 2
 /* The search field under the segmented control: a native field whose
    submit (Enter, or its `show` button) keeps the text and puts the nearest
    match in the preview; while there is a query, the count of matches. */
-export type DesktopSearch = {
-  query: string
-  count: { matches: number; of: number } | undefined
-  onInput: (value: string) => void
-  onSubmit: (value: string) => Promise<void>
-}
+export type DesktopSearch = Pick<SearchView, 'query' | 'count' | 'onInput' | 'onSubmit'>
 
 export type DesktopView = {
   entries: readonly Entry[]
@@ -276,7 +271,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
             onSubmit={(value: string) => view.search.onSubmit(value)}
           />
         </Box>
-        {view.search.count === undefined ? null : <Text dimColor>{' ' + words.matchCount(view.search.count.matches, view.search.count.of)}</Text>}
+        {matchCount(elements, view.search.count)}
       </Box>
     ) : null
   const hasTime = view.layout !== 'card'
@@ -318,7 +313,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
     )
     const hasGap = entry.gapAfter && i < view.window.end - 1
     if (hasGap) {
-      if (dayRuleBefore(view.entries, i + 1) !== undefined || view.entries[i + 1]?.compactionBefore !== undefined) rows.push(<Text> </Text>)
+      if (isRuleBefore(view.entries, i + 1)) rows.push(<Text> </Text>)
       else {
         const gap = gapSvg(hasTime)
         rows.push(<Box flexDirection="row">{svg(gap.source, words.rail, gap.width, ROW_PX)}</Box>)
