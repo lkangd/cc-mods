@@ -4,6 +4,8 @@ import { PANE, drawnButtons, host, isEntryKey, start } from './host'
 import { ROW_PX } from '../hooks/desktop'
 import type { Builder } from './fixture'
 import { hasReuse } from '../hooks/reuse'
+import { expandedBody } from '../hooks/preview'
+import { setLanguage } from '../hooks/text'
 import { transcript } from './fixture'
 
 /* The pane on Claude Code Desktop (and the other remote surfaces), drawn
@@ -289,6 +291,19 @@ test('Reuse on the desktop waits for a host that shows fills: off on every known
   expect(hasReuse('desktop', '2.2.0', '2.1.300')).toBe(true)
   expect(hasReuse('desktop', '2.1.300-dev', '2.1.300')).toBe(true)
   expect(hasReuse('mobile', '2.2.0', '2.1.300')).toBe(false)
+})
+
+test('the expanded preview’s cap lines name no key on the desktop', () => {
+  setLanguage('zh')
+  const long = 'x'.repeat(70_000)
+  const base = { meta: 'm', input: long, agent: long, files: { changed: [], read: [] }, base: { cwd: undefined, home: undefined }, width: 40 }
+  const desktop = expandedBody({ ...base, hasHotkeys: false })
+  expect(desktop.user.cut).toBe('… 还有 40,000 字未显示 · 复制')
+  expect(desktop.agent?.cut).toBe('… 还有 40,000 字未显示 · 复制')
+  expect(expandedBody(base).user.cut).toBe('… 还有 40,000 字未显示 · c: 复制')
+  setLanguage('en')
+  expect(expandedBody({ ...base, hasHotkeys: false }).agent?.cut).toBe('… 40,000 more characters not shown · Copy')
+  setLanguage('zh')
 })
 
 const local = (iso: string) => {
