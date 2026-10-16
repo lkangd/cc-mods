@@ -414,6 +414,13 @@ _FOOTER_RULE = re.compile(r"^─{10,}$")
 # The preview's rule over the footer (0.2): shown or folded `─ p: 预览 ───`,
 # or `─ p: 预览（空间不足） ───` when the rows ran short.
 _PREVIEW_RULE = re.compile(r"^─ p: 预览(（空间不足）)? ─*$")
+# The search row under the tab rule (0.2): `f: 搜索`, the field (the query
+# or the dim placeholder; `⏎ 跳转` after it while it holds the keys), then
+# with a query the count `4 / 38` and the clear mark `✕`.
+_SEARCH_ROW = re.compile(r"^f: (?:搜索|Find)(?: (?P<rest>.*))?$")
+_SEARCH_COUNT = re.compile(r"\s*(\d+ (?:/|of) \d+)$")
+_SEARCH_SUBMIT = re.compile(r"\s*⏎ (?:跳转|jump)\s*")
+SEARCH_PLACEHOLDERS = ("词或文件路径", "words or a file path")
 _ASIDE = re.compile(r"^(.*?)\s+(\d\d:\d\d)$")
 _AGENT_HEAD = re.compile(r"^(?:(?:进行中|已中断|出错)(?: · \d+ 步)?|\d+ 步(?: · 无文字回复)?|无文字回复)")
 
@@ -497,6 +504,7 @@ class Pane:
     preview: list[str] | None = None   # the preview's rows, its rule first; None when not drawn
     rules: list[dict] = dataclasses.field(default_factory=list)   # compaction rules: text, before (entry index)
     fork_line: bool = False     # 「更早的轮次不在本会话的文件里」 above the list
+    search: dict | None = None  # the search row: text (the query, '' for the placeholder), count, clear, focused
 
 
 def _chosen_filter(rows: list[str], filter_row: int, left: int) -> str:
@@ -545,6 +553,7 @@ def parse_pane(rows: list[str]) -> Pane | None:
     side = None
     day = None
     preview: list[str] | None = None
+    search: dict | None = None
     for y in range(filter_row + 1, len(rows)):
         text = _right_of(rows[y], left)
         if text is None:
@@ -554,6 +563,9 @@ def parse_pane(rows: list[str]) -> Pane | None:
                 break
             notes.append("<row off the border column: " + rows[y].rsplit("│", 1)[-1].strip() + ">")
             current, side = None, None
+            continue
+        if search is None and not entries and (found_search := parse_search_row(text)) is not None:
+            search = found_search
             continue
         # 2.1.287 draws the Pane's ✕ at the right end of its first content row
         text = re.sub(r"\s+✕$", "", text)
@@ -645,7 +657,24 @@ def parse_pane(rows: list[str]) -> Pane | None:
         # the window may end inside it, blank filler below or not
         entries[-1].clipped = True
     return Pane(left=left, filter_row=filter_row, filter=chosen, entries=entries, notes=notes, partial_top=partial_top,
-                layout=layout, footer=footer, rules=rules, fork_line=fork_line, preview=preview)
+                layout=layout, footer=footer, rules=rules, fork_line=fork_line, preview=preview, search=search)
+
+
+def parse_search_row(text: str) -> dict | None:
+    """The search row's parts, or None when the row is not it."""
+    m = _SEARCH_ROW.match(text.strip())
+    if m is None:
+        return None
+    rest = (m.group("rest") or "").rstrip()
+    clear = rest.endswith("✕")
+    if clear:
+        rest = rest[:-1].rstrip()
+    count = None
+    if c := _SEARCH_COUNT.search(rest):
+        count, rest = c.group(1), rest[: c.start()]
+    focused = _SEARCH_SUBMIT.search(rest) is not None
+    rest = _SEARCH_SUBMIT.sub(" ", rest).strip()
+    return {"text": "" if rest in SEARCH_PLACEHOLDERS else rest, "count": count, "clear": clear, "focused": focused}
 
 
 # ---------- the diff ----------
