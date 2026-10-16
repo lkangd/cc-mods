@@ -54,3 +54,11 @@ export function fillOf(draft: string, text: string): { text: string; mode: 'repl
   const gap = draft.endsWith('\n\n') ? '' : draft.endsWith('\n') ? '\n' : '\n\n'
   return { text: gap + text, mode: 'append' }
 }
+
+/* The toast for a fill the box did not take: the engine's own cause, or
+   none when a hook refused it. */
+export function fillRefusedText(refusal: 'no_composer' | 'dialog' | undefined): string {
+  if (refusal === 'dialog') return words.fillDialog
+  if (refusal === 'no_composer') return words.fillNoComposer
+  return words.fillRefused
+}
