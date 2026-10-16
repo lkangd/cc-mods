@@ -409,16 +409,17 @@ def widths(host, run):
             rows = t.rows()
             y = next(i for i, r in enumerate(rows) if f"{reuse} · {copy_}" in r)
             border = rows[y].rfind("│", 0, rows[y].find(reuse))
-            columns = sum(h.cell_width(c) for c in rows[y][border + 1:])
-            row = rows[y][border + 1:]
-            agent_row = next((r[border + 1:] for r in rows[y:] if r[border + 1:].startswith("Agent")), "")
-            actual["paneColumns"] = columns
-            actual["userRow"] = row.rstrip()
-            actual["agentRow"] = agent_row.rstrip()
+            # the Pane's rows from the cell after its border (the transcript's
+            # side may hold wide characters, so rows are read by cell)
+            left = sum(h.cell_width(c) for c in rows[y][:border]) + 1
+            right = [r for r in (v._right_of(line, left) for line in rows) if r is not None]
+            row = next(r for r in right if reuse in r)
+            actual["paneColumns"] = sum(h.cell_width(c) for c in rows[y][border + 1:])
+            actual["userRow"] = row
+            actual["agentRow"] = next((r for r in right if r.startswith("Agent ")), "")
             t.type("c")
             time.sleep(0.8)
-            rows = t.rows()
-            actual["copiedRow"] = next((r[border + 1:].rstrip() for r in rows if copied in r), None)
+            actual["copiedRow"] = next((r for r in (v._right_of(line, left) for line in t.rows()) if r is not None and copied in r), None)
             ev_all.append(t.snap(f"widths 36 {language}"))
         except (h.ScenarioFailure, StopIteration) as failure:
             actual["failure"] = repr(failure)
