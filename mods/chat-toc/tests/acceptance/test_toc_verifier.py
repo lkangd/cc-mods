@@ -346,6 +346,18 @@ class Compactions(unittest.TestCase):
         self.assertTrue(toc.earlier_elsewhere)
         self.assertEqual([c.before for c in toc.compactions], [0])
 
+    def test_under_a_query_the_rules_go_between_the_matches(self):
+        t = Rows()
+        for n in range(4):
+            t.prompt(f"问题 {n}")
+            t.text(f"回复 {n}")
+            if n in (0, 1):
+                boundary(t, "auto")
+        toc = expect(t)
+        self.assertEqual([c.before for c in toc.compactions], [1, 2])
+        self.assertEqual(toc_verifier.expected_rules(toc, "all", among=[0, 3]),
+                         [{"before": 1, "text": toc_verifier.rule_label("auto", 2, toc.compactions[-1].clock)}])
+
     def test_reads_rules_and_the_fork_line_from_a_window(self):
         rows = ["x" * 10 + "│1: 全部   2: 用户   3: Agent",
                 "x" * 10 + "│━━━━━━━──────────────",
