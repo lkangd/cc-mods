@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """CT-FIND-001 and CT-FIND-002 in a real host (chat-toc 0.2 spec §1, §2, §3;
-ticket 16): the search row under the tab rule.
+tickets 16 and 22): the search row under the tab rule.
 
     $PY ct_search.py --host 2.1.287 [--host current] [--only narrow,filter,live,widths,keys,entry,keep,minimap] [--out DIR]
 
@@ -16,11 +16,12 @@ CT-FIND-001
            holds `f:`, the query, the count, ✕ and ‹ › on one row
 CT-FIND-002
   keys     `f` (the keys in the Pane) and a click focus the field; Enter jumps
-           to the nearest match and ends the search; Esc keeps the query and
+           to the nearest match, opens the preview on it and ends the
+           search; Esc keeps the query and
            gives the keys back; ✕, Ctrl+U, Backspace and Enter with no match
            clear it
-  entry    ↓/Tab from the field reach the matches; Enter on an entry jumps
-           and keeps the search
+  entry    ↓/Tab from the field reach the matches; Enter on an entry jumps,
+           opens the preview on it and keeps the search
   keep     the query survives a View filter switch, a Layout switch, a back
            tab behind /diff, and a close and reopen
   minimap  the Minimap lights the matches' cells, all dim with no match
@@ -393,10 +394,12 @@ def keys(host, run):
         p = t.wait_for(lambda term: (q := pane(term)) is not None and ids(q) == ["S02"] and q, "S02 alone", timeout=10)
         ev.append(t.snap("keys typed S02"))
         t.key("enter")
-        p = t.wait_for(lambda term: (q := pane(term)) is not None and q.search.get("text") == "" and len(q.entries) > 1 and lit(q) == "S02" and q,
-                       "Enter jumping to S02 and ending the search", timeout=15)
+        p = t.wait_for(lambda term: (q := pane(term)) is not None and q.search.get("text") == "" and len(q.entries) > 1 and lit(q) == "S02"
+                       and (cp.shown_input(q) or "").startswith("S02") and q,
+                       "Enter jumping to S02, opening the preview on it and ending the search", timeout=15)
         transcript = h.transcript_text(t.rows(), p.left)
-        actual["enter"] = {"query": p.search["text"], "listed": len(p.entries), "lit": lit(p), "transcriptShowsS02": "S02 写一份 README" in transcript}
+        actual["enter"] = {"query": p.search["text"], "listed": len(p.entries), "lit": lit(p), "transcriptShowsS02": "S02 写一份 README" in transcript,
+                           "preview": (cp.shown_input(p) or "")[:3]}
         ev.append(t.snap("keys Enter jumped"))
         t.key("esc")
         time.sleep(0.5)
@@ -441,12 +444,14 @@ def keys(host, run):
     cleared = lambda x: x is not None and x["search"].get("text") == "" and not x["search"].get("clear") and x["listed"] > 1  # noqa: E731
     ok = ("failure" not in actual and actual.get("fFocuses")
           and actual["enter"]["lit"] == "S02" and actual["enter"]["query"] == "" and actual["enter"]["transcriptShowsS02"]
+          and actual["enter"]["preview"] == "S02"
           and actual["clickFocuses"].get("focused") and actual["clickFocuses"].get("text") == "S05"
           and actual["escKeeps"]["search"].get("text") == "S05" and not actual["escKeeps"]["search"].get("focused")
           and actual["escKeeps"]["composerGotZz"]
           and cleared(actual.get("clearMark")) and cleared(actual.get("ctrlU")) and cleared(actual.get("backspace"))
           and actual["enterNoMatch"]["search"].get("text") == "" and actual["enterNoMatch"]["litAfter"] == actual["enterNoMatch"]["litBefore"])
-    return ("S fixture", "f focuses the field; Enter on S02 jumps there (lit, in the transcript) and ends the search; a "
+    return ("S fixture", "f focuses the field; Enter on S02 jumps there (lit, in the transcript), opens the preview on it "
+            "and ends the search; a "
             "click focuses the field; Esc keeps the query and the next letters go to the composer; ✕, Ctrl+U and "
             "Backspace empty it; Enter with no match only clears it", actual, bool(ok), ev)
 
@@ -474,8 +479,9 @@ def entry(host, run):
             raise h.ScenarioFailure("↓ from the field never reached an entry")
         ev.append(t.snap("entry ring on a match"))
         t.key("enter")
-        p = t.wait_for(lambda term: (q := pane(term)) is not None and lit(q) == target and q, f"Enter jumping to {target}", timeout=15)
-        actual["after"] = {"target": target, "lit": lit(p), "search": p.search, "listed": ids(p)}
+        p = t.wait_for(lambda term: (q := pane(term)) is not None and lit(q) == target and (cp.shown_input(q) or "").startswith(target) and q,
+                       f"Enter jumping to {target} and opening the preview on it", timeout=15)
+        actual["after"] = {"target": target, "lit": lit(p), "search": p.search, "listed": ids(p), "preview": (cp.shown_input(p) or "")[:3]}
         ev.append(t.snap("entry Enter jumped, search kept"))
     except h.ScenarioFailure as failure:
         actual["failure"] = str(failure)
@@ -484,9 +490,10 @@ def entry(host, run):
         t.close()
         world.remove()
     ok = ("failure" not in actual and actual["after"]["lit"] == actual["after"]["target"] in ("S00", "S01")
-          and actual["after"]["search"].get("text") == "login" and actual["after"]["listed"] == ["S00", "S01"])
-    return ("S fixture, the query login", "↓ from the field reaches a match; Enter on it jumps (lit) and the search "
-            "stays: the query and the two matches", actual, bool(ok), ev)
+          and actual["after"]["search"].get("text") == "login" and actual["after"]["listed"] == ["S00", "S01"]
+          and actual["after"]["preview"] == actual["after"]["target"])
+    return ("S fixture, the query login", "↓ from the field reaches a match; Enter on it jumps (lit) and opens the preview "
+            "on it, and the search stays: the query and the two matches", actual, bool(ok), ev)
 
 
 def keep(host, run):

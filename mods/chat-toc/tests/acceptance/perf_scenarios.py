@@ -1,5 +1,5 @@
 """CT-PERF-001 and CT-PERF-002: chat-toc on a 20 MiB transcript, timed in
-the real host, the preview shown (its default).
+the real host, the preview open (a click on the newest entry opens it).
 
 usage:
   $PY perf_scenarios.py run <host-version|current> <many|heavy> [--runs 3] [--out DIR]
@@ -192,6 +192,12 @@ def one_run(host: h.Host, kind: str, run: h.Run, n: int) -> dict:
         actual["tocLagMs"] = round(max(0.0, toc_ready - host_ready) * 1000)
         rows = t.settle(quiet=1.0)
         evidence.append(t.snap(f"{kind}-{n} after resume"))
+        # the preview is closed until a press (ticket 22): a click on the
+        # newest entry opens it, and the later clicks keep it open
+        opened = v.parse_pane(rows)
+        if opened is not None and opened.entries and opened.entries[-1].user_row is not None:
+            t.click(opened.left + 4, opened.entries[-1].user_row)
+            rows = t.settle(quiet=1.0)
         shown = v.parse_pane(rows)
         actual["previewRows"] = len(shown.preview or []) if shown else 0
 
@@ -266,19 +272,19 @@ def one_run(host: h.Host, kind: str, run: h.Run, n: int) -> dict:
     actual.update(summary_of(samples))
     actual["loadAverage"]["end"] = load_average()
     reached = actual.get("reachedFirst") is True and actual.get("reachedLast") is True
-    is_preview_shown = actual.get("previewRows", 0) > 1
+    is_preview_open = actual.get("previewRows", 0) > 1
     fixture = f"{kind} 20 MiB ({turns} turns)"
     run.record("CT-PERF-001", host=host.version, plugin=str(PLUGIN), fixture=fixture,
-               expected="the preview shown; first listing <= 4 s after the transcript's last turn; idle whole read <= 1 s; "
+               expected="the preview open; first listing <= 4 s after the transcript's last turn; idle whole read <= 1 s; "
                         "tail read <= 150 ms; append to model <= 1 s; pane own <= 16 ms, with the host <= 100 ms; "
                         "Current position <= 2 ms; first and last groups reached by continuous scrolling and jumps",
-               actual=actual, result="pass" if ok and reached and is_preview_shown and within(actual) else "fail",
+               actual=actual, result="pass" if ok and reached and is_preview_open and within(actual) else "fail",
                evidence=evidence)
     run.record("CT-PERF-002", host=host.version, plugin=str(PLUGIN), fixture=fixture,
                expected="a keystroke in the search field to the Pane redrawn: own <= 50 ms, with the host <= 100 ms (p95); "
                         "idle whole read with the index <= 1 s; tail read with the index <= 150 ms; "
-                        "pane own with the preview shown <= 16 ms",
-               actual=actual, result="pass" if ok and is_preview_shown and within_search(actual) else "fail",
+                        "pane own with the preview open <= 16 ms",
+               actual=actual, result="pass" if ok and is_preview_open and within_search(actual) else "fail",
                evidence=evidence)
     return actual
 
@@ -361,7 +367,7 @@ SEARCH_ROWS = [
     ("Whole read and regroup when idle, the search index included", "≤ 1 s", "idleWholeMs", "run", 1, "ms"),
     ("Of which the search index (for reference)", "—", "indexIdleMs", "run", 1, "ms"),
     ("Incremental read, each, the index's rebuild included", "≤ 150 ms", "tailReadMs", "sample", 1, "ms"),
-    ("Pane redraw with the preview shown, the plugin's own work", "≤ 16 ms", "paneOwnMs", "sample", 1, "ms"),
+    ("Pane redraw with the preview open, the plugin's own work", "≤ 16 ms", "paneOwnMs", "sample", 1, "ms"),
 ]
 
 ROWS = [
