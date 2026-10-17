@@ -14,16 +14,16 @@ Spec: [chat-toc 0.2](../spec.md) §8 (Scrolling).
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-Measured; what is left is the fix as decided below (see Comments).
+Built; what is left is the user's check in the app (see Comments).
 
 - [x] Probe written; the user's measurements recorded under the assets folder and in `docs/agents/mod-host-gotchas.md` (Claude Code Desktop)
-- [ ] On Desktop the scroll hook passes the person's scroll through (`next(e)`); the list is not windowed by rows; the terminal's window unchanged
-- [ ] The drawn part of the list is the newest entries within a serialized-character budget that keeps the tree well under 100,000 characters (Svg sources included); `↑ N earlier turns` at its top and, once moved, `↓ N later turns` at its bottom move it; a query or filter applies first
-- [ ] Element-tree tests on the `desktop` surface: a short session draws every entry; a long one draws the newest within budget with the `↑` Button, and the Buttons move the drawn part; the serialized tree stays under the cap for a 2,000-turn fixture
+- [x] On Desktop the scroll hook passes the person's scroll through (`next(e)`); the list is not windowed by rows; the terminal's window unchanged
+- [x] The drawn part of the list is the newest entries within a serialized-character budget that keeps the tree well under 100,000 characters (Svg sources included); `↑ N earlier turns` at its top and, once moved, `↓ N later turns` at its bottom move it; a query or filter applies first
+- [x] Element-tree tests on the `desktop` surface: a short session draws every entry; a long one draws the newest within budget with the `↑` Button, and the Buttons move the drawn part; the serialized tree stays under the cap for a 2,000-turn fixture
 - [ ] The user scrolls to the first entry, uses `↑ earlier`, and scrolls through an expanded long preview in the app
-- [ ] `claude plugin test`, `tsc` on both versions and `claude plugin validate` pass
+- [x] `claude plugin test`, `tsc` on both versions and `claude plugin validate` pass
 
 ## Comments
 
@@ -36,3 +36,18 @@ The probe ([`scroll-probe`](../assets/23-desktop-scroll/scroll-probe/), log [`sc
 - **Heights**: the native `Select`, a non-plain `Button` and the `Input` each draw about 24 px tall (beside Svg rulers of 19–38 px). chat-toc's filter well is 32 px.
 
 Decided with the user: on Desktop pass the scroll through and draw the newest entries within a character budget, with `↑ N earlier turns` / `↓ N later turns` Buttons (a seamless shifting window would need `next({ ...e, offset })` to be honoured on Desktop, not measured); the preview opens under the pressed entry (ticket 24). Spec §8 revised.
+
+Built on `chat-toc-0.2/23-desktop-scroll` (2026-10-17):
+
+- The Pane's `ui.scroll` hook answers the person's scroll with `next(e)` whenever the pane was last drawn on a surface other than the terminal (the event has no `surface`; `register.tsx` keeps the last render's in `paneSurface`). The terminal's window and its scroll handling are unchanged. On Desktop the ring's `reveal` (a move past the window's end) also goes where the host moves it, as there is no window to move.
+- `hooks/span.ts` picks the drawn part: the newest entries whose reckoned characters fit `LIST_BUDGET` (50,000, in `desktop.tsx`), starting and ending on a Turn group's edge. `desktopList` in `desktop.tsx` reckons an entry from what it draws: each Svg source as it serializes, each line's Button, its rules and its gap. A group of two two-line sides costs about 3,300, so the Card layout draws about 15 groups; the rest of the tree (head, search row, strip up to 120 bars, preview with its Markdown up to 10,000) stays under 30,000. A 2,000-turn session with a long reply in the preview draws under 80,000 in every Layout (`tests/desktop_scroll.test.ts`).
+- `↑ N earlier turns` / `↑ 更早的 N 轮` at the list's top moves the drawn part to end right above it; `↓ N later turns` / `↓ 更晚的 N 轮` at its bottom moves it to the run starting right below it, the newest again once that reaches the end. The drawn part is kept by its last Turn group, so new turns do not move it; a new query draws its newest matches again; the View filter and the query narrow the list first.
+- Most of an entry's cost is the rail Svg's style sheet, repeated in every rail and gap Svg (about 400 of the 650 to 750 characters each of them serializes to). Sharing it, or drawing the gap without an Svg, would draw about half again as many groups per budget; left for ticket 24, which redraws Desktop's layout.
+
+For the user to check in the Claude app (the last checklist item):
+
+1. In a session longer than about 15 turns, scroll the pane with the wheel or trackpad: the whole tree moves, the first drawn entry and the `↑` Button can be reached, and the pane does not jitter.
+2. Click `↑ N earlier turns`: earlier turns are listed, `↓ N later turns` shows at the bottom, and clicking it goes back to the newest.
+3. Expand a long preview and scroll through it to its end, then `← Back`.
+4. Type a query: the list narrows, and with many matches the `↑` Button counts the matches left out.
+
