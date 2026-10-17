@@ -1,5 +1,6 @@
 /* The preview: a region at the bottom of the terminal Pane that shows one
-   Turn group whole (spec §3). This file holds its words (the meta line, the
+   Turn group whole, opened by a press on an entry and closed by its ✕
+   (spec §3). This file holds its words (the meta line, the
    files line), its size against the rows the Pane has, and what of the
    group fits in it; pane.tsx draws it.
 
@@ -15,12 +16,9 @@ import type { TurnGroup } from './groups'
 import { COPY_INPUT_HOTKEY, COPY_TEXT_HOTKEY } from './reuse'
 import { text as words } from './text'
 
-/* Where the preview's choice is kept in `$.store`, and its two values; a
-   value not known reads as shown. */
-export const PREVIEW_KEY = 'preview'
-export const isPreviewShown = (value: unknown): boolean => value !== 'hidden'
-
-/* The rule's Button (hotkey `p`) and the cut line's (hotkey `e`). */
+/* The rule's ✕ Button closing the preview (hotkey `p`, drawn only while
+   it is open) and the cut line's (hotkey `e`). Nothing of the preview is
+   kept in `$.store`: it is closed whenever the Pane opens. */
 export const PREVIEW_CONTROL = 'preview'
 export const MORE_CONTROL = 'preview.more'
 export const PREVIEW_HOTKEY = 'p'
@@ -40,11 +38,13 @@ export function previewRows(rows: number): number {
   return Math.max(MIN_ROWS, Math.min(MAX_ROWS, Math.round(rows * SHARE)))
 }
 
-export type PreviewState = 'shown' | 'hidden' | 'noRoom' | 'none'
+/* `open`: the region is drawn; `noRoom`: open, but 4 rows do not fit
+   beside the list's floor, so it is drawn expanded; `closed`: nothing of
+   it is drawn. */
+export type PreviewState = 'open' | 'noRoom' | 'closed'
 
 export type PreviewPlan = {
-  /* The rows the region takes: its rule and content, one line when hidden
-     or without room, none when there is no group to show. */
+  /* The rows the region takes, its rule included; none unless open. */
   preview: number
   state: PreviewState
   /* Whether the Minimap is drawn. */
@@ -56,17 +56,30 @@ export type PreviewPlan = {
    preview. The region's height comes from `region`, the rows left after
    the head, the search row and the footer alone, so a note coming and
    going does not move it. When rows run short the Minimap goes first, then
-   the preview shrinks down to 4 rows, then it leaves one line; the list
-   keeps its 8. */
-export function previewPlan({ rows, region = rows, groups, isShown }: { rows: number; region?: number; groups: number; isShown: boolean }): PreviewPlan {
+   an open preview shrinks down to 4 rows; when even 4 do not fit beside
+   the list's 8 it has no room. Whether it has room is told by `steady`,
+   the rows before the notes that come and go (a refusal, a notice), so a
+   note does not switch it between the region and the expanded view: while
+   one shows, the list may have a row fewer. Closed, it takes no row. */
+export function previewPlan({
+  rows,
+  region = rows,
+  steady = rows,
+  groups,
+  isOpen,
+}: {
+  rows: number
+  region?: number
+  steady?: number
+  groups: number
+  isOpen: boolean
+}): PreviewPlan {
   const barsFit = (preview: number) => groups >= MIN_BAR_GROUPS && rows - preview - BAR_ROWS >= MIN_LIST_ROWS
-  if (groups === 0) return { preview: 0, state: 'none', hasBars: false }
-  if (!isShown) return { preview: 1, state: 'hidden', hasBars: barsFit(1) }
+  if (groups === 0 || !isOpen) return { preview: 0, state: 'closed', hasBars: barsFit(0) }
   const wanted = previewRows(region)
-  if (barsFit(wanted)) return { preview: wanted, state: 'shown', hasBars: true }
-  const preview = Math.min(wanted, rows - MIN_LIST_ROWS)
-  if (preview >= MIN_ROWS) return { preview, state: 'shown', hasBars: false }
-  return { preview: 1, state: 'noRoom', hasBars: false }
+  if (barsFit(wanted)) return { preview: wanted, state: 'open', hasBars: true }
+  if (steady - MIN_LIST_ROWS < MIN_ROWS) return { preview: 0, state: 'noRoom', hasBars: false }
+  return { preview: Math.max(MIN_ROWS, Math.min(wanted, rows - MIN_LIST_ROWS)), state: 'open', hasBars: false }
 }
 
 /* A duration in the meta line: `45s`, `3m 20s`, `1h 5m`, `<1s`. */

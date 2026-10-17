@@ -111,13 +111,6 @@ export function agentHeadOf(group: TurnGroup, isRunning: boolean): string {
    side. Its later lines' Buttons add `.<n>`. */
 export const entryKey = (groupIndex: number, side: 'user' | 'agent'): string => `g${groupIndex}.${side === 'user' ? 'u' : 'a'}`
 
-/* The group an entry's Button key belongs to: `g3.u.1` is group 3's;
-   undefined for a key that is no entry's. */
-export function groupOfKey(key: string | undefined): number | undefined {
-  const m = key === undefined ? null : /^g(\d+)\./.exec(key)
-  return m === null ? undefined : Number(m[1])
-}
-
 type Side = Omit<Entry, 'time' | 'gapAfter' | 'isRunning' | 'day'>
 
 function sideOf(group: TurnGroup, groupIndex: number, side: 'user' | 'agent', lines: EntryLine[]): Side {

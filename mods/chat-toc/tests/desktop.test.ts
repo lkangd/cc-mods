@@ -163,13 +163,19 @@ test('each change filters the list; the strip draws the matches in the accent co
 const texts = async (pane: Pane) => (await pane.findAll({ type: 'Text' })).map(t => t.text)
 const markdowns = async (pane: Pane) => (await all(pane, 'Markdown')).map(m => String(m.props?.text))
 
-test('before any press the preview shows the newest group under a rule Button with no hotkey', async ($, on) => {
-  await start($, host(on, three().jsonl()))
+test('closed until a press; a press opens it on that group under its rule, a ✕ Button with no hotkey at its end', async ($, on) => {
+  const world = host(on, three().jsonl())
+  await start($, world)
   const pane = await desktopPane($)
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
+  expect(await markdowns(pane)).toEqual([])
 
-  const rule = await pane.find({ type: 'Button', key: 'preview' })
-  expect([rule?.text, rule?.props.hotkey, rule?.props.plain]).toEqual(['预览', undefined, true])
+  await pane.press({ key: 'g2.u' })
+  await world.clock.settle()
+  const close = await pane.find({ type: 'Button', key: 'preview' })
+  expect([close?.text, close?.props.hotkey, close?.props.plain]).toEqual(['✕', undefined, true])
   const shown = await texts(pane)
+  expect(shown).toContain('预览')
   expect(shown).toContain('用户')
   expect(shown).toContain('CT-SYN third')
   expect(shown.some(t => /^10月10日 \d\d:\d\d$/.test(t))).toBe(true)
@@ -190,7 +196,7 @@ test('the preview shows the last entry pressed', async ($, on) => {
   expect((await texts(pane)).some(t => t.startsWith('CT-SYN first, a prompt long enough'))).toBe(true)
 })
 
-test('while a query is set the preview shows the pressed match, else the newest; Enter puts the newest match there and keeps the text', async ($, on) => {
+test('while a query is set the preview holds the group pressed; Enter opens it on the newest match and keeps the text', async ($, on) => {
   const world = host(on, three().jsonl())
   await start($, world)
   const pane = await desktopPane($)
@@ -206,25 +212,24 @@ test('while a query is set the preview shows the pressed match, else the newest;
   expect(await markdowns(pane)).toEqual(['CT-SYN third answer'])
   expect((await all(pane, 'Input'))[0]?.props?.value).toBe('answer')
 
+  /* A query that leaves it out of the list leaves the preview on it. */
   await type($, 'CT-SYN nowhere')
   await world.clock.settle()
-  expect(await markdowns(pane)).toEqual([])
+  expect(await markdowns(pane)).toEqual(['CT-SYN third answer'])
 })
 
-test('the rule Button hides and shows the preview, kept like the Layout', async ($, on) => {
+test('the ✕ closes the preview; nothing of it is kept', async ($, on) => {
   const world = host(on, three().jsonl())
   await start($, world)
   const pane = await desktopPane($)
+  await pane.press({ key: 'g2.u' })
+  await world.clock.settle()
 
   await pane.press({ key: 'preview' })
   await world.clock.settle()
-  expect(world.store.preview).toBe('hidden')
   expect(await markdowns(pane)).toEqual([])
-  expect((await pane.find({ type: 'Button', key: 'preview' }))?.props.dimColor).toBe(true)
-  await pane.press({ key: 'preview' })
-  await world.clock.settle()
-  expect(world.store.preview).toBe('shown')
-  expect(await markdowns(pane)).toEqual(['CT-SYN third answer'])
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
+  expect(Object.keys(world.store)).not.toContain('preview')
 })
 
 function long(): Builder {
@@ -238,6 +243,8 @@ test('the cut line is a Button without e:, expanding the preview; ← Back is a 
   const world = host(on, long().jsonl())
   await start($, world)
   const pane = await desktopPane($)
+  await pane.press({ key: 'g3.u' })
+  await world.clock.settle()
 
   const more = await pane.find({ type: 'Button', key: 'preview.more' })
   expect(more?.text).toMatch(/^↓ 还有 \d+ 行 · 展开$/)
@@ -261,6 +268,7 @@ test('each label row carries a 复制 Button with no hotkey and there is no Reus
   on('session.version', () => ({ value: { version: '2.1.295', base: '2.1.295' } }))
   await start($, world)
   const pane = await desktopPane($)
+  await pane.press({ key: 'g2.u' })
 
   const user = await pane.find({ type: 'Button', key: 'preview.copy.user' })
   const agent = await pane.find({ type: 'Button', key: 'preview.copy.agent' })
@@ -276,6 +284,7 @@ test('a copy the desktop cannot take says it is too long', async ($, on) => {
   const world = host(on, three().jsonl())
   await start($, world)
   const pane = await desktopPane($)
+  await pane.press({ key: 'g2.u' })
 
   world.refuseCopy = 'no-clipboard'
   await pane.press({ key: 'preview.copy.user' })

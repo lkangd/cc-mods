@@ -27,9 +27,17 @@ const label = async (pane: Pane, key: string) => {
   return button === undefined ? undefined : `${String(button.props.hotkey)}: ${button.text}`
 }
 
+/* The pane with the preview opened by a press on the newest group. */
+async function opened($: Engine, bodyRows = 30) {
+  const pane = await mountPane($, bodyRows)
+  const users = (await keys(pane)).filter(k => typeof k === 'string' && /^g\d+\.u$/.test(k))
+  await pane.press({ key: String(users[users.length - 1]) })
+  return pane
+}
+
 test('the User label row carries r: 填入 · c: 复制, the Agent row a: 复制', async ($, on) => {
   await start($, host(on, two().jsonl()))
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   expect(await label(pane, 'preview.reuse')).toBe('r: 填入')
   expect(await label(pane, 'preview.copy.user')).toBe('c: 复制')
@@ -42,7 +50,7 @@ test('the User label row carries r: 填入 · c: 复制, the Agent row a: 复制
 test('r fills an empty composer with the User input as typed, replacing; never submits', async ($, on) => {
   const world = host(on, two().jsonl())
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   await pane.press({ key: 'preview.reuse' })
   expect(world.fills).toEqual([{ text: CODE, mode: 'replace' }])
@@ -52,7 +60,7 @@ test('r fills an empty composer with the User input as typed, replacing; never s
 test('r with a draft in the composer appends after a blank line, the draft kept', async ($, on) => {
   const world = host(on, two().jsonl())
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   world.draft = 'CT-SYN my draft'
   await pane.press({ key: 'preview.reuse' })
@@ -70,7 +78,7 @@ test('a slash command fills as /name args', async ($, on) => {
   t.reply([{ type: 'text', text: 'CT-SYN reviewed' }])
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   await pane.press({ key: 'preview.reuse' })
   expect(world.fills.map(f => f.text)).toEqual(['/review CT-SYN  the  branch'])
@@ -82,7 +90,7 @@ test('a !cmd has no r; c copies !cmd as typed', async ($, on) => {
   t.bashOutput('CT-SYN')
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   expect(await keys(pane)).not.toContain('preview.reuse')
   await pane.press({ key: 'preview.copy.user' })
@@ -96,7 +104,7 @@ test('an image-only input has neither r nor c', async ($, on) => {
   t.prompt('', { message: { role: 'user', content: [IMAGE] } })
   t.reply([{ type: 'text', text: 'CT-SYN a picture' }])
   await start($, host(on, t.jsonl()))
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   const drawn = await keys(pane)
   expect(drawn).not.toContain('preview.reuse')
@@ -123,7 +131,7 @@ test('text with images fills and copies only the text, and a toast says the imag
   t.reply([{ type: 'text', text: 'CT-SYN seen' }])
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   await pane.press({ key: 'preview.reuse' })
   expect(world.fills.map(f => f.text)).toEqual(['CT-SYN see'])
@@ -148,6 +156,7 @@ test('a running group has no a; r and c work', async ($, on) => {
   await appendRow($, asked)
   await appendRow($, first)
   await world.clock.advance(300)
+  await pane.press({ key: 'g1.u' })
 
   const drawn = await keys(pane)
   expect(drawn).toContain('preview.reuse')
@@ -160,7 +169,7 @@ test('a running group has no a; r and c work', async ($, on) => {
 test('c and a copy the whole text; the Button reads 已复制 for about 2 seconds', async ($, on) => {
   const world = host(on, two().jsonl())
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   await pane.press({ key: 'preview.copy.agent' })
   expect(world.copies.map(c => c.text)).toEqual(['## CT-SYN done\n\n- `one`'])
@@ -180,7 +189,7 @@ test('c and a copy the whole text; the Button reads 已复制 for about 2 second
 test('a fill refused by another plugin says so in a toast, the draft kept', async ($, on) => {
   const world = host(on, two().jsonl())
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   world.draft = 'CT-SYN mine'
   world.refuseFill = 'hook'
@@ -201,7 +210,7 @@ test("each refused fill's toast: a dialog, no prompt box, a plugin's refusal", (
 test('a copy that did not take says why in a toast, and the Button does not read 已复制', async ($, on) => {
   const world = host(on, two().jsonl())
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   world.refuseCopy = 'no-clipboard'
   await pane.press({ key: 'preview.copy.agent' })
@@ -209,21 +218,26 @@ test('a copy that did not take says why in a toast, and the Button does not read
   expect(await label(pane, 'preview.copy.agent')).toBe('a: 复制')
 })
 
-test('with the preview folded by p, none of the three Buttons is drawn', async ($, on) => {
+test('with the preview closed, before a press or after its ✕, none of the three Buttons is drawn', async ($, on) => {
   const world = host(on, two().jsonl())
   await start($, world)
   const pane = await mountPane($)
+  const none = async () => {
+    const drawn = await keys(pane)
+    for (const key of ['preview.reuse', 'preview.copy.user', 'preview.copy.agent']) expect(drawn).not.toContain(key)
+  }
+  await none()
 
+  await pane.press({ key: 'g1.u' })
+  expect(await keys(pane)).toContain('preview.reuse')
   await pane.press({ key: 'preview' })
-  const drawn = await keys(pane)
-  expect(drawn).toContain('preview')
-  for (const key of ['preview.reuse', 'preview.copy.user', 'preview.copy.agent']) expect(drawn).not.toContain(key)
+  await none()
 })
 
 test('a short preview that cuts the Agent label row takes a with it; expanded, a is back and c copies the whole input', async ($, on) => {
   const world = host(on, two().jsonl())
   await start($, world)
-  const pane = await mountPane($, 17)
+  const pane = await opened($, 17)
 
   const drawn = await keys(pane)
   expect(drawn).toContain('preview.more')
@@ -245,7 +259,7 @@ test('expanded past the text cap, c and r take the whole input, not the part dra
   t.reply([{ type: 'text', text: 'CT-SYN read it' }])
   const world = host(on, t.jsonl())
   await start($, world)
-  const pane = await mountPane($)
+  const pane = await opened($)
 
   await pane.press({ key: 'preview.more' })
   await pane.press({ key: 'preview.copy.user' })
@@ -254,7 +268,7 @@ test('expanded past the text cap, c and r take the whole input, not the part dra
   expect(world.fills.map(f => f.text.length)).toEqual([pasted.length])
 })
 
-test('the ring moving from an entry onto the label-row Buttons keeps the preview on that entry, and r fills its input', async ($, on) => {
+test('the ring moving from an entry onto the label-row Buttons keeps the preview on the group pressed, and r fills its input', async ($, on) => {
   const world = host(on, two().jsonl())
   await start($, world)
   const pane = await $.ui.mount({
@@ -268,6 +282,8 @@ test('the ring moving from an entry onto the label-row Buttons keeps the preview
   const arrow = (element: string) => $.ui.focus({ component: 'Pane', requestId: PANE, element, origin: { kind: 'person' } } as never)
 
   await arrow('g0.u')
+  await pane.press({ key: 'g0.u' })
+  await arrow('g1.u')
   await world.clock.advance(1)
   await arrow('preview.reuse')
   await world.clock.advance(1)
