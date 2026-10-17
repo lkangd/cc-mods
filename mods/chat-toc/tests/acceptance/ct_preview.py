@@ -190,10 +190,12 @@ def cell_of(row: str, x: int) -> int:
     return sum(h.cell_width(c) for c in row[:x])
 
 
-def click_entry(t, prefix: str, opens: bool = True) -> None:
+def click_entry(t, prefix: str, opens: bool = True, calm: bool = True) -> None:
     """A click on the User input of the entry whose input starts with
     `prefix`, the Pane's window scrolled up to it when it is not in sight;
-    with `opens`, until the preview shows that group."""
+    with `opens`, until the preview shows that group. Without `calm` (a
+    turn running: the screen never settles) the pointer is moved off without
+    waiting."""
     for _ in range(8):
         p = pane(t)
         e = next((e for e in (p.entries if p else []) if e.user_text.startswith(prefix) and e.user_row is not None), None)
@@ -201,7 +203,10 @@ def click_entry(t, prefix: str, opens: bool = True) -> None:
             t.click(p.left + 4, e.user_row)
             if opens:
                 t.wait_for(lambda term: (shown_input(pane(term)) or "").startswith(prefix), f"the preview on {prefix}", timeout=10)
-            pointer_off(t)
+            if calm:
+                pointer_off(t)
+            else:
+                t._write("[<35;6;6M")
             return
         if p is None:
             break
@@ -801,7 +806,7 @@ def running(host, run):
             t.key("enter")
             t.wait_for(lambda term: any(e.user_text.startswith("CT-PREV-002") for e in (pane(term).entries if pane(term) else [])),
                        "the running group listed", timeout=20)
-            click_entry(t, "CT-PREV-002")
+            click_entry(t, "CT-PREV-002", calm=False)
             t.wait_for(lambda term: term.find("e: 展开") is not None, "the running group cut in the region", timeout=20)
             y, x = t.find("e: 展开")
             t.click(x + 3, y)
