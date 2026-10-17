@@ -33,7 +33,7 @@ Narrowing the Chat TOC to the Turn groups that match a query the person typed: e
 _Avoid_: Filter, find
 
 **Preview**:
-The region at the bottom of the Chat TOC that shows one Turn group whole without jumping: its User input as typed, the Agent reply's last text, the files its tool calls changed or read, and, when the Transcript states them, its duration and the main agent's output tokens. It shows the selected Turn group while the Chat TOC holds the keys, otherwise the Current position's, or where there is none, the last one pressed. Expanded, it takes the list's place until the person goes back.
+The region at the bottom of the Chat TOC that shows one Turn group whole without jumping: its User input as typed, the Agent reply's last text, the files its tool calls changed or read, and, when the Transcript states them, its duration and the main agent's output tokens. Closed until the person presses an entry; it then shows that Turn group and stays on it until another press or its close. Expanded, it takes the list's place until the person goes back.
 _Avoid_: Detail, peek, inspector
 
 **Reuse**:
