@@ -48,10 +48,12 @@ function focusedPane($: Engine, bodyRows = 30) {
   })
 }
 
-/* The pane with the keys, its ring on the group with the long reply. */
+/* The pane with the keys, the preview opened by a press on the group with
+   the long reply. */
 async function onLong($: Engine, world: ReturnType<typeof host>) {
   const pane = await focusedPane($)
   await arrow($, 'g2.u')
+  await pane.press({ key: 'g2.u' })
   await world.clock.advance(1)
   return pane
 }
@@ -80,6 +82,22 @@ test('e expands the preview over the list and the Minimap; the filter row and th
   expect(again).not.toContain('preview.back')
 })
 
+test('expanded, the ✕ at the right of the Back row closes the preview: the list comes back with no region', async ($, on) => {
+  const world = host(on, six().jsonl())
+  await start($, world)
+  const pane = await onLong($, world)
+  await pane.press({ key: 'preview.more' })
+
+  const close = await pane.find({ type: 'Button', key: 'preview' })
+  expect([close?.text, close?.props.hotkey]).toEqual(['✕', 'p'])
+  await pane.press({ key: 'preview' })
+  const drawn = await keys(pane)
+  expect(drawn.some(isEntryKey)).toBe(true)
+  expect(drawn).not.toContain('preview.back')
+  expect(drawn).not.toContain('preview')
+  expect(drawn).not.toContain('preview.more')
+})
+
 test('expanded, the files are one per line under 改过 and 读过, relative to the project or with ~', async ($, on) => {
   const world = host(on, six().jsonl())
   world.env.HOME = '/home/synthetic'
@@ -104,6 +122,7 @@ test('a 200,000-character pasted input is cut by the cap with a line saying so; 
   await start($, world)
   const pane = await mountPane($)
 
+  await pane.press({ key: 'g1.u' })
   await pane.press({ key: 'preview.more' })
   const shown = await texts(pane)
   const cut = shown.find(s => s.startsWith('… 还有 '))
@@ -131,6 +150,7 @@ test('expanded on a running group, it is redrawn as the group grows', async ($, 
   await appendRow($, asked)
   await appendRow($, first)
   await world.clock.advance(300)
+  await pane.press({ key: 'g1.u' })
   await pane.press({ key: 'preview.more' })
   expect(await markdown(pane)).toEqual([LONG])
 

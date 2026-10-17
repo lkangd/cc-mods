@@ -1342,7 +1342,7 @@ export const register: Register = on => {
        conversation) closes it. */
     const previewAt = groupIndexOf(groups, previewOpener)
     if (previewAt === -1) closePreviewNow()
-    const plan = previewPlan({ rows: listRows, region, groups: isOk ? groups.length : 0, isOpen: previewAt !== -1 })
+    const plan = previewPlan({ rows: listRows, region, steady: region - (hasForkLine ? 1 : 0), groups: isOk ? groups.length : 0, isOpen: previewAt !== -1 })
     /* The Minimap's cells: a group with no Jump target is one the host
        refused or a compaction took. */
     const isOff = (g: number) => refused.has(sideKeyOf(groups[g] as TurnGroup, 'user'))
