@@ -14,3 +14,7 @@ Spec: [chat-toc 0.2](../spec.md) §11 ("Each release runs every MUST of the feat
 
 - [ ] `CT-COMPAT-003`, `CT-LIFE-004` and `CT-LIFE-007` pass on 2.1.287 and the current host
 - [ ] The whole MUST list, perf included, passes once on both versions; the result recorded in `mods/chat-toc/release/`
+
+## Comments
+
+Ticket 22 (preview closed until a press) frees the preview's rows by default, so `CT-LIFE-004`'s six groups may fit at 44 rows again; check after 22 lands before raising the rows.

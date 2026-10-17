@@ -28,3 +28,13 @@ Built on `chat-toc-0.2/19-desktop`; tests in `mods/chat-toc/tests/desktop.test.t
 - [ ] A compaction rule: a dashed line with `已压缩 HH:MM` after the `/compact` entry, in all three Layouts, light and dark.
 - [ ] Context use: whether `上下文已用 N%` follows the count on the strip's line after a response (the app may give no figure: then nothing shows, which is allowed), and whether it fits beside the first and last times.
 
+
+The user's look in the Claude app (2026-10-17), five findings, filed as tickets 22–24; the spec's §1, §2, §3, §8 and §9 are revised to match:
+
+1. The list does not scroll: its real height is taller than what shows, and the top entries cannot be reached. So Desktop does **not** scroll a tree taller than the pane, as chat-toc draws it now. Ticket 23.
+2. The preview does not scroll either, and runs on from the list: the `Preview` rule, the meta line, the `User`/`Agent` parts and `↓ 27 more lines · expand` read as more entries. Tickets 23 (scroll) and 24 (set apart).
+3. The head and search rows are untidy: the segmented control is taller than the `Card ⌄` Select; the field and `show` do not line up with the row above, and `show` is not the field's height. Ticket 24.
+4. Search needs a one-press clear on both surfaces. The terminal's `✕` (drawn while there is a query) stays as it is; Desktop gains one. Ticket 24.
+5. The preview should not show by default: a press on an entry opens it, a `✕` at its top right closes it, on both surfaces. Decided with the user: a click or Enter opens it (and still jumps on the terminal); it stays on the pressed turn; not kept across Pane opens or restarts (`$.store` loses the flag); Enter in the search field (Desktop: `show`) opens it on the match; short rows open it expanded; a turn left out by the filter or the query stays shown. Tickets 22 and 24.
+
+Not looked at yet: copy, a compaction rule, context use. They go with ticket 24's look.

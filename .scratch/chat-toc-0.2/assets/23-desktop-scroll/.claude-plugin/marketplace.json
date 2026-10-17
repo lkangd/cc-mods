@@ -1,0 +1,8 @@
+{
+  "name": "scroll-probe-local",
+  "owner": { "name": "lkangd" },
+  "description": "Throwaway: how a Pane tree taller than the pane scrolls on Desktop",
+  "plugins": [
+    { "name": "scroll-probe", "source": "./scroll-probe", "description": "A Pane of numbered rows with switchable ui.scroll handling and layouts", "version": "0.0.1" }
+  ]
+}
