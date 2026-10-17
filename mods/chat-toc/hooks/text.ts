@@ -78,7 +78,6 @@ const EN = {
   stripAlt: (n: number, per: number) =>
     per === 1 ? `${count(n, 'turn', 'turns')}, one bar per turn, height by steps` : `${count(n, 'turn', 'turns')}, ${per} turns per bar, height by steps`,
   preview: 'Preview',
-  previewNoRoom: 'Preview (no room)',
   previewUser: 'User',
   previewAgent: 'Agent',
   moreLines: (n: number) => `↓ ${count(n, 'more line', 'more lines')} · `,
@@ -158,7 +157,6 @@ const ZH: Text = {
   contextUse: zhContextUse,
   stripAlt: (n, per) => (per === 1 ? `${n} 轮，每轮一根竖条，高度按步数` : `${n} 轮，每根竖条 ${per} 轮，高度按步数`),
   preview: '预览',
-  previewNoRoom: '预览（空间不足）',
   previewUser: '用户',
   previewAgent: 'Agent',
   moreLines: n => `↓ 还有 ${n} 行 · `,

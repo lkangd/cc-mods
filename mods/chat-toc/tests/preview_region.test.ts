@@ -37,80 +37,15 @@ function focusedPane($: Engine, bodyRows = 30) {
 
 const arrow = ($: Engine, element: string) => $.ui.focus({ component: 'Pane', requestId: PANE, element, origin: { kind: 'person' } } as never)
 
-test('the region sits above the footer: its rule, the meta line, the User input as typed, the last text as Markdown and the files line', async ($, on) => {
-  await start($, host(on, two().jsonl()))
-  const pane = await mountPane($)
-
-  const keys = drawnButtons(await pane.drawn()).map(b => b.key)
-  expect(keys.slice(-5)).toEqual(['preview', 'preview.reuse', 'preview.copy.user', 'preview.copy.agent', 'layout'])
-  const rule = await pane.find({ type: 'Button', key: 'preview' })
-  expect([rule?.text, rule?.props.hotkey, rule?.props.plain]).toEqual(['预览', 'p', true])
-  const shown = await texts(pane)
-  expect(shown).toContain('10月10日 09:03 · 1 步 · 45 秒 · 输出 1.5k')
-  expect(shown).toContain('用户')
-  expect(shown).toContain('CT-SYN second **prompt**')
-  expect(shown).toContain('Agent')
-  expect(shown).toContain('改 hooks/pane.tsx')
-  expect((await pane.find({ type: 'Markdown' }))?.props.text).toBe('## CT-SYN done\n\n- `one`')
-})
-
-test('with the keyboard in the Pane the preview shows the selected group; given back, the newest when nothing is lit', async ($, on) => {
-  const world = host(on, two().jsonl())
-  await start($, world)
-  const pane = await focusedPane($)
-
-  await arrow($, 'g0.u')
-  await world.clock.advance(1)
-  expect(await texts(pane)).toContain('CT-SYN 第一个问题')
-  expect((await pane.find({ type: 'Markdown' }))?.props.text).toBe('CT-SYN 第一个回答')
-
-  await arrow($, 'g1.a')
-  await world.clock.advance(1)
-  expect(await texts(pane)).toContain('CT-SYN second **prompt**')
-
-  await pane.redraw({ title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} })
-  expect(await texts(pane)).toContain('CT-SYN second **prompt**')
-})
-
-test('p folds the preview to its rule line and back, kept in the store; a value not known reads as shown', async ($, on) => {
-  const world = host(on, two().jsonl(), undefined, { preview: 'sideways' })
+test('closed until a press: nothing of it is drawn, and a stored preview value from 0.2 builds is ignored', async ($, on) => {
+  const world = host(on, two().jsonl(), undefined, { preview: 'shown' })
   await start($, world)
   const pane = await mountPane($)
-  expect(await pane.find({ type: 'Markdown' })).toBeDefined()
 
-  await pane.press({ key: 'preview' })
-  expect(world.store.preview).toBe('hidden')
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
   expect(await pane.find({ type: 'Markdown' })).toBeUndefined()
+  expect(await texts(pane)).not.toContain('预览')
   expect(await texts(pane)).not.toContain('用户')
-  const folded = await pane.find({ type: 'Button', key: 'preview' })
-  expect([folded?.text, folded?.props.hotkey, folded?.props.dimColor]).toEqual(['预览', 'p', true])
-
-  await pane.press({ key: 'preview' })
-  expect(world.store.preview).toBe('shown')
-  expect(await pane.find({ type: 'Markdown' })).toBeDefined()
-})
-
-test('p on the no-room line leaves the choice alone: given the rows back, the preview shows again', async ($, on) => {
-  const world = host(on, two().jsonl())
-  await start($, world)
-  const rows = (bodyRows: number) => ({ title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows }, view: {} })
-  const pane = await mountPane($, 16)
-  expect((await pane.find({ type: 'Button', key: 'preview' }))?.text).toBe('预览（空间不足）')
-
-  await pane.press({ key: 'preview' })
-  expect(world.store.preview).toBeUndefined()
-  expect((await pane.find({ type: 'Button', key: 'preview' }))?.text).toBe('预览（空间不足）')
-
-  await pane.redraw(rows(30))
-  expect(await pane.find({ type: 'Markdown' })).toBeDefined()
-})
-
-test('a hidden preview stays hidden in the next session', async ($, on) => {
-  const world: Host = host(on, two().jsonl(), undefined, { preview: 'hidden' })
-  await start($, world)
-  const pane = await mountPane($)
-  expect(await pane.find({ type: 'Markdown' })).toBeUndefined()
-  expect((await pane.find({ type: 'Button', key: 'preview' }))?.text).toBe('预览')
 })
 
 test('content past the region is cut, the last row saying how many lines are left with the e Button', async ($, on) => {
