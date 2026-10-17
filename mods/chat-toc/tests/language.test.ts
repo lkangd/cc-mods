@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { PANE, drawnButtons, entryTexts, host, isControlKey, mountPane, start } from './host'
+import { PANE, drawnButtons, entryTexts, host, isControlKey, mountPane, start, openOn } from './host'
 import type { Host } from './host'
 import { transcript } from './fixture'
 import { languageOf } from '../hooks/text'
@@ -63,7 +63,7 @@ test('in English the filters, the Layout Button, the steps, the day and the coun
   expect(texts).toContain('2 turns')
 
   /* A press opens the preview under its English rule. */
-  await pane.press({ key: 'g1.u' })
+  await openOn(pane, 'g1.u')
   expect((await pane.findAll({ type: 'Text' })).map(t => t.text)).toContain('Preview')
 })
 
@@ -91,7 +91,7 @@ test('on the desktop the filters and the strip read in English', async ($, on) =
     for (const child of el.children ?? []) walk(child)
   }
   walk(await pane.drawn())
-  expect(svgs.some(s => s.alt === 'Filter: All')).toBe(true)
+  expect((await pane.find({ type: 'Button', key: 'f-all' }))?.text).toBe('All')
   expect(svgs.some(s => s.alt === 'Rail')).toBe(true)
   const strip = svgs.find(s => s.alt.startsWith('2 turns'))
   expect(strip?.alt).toBe('2 turns, one bar per turn, height by steps')

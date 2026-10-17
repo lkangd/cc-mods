@@ -22,6 +22,14 @@ export const LAYOUT_CONTROL = 'layout'
 const AFTER_LIST = new Set([LAYOUT_CONTROL, PREVIEW_CONTROL, REUSE_CONTROL, COPY_INPUT_CONTROL, COPY_TEXT_CONTROL, MORE_CONTROL])
 const isAfterList = (key: string | undefined) => key !== undefined && AFTER_LIST.has(key)
 
+/* A Button on the row under the selected entry (spec §3), keyed
+   `<entry key>:<action>`; no entry's key has a colon. */
+export const actionKey = (entry: string, action: string): string => `${entry}:${action}`
+const actionOwner = (key: string | undefined): string | undefined => {
+  const cut = key === undefined ? -1 : key.indexOf(':')
+  return cut > 0 ? key!.slice(0, cut) : undefined
+}
+
 export type RingMove =
   /* Let the ring land where the host moves it. */
   | { kind: 'accept' }
@@ -68,6 +76,18 @@ export function ringMove(
 ): RingMove {
   const was = entryAt(from, indexOf)
   const next = entryAt(to, indexOf)
+  /* The row under the selected entry is for the pointer and the hotkeys:
+     the ring steps over it, down to the entry after its owner, up to its
+     owner's first line. */
+  const owner = actionOwner(to)
+  const ownerAt = owner === undefined ? undefined : indexOf.get(owner)
+  if (owner !== undefined && ownerAt !== undefined) {
+    if (was === undefined || was.index > ownerAt) return { kind: 'land', key: owner }
+    const below = ownerAt + 1
+    if (below < window.end) return { kind: 'land', key: keys[below] ?? after }
+    if (below < keys.length) return { kind: 'reveal', index: below }
+    return { kind: 'land', key: after }
+  }
   /* The ‹ › Buttons and the Minimap's cells are for the pointer: the ring
      steps over them, from the search row down to the first entry in the
      window, from an entry up to the search row. */

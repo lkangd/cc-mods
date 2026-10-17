@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { PANE, appendRow, drawnButtons, host, isBarKey, isEntryKey, mountPane, start } from './host'
+import { PANE, appendRow, drawnButtons, host, isBarKey, isEntryKey, mountPane, start, openOn } from './host'
 import { transcript } from './fixture'
 
 /* CT-PREV-002's automated half: the expanded preview (spec §3 "Expanded",
@@ -53,7 +53,7 @@ function focusedPane($: Engine, bodyRows = 30) {
 async function onLong($: Engine, world: ReturnType<typeof host>) {
   const pane = await focusedPane($)
   await arrow($, 'g2.u')
-  await pane.press({ key: 'g2.u' })
+  await openOn(pane, 'g2.u')
   await world.clock.advance(1)
   return pane
 }
@@ -122,7 +122,7 @@ test('a 200,000-character pasted input is cut by the cap with a line saying so; 
   await start($, world)
   const pane = await mountPane($)
 
-  await pane.press({ key: 'g1.u' })
+  await openOn(pane, 'g1.u')
   await pane.press({ key: 'preview.more' })
   const shown = await texts(pane)
   const cut = shown.find(s => s.startsWith('… 还有 '))
@@ -150,7 +150,7 @@ test('expanded on a running group, it is redrawn as the group grows', async ($, 
   await appendRow($, asked)
   await appendRow($, first)
   await world.clock.advance(300)
-  await pane.press({ key: 'g1.u' })
+  await openOn(pane, 'g1.u')
   await pane.press({ key: 'preview.more' })
   expect(await markdown(pane)).toEqual([LONG])
 

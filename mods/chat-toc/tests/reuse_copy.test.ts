@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { PANE, appendRow, drawnButtons, host, mountPane, start } from './host'
+import { PANE, appendRow, drawnButtons, host, mountPane, start, openOn } from './host'
 import { transcript } from './fixture'
 import { fillRefusedText, reusableOf } from '../hooks/reuse'
 import { tocModel } from '../hooks/model'
@@ -31,7 +31,7 @@ const label = async (pane: Pane, key: string) => {
 async function opened($: Engine, bodyRows = 30) {
   const pane = await mountPane($, bodyRows)
   const users = (await keys(pane)).filter(k => typeof k === 'string' && /^g\d+\.u$/.test(k))
-  await pane.press({ key: String(users[users.length - 1]) })
+  await openOn(pane, String(users[users.length - 1]))
   return pane
 }
 
@@ -156,7 +156,7 @@ test('a running group has no a; r and c work', async ($, on) => {
   await appendRow($, asked)
   await appendRow($, first)
   await world.clock.advance(300)
-  await pane.press({ key: 'g1.u' })
+  await openOn(pane, 'g1.u')
 
   const drawn = await keys(pane)
   expect(drawn).toContain('preview.reuse')
@@ -228,7 +228,7 @@ test('with the preview closed, before a press or after its ✕, none of the thre
   }
   await none()
 
-  await pane.press({ key: 'g1.u' })
+  await openOn(pane, 'g1.u')
   expect(await keys(pane)).toContain('preview.reuse')
   await pane.press({ key: 'preview' })
   await none()
@@ -282,7 +282,7 @@ test('the ring moving from an entry onto the label-row Buttons keeps the preview
   const arrow = (element: string) => $.ui.focus({ component: 'Pane', requestId: PANE, element, origin: { kind: 'person' } } as never)
 
   await arrow('g0.u')
-  await pane.press({ key: 'g0.u' })
+  await openOn(pane, 'g0.u')
   await arrow('g1.u')
   await world.clock.advance(1)
   await arrow('preview.reuse')

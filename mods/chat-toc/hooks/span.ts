@@ -39,6 +39,15 @@ export function spanEnding(list: SpanList, end: number, budget: number): TocWind
   return { start, end: last, maxStart: start }
 }
 
+/* The run ending at `end - 1` as spanEnding draws it, unless that reaches
+   the list's first entry with budget to spare: then the run from the first
+   entry filling the budget, so the earliest part is drawn as full as any
+   other (spec §8). */
+export function spanEndingFilled(list: SpanList, end: number, budget: number): TocWindow {
+  const run = spanEnding(list, end, budget)
+  return run.start === 0 ? spanStarting(list, 0, budget) : run
+}
+
 /* The run whose first entry is `start`, as many entries on as fit
    `budget`, ending on a group's last entry; at least `start`'s group. */
 export function spanStarting(list: SpanList, start: number, budget: number): TocWindow {

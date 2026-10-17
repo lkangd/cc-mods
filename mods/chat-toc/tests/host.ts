@@ -311,3 +311,11 @@ export function appendRow($: Engine, uuid: string, agentId?: string) {
     ...(agentId === undefined ? {} : { agentId }),
   })
 }
+
+/* On the terminal a press on an entry jumps and selects it; the preview
+   opens from the row under it (spec §3). Presses `key`, then the row's
+   `p: 预览` when it is drawn (the preview not open yet). */
+export async function openOn(pane: { press: (t: { key: string }) => Promise<unknown>; find: (q: { type: string; key: string }) => Promise<unknown> }, key: string): Promise<void> {
+  await pane.press({ key })
+  if ((await pane.find({ type: 'Button', key: `${key}:preview` })) !== undefined) await pane.press({ key: `${key}:preview` })
+}
