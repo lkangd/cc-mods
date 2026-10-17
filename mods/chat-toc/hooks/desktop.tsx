@@ -27,10 +27,16 @@ import { SEARCH_FIELD, compactionLabel, expandedContent, matchCount, previewCont
 import type { ExpandedView, PreviewView, SearchView } from './pane'
 import { BACK_CONTROL, MORE_CONTROL, PREVIEW_CONTROL } from './preview'
 import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
+import type { SpanList } from './span'
 import { FILTERS, filterLabel, layoutLabel, layoutName, layoutOf } from './view'
 import { text as words } from './text'
 import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
+
+/* The Buttons moving the drawn part of the list to earlier and to later
+   turns. */
+export const EARLIER_CONTROL = 'list.earlier'
+export const LATER_CONTROL = 'list.later'
 
 /* A cell's width and a row's height on the desktop, in CSS px. */
 export const CELL_PX = 8.2
@@ -50,9 +56,17 @@ const WELL_ROWS = 2
    match in the preview; while there is a query, the count of matches. */
 export type DesktopSearch = Pick<SearchView, 'query' | 'count' | 'onInput' | 'onSubmit'>
 
+/* Where the drawn part of the list moves: to earlier turns from its top,
+   to later ones from its bottom; `count` Turn groups are left out there. */
+export type ListMove = { count: number; onPress: () => Promise<void> }
+
 export type DesktopView = {
   entries: readonly Entry[]
+  /* The drawn part of the list (span.ts), not a window by rows: the host
+     scrolls the tree. */
   window: TocWindow
+  earlier: ListMove | undefined
+  later: ListMove | undefined
   layout: Layout
   filter: ViewFilter
   /* The steps of each Turn group the list holds, for the strip of bars. */
@@ -208,6 +222,53 @@ function compactionSvg(label: string, width: number): string {
   )
 }
 
+/* The list's share of a tree's 100,000 serialized characters on the
+   desktop: what the drawn part of the list may take. A Turn group of two
+   two-line sides costs about 3,300 (its rails' Svg sources most of it), so
+   this draws about 15. The rest stays under 30,000: the head and the
+   search row about 2,000, the strip up to about 8,000 (120 bars), the
+   preview (its Markdown up to 10,000, its text and Buttons) and the notes,
+   with room to spare for the reckoning's error. */
+export const LIST_BUDGET = 50_000
+
+/* What an element costs serialized beyond its text and Svg source,
+   roughly: its type, key and props; a Button's handle too. */
+const ELEMENT_CHARS = 70
+const BUTTON_CHARS = 130
+/* A string as it serializes: quoted, its quotes and backslashes escaped. */
+const quoted = (s: string) => JSON.stringify(s).length
+
+/* The characters entry `i` adds to the tree as drawDesktopPane draws it:
+   its rules above, its rail, its lines, its gap and rule after. The rail is
+   reckoned as if it did not start at its ring, a few characters more. */
+function entryChars(entries: readonly Entry[], i: number, hasTime: boolean, width: number): number {
+  const entry = entries[i]
+  if (entry === undefined) return 0
+  let chars = ELEMENT_CHARS * 3 + quoted(railSvg(entry, hasTime, false).source)
+  const rule = dayRuleBefore(entries, i)
+  if (rule !== undefined) chars += ELEMENT_CHARS + quoted(ruleSvg(rule, width)) + quoted(rule)
+  for (const rule of [entry.compactionBefore, entry.compactionAfter]) {
+    if (rule === undefined) continue
+    const label = compactionLabel(rule)
+    chars += ELEMENT_CHARS + quoted(compactionSvg(label, width)) + quoted(label)
+  }
+  for (const line of entry.lines) chars += BUTTON_CHARS + quoted(line.text) + (line.aside === undefined ? 0 : ELEMENT_CHARS * 2 + quoted(line.aside))
+  if (entry.gapAfter) chars += ELEMENT_CHARS * 2 + quoted(gapSvg(hasTime).source)
+  return chars
+}
+
+/* The list as span.ts measures it on the desktop, for the Layout and the
+   body's width in cells. */
+export function desktopList(entries: readonly Entry[], layout: Layout, bodyColumns: number): SpanList {
+  const hasTime = layout !== 'card'
+  const width = Math.round(bodyColumns * CELL_PX)
+  return {
+    length: entries.length,
+    cost: i => entryChars(entries, i, hasTime, width),
+    groupOf: i => entries[i]?.groupIndex ?? -1,
+  }
+}
+
 export function drawDesktopPane(elements: ElementTable, view: DesktopView): RenderElement {
   const { Box, Text, Button } = elements
   const hasSvg = 'Svg' in elements
@@ -274,6 +335,11 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
         {matchCount(elements, view.search.count)}
       </Box>
     ) : null
+  const moveButton = (key: string, label: string, move: ListMove) => (
+    <Button key={key} plain dimColor onPress={() => move.onPress()}>
+      {label}
+    </Button>
+  )
   const hasTime = view.layout !== 'card'
   /* Not pressable, breaking the rail as the day's rule does. */
   const compactionRow = (rule: CompactionRule) => {
@@ -349,7 +415,11 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
       {strip}
       {view.isEarlierElsewhere ? <Text dimColor>{words.earlierElsewhere}</Text> : null}
       {view.notice === undefined ? null : <Text dimColor>{view.notice}</Text>}
-      <Box flexDirection="column">{rows}</Box>
+      <Box flexDirection="column">
+        {view.earlier === undefined ? null : moveButton(EARLIER_CONTROL, words.earlierTurns(view.earlier.count), view.earlier)}
+        {rows}
+        {view.later === undefined ? null : moveButton(LATER_CONTROL, words.laterTurns(view.later.count), view.later)}
+      </Box>
       {view.alert === undefined ? null : <Text color="warning">{`⚠ ${view.alert.text}`}</Text>}
       {view.why === undefined ? null : <Text dimColor>{view.why}</Text>}
       {view.preview === undefined ? null : drawPreview(elements, view.preview, view.bodyColumns)}

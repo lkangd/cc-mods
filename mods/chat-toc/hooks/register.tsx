@@ -22,7 +22,9 @@ import { entryKey, groupOfKey } from './entries'
 import type { Entry } from './entries'
 import { compactionsOf, hasEarlierTurnsElsewhere, layRules } from './compactions'
 import type { Compaction, Listed } from './compactions'
-import { drawDesktopPane } from './desktop'
+import { LIST_BUDGET, desktopList, drawDesktopPane } from './desktop'
+import type { ListMove } from './desktop'
+import { endOfGroup, groupsIn, spanEnding, spanStarting } from './span'
 import { BAR_ROWS, barKey, barLabels, barOfGroup, barTarget, barsOf } from './bars'
 import { stripLabels } from './minimap'
 import { groupIndexOf } from './groups'
@@ -125,6 +127,12 @@ const gate = readGate()
 /* The window's top entry; undefined shows the newest. While following it
    is wherever keeps the lit group in view. */
 let top: number | undefined
+/* On the desktop, where the host scrolls the whole tree (span.ts): the
+   last Turn group the drawn part of the list holds; undefined draws the
+   newest. */
+let drawnUpTo: number | undefined
+/* The surface the pane was last drawn on: `ui.scroll` does not say it. */
+let paneSurface: RenderSurface = 'terminal'
 /* Following stops while the person scrolls the pane or it has the
    keyboard, and starts again when the Current position next moves. */
 let isPaused = false
@@ -332,6 +340,7 @@ function forget(): void {
   startOver()
   source = 'unknown'
   top = undefined
+  drawnUpTo = undefined
   anchor = undefined
   chainRows = rowIndex([])
   sites = newSites()
@@ -848,6 +857,12 @@ async function submitSearch($: EngineInterface, value: string): Promise<void> {
 /* A press on an entry on the desktop: the preview shows its group, and
    the press asks to jump as on the terminal (the app refuses it, and the
    pane says so). */
+/* The desktop's list drawn up to `group`, undefined the newest. */
+async function moveList($: EngineInterface, group: number | undefined): Promise<void> {
+  drawnUpTo = group
+  await update($, rev, n => n + 1)
+}
+
 async function pressEntry($: EngineInterface, entry: Entry): Promise<void> {
   pressedOpener = shownGroups()[entry.groupIndex]?.openerUuid
   await update($, rev, n => n + 1)
@@ -1216,8 +1231,8 @@ export const register: Register = on => {
   })
 
   on('ui.scroll', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
-    /* Expanded, the host scrolls the whole tree. */
-    if (e.origin.kind !== 'person' || expandedOpener !== undefined) return next(e)
+    /* Expanded, and on the desktop, the host scrolls the whole tree. */
+    if (e.origin.kind !== 'person' || expandedOpener !== undefined || paneSurface !== 'terminal') return next(e)
     top = scrolledTop(lastDrawing.window, e.by)
     isPaused = true
     await update($, rev, n => n + 1)
@@ -1254,6 +1269,9 @@ export const register: Register = on => {
     }
     const drawn = lastDrawing
     const move = e.origin.kind === 'person' ? ringMove(drawn.keys, drawn.indexOf, drawn.window, ring, e.element, afterList, beforeList) : { kind: 'accept' as const }
+    /* The desktop's list is no window to move: past its drawn part the
+       ring goes where the host moves it. */
+    if (move.kind === 'reveal' && paneSurface !== 'terminal') return next(e)
     if (move.kind === 'reveal') {
       const key = drawn.keys[move.index]
       if (key === undefined) return next(e)
@@ -1289,6 +1307,7 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
     const began = perfNow()
+    paneSurface = e.surface
     /* What the drawing needs of the host first; the rest is its own work. */
     await read($, rev)
     const position = (await read($, currentPosition)) ?? undefined
@@ -1331,7 +1350,10 @@ export const register: Register = on => {
        not: the list it was on is gone. */
     const isQueryNew = searchText !== queryDrawn
     queryDrawn = searchText
-    if (isQueryNew) top = undefined
+    if (isQueryNew) {
+      top = undefined
+      drawnUpTo = undefined
+    }
     const listed = remember(ruled, [table, compactions], () => layRules(table, compactions))
     const entries = dimRefused(listed.entries as Entry[], groups, refused)
     /* A resumed or forked session shows its history in the transcript
@@ -1375,7 +1397,22 @@ export const register: Register = on => {
     })
     top = placed.top
     if (placed.refocusKey !== undefined) pendingRing = placed.refocusKey
-    const window = windowOf(listed.heights, rows, top)
+    /* The desktop draws a part of the list within a budget of characters,
+       and Buttons moving it, instead of a window by rows. */
+    const isTerminal = e.surface === 'terminal'
+    const span = isTerminal ? undefined : desktopList(entries, layout, width)
+    const window = span === undefined ? windowOf(listed.heights, rows, top) : spanEnding(span, endOfGroup(span, drawnUpTo), LIST_BUDGET)
+    let earlier: ListMove | undefined
+    let later: ListMove | undefined
+    if (span !== undefined && window.start > 0) {
+      const upTo = span.groupOf(window.start - 1)
+      earlier = { count: groupsIn(span, 0, window.start), onPress: () => moveList($, upTo) }
+    }
+    if (span !== undefined && window.end < span.length) {
+      const next = spanStarting(span, window.end, LIST_BUDGET)
+      const upTo = next.end < span.length ? span.groupOf(next.end - 1) : undefined
+      later = { count: groupsIn(span, window.end, span.length), onPress: () => moveList($, upTo) }
+    }
     lastDrawing = { ...drawnEntries, entries, window }
     afterList = plan.state === 'none' || e.surface !== 'terminal' ? LAYOUT_CONTROL : PREVIEW_CONTROL
     beforeList = e.surface !== 'terminal' ? FILTER_END : searchText === '' ? SEARCH_FIELD : CLEAR_CONTROL
@@ -1398,7 +1435,6 @@ export const register: Register = on => {
     const actionsOf = (group: TurnGroup, isRunning: boolean) => labelActions($, group, isRunning, e.surface)
     /* The desktop reports no Current position: its preview shows the entry
        pressed last. */
-    const isTerminal = e.surface === 'terminal'
     const pressedAt = isTerminal || pressedOpener === undefined ? -1 : groupIndexOf(groups, pressedOpener)
     const pressed = pressedAt === -1 ? undefined : pressedAt
     const previewFrom: PreviewSource = { groups, isRunningNow, width, nowMs, actionsOf }
@@ -1470,6 +1506,8 @@ export const register: Register = on => {
         : drawDesktopPane($.ui.resolve(e), {
             ...shared,
             steps: isOk ? groups.map(g => g.steps) : [],
+            earlier,
+            later,
             search: {
               query: searchText,
               count: searchView.count,
