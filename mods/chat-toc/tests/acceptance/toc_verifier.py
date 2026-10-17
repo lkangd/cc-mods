@@ -412,9 +412,10 @@ _DAY_RULE = re.compile(r"^─ (.+?) ─+$")
 _COMPACTION_RULE = re.compile(r"^╌ (.+?) ╌*$")
 _FORK_LINE = "更早的轮次不在本会话的文件里"
 _FOOTER_RULE = re.compile(r"^─{10,}$")
-# The preview's rule over the footer (0.2): shown or folded `─ p: 预览 ───`,
-# or `─ p: 预览（空间不足） ───` when the rows ran short.
-_PREVIEW_RULE = re.compile(r"^─ p: 预览(（空间不足）)? ─*$")
+# The preview's rule over the footer while it is open (0.2, ticket 22):
+# `─ 预览 ─── p: ✕`, its ✕ closing it (the trailing ✕ may have been read
+# off as 2.1.287's close mark).
+_PREVIEW_RULE = re.compile(r"^─ 预览 ─+ p:( ✕)?$")
 # The search row under the tab rule (0.2): `f: 搜索`, the field (the query
 # or the dim placeholder; `⏎ 跳转` after it while it holds the keys), then
 # with a query the count `4 / 38` and the clear mark `✕`, then `‹ ›` (ticket 18).
