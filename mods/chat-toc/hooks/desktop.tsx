@@ -11,9 +11,10 @@
    The 0.2 additions (spec §8): a native search field under the segmented
    control (no `f` Button), the strip drawing the matches in the accent
    colour and the context use after its count; the compaction rules as
-   dashed Svgs placed as on the terminal, and the fork line; the preview
-   with its content drawn by pane.tsx, its hotkeys gone, so the rule, the
-   cut line and Back are plain Buttons; copy without Reuse (reuse.ts). No
+   dashed Svgs placed as on the terminal, and the fork line; the preview,
+   closed until a press, with its content drawn by pane.tsx, its hotkeys
+   gone, so its ✕, the cut line and Back are plain Buttons; copy without
+   Reuse (reuse.ts). No
    ‹ ›: nothing walks on the desktop. */
 
 import type { ElementTable, RenderElement } from 'claude-code'
@@ -71,7 +72,7 @@ export type DesktopView = {
   search: DesktopSearch
   /* The matching groups while a query is set, for the strip. */
   matches: readonly number[] | undefined
-  /* The preview under the list; undefined draws none. */
+  /* The preview under the list while it is open; undefined draws none. */
   preview: PreviewView | undefined
   /* The expanded preview, drawn in place of the strip, the list and the
      preview; undefined draws those. */
@@ -163,26 +164,36 @@ function ruleSvg(day: string, width: number): string {
   )
 }
 
-/* A thin rule across `width` px, beside the preview's Button. */
+/* A thin rule across `width` px, beside the preview's label. */
 function lineSvg(width: number): string {
   return svgOf(width, ROW_PX, RAIL_STYLE, `<rect class="l" x="0" y="${ROW_PX / 2}" width="${px(width)}" height="1"/>`)
 }
 
-/* The preview as on the terminal, its hotkeys gone: the rule a Button
-   showing or hiding it, the cut line a Button expanding it. */
+/* The ✕ closing the preview, a plain Button with no hotkey. */
+function closeButton(elements: ElementTable, onClose: () => Promise<void>): RenderElement {
+  const { Button } = elements
+  return (
+    <Button key={PREVIEW_CONTROL} plain dimColor onPress={() => onClose()}>
+      ✕
+    </Button>
+  )
+}
+
+/* The preview as on the terminal while it is open, its hotkeys gone: the
+   ✕ at the rule's right end a Button closing it, the cut line a Button
+   expanding it. */
 function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: number): RenderElement {
-  const { Box, Button } = elements
-  const label = preview.state === 'noRoom' ? words.previewNoRoom : words.preview
-  const rest = Math.max(0, bodyColumns - textCells(label) - 1) * CELL_PX
+  const { Box, Text, Button } = elements
+  const label = words.preview
+  const rest = Math.max(0, bodyColumns - textCells(label) - 4) * CELL_PX
   const rule = (
     <Box flexDirection="row" alignItems="center" columnGap={1}>
-      <Button key={PREVIEW_CONTROL} plain dimColor={preview.state !== 'shown'} onPress={() => preview.onToggle()}>
-        {label}
-      </Button>
+      <Text>{label}</Text>
       {'Svg' in elements ? <elements.Svg source={lineSvg(rest)} alt="" width={px(rest)} height={ROW_PX} /> : null}
+      {closeButton(elements, preview.onClose)}
     </Box>
   )
-  const body = preview.state === 'shown' ? preview.body : undefined
+  const body = preview.body
   return (
     <Box flexDirection="column">
       {rule}
@@ -334,9 +345,12 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
         {head}
         {searchRow}
         <Box flexDirection="column">
-          <Button key={BACK_CONTROL} plain onPress={() => expanded.onBack()}>
-            {words.back}
-          </Button>
+          <Box flexDirection="row" justifyContent="space-between">
+            <Button key={BACK_CONTROL} plain onPress={() => expanded.onBack()}>
+              {words.back}
+            </Button>
+            {closeButton(elements, expanded.onClose)}
+          </Box>
           {expandedContent(elements, expanded, false)}
         </Box>
       </Box>

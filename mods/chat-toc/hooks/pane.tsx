@@ -196,45 +196,52 @@ export function labelRow(elements: ElementTable, label: string, side: 'user' | '
   )
 }
 
-/* The preview region over the footer (preview.ts): its rule Button, then
-   the group's content when shown. */
+/* The preview region over the footer (preview.ts), drawn only while it is
+   open: its rule with the ✕ closing it, then the group's content. */
 export type PreviewView = {
-  state: 'shown' | 'hidden' | 'noRoom'
   /* The rows it takes, its rule included. */
   rows: number
   body: PreviewBody | undefined
   /* Undefined draws the label rows bare. */
   actions?: LabelActions | undefined
-  onToggle: () => Promise<void>
+  onClose: () => Promise<void>
   onMore: () => Promise<void>
 }
 
-/* The region: the rule line with the `p` Button, then the meta line, the
-   User input under its label, the last text under its label, the files
-   line, blank rows, and the cut line. The last text is a `Markdown`,
-   which 2.1.287 draws as 2.1.295 does; its Box clips it at the rows it
-   was given. */
+/* The ✕ closing the preview, hotkey `p`: at the right end of its rule, and
+   of the expanded preview's Back row. */
+function closeButton(elements: ElementTable, onClose: () => Promise<void>): RenderElement {
+  const { Button } = elements
+  return (
+    <Button key={PREVIEW_CONTROL} plain dimColor hotkey={PREVIEW_HOTKEY} onPress={() => onClose()}>
+      ✕
+    </Button>
+  )
+}
+
+/* The region: the rule line, `Preview` and the ✕ at its right end, then
+   the meta line, the User input under its label, the last text under its
+   label, the files line, blank rows, and the cut line. The last text is a
+   `Markdown`, which 2.1.287 draws as 2.1.295 does; its Box clips it at the
+   rows it was given. */
 function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: number): RenderElement {
   const { Box, Text, Button } = elements
-  const label = preview.state === 'noRoom' ? words.previewNoRoom : words.preview
-  const ruleRest = Math.max(0, bodyColumns - 2 - textCells(`${PREVIEW_HOTKEY}: ${label}`) - 1)
+  const label = words.preview
+  const ruleRest = Math.max(0, bodyColumns - 2 - textCells(label) - 2 - controlCells('✕'))
   const rule = (
     <Box flexDirection="row">
       <Text color="subtle">{'─ '}</Text>
-      <Button key={PREVIEW_CONTROL} plain hotkey={PREVIEW_HOTKEY} dimColor={preview.state !== 'shown'} onPress={() => preview.onToggle()}>
-        {label}
-      </Button>
-      <Text color="subtle">{' ' + '─'.repeat(ruleRest)}</Text>
+      <Text>{label}</Text>
+      <Text color="subtle">{' ' + '─'.repeat(ruleRest) + ' '}</Text>
+      {closeButton(elements, preview.onClose)}
     </Box>
   )
-  const body = preview.state === 'shown' ? preview.body : undefined
-  /* Shown with nothing to show (no match): the region keeps its rows. */
-  const empty = preview.state === 'shown' && preview.rows > 1 ? <Box height={preview.rows - 1} /> : null
+  const body = preview.body
   if (body === undefined)
     return (
       <Box flexDirection="column">
         {rule}
-        {empty}
+        {preview.rows > 1 ? <Box height={preview.rows - 1} /> : null}
       </Box>
     )
   return (
@@ -281,20 +288,26 @@ export function previewContent(elements: ElementTable, body: PreviewBody, action
 export type ExpandedView = {
   body: ExpandedBody
   actions?: LabelActions | undefined
+  /* Back to the region, or, when it was opened expanded for want of rows,
+     closed. */
   onBack: () => Promise<void>
+  onClose: () => Promise<void>
 }
 
-/* The Back Button, the meta line, the User input under its label, the last
-   text in one `Markdown` per part under its label, a line after a part the
-   cap cut, then the files one per line under their headings. Drawn uncut:
-   the host scrolls the tree. */
+/* The Back Button with the ✕ at the row's right end, the meta line, the
+   User input under its label, the last text in one `Markdown` per part
+   under its label, a line after a part the cap cut, then the files one per
+   line under their headings. Drawn uncut: the host scrolls the tree. */
 function drawExpanded(elements: ElementTable, expanded: ExpandedView): RenderElement {
   const { Box, Button } = elements
   return (
     <Box flexDirection="column">
-      <Button key={BACK_CONTROL} plain hotkey={EXPAND_HOTKEY} onPress={() => expanded.onBack()}>
-        {words.back}
-      </Button>
+      <Box flexDirection="row" justifyContent="space-between">
+        <Button key={BACK_CONTROL} plain hotkey={EXPAND_HOTKEY} onPress={() => expanded.onBack()}>
+          {words.back}
+        </Button>
+        {closeButton(elements, expanded.onClose)}
+      </Box>
       {expandedContent(elements, expanded, true)}
     </Box>
   )
@@ -377,7 +390,7 @@ export type PaneView = {
   litBars: ReadonlySet<number>
   /* The times under the cells, and the spaces between them. */
   barLabels: { left: string; right: string; gap: number }
-  /* The preview region; undefined draws none. */
+  /* The preview region while it is open; undefined draws none. */
   preview: PreviewView | undefined
   /* The expanded preview, drawn in place of the Minimap, the list and the
      region; undefined draws those. */
