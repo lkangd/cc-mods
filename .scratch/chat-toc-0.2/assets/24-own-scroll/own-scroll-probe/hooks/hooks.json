@@ -1,0 +1,1 @@
+{ "description": "own-scroll-probe", "modules": ["./register.ts"] }

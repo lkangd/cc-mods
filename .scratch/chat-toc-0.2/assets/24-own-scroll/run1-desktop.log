@@ -1,0 +1,118 @@
+0.02s session.start version=[object Object]
+1243.91s open {"isPlaced":true}
+1244.03s render #1 surface=desktop scroll={"offset":0,"bodyRows":42}
+1245.81s ui.scroll #1 by=1 offset=1 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1245.81s render #2 surface=desktop scroll={"offset":1,"bodyRows":42}
+1245.99s ui.scroll #11 by=2 offset=19 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1246.18s ui.scroll #21 by=1 offset=36 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1246.49s ui.scroll #31 by=-4 offset=20 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1246.81s render #50 surface=desktop scroll={"offset":3,"bodyRows":42}
+1246.81s ui.scroll #41 by=18 offset=21 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1247.28s ui.scroll #51 by=-1 offset=57 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1247.45s ui.scroll #61 by=-11 offset=11 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1257.46s call #1 from=press args={"to":"end","in":"own-scroll-probe"}
+1257.46s   call #1 -> {}
+1257.75s PRESS row 46 opened=46 pvMode=direct
+1257.75s call #2 from=press(pv direct) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1257.75s   call #2 -> {"deny":"no element of its own is drawn under that key"}
+1259.07s PRESS row 56 opened=56 pvMode=direct
+1259.07s call #3 from=press(pv direct) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1259.07s   call #3 -> {"deny":"no element of its own is drawn under that key"}
+1260.62s PRESS row 62 opened=62 pvMode=direct
+1260.63s call #4 from=press(pv direct) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1260.63s   call #4 -> {"deny":"no element of its own is drawn under that key"}
+1262.93s ui.scroll #71 by=-2 offset=66 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1263.07s render #100 surface=desktop scroll={"offset":44,"bodyRows":42}
+1263.14s ui.scroll #81 by=-2 offset=23 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1263.36s ui.scroll #91 by=-1 offset=0 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1264.87s call #5 from=press args={"to":"end","in":"own-scroll-probe"}
+1264.88s   call #5 -> {}
+1265.71s ui.scroll #101 by=-13 offset=23 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1266.87s call #6 from=press args={"to":{"key":"row70"},"in":"own-scroll-probe","block":"nearest"}
+1266.87s   call #6 -> {}
+1267.66s ui.scroll #111 by=-1 offset=56 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1268.63s call #7 from=press args={"to":{"key":"row70"},"in":"own-scroll-probe","block":"start"}
+1268.63s   call #7 -> {}
+1269.62s ui.scroll #121 by=-1 offset=70 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1269.63s render #150 surface=desktop scroll={"offset":70,"bodyRows":42}
+1269.83s ui.scroll #131 by=-2 offset=39 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1270.09s ui.scroll #141 by=-2 offset=21 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1270.49s ui.scroll #151 by=-3 offset=0 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1271.32s PRESS timer 1000ms "end"
+1272.33s call #8 from=timer 1000ms args={"to":"end","in":"own-scroll-probe"}
+1272.33s   call #8 -> {}
+1272.50s PRESS row 60 opened=60 pvMode=direct
+1272.51s call #9 from=press(pv direct) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1272.51s   call #9 -> {"deny":"no element of its own is drawn under that key"}
+1273.37s ui.scroll #161 by=-1 offset=0 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1274.29s PRESS timer 1000ms "end"
+1275.29s call #10 from=timer 1000ms args={"to":"end","in":"own-scroll-probe"}
+1275.29s   call #10 -> {}
+1275.72s render #200 surface=desktop scroll={"offset":70,"bodyRows":42}
+1275.85s ui.scroll #171 by=-6 offset=22 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1276.70s PRESS timer 4000ms "start"
+1280.70s call #11 from=timer 4000ms args={"to":"start","in":"own-scroll-probe"}
+1280.70s   call #11 -> {}
+1282.70s PRESS timer 4000ms "start"
+1283.17s ui.scroll #181 by=13 offset=46 bodyRows=42 contentRows=113 origin={"kind":"person"} next -> {}
+1286.70s call #12 from=timer 4000ms args={"to":"start","in":"own-scroll-probe"}
+1286.71s   call #12 -> {}
+1288.66s pvMode=after0
+1289.65s pvMode=after300
+1290.38s pvMode=none
+1290.90s pvMode=direct
+1291.39s pvMode=after0
+1292.80s pvMode=after300
+1297.73s PRESS row 0 opened=0 pvMode=after300
+1298.03s call #13 from=timer(pv after300) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1298.03s   call #13 -> {"deny":"no element of its own is drawn under that key"}
+1299.72s pvMode=none
+1301.23s PRESS row 2 opened=2 pvMode=none
+1302.66s pvMode=direct
+1304.12s PRESS row 0 opened=0 pvMode=direct
+1304.12s call #14 from=press(pv direct) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1304.13s   call #14 -> {"deny":"no element of its own is drawn under that key"}
+1305.51s pvMode=after0
+1306.80s PRESS row 0 opened=undefined pvMode=after0
+1307.77s PRESS row 3 opened=3 pvMode=after0
+1307.77s call #15 from=timer(pv after0) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1307.78s   call #15 -> {"deny":"no element of its own is drawn under that key"}
+1308.25s PRESS row 3 opened=undefined pvMode=after0
+1308.73s PRESS row 3 opened=3 pvMode=after0
+1308.74s call #16 from=timer(pv after0) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1308.74s   call #16 -> {"deny":"no element of its own is drawn under that key"}
+1309.15s PRESS row 3 opened=undefined pvMode=after0
+1310.16s pvMode=after300
+1310.91s PRESS row 5 opened=5 pvMode=after300
+1311.21s call #17 from=timer(pv after300) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1311.21s   call #17 -> {"deny":"no element of its own is drawn under that key"}
+1311.64s PRESS row 5 opened=undefined pvMode=after300
+1312.20s PRESS row 5 opened=5 pvMode=after300
+1312.50s call #18 from=timer(pv after300) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1312.50s   call #18 -> {"deny":"no element of its own is drawn under that key"}
+1314.24s PRESS row 5 opened=undefined pvMode=after300
+1314.25s render #250 surface=desktop scroll={"offset":0,"bodyRows":42}
+1316.74s PRESS row 8 opened=8 pvMode=after300
+1317.05s call #19 from=timer(pv after300) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1317.05s   call #19 -> {"deny":"no element of its own is drawn under that key"}
+1320.01s PRESS row 7 opened=7 pvMode=after300
+1320.31s call #20 from=timer(pv after300) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1320.32s   call #20 -> {"deny":"no element of its own is drawn under that key"}
+1321.38s PRESS row 7 opened=undefined pvMode=after300
+1349.49s call #21 from=command args={"to":"end","in":"own-scroll-probe"}
+1349.49s ui.scroll #185 by=58 offset=58 bodyRows=42 contentRows=100 origin={"kind":"plugin","name":"own-scroll-probe"} next -> {}
+1349.49s   call #21 -> {}
+1351.22s ui.scroll #191 by=-3 offset=32 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1352.32s ui.scroll #201 by=4 offset=14 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1352.51s ui.scroll #211 by=2 offset=50 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1353.66s render #300 surface=desktop scroll={"offset":56,"bodyRows":42}
+1353.66s render #300 surface=desktop scroll={"offset":56,"bodyRows":42}
+1353.70s ui.scroll #221 by=-14 offset=36 bodyRows=42 contentRows=100 origin={"kind":"person"} next -> {}
+1354.62s call #22 from=press args={"to":{"key":"row70"},"in":"own-scroll-probe","block":"nearest"}
+1354.62s   call #22 -> {}
+1355.70s PRESS row 37 opened=37 pvMode=after300
+1356.00s call #23 from=timer(pv after300) args={"to":{"key":"pv"},"in":"own-scroll-probe","block":"nearest"}
+1356.00s   call #23 -> {"deny":"no element of its own is drawn under that key"}
+1361.62s call #24 from=command args={"to":"start","in":"own-scroll-probe"}
+1361.62s ui.scroll #226 by=-47 offset=0 bodyRows=42 contentRows=113 origin={"kind":"plugin","name":"own-scroll-probe"} next -> {}
+1361.62s   call #24 -> {}

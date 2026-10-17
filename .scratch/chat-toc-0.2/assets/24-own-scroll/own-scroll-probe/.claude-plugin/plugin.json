@@ -1,0 +1,1 @@
+{ "name": "own-scroll-probe", "version": "0.0.1", "description": "Throwaway probe: $.ui.scroll of the plugin's own Pane on Desktop", "author": { "name": "probe" }, "types": "./types/index.d.ts" }
