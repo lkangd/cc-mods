@@ -146,3 +146,22 @@ test('a survey holds the band first', async ($, on) => {
 
   expect(await bandButtons(band)).toEqual([])
 })
+
+test('the band opens no preview: neither its ‹ › nor its open', async ($, on) => {
+  const world = host(on, three().jsonl())
+  on('ui.render', { component: 'AbovePrompt' }, ENGINE_BAND)
+  world.unplaced = true
+  await start($, world)
+  const band = await mountBand($)
+  await world.clock.settle()
+
+  await band.press({ key: 'chat-toc-band.previous' })
+  await world.clock.settle()
+  world.unplaced = false
+  await band.press({ key: BAND })
+  await world.clock.settle()
+  const pane = await mountPane($)
+  await world.clock.settle()
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
+  expect(await pane.find({ type: 'Markdown' })).toBeUndefined()
+})
