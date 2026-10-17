@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """CT-PREV-001 and CT-PREV-002 in a real host (chat-toc 0.2 spec §1, §3, §4;
-tickets 13 and 15): the preview region at the bottom of the Pane, and the
-preview expanded over the list.
+tickets 13, 15 and 22): the preview region at the bottom of the Pane, opened
+by a press on an entry and closed by its ✕, and the preview expanded over the
+list.
 
-    $PY ct_preview.py --host 2.1.287 [--host current] [--only which,facts,cut,toggle,short,widths,expand,cap,running] [--out DIR]
+    $PY ct_preview.py --host 2.1.287 [--host current] [--only press,close,facts,cut,short,widths,expand,cap,running] [--out DIR]
 
 CT-PREV-001:
 
-  which    not focused, the preview shows the Current position's group (the
-           lit one); with the keys in the Pane, every step of the ring onto an
-           entry shows that entry's group; Esc gives the keys back and the lit
-           group's shows again
+  press    no preview until a press: none at the start, none while ↑ moves
+           the ring; Enter on the ring's entry opens it on that group; ↑
+           again, a click on another entry (which moves it there), scrolling
+           the transcript (the Current position moves), a View filter switch
+           and a new turn leave it on the group pressed
+  close    `p` and a click on the rule's `✕` close it; the Pane closed by its
+           own ✕ and opened again by /chat-toc starts with it closed, and so
+           does a new process; the store holds no preview field
   facts    the meta line: the date and time, the steps, the duration (the
            group's turn_duration rows summed) and the output tokens (each
            message.id once); a group without turn_duration or usage leaves
@@ -18,24 +23,25 @@ CT-PREV-001:
            with ~, the rest counted, and the read ones counted
   cut      a long reply is cut by the region, its last row
            `↓ 还有 N 行 · e: 展开`
-  toggle   `p` folds the preview to its rule line and back; folded, it stays
-           folded in a new process; the store holds the flag
-  short    as the terminal gets shorter the Minimap goes first, then the
-           preview shrinks (down to 4 rows), then `p: 预览（空间不足）`; while the
-           preview shows, the list keeps 8 rows
-  widths   the three Layouts at 36, 44 and 56 columns each draw the region
-           whole: its rule across the Pane, the meta line, the footer below
+  short    with the preview open, as the terminal gets shorter the Minimap
+           goes first, then the region shrinks (down to 4 rows), then it is
+           drawn expanded; while the region shows, the list keeps 8 rows; at
+           that height `e: ← 返回` closes it and a press opens it expanded again
+  widths   opened by a press, the three Layouts at 36, 44 and 56 columns each
+           draw the region whole: its rule `─ 预览 ─── p: ✕` across the Pane,
+           the meta line, the footer below; the group stays across the switches
 
 CT-PREV-002:
   expand   `e` on the cut line expands the preview over the list, the filter
-           row kept, `e: ← 返回` at its top; the host scrolls the whole tree
-           (wheel, PgDn/PgUp, ↓); `e` with the Back Button scrolled away, a
-           click on it, and Esc each return to the list, its head at the top
+           row kept, `e: ← 返回` at its top with `p: ✕`; the host scrolls the
+           whole tree (wheel, PgDn/PgUp, ↓); `e` with the Back Button scrolled
+           away, a click on it, and Esc each return to the list, its head at
+           the top
   cap      a 200,000-character pasted input: expanded, it stops at the cap
            with `… 还有 N 字未显示 · c: 复制`, the reply and the footer after it
-  running  a live turn against fake_api.py (no model): a click on its cut
-           line expands it while it runs, and the expanded meta line and
-           text follow the turn as it grows
+  running  a live turn against fake_api.py (no model): a press on its entry
+           opens it, a click on its cut line expands it while it runs, and
+           the expanded meta line and text follow the turn as it grows
 
 The session is a synthetic transcript built here (the V fixture), resumed
 in the harness's isolated, logged-out world: no model call.
@@ -62,6 +68,7 @@ PLUGIN = HERE.parent.parent
 SESSION = "00000000-0000-4000-8000-0000000013a0"
 ID = "CT-PREV-001"
 LONG_LINES = 40
+BACK = "e: ← 返回"
 
 
 # ---------- the V fixture ----------
@@ -126,7 +133,6 @@ def local_when(timestamp: str) -> str:
     at = datetime.datetime.fromisoformat(timestamp.replace("Z", "+00:00")).astimezone()
     return f"{at.month}月{at.day}日 {at:%H:%M}"
 
-
 # ---------- reading the Pane ----------
 
 def pane(t):
@@ -134,8 +140,9 @@ def pane(t):
 
 
 def listed(t):
+    """The Pane listing the session's entries (the preview open or not)."""
     p = pane(t)
-    return p if p is not None and p.entries and p.preview else None
+    return p if p is not None and p.entries else None
 
 
 def body(p) -> list[str]:
@@ -148,7 +155,7 @@ def body(p) -> list[str]:
 
 def shown_input(p) -> str | None:
     """The first line of the User input the preview shows."""
-    rows = body(p)
+    rows = body(p) if p is not None else []
     return rows[2] if len(rows) > 2 and rows[1].split()[:1] == ["用户"] else None
 
 
@@ -179,6 +186,84 @@ def entry_at(p, y):
     return None
 
 
+def cell_of(row: str, x: int) -> int:
+    return sum(h.cell_width(c) for c in row[:x])
+
+
+def click_entry(t, prefix: str, opens: bool = True) -> None:
+    """A click on the User input of the entry whose input starts with
+    `prefix`, the Pane's window scrolled up to it when it is not in sight;
+    with `opens`, until the preview shows that group."""
+    for _ in range(8):
+        p = pane(t)
+        e = next((e for e in (p.entries if p else []) if e.user_text.startswith(prefix) and e.user_row is not None), None)
+        if e is not None:
+            t.click(p.left + 4, e.user_row)
+            if opens:
+                t.wait_for(lambda term: (shown_input(pane(term)) or "").startswith(prefix), f"the preview on {prefix}", timeout=10)
+            pointer_off(t)
+            return
+        if p is None:
+            break
+        t.wheel(p.left + 5, p.filter_row + 6, up=True, ticks=4)
+        t.settle(quiet=0.6)
+    raise h.ScenarioFailure(f"no entry {prefix} to press")
+
+
+def click_text(t, needle: str, row: int | None = None, right_of: int = 0) -> None:
+    """Clicks the first cell of `needle` right of the Pane's border."""
+    rows = t.rows()
+    for y in [row] if row is not None else range(len(rows)):
+        x = rows[y].find(needle)
+        while x >= 0 and cell_of(rows[y], x) < right_of:
+            x = rows[y].find(needle, x + 1)
+        if x >= 0:
+            t.click(cell_of(rows[y], x), y)
+            time.sleep(0.4)
+            return
+    raise h.ScenarioFailure(f"no {needle!r} on the Pane")
+
+
+def rule_row(t) -> int | None:
+    """The screen row of the preview's rule, `─ 预览 ─── p: ✕`."""
+    p = pane(t)
+    if p is None:
+        return None
+    for y, row in enumerate(t.rows()):
+        text = v._right_of(row, p.left)
+        if text is not None and v._PREVIEW_RULE.match(text.strip()):
+            return y
+    return None
+
+
+def click_close(t) -> None:
+    """A click on the ✕ at the right end of the preview's rule."""
+    y = rule_row(t)
+    if y is None:
+        raise h.ScenarioFailure("no preview rule to close")
+    row = t.rows()[y]
+    t.click(cell_of(row, row.rfind("✕")), y)
+    time.sleep(0.4)
+
+
+def close_mark(t) -> None:
+    """Clicks the Pane's own ✕: 2.1.295 draws it on the title row, 2.1.287 at
+    the right end of the filter row."""
+    p = pane(t)
+    for y in range(0, p.filter_row + 1):
+        row = t.rows()[y]
+        x = row.rfind("✕")
+        if x >= 0 and cell_of(row, x) > p.left:
+            t.click(cell_of(row, x), y)
+            return
+    raise h.ScenarioFailure("no ✕ on the Pane")
+
+
+def lit(p) -> str | None:
+    e = next((e for e in p.entries if e.highlighted), None) if p else None
+    return e.user_text[:3] if e else None
+
+
 def widen(t, steps):
     """Ctrl+X ← widens the focused docked Pane by 4 columns a step, → narrows it."""
     for _ in range(abs(steps)):
@@ -201,57 +286,145 @@ def store(world) -> dict:
     return out
 
 
+def closed(t) -> bool:
+    """The Pane listing its entries with nothing of the preview drawn."""
+    p = pane(t)
+    return p is not None and bool(p.entries) and p.preview is None and BACK not in "\n".join(t.rows())
+
+
 # ---------- scenarios: each returns (fixture, expected, actual, ok, evidence) ----------
 
-def which(host, run):
+def press(host, run):
     world = h.World(token="")
     v_fixture(world, host)
-    actual, ev = {"steps": []}, []
+    actual, ev = {}, []
     t = launch(world, host, run)
     try:
-        t.wait_for(listed, "the Pane with its preview", timeout=60)
+        t.wait_for(listed, "the Pane listing the session", timeout=60)
         pointer_off(t)
-        p = pane(t)
-        lit = [e for e in p.entries if e.highlighted]
-        actual["unfocused"] = {"lit": lit[0].user_text if lit else None, "preview": shown_input(p)}
-        ev.append(t.snap("which unfocused"))
+        actual["atStart"] = {"closed": closed(t)}
+        ev.append(t.snap("press at start"))
         focus(t)
-        seen = set()
-        for _ in range(40):
+        moves, on = [], None
+        for _ in range(12):
             t.key("up")
             pointer_off(t)
-            p = pane(t)
             y = ring_row(t)
-            e = entry_at(p, y) if y is not None else None
-            if e is None:
-                continue
-            got = shown_input(p)
-            actual["steps"].append({"ring": e.user_text[:3] if e.user_text else None, "preview": (got or "")[:3]})
-            seen.add(got[:3] if got else None)
-            if got and got.startswith("V00"):
+            p = pane(t)
+            e = entry_at(p, y) if y is not None and p is not None else None
+            moves.append({"ring": e.user_text[:3] if e else None, "closed": closed(t)})
+            if e is not None and len([m for m in moves if m["ring"]]) >= 2:
+                on = e.user_text[:3]
                 break
-        ev.append(t.snap("which focused on V00"))
+        actual["ringMovesClosed"] = moves
+        if on is None:
+            raise h.ScenarioFailure("↑ never reached an entry")
+        t.key("enter")
+        t.wait_for(lambda term: (shown_input(pane(term)) or "").startswith(on), f"Enter opening the preview on {on}", timeout=10)
+        pointer_off(t)
+        actual["enter"] = {"ring": on, "preview": (shown_input(pane(t)) or "")[:3]}
+        ev.append(t.snap(f"press Enter on {on}"))
+        held = []
+        for _ in range(2):
+            t.key("up")
+            pointer_off(t)
+            held.append((shown_input(pane(t)) or "")[:3])
+        actual["ringMovesOpen"] = held
         t.key("esc")
         time.sleep(0.6)
+        other = "V05" if on != "V05" else "V04"
+        click_entry(t, other)
+        actual["click"] = {"pressed": other, "preview": (shown_input(pane(t)) or "")[:3]}
+        ev.append(t.snap(f"press click on {other}"))
+        before = lit(pane(t))
+        t.wheel(10, 15, up=True, ticks=15)
+        t.settle(quiet=1.0)
         pointer_off(t)
+        actual["scrolled"] = {"litBefore": before, "litAfter": lit(pane(t)), "preview": (shown_input(pane(t)) or "")[:3]}
+        ev.append(t.snap("press transcript scrolled"))
         p = pane(t)
-        lit = [e for e in p.entries if e.highlighted]
-        actual["givenBack"] = {"preview": shown_input(p)}
-        ev.append(t.snap("which given back"))
+        click_text(t, "2: 用户", row=p.filter_row, right_of=p.left)
+        t.wait_for(lambda term: (q := pane(term)) is not None and q.filter == "user", "the 用户 filter", timeout=10)
+        pointer_off(t)
+        actual["filter"] = (shown_input(pane(t)) or "")[:3]
+        click_text(t, "1: 全部", row=pane(t).filter_row, right_of=pane(t).left)
+        time.sleep(0.5)
+        t.type("CT-PREV-001 新的一轮")
+        time.sleep(0.4)
+        t.key("enter")
+        t.wait_for(lambda term: (q := listed(term)) is not None and any(e.user_text.startswith("CT-PREV-001") for e in q.entries),
+                   "the new turn listed", timeout=20)
+        pointer_off(t)
+        actual["newTurn"] = (shown_input(pane(t)) or "")[:3]
+        ev.append(t.snap("press after a new turn"))
     except h.ScenarioFailure as failure:
         actual["failure"] = str(failure)
     finally:
         t.close()
         world.remove()
-    steps = actual["steps"]
-    ok = ("failure" not in actual and actual["unfocused"]["lit"] and actual["unfocused"]["preview"] == actual["unfocused"]["lit"]
-          and len(steps) >= 5 and all(s["ring"] == s["preview"] for s in steps if s["ring"])
-          and steps[-1]["preview"] == "V00"
-          and actual["givenBack"]["preview"] == actual["unfocused"]["lit"])
-    return ("V fixture (8 groups)",
-            "unfocused, the preview shows the lit group's input; focused, each ↑ onto an entry shows that entry's group "
-            "up to V00; Esc gives the keys back and the Current position's group (the lit V07, scrolled out of the "
-            "paused window) shows again", actual, bool(ok), ev)
+    x = actual
+    other = x.get("click", {}).get("pressed")
+    ok = ("failure" not in x and x["atStart"]["closed"] and all(m["closed"] for m in x["ringMovesClosed"])
+          and x["enter"]["preview"] == x["enter"]["ring"] and all(s == x["enter"]["ring"] for s in x["ringMovesOpen"])
+          and x["click"]["preview"] == other
+          and x["scrolled"]["litAfter"] != x["scrolled"]["litBefore"] and x["scrolled"]["preview"] == other
+          and x["filter"] == other and x["newTurn"] == other)
+    return ("V fixture (8 groups), then one submit (not logged in: no model call)",
+            "no preview at the start nor while ↑ moves the ring; Enter on the ring's entry opens it on that group, and ↑ "
+            "leaves it there; a click on another entry moves it there; scrolling the transcript (the lit group moves), a "
+            "switch to 用户 and a new turn leave it on the group clicked", actual, bool(ok), ev)
+
+
+def close(host, run):
+    world = h.World(token="")
+    v_fixture(world, host)
+    actual, ev = {}, []
+    t = launch(world, host, run)
+    try:
+        t.wait_for(listed, "the Pane listing the session", timeout=60)
+        pointer_off(t)
+        click_entry(t, "V06")
+        focus(t)
+        t.type("p")
+        t.wait_for(closed, "p closing the preview", timeout=5)
+        actual["p"] = True
+        ev.append(t.snap("close by p"))
+        t.key("esc")
+        time.sleep(0.5)
+        click_entry(t, "V06")
+        ev.append(t.snap("close reopened by a press"))
+        click_close(t)
+        t.wait_for(closed, "the ✕ closing the preview", timeout=5)
+        actual["closeMark"] = True
+        click_entry(t, "V06")
+        close_mark(t)
+        t.wait_for(lambda term: pane(term) is None, "the Pane closed", timeout=10)
+        t.command("/chat-toc", wait=2.0)
+        t.wait_for(listed, "the Pane opened again", timeout=15)
+        t.settle(quiet=1.0)
+        actual["reopened"] = {"closed": closed(t)}
+        ev.append(t.snap("close the Pane opened again"))
+        time.sleep(0.5)
+        actual["store"] = store(world)
+    except h.ScenarioFailure as failure:
+        actual["failure"] = str(failure)
+    finally:
+        t.close()
+    try:
+        t = launch(world, host, run)
+        t.wait_for(listed, "the Pane in a new process", timeout=60)
+        t.settle(quiet=1.0)
+        actual["newProcess"] = {"closed": closed(t)}
+        ev.append(t.snap("close new process"))
+    except h.ScenarioFailure as failure:
+        actual["failure"] = str(failure)
+    finally:
+        t.close()
+        world.remove()
+    ok = ("failure" not in actual and actual.get("p") and actual.get("closeMark") and actual["reopened"]["closed"]
+          and actual["newProcess"]["closed"] and "preview" not in actual.get("store", {}))
+    return ("V fixture", "p and a click on the rule's ✕ close the preview; the Pane closed by its ✕ and opened by /chat-toc "
+            "draws no preview, nor does a new process; the store has no preview field", actual, bool(ok), ev)
 
 
 FILES = re.compile(r"^改 (?P<names>.+?)(?: \+(?P<more>\d+))? · 读 (?P<read>\d+)$")
@@ -269,20 +442,16 @@ def facts(host, run):
     actual, ev = {}, []
     t = launch(world, host, run)
     try:
-        t.wait_for(listed, "the Pane with its preview", timeout=60)
+        t.wait_for(listed, "the Pane listing the session", timeout=60)
         focus(t)
         widen(t, 3)
-        for _ in range(40):
-            t.key("up")
-            p = pane(t)
-            got = shown_input(p) or ""
-            key = got[:3]
-            if key in want and key not in actual:
-                rows = body(p)
-                actual[key] = {"meta": rows[0] if rows else None, "rows": rows}
-                ev.append(t.snap(f"facts {key}"))
-            if key == "V00":
-                break
+        t.key("esc")
+        time.sleep(0.5)
+        for key in ("V01", "V00"):
+            click_entry(t, key)
+            rows = body(pane(t))
+            actual[key] = {"meta": rows[0] if rows else None, "rows": rows}
+            ev.append(t.snap(f"facts {key}"))
     except h.ScenarioFailure as failure:
         actual["failure"] = str(failure)
     finally:
@@ -299,7 +468,7 @@ def facts(host, run):
           and files is not None and files["names"] == expected_names[: len(files["names"])]
           and files["more"] == len(expected_names) - len(files["names"]) and files["read"] == 1)
     return ("V fixture: V00 (4 steps, turn_duration 150 s + 50 s, output 100 + 1200 under one id twice + 40 + 300), "
-            "V01 (no usage, no turn_duration)",
+            "V01 (no usage, no turn_duration); each opened by a click on its entry",
             {"meta": want, "files": "改 " + ", ".join(expected_names) + " (a prefix, the rest as +N) · 读 1"},
             actual, bool(ok), ev)
 
@@ -310,17 +479,12 @@ def cut(host, run):
     actual, ev = {}, []
     t = launch(world, host, run)
     try:
-        t.wait_for(listed, "the Pane with its preview", timeout=60)
-        focus(t)
-        for _ in range(40):
-            t.key("up")
-            p = pane(t)
-            if (shown_input(p) or "").startswith("V02"):
-                rows = body(p)
-                actual["rows"] = rows
-                actual["regionRows"] = len(p.preview or [])
-                ev.append(t.snap("cut V02"))
-                break
+        t.wait_for(listed, "the Pane listing the session", timeout=60)
+        click_entry(t, "V02")
+        p = pane(t)
+        actual["rows"] = body(p)
+        actual["regionRows"] = len(p.preview or [])
+        ev.append(t.snap("cut V02"))
     except h.ScenarioFailure as failure:
         actual["failure"] = str(failure)
     finally:
@@ -333,57 +497,22 @@ def cut(host, run):
     actual["cutLine"] = last
     ok = ("failure" not in actual and m is not None and shown >= 1 and int(m.group(1)) == LONG_LINES - shown
           and "V02 第 0 行" in rows)
-    return ("V fixture: V02's reply of 40 lines", "the region shows the reply's first lines and ends in "
+    return ("V fixture: V02's reply of 40 lines, opened by a click", "the region shows the reply's first lines and ends in "
             "`↓ 还有 N 行 · e: 展开` with N the lines not shown", actual, bool(ok), ev)
 
 
-def toggle(host, run):
-    world = h.World(token="")
-    v_fixture(world, host)
-    actual, ev = {}, []
-    t = launch(world, host, run)
-    try:
-        t.wait_for(listed, "the Pane with its preview", timeout=60)
-        focus(t)
-        t.type("p")
-        t.wait_for(lambda term: (p := pane(term)) is not None and p.preview is not None and not body(p), "the folded preview", timeout=5)
-        ev.append(t.snap("toggle folded"))
-        actual["folded"] = pane(t).preview[0]
-        time.sleep(0.5)
-        actual["storeAfterP"] = store(world).get("preview")
-    except h.ScenarioFailure as failure:
-        actual["failure"] = str(failure)
-    finally:
-        t.close()
-    try:
-        t = launch(world, host, run)
-        t.wait_for(lambda term: (p := pane(term)) is not None and p.entries and p.preview is not None, "the Pane in a new process", timeout=60)
-        t.settle(quiet=1.0)
-        p = pane(t)
-        actual["newProcessFolded"] = not body(p)
-        ev.append(t.snap("toggle new process"))
-        focus(t)
-        t.type("p")
-        t.wait_for(lambda term: (p := pane(term)) is not None and bool(body(p)), "the preview shown again", timeout=5)
-        actual["shownAgain"] = body(pane(t))[:3]
-        time.sleep(0.5)
-        actual["storeAfterSecondP"] = store(world).get("preview")
-    except h.ScenarioFailure as failure:
-        actual["failure"] = str(failure)
-    finally:
-        t.close()
-        world.remove()
-    ok = ("failure" not in actual and re.match(r"^─ p: 预览 ─+$", actual.get("folded") or "")
-          and actual.get("storeAfterP") == "hidden" and actual.get("newProcessFolded") is True
-          and actual.get("storeAfterSecondP") == "shown")
-    return ("V fixture", "focused, p folds the preview to `─ p: 预览 ───` with nothing under it and the store holds "
-            "preview: hidden; a new process starts folded; p shows it again (store: shown)", actual, bool(ok), ev)
-
-
-def regions(p) -> dict:
-    """The Pane's rows by part: the Minimap, the list, the preview."""
+def regions(t) -> dict:
+    """The Pane's rows by part: the Minimap, the list, the region, or the expanded view."""
+    rows = t.rows()
+    p = v.parse_pane(rows)
+    if p is None:
+        return {"pane": None}
+    expanded = any((r := v._right_of(row, p.left)) is not None and r.strip().startswith(BACK) for row in rows)
     bars = len(p.notes) >= 2 and set(p.notes[0]) <= set("▁▂▃▄▅▆▇█")
-    return {"minimap": bars, "preview": len(p.preview or []), "state": (p.preview or [""])[0]}
+    top = p.filter_row + 2 + (1 if p.search is not None else 0) + (3 if bars else 0)
+    rule = rule_row(t)
+    return {"minimap": bars, "region": len(p.preview or []), "expanded": expanded,
+            "listRows": (rule - top) if rule is not None else None}
 
 
 def short(host, run):
@@ -392,41 +521,55 @@ def short(host, run):
     actual, ev = {"heights": []}, []
     t = launch(world, host, run)
     try:
-        t.wait_for(listed, "the Pane with its preview", timeout=60)
+        t.wait_for(listed, "the Pane listing the session", timeout=60)
+        click_entry(t, "V07")
         for lines in range(44, 13, -1):
             t.resize(170, lines)
             time.sleep(0.8)
-            rows = t.settle(quiet=0.8)
-            p = v.parse_pane(rows)
-            if p is None:
-                actual["heights"].append({"lines": lines, "pane": None})
-                continue
-            top = p.filter_row + 2 + (1 if p.search is not None else 0) + (3 if regions(p)["minimap"] else 0)
-            rule = next((y for y in range(len(rows)) if (txt := v._right_of(rows[y], p.left)) and v._PREVIEW_RULE.match(txt.strip())), None)
-            r = regions(p) | {"lines": lines, "listRows": (rule - top) if rule is not None else None}
-            actual["heights"].append(r)
+            t.settle(quiet=0.8)
+            actual["heights"].append(regions(t) | {"lines": lines})
             ev.append(t.snap(f"short {lines} lines"))
+        tall = [x["lines"] for x in actual["heights"] if x.get("expanded")]
+        if not tall:
+            raise h.ScenarioFailure("the open preview never went expanded")
+        lines = max(tall)
+        t.resize(170, lines)
+        time.sleep(0.8)
+        t.settle(quiet=0.8)
+        y, x = t.find(BACK) or (None, None)
+        if y is None:
+            raise h.ScenarioFailure(f"no {BACK} at {lines} lines")
+        t.click(x + 4, y)
+        t.wait_for(closed, f"{BACK} closing the preview at {lines} lines", timeout=5)
+        actual["backCloses"] = {"lines": lines}
+        ev.append(t.snap(f"short back closed at {lines}"))
+        p = pane(t)
+        e = p.entries[-1]
+        t.click(p.left + 4, e.user_row)
+        t.wait_for(lambda term: BACK in "\n".join(term.rows()), "a press opening it expanded", timeout=5)
+        actual["pressExpands"] = {"lines": lines, "pressed": e.user_text[:3]}
+        ev.append(t.snap(f"short press expanded at {lines}"))
     except h.ScenarioFailure as failure:
         actual["failure"] = str(failure)
     finally:
         t.close()
         world.remove()
-    seen = [x for x in actual["heights"] if "state" in x]
-    shown = [x for x in seen if re.match(r"^─ p: 预览 ─+$", x["state"]) and x["preview"] > 1]
-    no_room = [x for x in seen if "空间不足" in x["state"]]
-    with_bars = [x for x in shown if x["minimap"]]
-    without_bars = [x for x in shown if not x["minimap"]]
-    order_ok = (with_bars and without_bars and no_room
+    seen = [x for x in actual["heights"] if "region" in x]
+    with_bars = [x for x in seen if x["region"] > 1 and x["minimap"]]
+    without_bars = [x for x in seen if x["region"] > 1 and not x["minimap"]]
+    expanded = [x for x in seen if x["expanded"]]
+    order_ok = (with_bars and without_bars and expanded
                 and min(x["lines"] for x in with_bars) > max(x["lines"] for x in without_bars)
-                and min(x["lines"] for x in without_bars) > max(x["lines"] for x in no_room)
-                and not any(x["minimap"] for x in no_room))
-    floor_ok = all((x["listRows"] or 0) >= 8 for x in shown)
-    shrink_ok = min((x["preview"] for x in without_bars), default=0) == 4
-    ok = "failure" not in actual and bool(order_ok) and floor_ok and shrink_ok
+                and min(x["lines"] for x in without_bars) > max(x["lines"] for x in expanded))
+    floor_ok = all((x["listRows"] or 0) >= 8 for x in with_bars + without_bars)
+    shrink_ok = min((x["region"] for x in without_bars), default=0) == 4
+    ok = ("failure" not in actual and bool(order_ok) and floor_ok and shrink_ok
+          and "backCloses" in actual and "pressExpands" in actual)
     actual["checks"] = {"order": bool(order_ok), "listKeeps8": floor_ok, "shrinksTo4": shrink_ok}
-    return ("V fixture, the terminal from 44 lines down to 14", "the Minimap leaves first, then the preview shrinks down "
-            "to 4 rows, then it is the one line `p: 预览（空间不足）`; while the preview shows, the list keeps 8 rows",
-            actual, bool(ok), ev)
+    return ("V fixture, the preview opened on V07, the terminal from 44 lines down to 14",
+            "the Minimap leaves first, then the region shrinks down to 4 rows, then the preview is drawn expanded; while "
+            "the region shows, the list keeps 8 rows; at the tallest of those heights `e: ← 返回` closes it and a press on "
+            "an entry opens it expanded again", actual, bool(ok), ev)
 
 
 def widths(host, run):
@@ -436,7 +579,8 @@ def widths(host, run):
     t = launch(world, host, run)
     steps = {36: -2, 56: 5, 44: -3}
     try:
-        t.wait_for(listed, "the Pane with its preview", timeout=60)
+        t.wait_for(listed, "the Pane listing the session", timeout=60)
+        click_entry(t, "V05")
         focus(t)                                    # the keys stay in the Pane from here on
         for width in (36, 56, 44):
             widen(t, steps[width])
@@ -445,9 +589,11 @@ def widths(host, run):
                 pointer_off(t)
                 p = pane(t)
                 columns = 170 - p.left
-                rule = (p.preview or [""])[0]
+                y = rule_row(t)
+                rule = (v._right_of(t.rows()[y], p.left) or "") if y is not None else ""
                 actual[f"{width}-{layout}"] = {"paneColumns": columns, "rule": rule, "meta": (body(p) or [None])[0],
-                                               "footer": p.footer, "ruleCells": sum(v.cell_width(c) for c in rule)}
+                                               "input": (shown_input(p) or "")[:3], "footer": p.footer,
+                                               "ruleCells": sum(v.cell_width(c) for c in rule.rstrip())}
                 ev.append(t.snap(f"widths {width} {layout}"))
                 t.type("l")
                 time.sleep(0.5)
@@ -458,16 +604,15 @@ def widths(host, run):
         world.remove()
     views = [x for k, x in actual.items() if k != "failure"]
     ok = ("failure" not in actual and len(views) == 9
-          and all(x["rule"].startswith("─ p: 预览 ") and x["ruleCells"] == x["paneColumns"] and x["meta"] and x["footer"] for x in views)
+          and all(x["rule"].startswith("─ 预览 ") and x["rule"].rstrip().endswith("p: ✕") and x["ruleCells"] == x["paneColumns"]
+                  and x["meta"] and x["input"] == "V05" and x["footer"] for x in views)
           and sorted({x["paneColumns"] for x in views}) == [36, 44, 56])
-    return ("V fixture", "in 卡片, 紧凑 and 时间轴 at 36, 44 and 56 columns the region's rule spans the Pane, the meta line "
-            "shows under it and the footer below it", actual, bool(ok), ev)
+    return ("V fixture, the preview opened on V05", "in 卡片, 紧凑 and 时间轴 at 36, 44 and 56 columns the region's rule "
+            "`─ 预览 ─── p: ✕` spans the Pane, the meta line shows under it, the footer below it, and it stays on V05",
+            actual, bool(ok), ev)
 
 
 # ---------- CT-PREV-002: the expanded preview ----------
-
-BACK = "e: ← 返回"
-
 
 def pane_rows(t, left) -> list[str]:
     """The Pane's rows right of its border, as drawn now (the head may have
@@ -475,18 +620,15 @@ def pane_rows(t, left) -> list[str]:
     return [r for r in (v._right_of(row, left) for row in t.rows()) if r is not None]
 
 
-def walk_to(t, prefix: str) -> bool:
-    """↑ through the entries until the preview shows the group whose input starts with `prefix`."""
-    for _ in range(40):
-        t.key("up")
-        if (shown_input(pane(t)) or "").startswith(prefix):
-            return True
-    return False
+def has_back(rows: list[str]) -> bool:
+    """Whether the expanded view's Back row, `e: ← 返回 … p: ✕`, is drawn."""
+    return any(r.strip().startswith(BACK) for r in rows)
 
 
 def expanded_view(rows: list[str]) -> dict:
     lines = [r.strip() for r in rows]
-    return {"back": BACK in lines, "entries": any(v._is_entry_line(r) for r in rows),
+    return {"back": has_back(rows), "close": any(r.startswith(BACK) and r.endswith("p: ✕") for r in lines),
+            "entries": any(v._is_entry_line(r) for r in rows),
             "first": next((r for r in lines if r), None), "filterRow": any(v._is_filter_row(r) for r in rows),
             "replyLines": [int(m.group(1)) for r in lines if (m := re.match(r"^V02 第 (\d+) 行$", r))],
             "footer": any(re.match(r"^\d+ 轮", r) for r in lines)}
@@ -498,11 +640,10 @@ def expand(host, run):
     actual, ev = {}, []
     t = launch(world, host, run)
     try:
-        t.wait_for(listed, "the Pane with its preview", timeout=60)
+        t.wait_for(listed, "the Pane listing the session", timeout=60)
         left = pane(t).left
+        click_entry(t, "V02")
         focus(t)
-        if not walk_to(t, "V02"):
-            raise h.ScenarioFailure("the preview never showed V02")
         t.type("e")
         t.wait_for(lambda term: expanded_view(pane_rows(term, left))["back"], "the expanded preview", timeout=5)
         pointer_off(t)
@@ -547,13 +688,20 @@ def expand(host, run):
         t.settle(quiet=0.8)
         actual["esc"] = expanded_view(pane_rows(t, left))
         ev.append(t.snap("expand esc"))
+        focus(t)
+        t.type("e")
+        t.wait_for(lambda term: expanded_view(pane_rows(term, left))["back"], "expanded to be closed", timeout=5)
+        t.type("p")
+        t.wait_for(closed, "p closing the expanded preview", timeout=5)
+        actual["pClosesExpanded"] = True
+        ev.append(t.snap("expand closed by p"))
     except h.ScenarioFailure as failure:
         actual["failure"] = str(failure)
     finally:
         t.close()
         world.remove()
     x = actual
-    top = lambda view: view["back"] and view["filterRow"] and not view["entries"] and view["replyLines"][:1] == [0]
+    top = lambda view: view["back"] and view["close"] and view["filterRow"] and not view["entries"] and view["replyLines"][:1] == [0]
     listed_again = lambda view: view["entries"] and view["filterRow"] and not view["back"]
     last = lambda view: max(view["replyLines"], default=-1)
     checks = {}
@@ -567,14 +715,15 @@ def expand(host, run):
             "eWithBackScrolledAway": not x["scrolledAway"]["back"] and listed_again(x["eAgain"]),
             "backPressed": listed_again(x["backPressed"]),
             "escLeaves": listed_again(x["esc"]),
+            "pClosesExpanded": bool(x.get("pClosesExpanded")),
         }
     x["checks"] = checks
     ok = "failure" not in x and all(checks.values())
-    return ("V fixture: V02's reply of 40 lines, the Pane focused on V02",
-            "e expands the preview over the list (the filter row kept, the Back Button `e: ← 返回` at its top, no entry); "
-            "the host scrolls the whole tree: 5 wheel ticks, PgDn to the end with the footer, PgUp to the top, ↓ one row; "
-            "e with the Back Button scrolled away, a click on it, and Esc each return to the list with its head at the top",
-            actual, bool(ok), ev)
+    return ("V fixture: V02's reply of 40 lines, opened by a click, the Pane focused",
+            "e expands the preview over the list (the filter row kept, the Back Button `e: ← 返回` at its top with "
+            "`p: ✕`, no entry); the host scrolls the whole tree: 5 wheel ticks, PgDn to the end with the footer, PgUp to "
+            "the top, ↓ one row; e with the Back Button scrolled away, a click on it, and Esc each return to the list with "
+            "its head at the top; p closes it from the expanded view", actual, bool(ok), ev)
 
 
 PASTED_LINES = 4_000
@@ -594,14 +743,13 @@ def cap(host, run):
     actual, ev = {"pasted": len(pasted)}, []
     t = launch(world, host, run)
     try:
-        t.wait_for(listed, "the Pane with its preview", timeout=60)
+        t.wait_for(listed, "the Pane listing the session", timeout=60)
         left = pane(t).left
-        focus(t)
-        if not walk_to(t, "P01"):
-            raise h.ScenarioFailure("the preview never showed P01")
+        click_entry(t, "P01")
         ev.append(t.snap("cap region"))
+        focus(t)
         t.type("e")
-        t.wait_for(lambda term: BACK in [r.strip() for r in pane_rows(term, left)], "the expanded preview", timeout=10)
+        t.wait_for(lambda term: has_back(pane_rows(term, left)), "the expanded preview", timeout=10)
         top = [r.strip() for r in pane_rows(t, left)]
         actual["top"] = top[:8]
         ev.append(t.snap("cap expanded top"))
@@ -625,7 +773,7 @@ def cap(host, run):
           and int(shown[-1].split()[3]) < PASTED_LINES - 1
           and "P01 回复" in bottom and any(re.match(r"^\d+ 轮", r) for r in bottom))
     return ("P fixture: P01's input a paste of 4,000 lines (about 200,000 characters), a short reply",
-            "expanded, the input starts whole at the top; at the end (End) it stops early with "
+            "opened by a click and expanded, the input starts whole at the top; at the end (End) it stops early with "
             "`… 还有 N 字未显示 · c: 复制` (N about 140,000), the reply and the footer drawn after it",
             actual, bool(ok), ev)
 
@@ -635,7 +783,8 @@ LIVE = "CT-PREV-002 进行中的合成一轮 " + "很长的输入用来让预览
 
 def running(host, run):
     """A live turn against fake_api.py, its input long enough to be cut by
-    the region; a click on the cut line expands it while it runs."""
+    the region; a press on its entry opens it, and a click on the cut line
+    expands it while it runs."""
     world = h.World(token="")
     fake_api_world(world)
     (world.project / "notes.txt").write_text("CT-SYN notes\n")
@@ -645,20 +794,22 @@ def running(host, run):
         t = h.launch(world, host, [PLUGIN], ["--resume", SESSION], run=run,
                      env={"ANTHROPIC_BASE_URL": api.url, "ANTHROPIC_API_KEY": FAKE_KEY})
         try:
-            t.wait_for(listed, "the Pane with its preview", timeout=60)
+            t.wait_for(listed, "the Pane listing the session", timeout=60)
             left = pane(t).left
             t.type(LIVE)
             time.sleep(0.4)
             t.key("enter")
-            t.wait_for(lambda term: term.find("e: 展开") is not None and any(r.startswith("CT-PREV-002") for r in (body(pane(term)) if pane(term) else [])),
-                       "the running group cut in the region", timeout=20)
+            t.wait_for(lambda term: any(e.user_text.startswith("CT-PREV-002") for e in (pane(term).entries if pane(term) else [])),
+                       "the running group listed", timeout=20)
+            click_entry(t, "CT-PREV-002")
+            t.wait_for(lambda term: term.find("e: 展开") is not None, "the running group cut in the region", timeout=20)
             y, x = t.find("e: 展开")
             t.click(x + 3, y)
-            t.wait_for(lambda term: BACK in [r.strip() for r in pane_rows(term, left)], "the expanded preview", timeout=5)
+            t.wait_for(lambda term: has_back(pane_rows(term, left)), "the expanded preview", timeout=5)
             end = time.monotonic() + 40
             while time.monotonic() < end:
                 rows = [r.strip() for r in pane_rows(t, left)]
-                at = rows.index(BACK) if BACK in rows else None
+                at = next((i for i, r in enumerate(rows) if r.startswith(BACK)), None)
                 meta = rows[at + 1] if at is not None and at + 1 < len(rows) else None
                 if meta and (not metas or metas[-1] != meta):
                     metas.append(meta)
@@ -677,13 +828,13 @@ def running(host, run):
     actual["states"] = states
     ok = ("failure" not in actual and any(s.startswith("进行中 · 1 步") for s in states)
           and any(s.startswith("进行中 · 2 步") for s in states) and states[-1].startswith("2 步")
-          and "完成" in actual.get("final", []) and BACK in actual.get("final", []))
+          and "完成" in actual.get("final", []) and has_back(actual.get("final", [])))
     return ("V fixture + one live turn against fake_api.py (two Read steps, 4 s apart; no model)",
-            "a click on the running group's cut line expands it; still expanded, its meta line goes 进行中 · 1 步, "
-            "进行中 · 2 步, then 2 步 with the closing text 完成 under Agent", actual, bool(ok), ev)
+            "a press on the running group's entry opens it, a click on its cut line expands it; still expanded, its meta "
+            "line goes 进行中 · 1 步, 进行中 · 2 步, then 2 步 with the closing text 完成 under Agent", actual, bool(ok), ev)
 
 
-SCENARIOS = {"which": which, "facts": facts, "cut": cut, "toggle": toggle, "short": short, "widths": widths,
+SCENARIOS = {"press": press, "close": close, "facts": facts, "cut": cut, "short": short, "widths": widths,
              "expand": expand, "cap": cap, "running": running}
 IDS = {"expand": "CT-PREV-002", "cap": "CT-PREV-002", "running": "CT-PREV-002"}
 
