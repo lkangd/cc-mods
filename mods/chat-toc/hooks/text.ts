@@ -74,6 +74,8 @@ const EN = {
   compactionRule: (isAuto: boolean, count: number, time: string) =>
     [isAuto ? 'Auto-compacted' : 'Compacted', count > 1 ? `×${count}` : '', count > 1 && time ? `· ${time}` : time].filter(Boolean).join(' '),
   earlierElsewhere: "Earlier turns are not in this session's file",
+  earlierTurns: (n: number) => `↑ ${n} earlier ${n === 1 ? 'turn' : 'turns'}`,
+  laterTurns: (n: number) => `↓ ${n} later ${n === 1 ? 'turn' : 'turns'}`,
   contextUse: enContextUse,
   stripAlt: (n: number, per: number) =>
     per === 1 ? `${count(n, 'turn', 'turns')}, one bar per turn, height by steps` : `${count(n, 'turn', 'turns')}, ${per} turns per bar, height by steps`,
@@ -154,6 +156,8 @@ const ZH: Text = {
   compactionRule: (isAuto, count, time) =>
     [isAuto ? '自动压缩' : '已压缩', count > 1 ? `×${count}` : '', count > 1 && time ? `· ${time}` : time].filter(Boolean).join(' '),
   earlierElsewhere: '更早的轮次不在本会话的文件里',
+  earlierTurns: n => `↑ 更早的 ${n} 轮`,
+  laterTurns: n => `↓ 更晚的 ${n} 轮`,
   contextUse: zhContextUse,
   stripAlt: (n, per) => (per === 1 ? `${n} 轮，每轮一根竖条，高度按步数` : `${n} 轮，每根竖条 ${per} 轮，高度按步数`),
   preview: '预览',

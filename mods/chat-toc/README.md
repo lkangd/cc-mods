@@ -46,7 +46,8 @@ mods/chat-toc/
 │   ├── search.ts                search: each group's NFKC lower-cased fields indexed at regroup, the matcher (words AND, the View filter's fields), the match nearest a position
 │   ├── walk.ts                  ‹ ›: the borrowed actions, the groups the list shows, the walk from the Current position to the previous or next one with a Jump target
 │   ├── pane.tsx                 the terminal Pane (filter row and tab rule, the search row, entries on the time rail, the preview region, footer)
-│   ├── desktop.tsx              the Pane on Desktop / VS Code / mobile (another tree, split on e.surface)
+│   ├── desktop.tsx              the Pane on Desktop / VS Code / mobile (another tree, split on e.surface); what an entry costs serialized
+│   ├── span.ts                  the part of the list Desktop draws: the newest Turn groups within a character budget, moved by ↑ and ↓
 │   └── minimap.ts               the SVG strip of steps per turn over the desktop list
 └── tests/
     ├── *.test.ts                the claude plugin test suite
