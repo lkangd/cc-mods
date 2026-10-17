@@ -195,7 +195,21 @@ test('the query survives a filter switch, a Layout switch and the pane drawn aga
   expect((await field(pane))?.props.value).toBe('login')
 })
 
-test('the preview shows the newest match, its meta line says what matched, a matching path first', async ($, on) => {
+test('Enter in the field opens the preview on the match it jumps to; with no match it opens nothing', async ($, on) => {
+  const { pane, world } = await opened(on, $)
+  await type($, 'nowhere')
+  await enter($, 'nowhere')
+  await world.clock.settle()
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
+
+  await type($, 'readme')
+  await enter($, 'readme')
+  await world.clock.settle()
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeDefined()
+  expect(await texts(pane)).toContain('CT-SYN write the readme')
+})
+
+test('Enter on an entry during a search keeps the search and opens the preview: its meta line says what matched, a matching path first', async ($, on) => {
   const t = session()
   t.prompt('CT-SYN unrelated')
   t.reply([use('t9', 'Read', { file_path: '/home/synthetic/project/z.ts' })])
@@ -203,13 +217,24 @@ test('the preview shows the newest match, its meta line says what matched, a mat
   const { pane, world } = await opened(on, $, t)
   await type($, 'login')
   await world.clock.settle()
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
+
+  await pane.press({ key: 'g2.u' })
+  expect((await field(pane))?.props.value).toBe('login')
   const shown = await texts(pane)
   expect(shown).toContain('CT-SYN restyle it')
   expect(shown.some(s => /匹配：文件$/.test(s))).toBe(true)
   expect(shown).toContain('改 src/LoginPage.tsx')
 
+  /* A query that leaves the group out of the list leaves the preview on it. */
   await type($, 'login validates')
   await world.clock.settle()
+  expect(await entryTexts(pane)).not.toContain('CT-SYN restyle it')
+  const held = await texts(pane)
+  expect(held).toContain('CT-SYN restyle it')
+  expect(held.some(s => s.includes('匹配'))).toBe(false)
+
+  await pane.press({ key: 'g0.u' })
   const first = await texts(pane)
   expect(first).toContain('CT-SYN fix the login page')
   expect(first.some(s => /匹配：用户 · Agent$/.test(s))).toBe(true)
@@ -223,6 +248,7 @@ test('a matching read path is named on the files line', async ($, on) => {
   t.toolResult('t2')
   t.reply([{ type: 'text', text: 'CT-SYN seen' }])
   const { pane, world } = await opened(on, $, t)
+  await pane.press({ key: 'g0.u' })
   expect(await texts(pane)).toContain('读 2')
   await type($, 'needle')
   await world.clock.settle()

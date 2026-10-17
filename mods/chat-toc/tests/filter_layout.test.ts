@@ -72,10 +72,6 @@ test('the filter row shows the three filters by name, the chosen one at full str
     ['search.focus', 'f', true],
     ['walk.previous', undefined, true],
     ['walk.next', undefined, true],
-    ['preview', 'p', true],
-    ['preview.reuse', 'r', true],
-    ['preview.copy.user', 'c', true],
-    ['preview.copy.agent', 'a', true],
     ['layout', 'l', true],
   ])
 })

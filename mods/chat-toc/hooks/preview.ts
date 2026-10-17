@@ -57,15 +57,29 @@ export type PreviewPlan = {
    the head, the search row and the footer alone, so a note coming and
    going does not move it. When rows run short the Minimap goes first, then
    an open preview shrinks down to 4 rows; when even 4 do not fit beside
-   the list's 8 it has no room. Closed, it takes no row. */
-export function previewPlan({ rows, region = rows, groups, isOpen }: { rows: number; region?: number; groups: number; isOpen: boolean }): PreviewPlan {
+   the list's 8 it has no room. Whether it has room is told by `steady`,
+   the rows before the notes that come and go (a refusal, a notice), so a
+   note does not switch it between the region and the expanded view: while
+   one shows, the list may have a row fewer. Closed, it takes no row. */
+export function previewPlan({
+  rows,
+  region = rows,
+  steady = rows,
+  groups,
+  isOpen,
+}: {
+  rows: number
+  region?: number
+  steady?: number
+  groups: number
+  isOpen: boolean
+}): PreviewPlan {
   const barsFit = (preview: number) => groups >= MIN_BAR_GROUPS && rows - preview - BAR_ROWS >= MIN_LIST_ROWS
   if (groups === 0 || !isOpen) return { preview: 0, state: 'closed', hasBars: barsFit(0) }
   const wanted = previewRows(region)
   if (barsFit(wanted)) return { preview: wanted, state: 'open', hasBars: true }
-  const preview = Math.min(wanted, rows - MIN_LIST_ROWS)
-  if (preview >= MIN_ROWS) return { preview, state: 'open', hasBars: false }
-  return { preview: 0, state: 'noRoom', hasBars: false }
+  if (steady - MIN_LIST_ROWS < MIN_ROWS) return { preview: 0, state: 'noRoom', hasBars: false }
+  return { preview: Math.max(MIN_ROWS, Math.min(wanted, rows - MIN_LIST_ROWS)), state: 'open', hasBars: false }
 }
 
 /* A duration in the meta line: `45s`, `3m 20s`, `1h 5m`, `<1s`. */

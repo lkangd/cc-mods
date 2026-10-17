@@ -112,6 +112,9 @@ test('when rows run short the Minimap goes first, then an open preview shrinks t
   expect(previewPlan({ rows: 12, groups: 5, isOpen: true })).toEqual({ preview: 4, state: 'open', hasBars: false })
   // 11 left: no room for 4 beside the list's 8; it takes no row of the list
   expect(previewPlan({ rows: 11, groups: 5, isOpen: true })).toEqual({ preview: 0, state: 'noRoom', hasBars: false })
+  // a note under the list (11 rows with it, 12 without) neither closes nor expands it: the list gives up a row
+  expect(previewPlan({ rows: 11, steady: 12, groups: 5, isOpen: true })).toEqual({ preview: 4, state: 'open', hasBars: false })
+  expect(previewPlan({ rows: 12, steady: 11, groups: 5, isOpen: true })).toEqual({ preview: 0, state: 'noRoom', hasBars: false })
   // closed, no row at all; the Minimap as the list's rows allow
   expect(previewPlan({ rows: 11, groups: 5, isOpen: false })).toEqual({ preview: 0, state: 'closed', hasBars: true })
   expect(previewPlan({ rows: 10, groups: 5, isOpen: false })).toEqual({ preview: 0, state: 'closed', hasBars: false })
