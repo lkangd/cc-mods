@@ -46,6 +46,15 @@ test('past the top of the window the entry before is brought into view', () => {
   expect(move('g0.a', 'f-agent')).toEqual({ kind: 'reveal', index: 0 })
 })
 
+test('the row under the selected entry is stepped over: down to the next entry, up to its owner', () => {
+  expect(move('g1.u', 'g1.u:preview')).toEqual({ kind: 'land', key: 'g2.u' })
+  expect(move('g2.u', 'g1.u:copy')).toEqual({ kind: 'land', key: 'g1.u' })
+  /* At the window's last entry the next one is brought in. */
+  expect(move('g2.u', 'g2.u:preview')).toEqual({ kind: 'reveal', index: 4 })
+  const all = { start: 0, end: 5, maxStart: 0 }
+  expect(ringMove(KEYS, INDEX, all, 'g2.a', 'g2.a:preview')).toEqual({ kind: 'land', key: 'layout' })
+})
+
 test('at either end of the list the host wraps as it does', () => {
   const all = { start: 0, end: 5, maxStart: 0 }
   expect(ringMove(KEYS, INDEX, all, 'g2.a', 'layout')).toEqual({ kind: 'accept' })
@@ -144,14 +153,15 @@ test('down past the window scrolls it one entry and puts the ring there', async 
      is checked in the terminal. */
   expect((await arrow($, 'g5.u.1')).deny).toBeDefined()
   await world.clock.advance(1)
-  expect(await prompts()).toEqual(['CT-SYN prompt 4', 'CT-SYN prompt 5', 'CT-SYN prompt 6'])
+  /* g6 selected, with its row of Buttons under it (spec §3). */
+  expect(await prompts()).toEqual(['CT-SYN prompt 5', 'CT-SYN prompt 6'])
   expect(world.focuses.map(f => f.element)).toEqual(['g5.u'])
 
   /* Up past the top, onto the search field, scrolls back. */
-  await arrow($, 'g4.u')
+  await arrow($, 'g5.u')
   expect((await arrow($, 'search')).deny).toBeDefined()
   await world.clock.advance(1)
-  expect(await prompts()).toEqual(['CT-SYN prompt 3', 'CT-SYN prompt 4', 'CT-SYN prompt 5'])
+  expect(await prompts()).toEqual(['CT-SYN prompt 4', 'CT-SYN prompt 5'])
 })
 
 /* CT-UI-002: a switch keeps the selected group, or the window's top one,

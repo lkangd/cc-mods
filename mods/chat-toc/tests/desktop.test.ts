@@ -11,7 +11,8 @@ import { transcript } from './fixture'
 /* The pane on Claude Code Desktop (and the other remote surfaces), drawn
    with what the desktop was measured to draw (ticket 36): a plain Button is
    one line of bare text, so every line of an entry is one; what only
-   decorates (the rail, the strip, the filters' well) is an Svg. */
+   decorates (the rail, the strip) is an Svg. The head row and the preview's
+   frame as the user chose them from ticket 24's prototype. */
 
 function three() {
   const t = transcript(new Date(2026, 9, 10, 9, 4).getTime())
@@ -52,18 +53,26 @@ async function all(pane: Pane, type: string): Promise<Node[]> {
 
 const svgs = async (pane: Pane) => (await all(pane, 'Svg')).map(s => ({ alt: String(s.props?.alt), source: String(s.props?.source), height: s.props?.height }))
 
-test('the filters are plain buttons over a drawn well, the chosen one not dim; no hotkeys', async ($, on) => {
-  await start($, host(on, three().jsonl()))
+test('the filters are native Buttons beside the Layout, the chosen one the primary; no hotkeys, no well', async ($, on) => {
+  const world = host(on, three().jsonl())
+  await start($, world)
   const pane = await desktopPane($)
 
-  const filters = drawnButtons(await pane.drawn()).filter(b => String(b.key).startsWith('f-'))
-  expect(filters.map(b => [b.key, b.plain, b.dimColor === true])).toEqual([
-    ['f-all', true, false],
-    ['f-user', true, true],
-    ['f-agent', true, true],
+  const filters = async () => (await all(pane, 'Button')).filter(b => String(b.props?.key).startsWith('f-')).map(b => [b.props?.key, b.props?.plain, b.props?.variant])
+  expect(await filters()).toEqual([
+    ['f-all', undefined, 'primary'],
+    ['f-user', undefined, 'secondary'],
+    ['f-agent', undefined, 'secondary'],
   ])
   expect((await all(pane, 'Button')).some(b => b.props?.hotkey !== undefined)).toBe(false)
-  expect((await svgs(pane)).some(s => s.alt === '筛选：全部')).toBe(true)
+  expect((await svgs(pane)).some(s => s.alt.startsWith('筛选'))).toBe(false)
+  /* One row with the Layout's Select, centred. */
+  const head = (await all(pane, 'Box')).find(b => JSON.stringify(b).includes('"f-all"') && JSON.stringify(b).includes('"Select"') && !JSON.stringify(b).includes('"Input"'))
+  expect([head?.props?.flexDirection, head?.props?.alignItems]).toEqual(['row', 'center'])
+
+  await pane.press({ key: 'f-user' })
+  await world.clock.settle()
+  expect((await filters()).map(f => f[2])).toEqual(['secondary', 'primary', 'secondary'])
 })
 
 test('the Layout is a select of the three without a label, and picking one switches and is remembered', async ($, on) => {
@@ -110,14 +119,35 @@ test('every line of an entry is a plain button, the user side at full strength, 
   expect(texts[2]).toBe('1 步 · CT-SYN first answer')
 })
 
-test('each entry hangs on a drawn rail as tall as its lines; the day is a drawn rule', async ($, on) => {
+test('the entries under one day hang on one drawn rail as tall as their lines and gaps, a node at each; the day is a drawn rule', async ($, on) => {
   await start($, host(on, three().jsonl()))
   const pane = await desktopPane($)
 
   const all3 = await svgs(pane)
   const rails = all3.filter(s => s.alt === '轨道')
-  expect(rails.map(s => s.height)).toEqual([2 * ROW_PX, ROW_PX, ROW_PX, ROW_PX, ROW_PX, ROW_PX, ROW_PX])
+  /* g0.u's two lines, g0.a, a gap, g1.u, a gap, g2.u, g2.a. */
+  expect(rails.map(s => s.height)).toEqual([8 * ROW_PX])
+  const rail = rails[0]!.source
+  expect((rail.match(/<style>/g) ?? []).length).toBe(1)
+  expect((rail.match(/<circle class="n"/g) ?? []).length).toBe(3)
+  expect((rail.match(/<rect class="l" x="[\d.]+" y="[\d.]+" width="9"/g) ?? []).length).toBe(2)
+  /* The rail starts at the first ring, under the day's rule. */
+  expect(rail).toContain(`y="${ROW_PX / 2}" width="1.5" height="${8 * ROW_PX - ROW_PX / 2}"`)
   expect(all3.some(s => s.alt === '今天 · 10月10日' && s.source.includes('>今天 · 10月10日<'))).toBe(true)
+})
+
+test('a rail run stays under the 4,096 px the host draws an Svg at, a long day cut into several', async ($, on) => {
+  const t = transcript(new Date(2026, 9, 10, 9, 4).getTime())
+  for (let i = 0; i < 120; i++) {
+    t.prompt(`CT-SYN T${i} a question`)
+    t.reply([{ type: 'text', text: `CT-SYN T${i} answer` }])
+  }
+  await start($, host(on, t.jsonl()))
+  const pane = await desktopPane($)
+
+  const rails = (await svgs(pane)).filter(s => s.alt === '轨道')
+  expect(rails.length).toBeGreaterThan(1)
+  expect(rails.every(r => Number(r.height) <= 4096)).toBe(true)
 })
 
 /* The 0.2 additions on the desktop (spec §8). */
@@ -180,9 +210,59 @@ test('closed until a press; a press opens it on that group under its rule, a ✕
   expect(shown).toContain('CT-SYN third')
   expect(shown.some(t => /^10月10日 \d\d:\d\d$/.test(t))).toBe(true)
   expect(await markdowns(pane)).toEqual(['CT-SYN third answer'])
-  /* Below the list. */
+  /* Under the pressed group, in a Box of its own with a rounded border. */
   const order = JSON.stringify(await pane.drawn())
   expect(order.indexOf('"g2.a"')).toBeLessThan(order.indexOf('"preview"'))
+  const box = (await all(pane, 'Box')).find(b => b.props?.key === 'preview.box')
+  expect([box?.props?.borderStyle, box?.props?.borderDimColor]).toEqual(['round', true])
+})
+
+test('the preview opens right under the pressed group, before the next one; a group left out shows it at the list’s top', async ($, on) => {
+  const world = host(on, three().jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+
+  await pane.press({ key: 'g0.u' })
+  await world.clock.settle()
+  let order = JSON.stringify(await pane.drawn())
+  expect(order.indexOf('"g0.a"')).toBeLessThan(order.indexOf('"preview.box"'))
+  expect(order.indexOf('"preview.box"')).toBeLessThan(order.indexOf('"g1.u"'))
+
+  await type($, 'third')
+  await world.clock.settle()
+  order = JSON.stringify(await pane.drawn())
+  expect(await markdowns(pane)).toEqual(['CT-SYN first answer'])
+  expect(order.indexOf('"preview.box"')).toBeLessThan(order.indexOf('"g2.u"'))
+})
+
+test('a ✕ Button after the field while there is a query empties it', async ($, on) => {
+  const world = host(on, three().jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+  expect(await pane.find({ type: 'Button', key: 'search.clear' })).toBeUndefined()
+
+  await type($, 'third')
+  await world.clock.settle()
+  const clear = await pane.find({ type: 'Button', key: 'search.clear' })
+  expect([clear?.text, clear?.props.plain, clear?.props.hotkey]).toEqual(['✕', undefined, undefined])
+  /* The count and the ✕ keep their width; the field gives way. */
+  const kept = (await all(pane, 'Box')).find(b => b.props?.flexShrink === 0 && JSON.stringify(b).includes('"search.clear"'))
+  expect(JSON.stringify(kept)).toContain('1 / 3')
+  await pane.press({ key: 'search.clear' })
+  await world.clock.settle()
+  expect((await all(pane, 'Input'))[0]?.props?.value).toBe('')
+  expect((await entryKeys(pane)).length).toBe(6)
+  expect(await pane.find({ type: 'Button', key: 'search.clear' })).toBeUndefined()
+})
+
+test('a ↑ 回到顶部 Button follows the list’s last entry', async ($, on) => {
+  await start($, host(on, three().jsonl()))
+  const pane = await desktopPane($)
+
+  const top = await pane.find({ type: 'Button', key: 'list.top' })
+  expect([top?.text, top?.props.plain]).toEqual(['↑ 回到顶部', true])
+  const order = JSON.stringify(await pane.drawn())
+  expect(order.indexOf('"g2.a"')).toBeLessThan(order.indexOf('"list.top"'))
 })
 
 test('the preview shows the last entry pressed', async ($, on) => {
@@ -251,16 +331,31 @@ test('the cut line is a Button without e:, expanding the preview; ← Back is a 
   expect(more?.props.hotkey).toBeUndefined()
   await pane.press({ key: 'preview.more' })
   await world.clock.settle()
-  const back = await pane.find({ type: 'Button', key: 'preview.back' })
+  /* Under the cut line's key, so the pane keeps the focus. */
+  const back = await pane.find({ type: 'Button', key: 'preview.more' })
   expect([back?.text, back?.props.hotkey]).toEqual(['← 返回', undefined])
   /* Uncut, in the list's place. */
   expect(await entryKeys(pane)).toEqual([])
   expect((await texts(pane)).some(t => t.includes('CT-SYN line 30'))).toBe(true)
   expect(await markdowns(pane)).toEqual(['CT-SYN long answer'])
-  await pane.press({ key: 'preview.back' })
+  await pane.press({ key: 'preview.more' })
   await world.clock.settle()
-  expect(await pane.find({ type: 'Button', key: 'preview.back' })).toBeUndefined()
+  expect((await pane.find({ type: 'Button', key: 'preview.more' }))?.text).toMatch(/^↓ 还有 \d+ 行 · 展开$/)
   expect((await entryKeys(pane)).length).toBeGreaterThan(0)
+})
+
+test('expanded, the pane losing the focus keeps the expanded preview on the desktop', async ($, on) => {
+  const world = host(on, long().jsonl())
+  await start($, world)
+  const pane = await desktopPane($, true)
+  await pane.press({ key: 'g3.u' })
+  await pane.press({ key: 'preview.more' })
+  await world.clock.settle()
+
+  await pane.redraw({ title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} } as never)
+  await world.clock.settle()
+  expect((await pane.find({ type: 'Button', key: 'preview.more' }))?.text).toBe('← 返回')
+  expect(await entryKeys(pane)).toEqual([])
 })
 
 test('each label row carries a 复制 Button with no hotkey and there is no Reuse; a press copies on the desktop and reads 已复制', async ($, on) => {

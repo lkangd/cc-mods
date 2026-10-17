@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { PANE, appendRow, drawnButtons, entryTexts, host, isBarKey, mountPane, start } from './host'
+import { PANE, appendRow, drawnButtons, entryTexts, host, isBarKey, mountPane, start, openOn } from './host'
 import type { Host } from './host'
 import { transcript } from './fixture'
 import type { Builder } from './fixture'
@@ -195,7 +195,7 @@ test('the query survives a filter switch, a Layout switch and the pane drawn aga
   expect((await field(pane))?.props.value).toBe('login')
 })
 
-test('Enter in the field opens the preview on the match it jumps to; with no match it opens nothing', async ($, on) => {
+test('Enter in the field opens no preview: it selects the match it jumps to, whose row opens it', async ($, on) => {
   const { pane, world } = await opened(on, $)
   await type($, 'nowhere')
   await enter($, 'nowhere')
@@ -205,7 +205,10 @@ test('Enter in the field opens the preview on the match it jumps to; with no mat
   await type($, 'readme')
   await enter($, 'readme')
   await world.clock.settle()
-  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
+  const open = (await pane.findAll({ type: 'Button' })).find(b => String(b.key).endsWith(':preview'))
+  expect(open).toBeDefined()
+  await pane.press({ key: String(open!.key) })
   expect(await texts(pane)).toContain('CT-SYN write the readme')
 })
 
@@ -219,7 +222,7 @@ test('Enter on an entry during a search keeps the search and opens the preview: 
   await world.clock.settle()
   expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
 
-  await pane.press({ key: 'g2.u' })
+  await openOn(pane, 'g2.u')
   expect((await field(pane))?.props.value).toBe('login')
   const shown = await texts(pane)
   expect(shown).toContain('CT-SYN restyle it')
@@ -234,7 +237,7 @@ test('Enter on an entry during a search keeps the search and opens the preview: 
   expect(held).toContain('CT-SYN restyle it')
   expect(held.some(s => s.includes('匹配'))).toBe(false)
 
-  await pane.press({ key: 'g0.u' })
+  await openOn(pane, 'g0.u')
   const first = await texts(pane)
   expect(first).toContain('CT-SYN fix the login page')
   expect(first.some(s => /匹配：用户 · Agent$/.test(s))).toBe(true)
@@ -248,7 +251,7 @@ test('a matching read path is named on the files line', async ($, on) => {
   t.toolResult('t2')
   t.reply([{ type: 'text', text: 'CT-SYN seen' }])
   const { pane, world } = await opened(on, $, t)
-  await pane.press({ key: 'g0.u' })
+  await openOn(pane, 'g0.u')
   expect(await texts(pane)).toContain('读 2')
   await type($, 'needle')
   await world.clock.settle()

@@ -13,7 +13,7 @@ import { textCells } from './cells'
 import type { CompactionRule } from './compactions'
 import { GUTTER, clockTime, dayRuleBefore, entryRows, isRuleBefore } from './entries'
 import type { Entry } from './entries'
-import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
+import { FIRST_CONTROL, LAYOUT_CONTROL, actionKey } from './ring'
 import { FILTERS, LAYOUT_HOTKEY, filterLabel, layoutLabel } from './view'
 import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
@@ -146,6 +146,34 @@ export function railOf(entry: Entry, isLit: boolean): string[] {
   const agent = entry.isOff ? '├┄ ' : isLit ? '┣╸ ' : '├╴ '
   const first = entry.side === 'user' ? user : agent
   return entry.lines.map((_, n) => (n === 0 ? first : isLit ? '┃  ' : '│  '))
+}
+
+/* The Buttons under the selected entry, ` · ` between them, each drawn
+   only when it can act: `p: Preview`, `r: Reuse` on a User input that can
+   be filled, `c: Copy` of the entry's own side. */
+function actionButtons(elements: ElementTable, entry: Entry, selected: SelectedView): RenderElement {
+  const { Box, Text, Button } = elements
+  const { actions } = selected
+  const side: CopySide = entry.side
+  const canCopy = side === 'user' ? actions.canCopyInput : actions.canCopyText
+  const buttons: RenderElement[] = [
+    <Button key={actionKey(entry.key, OPEN_ACTION)} plain dimColor hotkey={PREVIEW_HOTKEY} onPress={() => selected.onOpen()}>
+      {words.preview}
+    </Button>,
+  ]
+  if (actions.canReuse)
+    buttons.push(
+      <Button key={actionKey(entry.key, REUSE_ACTION)} plain dimColor hotkey={REUSE_HOTKEY} onPress={() => actions.onReuse()}>
+        {words.reuse}
+      </Button>,
+    )
+  if (canCopy)
+    buttons.push(
+      <Button key={actionKey(entry.key, COPY_ACTION)} plain dimColor={actions.copied !== side} hotkey={COPY_INPUT_HOTKEY} onPress={() => actions.onCopy(side)}>
+        {actions.copied === side ? words.copied : words.copy}
+      </Button>,
+    )
+  return <Box flexDirection="row">{buttons.flatMap((b, i) => (i === 0 ? [b] : [<Text dimColor>{' · '}</Text>, b]))}</Box>
 }
 
 /* The time column of the compact and timeline Layouts: `HH:MM` and a space. */
@@ -359,6 +387,20 @@ export function footerStatus(count: number, percent: number | undefined, bodyCol
   return turnsAndContextUse(count, percent, status => textCells(status) <= room)
 }
 
+/* The selected entry while the preview is closed: under it, a row of
+   Buttons opening the preview on its group, reusing its User input and
+   copying its side (spec §3). */
+export type SelectedView = {
+  key: string
+  actions: LabelActions
+  onOpen: () => Promise<void>
+}
+
+/* The actions under the selected entry, by their key's suffix. */
+export const OPEN_ACTION = 'preview'
+export const REUSE_ACTION = 'reuse'
+export const COPY_ACTION = 'copy'
+
 export type PaneView = {
   entries: readonly Entry[]
   window: TocWindow
@@ -395,6 +437,8 @@ export type PaneView = {
   /* The expanded preview, drawn in place of the Minimap, the list and the
      region; undefined draws those. */
   expanded?: ExpandedView | undefined
+  /* The selected entry's row of Buttons; undefined draws none. */
+  selected?: SelectedView | undefined
   search: SearchView
   onBar: (cell: number) => Promise<void>
   onPress: (entry: Entry) => Promise<void>
@@ -524,6 +568,14 @@ export function drawPane(elements: ElementTable<'terminal'>, view: PaneView): Re
         {text || ' '}
       </Button>
     )
+    const selected = view.selected?.key === entry.key ? view.selected : undefined
+    const actionRow =
+      selected === undefined ? null : (
+        <Box flexDirection="row">
+          <Text color={isLit ? 'suggestion' : 'subtle'}>{(hasTimeColumn ? ' '.repeat(TIME_COLUMN) : '') + (isLit ? '┃  ' : '│  ')}</Text>
+          {actionButtons(elements, entry, selected)}
+        </Box>
+      )
     rows.push(
       <Box key={`row-${entry.key}`} flexDirection="column">
         {rule === undefined ? null : (
@@ -551,12 +603,13 @@ export function drawPane(elements: ElementTable<'terminal'>, view: PaneView): Re
             )}
           </Box>
         </Box>
+        {actionRow}
         {gap}
         {entry.compactionAfter === undefined ? null : compactionRow(`compaction-after-${entry.key}`, entry.compactionAfter)}
       </Box>,
     )
     const compactionRows = (entry.compactionBefore === undefined ? 0 : 1) + (entry.compactionAfter === undefined ? 0 : 1)
-    drawnRows += (rule === undefined ? 0 : 1) + compactionRows + entry.lines.length + (hasGap ? 1 : 0)
+    drawnRows += (rule === undefined ? 0 : 1) + compactionRows + entry.lines.length + (hasGap ? 1 : 0) + (actionRow === null ? 0 : 1)
   }
   const whyLines = view.why === undefined ? 0 : view.why.split('\n').length
   const previewRows = view.preview?.rows ?? 0

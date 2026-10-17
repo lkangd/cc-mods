@@ -2,7 +2,6 @@ import { expect, test } from 'claude-code/testing'
 import { currentChain } from '../hooks/chain'
 import { groupTurns } from '../hooks/groups'
 import { isUnscrollable, jumpTargetsOf } from '../hooks/jump'
-import { setLanguage, text as words } from '../hooks/text'
 import { newSites, noteSite, rowIndex } from '../hooks/sites'
 import type { Sites } from '../hooks/sites'
 import { parseTranscript } from '../hooks/transcript'
@@ -139,11 +138,10 @@ test('empty command output is skipped, but any row the host drew counts', () => 
 
 /* Claude Code Desktop answers every transcript scroll with "transcript not
    scrollable here" (2.1.295, ticket 36): no row is refused, the surface
-   cannot jump at all, so it says so and dims nothing. */
+   cannot jump at all, so it dims nothing and, since ticket 24, says
+   nothing and tries no more. */
 test('a surface that cannot scroll its transcript is told apart from a refused row', () => {
   expect(isUnscrollable('transcript not scrollable here')).toBe(true)
   expect(isUnscrollable('Error: transcript not scrollable here')).toBe(true)
   expect(isUnscrollable('no site draws that requestId')).toBe(false)
-  setLanguage('zh')
-  expect(words.unscrollable).toBe('Claude 应用暂不支持跳转到对话')
 })

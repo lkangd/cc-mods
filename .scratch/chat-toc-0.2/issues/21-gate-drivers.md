@@ -18,3 +18,5 @@ Spec: [chat-toc 0.2](../spec.md) §11 ("Each release runs every MUST of the feat
 ## Comments
 
 Ticket 22 (preview closed until a press) frees the preview's rows by default, so `CT-LIFE-004`'s six groups may fit at 44 rows again; check after 22 lands before raising the rows.
+
+- 2026-10-17 (ticket 24's changes): on the terminal a press or Enter on an entry no longer opens the preview; it selects the entry, and `p` (or the `p: 预览` Button on the row under it) opens it (spec §3). Search Enter opens none (§2). The PTY drivers that open the preview by a click or Enter (`ct_preview.py`, `ct_reuse.py`, `ct_search.py`, `perf_scenarios.py` CT-PERF-001, and the gate's UI scenarios) need `p` after the press before the MUST run.

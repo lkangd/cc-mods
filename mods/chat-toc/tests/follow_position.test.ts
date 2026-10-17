@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { PANE, drawnButtons, entryTexts, host, isBarKey, mountPane, start } from './host'
+import { PANE, drawnButtons, entryTexts, host, isBarKey, mountPane, start, openOn } from './host'
 import { transcript } from './fixture'
 
 /* CT-POS-001..003, CT-COEX-001: the pane lights the group the transcript
@@ -319,7 +319,7 @@ test('the Current position moving and ‹ open nothing, and leave an open previe
   await world.clock.settle()
   expect(await markdown()).toEqual([])
 
-  await pane.press({ key: 'g19.u' })
+  await openOn(pane, 'g19.u')
   expect(await markdown()).toEqual(['CT-SYN answer 19'])
   await view(17)
   expect(await litKeys(pane)).toEqual(['g17.u', 'g17.a'])

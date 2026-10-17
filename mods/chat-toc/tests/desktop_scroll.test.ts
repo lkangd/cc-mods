@@ -81,7 +81,7 @@ test('a long session draws the newest groups within the budget, whole, under a �
 })
 
 test('↑ moves the drawn part to the turns before it, ↓ at its bottom moves it back to the newest', async ($, on) => {
-  const world = host(on, session(60).jsonl())
+  const world = host(on, session(200).jsonl())
   await start($, world)
   const pane = await desktopPane($)
   const newest = await drawnGroups(pane)
@@ -91,8 +91,8 @@ test('↑ moves the drawn part to the turns before it, ↓ at its bottom moves i
   const earlier = await drawnGroups(pane)
   expect(earlier[earlier.length - 1]).toBe(newest[0]! - 1)
   expect(earlier).toEqual(range(earlier[0]!, newest[0]!))
-  expect(await label(pane, 'list.later')).toBe(`↓ 更晚的 ${60 - newest[0]!} 轮`)
-  expect(earlier[0]! > 0 ? await label(pane, 'list.earlier') : undefined).toBe(earlier[0]! > 0 ? `↑ 更早的 ${earlier[0]} 轮` : undefined)
+  expect(await label(pane, 'list.later')).toBe(`↓ 更晚的 ${200 - newest[0]!} 轮`)
+  expect(await label(pane, 'list.earlier')).toBe(`↑ 更早的 ${earlier[0]} 轮`)
   /* At the list's bottom. */
   const order = JSON.stringify(await pane.drawn())
   expect(order.indexOf(`"g${earlier[earlier.length - 1]}.a"`)).toBeLessThan(order.indexOf('"list.later"'))
@@ -103,11 +103,12 @@ test('↑ moves the drawn part to the turns before it, ↓ at its bottom moves i
   expect(await pane.find({ type: 'Button', key: 'list.later' })).toBeUndefined()
 })
 
-test('pressed all the way up the first group is drawn and no ↑ is left; a new turn keeps the drawn part where it was', async ($, on) => {
+test('pressed all the way up the first group is drawn, the part as full as the newest, and no ↑ is left; a new turn keeps the drawn part where it was', async ($, on) => {
   const t = session(60)
   const world = host(on, t.jsonl())
   await start($, world)
   const pane = await desktopPane($)
+  const newest = await drawnGroups(pane)
 
   for (let n = 0; n < 10 && (await pane.find({ type: 'Button', key: 'list.earlier' })) !== undefined; n++) {
     await pane.press({ key: 'list.earlier' })
@@ -115,6 +116,10 @@ test('pressed all the way up the first group is drawn and no ↑ is left; a new 
   }
   const first = await drawnGroups(pane)
   expect(first[0]).toBe(0)
+  /* Not the few left over above the newest part: filled from the top, as
+     full as the newest but for the first day's rule. */
+  expect(first.length).toBeGreaterThan(newest[0]!)
+  expect(first.length).toBeGreaterThanOrEqual(newest.length - 3)
   expect(await pane.find({ type: 'Button', key: 'list.earlier' })).toBeUndefined()
   const later = 60 - first.length
 
@@ -150,8 +155,22 @@ test('a query narrows the list before the budget applies, and a new query draws 
   expect(await label(pane, 'list.earlier')).toBe(`↑ 更早的 ${60 - drawn.length} 轮`)
 })
 
+test('a move of the drawn part closes the preview', async ($, on) => {
+  const world = host(on, session(120).jsonl())
+  await start($, world)
+  const pane = await desktopPane($)
+  const newest = await drawnGroups(pane)
+  await pane.press({ key: `g${newest[0]}.u` })
+  await world.clock.settle()
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeDefined()
+
+  await pane.press({ key: 'list.earlier' })
+  await world.clock.settle()
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
+})
+
 test('the User filter draws more groups in the same budget, its ↑ counting the groups left out', async ($, on) => {
-  const world = host(on, session(60).jsonl())
+  const world = host(on, session(200).jsonl())
   await start($, world)
   const pane = await desktopPane($)
   const all = (await drawnGroups(pane)).length
@@ -160,8 +179,14 @@ test('the User filter draws more groups in the same budget, its ↑ counting the
   await world.clock.settle()
   const users = await drawnGroups(pane)
   expect(users.length).toBeGreaterThan(all)
-  expect(users[users.length - 1]).toBe(59)
-  expect(await label(pane, 'list.earlier')).toBe(`↑ 更早的 ${60 - users.length} 轮`)
+  expect(users[users.length - 1]).toBe(199)
+  expect(await label(pane, 'list.earlier')).toBe(`↑ 更早的 ${200 - users.length} 轮`)
+})
+
+test('a page holds about three times the Card groups it held before ticket 24 (15)', async ($, on) => {
+  await start($, host(on, session(200).jsonl()))
+  const pane = await desktopPane($)
+  expect((await drawnGroups(pane)).length).toBeGreaterThanOrEqual(40)
 })
 
 test('a 2,000-turn session with a long reply open in the preview stays under 100,000 serialized characters in every Layout', async ($, on) => {

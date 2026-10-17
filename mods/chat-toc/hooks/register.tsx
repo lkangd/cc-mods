@@ -22,9 +22,9 @@ import { entryKey } from './entries'
 import type { Entry } from './entries'
 import { compactionsOf, hasEarlierTurnsElsewhere, layRules } from './compactions'
 import type { Compaction, Listed } from './compactions'
-import { LIST_BUDGET, desktopList, drawDesktopPane } from './desktop'
+import { LIST_BUDGET, TOP_CONTROL, desktopList, drawDesktopPane } from './desktop'
 import type { ListMove } from './desktop'
-import { endOfGroup, groupsIn, spanEnding, spanStarting } from './span'
+import { endOfGroup, groupsIn, spanEndingFilled, spanStarting } from './span'
 import { BAR_ROWS, barKey, barLabels, barOfGroup, barTarget, barsOf } from './bars'
 import { stripLabels } from './minimap'
 import { groupIndexOf } from './groups'
@@ -133,6 +133,18 @@ let top: number | undefined
 let drawnUpTo: number | undefined
 /* The surface the pane was last drawn on: `ui.scroll` does not say it. */
 let paneSurface: RenderSurface = 'terminal'
+/* Whether the host answered a jump that it cannot scroll its transcript
+   at all (Claude Code Desktop): a press then jumps no more, and says
+   nothing (spec §8). */
+let isTranscriptUnscrollable = false
+/* The terminal's selected entry (spec §3): the one last pressed, or the
+   one the focus ring last landed on; the row of Buttons under it opens the
+   preview. Undefined selects none. */
+let selectedKey: string | undefined
+/* The first drawn entry of the group the preview holds, where the focus
+   goes when its ✕ takes itself out of the tree; undefined when none is
+   drawn. */
+let previewEntry: string | undefined
 /* Following stops while the person scrolls the pane or it has the
    keyboard, and starts again when the Current position next moves. */
 let isPaused = false
@@ -178,10 +190,13 @@ type Drawing = {
   keys: readonly string[]
   indexOf: ReadonlyMap<string, number>
   heights: readonly number[]
+  /* The heights with entry `selected` selected: its row of Buttons takes
+     a row more while the terminal's preview is closed. */
+  heightsWith: (selected: number | undefined) => readonly number[]
   rows: number
   window: TocWindow
 }
-let lastDrawing: Drawing = { entries: [], keys: [], indexOf: new Map(), heights: [], rows: 1, window: { start: 0, end: 0, maxStart: 0 } }
+let lastDrawing: Drawing = { entries: [], keys: [], indexOf: new Map(), heights: [], heightsWith: () => [], rows: 1, window: { start: 0, end: 0, maxStart: 0 } }
 /* The Button the host's focus ring is on while the pane has the keyboard,
    as its moves and chat-toc's own sends left it. */
 let ring: string | undefined
@@ -341,6 +356,7 @@ function forget(): void {
   source = 'unknown'
   top = undefined
   drawnUpTo = undefined
+  selectedKey = undefined
   anchor = undefined
   chainRows = rowIndex([])
   sites = newSites()
@@ -734,6 +750,7 @@ async function jump($: EngineInterface, entry: Pick<Entry, 'groupIndex' | 'side'
   const group = reading.groups[entry.groupIndex]
   if (!group) return
   const key = sideKeyOf(group, entry.side)
+  if (isTranscriptUnscrollable) return
   const wasShown = refusal !== undefined || refused.has(key)
   const why = refused.get(key)?.why ?? 'refused'
   refusal = undefined
@@ -747,7 +764,11 @@ async function jump($: EngineInterface, entry: Pick<Entry, 'groupIndex' | 'side'
       if (wasShown) await update($, rev, n => n + 1)
       return
     }
-    if (isUnscrollable(got.deny)) return say($, entry.key, words.unscrollable, isPaneOnScreen)
+    if (isUnscrollable(got.deny)) {
+      isTranscriptUnscrollable = true
+      if (wasShown) await update($, rev, n => n + 1)
+      return
+    }
   }
   refused.set(key, { side: entry.side, opener: group.openerUuid, groupIndex: entry.groupIndex, why })
   await say($, entry.key, why === 'compacted' ? words.compacted : words.refused, isPaneOnScreen)
@@ -810,6 +831,7 @@ const isLineOf = (element: string | undefined, key: string) => element === key |
 /* The selection moving off the entry a refusal is about takes the refusal
    away. */
 function selectionMoved($: EngineInterface, element: string | undefined): void {
+  if (element !== undefined && lastDrawing.indexOf.has(element) && element !== selectedKey) select($, element)
   if (refusal === undefined || isLineOf(element, refusal.key)) return
   refusal = undefined
   redrawSoon($)
@@ -825,8 +847,36 @@ async function loadChoices($: EngineInterface): Promise<void> {
 /* `p`, or a press on the ✕: the preview closed, from the region or
    expanded. Nothing is kept. */
 async function closePreview($: EngineInterface): Promise<void> {
+  /* On the desktop the ✕ leaving the tree takes the pane's focus with it,
+     and the next click would only give it back (spec §8): the focus goes
+     to the preview's entry first, or, expanded, once the list is back. */
+  const wasExpanded = isExpandedDrawn
+  const to = previewEntry ?? TOP_CONTROL
+  if (!wasExpanded) await keepFocus($, to)
   closePreviewNow()
   await update($, rev, n => n + 1)
+  if (wasExpanded) $.clock.after(0, () => void keepFocus($, to))
+}
+
+/* On the desktop, the focus moved to `key`, a Button the next drawing
+   keeps; the terminal moves its ring by itself. */
+async function keepFocus($: EngineInterface, key: string): Promise<void> {
+  if (paneSurface === 'terminal') return
+  const moved = await $.ui.focus({ requestId: PANE_ID, key }).catch((error: unknown) => ({ deny: String(error) }))
+  if (moved.deny === undefined) ring = key
+}
+
+/* The key of group `group`'s first entry in the drawn part `window`;
+   undefined when none of it is drawn. */
+function keyDrawnOfGroup(entries: readonly Entry[], window: TocWindow, group: number): string | undefined {
+  for (let i = window.start; i < window.end; i++) if (entries[i]?.groupIndex === group) return entries[i]!.key
+  return undefined
+}
+
+/* `↑ Back to top`: the pane scrolled to its first row, which Desktop
+   allows from a press (ticket 24's probe). */
+async function backToTop($: EngineInterface): Promise<void> {
+  await $.ui.scroll({ to: 'start', in: PANE_ID }).catch(() => undefined)
 }
 
 /* `f`: the keys into the search field. The host does not raise this
@@ -854,8 +904,8 @@ async function submitSearch($: EngineInterface, value: string): Promise<void> {
   const target = nearestMatch(found, (await read($, currentPosition)) ?? undefined)
   if (target !== undefined) {
     const side = jumpSide(filter)
-    openPreview(target)
-    await jump($, { groupIndex: target, side, key: entryKey(target, side) })
+    selectedKey = entryKey(target, side)
+    await jump($, { groupIndex: target, side, key: selectedKey })
   }
   await setQuery($, '')
 }
@@ -870,16 +920,51 @@ function openPreview(at: number): void {
 
 /* The desktop's list drawn up to `group`, undefined the newest. */
 async function moveList($: EngineInterface, group: number | undefined): Promise<void> {
+  /* The pressed Button may leave the tree, and the pane's focus with it:
+     once redrawn, the focus goes to an entry the new part draws, the one
+     just above the old part (earlier, now the new part's last) or just
+     below it (later, now its first). */
+  const { window, entries, keys } = lastDrawing
+  const isEarlier = group !== undefined && group < (entries[window.start]?.groupIndex ?? 0)
+  const to = keys[isEarlier ? window.start - 1 : window.end]
+  /* The preview's group leaves the drawn part: its contents and the list
+     would not match (spec §8). */
+  closePreviewNow()
   drawnUpTo = group
   await update($, rev, n => n + 1)
+  if (to !== undefined) $.clock.after(0, () => void keepFocus($, to))
 }
 
 /* A click or Enter on an entry: the transcript jumps, and the preview
    opens on its group. The scroll goes first, within the person's press;
    on the desktop the app refuses it, and the pane says so. */
 async function pressEntry($: EngineInterface, entry: Entry): Promise<void> {
-  openPreview(entry.groupIndex)
+  /* The terminal jumps and selects; the person opens the preview from the
+     selected entry's row, and once open a press moves it. The desktop,
+     which cannot jump, opens it. */
+  if (paneSurface !== 'terminal' || previewOpener !== undefined) openPreview(entry.groupIndex)
+  if (paneSurface === 'terminal') select($, entry.key)
   await jump($, entry)
+  await update($, rev, n => n + 1)
+}
+
+/* Entry `key` selected; when its row of Buttons would push it out of the
+   window's bottom, the window moves so both show. */
+function select($: EngineInterface, key: string): void {
+  selectedKey = key
+  const drawn = lastDrawing
+  const index = drawn.indexOf.get(key)
+  if (index !== undefined && paneSurface === 'terminal') {
+    const heights = drawn.heightsWith(index)
+    const window = windowOf(heights, drawn.rows, top ?? drawn.window.start)
+    if (index >= window.end) top = topRevealing(heights, drawn.rows, window, index)
+  }
+  redrawSoon($)
+}
+
+/* `p` or the Button under the selected entry: the preview on its group. */
+async function openSelected($: EngineInterface, groupIndex: number): Promise<void> {
+  openPreview(groupIndex)
   await update($, rev, n => n + 1)
 }
 
@@ -1262,7 +1347,8 @@ export const register: Register = on => {
     if (move.kind === 'reveal') {
       const key = drawn.keys[move.index]
       if (key === undefined) return next(e)
-      top = topRevealing(drawn.heights, drawn.rows, drawn.window, move.index)
+      /* The entry brought in is selected, its row of Buttons with it. */
+      top = topRevealing(drawn.heightsWith(move.index), drawn.rows, drawn.window, move.index)
       pendingRing = key
       selectionMoved($, key)
       await update($, rev, n => n + 1)
@@ -1313,7 +1399,10 @@ export const register: Register = on => {
     /* The keyboard pauses following; once it is given back, a position
        that moved meanwhile, or moves next, is followed again. */
     if (isPaneFocused && !wasFocused) isPaused = true
-    if (wasFocused && !isPaneFocused) isExpanded = false
+    /* Leaving the pane returns the expanded preview to the region, on the
+       terminal: on the desktop a press that takes its Button out of the
+       tree takes the focus too (spec §8). */
+    if (wasFocused && !isPaneFocused && e.surface === 'terminal') isExpanded = false
     if (!isPaneFocused && position !== positionFollowed) {
       positionFollowed = position
       isPaused = false
@@ -1370,7 +1459,14 @@ export const register: Register = on => {
     const isOff = (g: number) => refused.has(sideKeyOf(groups[g] as TurnGroup, 'user'))
     const bars = isOk && plan.hasBars ? barsOf(groups.map(g => g.steps), width, isOff) : []
     const rows = listRows - (bars.length === 0 ? 0 : BAR_ROWS) - plan.preview
-    const drawnEntries = { heights: listed.heights, rows, keys: table.keys, indexOf: table.indexOf }
+    /* The selected entry takes a row more on the terminal, for its row of
+       Buttons, while the preview is closed. */
+    const selectedAt = e.surface === 'terminal' && previewAt === -1 && selectedKey !== undefined ? table.indexOf.get(selectedKey) : undefined
+    const hasActionRow = e.surface === 'terminal' && previewAt === -1
+    const heightsWith = (selected: number | undefined) =>
+      !hasActionRow || selected === undefined ? listed.heights : listed.heights.map((h, i) => (i === selected ? h + 1 : h))
+    const heights = heightsWith(selectedAt)
+    const drawnEntries = { heights, heightsWith, rows, keys: table.keys, indexOf: table.indexOf }
     const kept = anchor
     anchor = undefined
     const anchorIndex = kept === undefined ? undefined : entryOfGroup(table, kept.group)
@@ -1389,7 +1485,7 @@ export const register: Register = on => {
        and Buttons moving it, instead of a window by rows. */
     const isTerminal = e.surface === 'terminal'
     const span = isTerminal ? undefined : desktopList(entries, layout, width)
-    const window = span === undefined ? windowOf(listed.heights, rows, top) : spanEnding(span, endOfGroup(span, drawnUpTo), LIST_BUDGET)
+    const window = span === undefined ? windowOf(heights, rows, top) : spanEndingFilled(span, endOfGroup(span, drawnUpTo), LIST_BUDGET)
     let earlier: ListMove | undefined
     let later: ListMove | undefined
     if (span !== undefined && window.start > 0) {
@@ -1439,6 +1535,7 @@ export const register: Register = on => {
             onClose,
           })
     isExpandedDrawn = expanded !== undefined
+    previewEntry = previewAt === -1 ? undefined : keyDrawnOfGroup(entries, window, previewAt)
     const searchView: SearchView = {
       query: searchText,
       count: search === undefined ? undefined : { matches: search.matches.length, of: groups.length },
@@ -1484,6 +1581,13 @@ export const register: Register = on => {
             barLabels: barLabels(stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs), width),
             preview,
             expanded,
+            selected: (() => {
+              const entry = selectedAt === undefined ? undefined : entries[selectedAt]
+              const group = entry === undefined ? undefined : groups[entry.groupIndex]
+              if (entry === undefined || group === undefined) return undefined
+              const isRunning = isRunningNow && entry.groupIndex === groups.length - 1
+              return { key: entry.key, actions: actionsOf(group, isRunning), onOpen: () => openSelected($, entry.groupIndex) }
+            })(),
             search: searchView,
             onBar: (cell: number) => {
               const bar = bars[cell]
@@ -1501,10 +1605,13 @@ export const register: Register = on => {
               count: searchView.count,
               onInput: searchView.onInput,
               onSubmit: value => showMatch($, value).catch(() => undefined),
+              onClear: () => setQuery($, ''),
             },
             matches: search?.groupsMatched,
             preview,
+            previewGroup: previewAt === -1 ? undefined : previewAt,
             expanded,
+            onTop: () => backToTop($),
             runningGroup: isRunningNow ? groups.length - 1 : undefined,
             stripLabels: stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs),
             onLayout: to => chooseLayout($, to),

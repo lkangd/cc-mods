@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { PANE, appendRow, drawHint, drawnButtons, host, mountPane, start } from './host'
+import { PANE, appendRow, drawHint, drawnButtons, host, mountPane, start, openOn } from './host'
 import { hostMessagesOf, rewoundTo, transcript } from './fixture'
 
 /* CT-PREV-001's automated half: the preview region at the bottom of the
@@ -53,7 +53,7 @@ test('a press on an entry opens it on that group: the rule reads 预览 and ends
   await start($, world)
   const pane = await mountPane($)
 
-  await pane.press({ key: 'g1.a' })
+  await openOn(pane, 'g1.a')
   const keys = drawnButtons(await pane.drawn()).map(b => b.key)
   expect(keys.slice(-5)).toEqual(['preview', 'preview.reuse', 'preview.copy.user', 'preview.copy.agent', 'layout'])
   const close = await pane.find({ type: 'Button', key: 'preview' })
@@ -72,7 +72,7 @@ test('a press on an entry opens it on that group: the rule reads 预览 and ends
 test('the rule spans the body: the dashes run up to the ✕ at its right end', async ($, on) => {
   await start($, host(on, two().jsonl()))
   const pane = await mountPane($)
-  await pane.press({ key: 'g0.u' })
+  await openOn(pane, 'g0.u')
 
   /* 44 cells: `─ `, 预览 (4), a space, the dashes, a space, `p: ✕` (4). */
   const dashes = (await texts(pane)).find(t => /^ ─+ $/.test(t))
@@ -88,13 +88,13 @@ test('moving the focus ring opens nothing, and once open changes nothing; anothe
   await world.clock.advance(1)
   expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
 
-  await pane.press({ key: 'g0.u' })
+  await openOn(pane, 'g0.u')
   expect(await texts(pane)).toContain('CT-SYN 第一个问题')
   await arrow($, 'g1.u')
   await world.clock.advance(1)
   expect((await pane.find({ type: 'Markdown' }))?.props.text).toBe('CT-SYN 第一个回答')
 
-  await pane.press({ key: 'g1.u' })
+  await openOn(pane, 'g1.u')
   expect((await pane.find({ type: 'Markdown' }))?.props.text).toBe('## CT-SYN done\n\n- `one`')
 })
 
@@ -117,7 +117,7 @@ test('it holds the pressed group across a new turn, a View filter switch and a L
   const world = host(on, t.jsonl())
   await start($, world)
   const pane = await mountPane($)
-  await pane.press({ key: 'g0.u' })
+  await openOn(pane, 'g0.u')
 
   t.prompt('CT-SYN third')
   const row = t.reply([{ type: 'text', text: 'CT-SYN third answer' }])
@@ -136,7 +136,7 @@ test('✕ closes it and p, its hotkey, is gone with it; nothing is kept', async 
   const world = host(on, two().jsonl())
   await start($, world)
   const pane = await mountPane($)
-  await pane.press({ key: 'g1.u' })
+  await openOn(pane, 'g1.u')
 
   await pane.press({ key: 'preview' })
   expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
@@ -145,19 +145,40 @@ test('✕ closes it and p, its hotkey, is gone with it; nothing is kept', async 
   expect(Object.keys(world.store)).not.toContain('preview')
 })
 
-test('r, c, a and e work only while it is open: their Buttons are drawn only then', async ($, on) => {
+test('a press selects an entry and opens nothing; the row under it carries p: 预览 · r: 填入 · c: 复制, and p opens the preview', async ($, on) => {
   const t = transcript()
   t.prompt('CT-SYN short')
   t.reply([{ type: 'text', text: Array.from({ length: 30 }, (_, i) => `CT-SYN line ${i}`).join('\n') }])
-  await start($, host(on, t.jsonl()))
+  const world = host(on, t.jsonl())
+  await start($, world)
   const pane = await mountPane($)
   const hotkeys = async () => (await pane.findAll({ type: 'Button' })).map(b => b.props.hotkey).filter(Boolean)
+  const label = async (key: string) => {
+    const b = await pane.find({ type: 'Button', key })
+    return b === undefined ? undefined : `${String(b.props.hotkey)}: ${b.text}`
+  }
 
   expect(await hotkeys()).toEqual(['1', '2', '3', 'f', 'l'])
   await pane.press({ key: 'g0.u' })
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
+  expect(await hotkeys()).toEqual(['1', '2', '3', 'f', 'p', 'r', 'c', 'l'])
+  expect([await label('g0.u:preview'), await label('g0.u:reuse'), await label('g0.u:copy')]).toEqual(['p: 预览', 'r: 填入', 'c: 复制'])
+  /* Right under the entry, before the next one. */
+  const order = JSON.stringify(await pane.drawn())
+  expect(order.indexOf('"g0.u"')).toBeLessThan(order.indexOf('"g0.u:preview"'))
+  expect(order.indexOf('"g0.u:preview"')).toBeLessThan(order.indexOf('"g0.a"'))
+
+  /* On an Agent entry c copies the last text. */
+  await pane.press({ key: 'g0.a' })
+  expect(await pane.find({ type: 'Button', key: 'g0.u:preview' })).toBeUndefined()
+  await pane.press({ key: 'g0.a:copy' })
+  expect(world.copies.at(-1)?.text).toContain('CT-SYN line 29')
+
+  await pane.press({ key: 'g0.a:preview' })
+  expect(await pane.find({ type: 'Button', key: 'preview' })).toBeDefined()
   expect(await hotkeys()).toEqual(['1', '2', '3', 'f', 'p', 'r', 'c', 'a', 'e', 'l'])
   await pane.press({ key: 'preview' })
-  expect(await hotkeys()).toEqual(['1', '2', '3', 'f', 'l'])
+  expect(await hotkeys()).toEqual(['1', '2', '3', 'f', 'p', 'r', 'c', 'l'])
 })
 
 test('a rewind that takes its group closes it', async ($, on) => {
@@ -168,7 +189,7 @@ test('a rewind that takes its group closes it', async ($, on) => {
   const pane = await mountPane($)
   await drawHint($)
   await world.clock.settle()
-  await pane.press({ key: 'g1.u' })
+  await openOn(pane, 'g1.u')
   expect(await pane.find({ type: 'Button', key: 'preview' })).toBeDefined()
 
   world.messages = rewoundTo(world.messages, 'CT-SYN second **prompt**')
@@ -182,7 +203,7 @@ test('/clear, another conversation, closes it', async ($, on) => {
   const world = host(on, two().jsonl())
   await start($, world)
   const pane = await mountPane($)
-  await pane.press({ key: 'g1.u' })
+  await openOn(pane, 'g1.u')
 
   world.path = '/home/synthetic/.claude/projects/p/synthetic-next.jsonl'
   world.file = two().jsonl()
@@ -202,7 +223,7 @@ test('at a short height a press opens it expanded; ← Back closes it, and ✕ c
   /* 16 rows: 11 left after the head, the search row and the footer; 4 do not fit beside the list's 8. */
   const pane = await mountPane($, 16)
 
-  await pane.press({ key: 'g5.u' })
+  await openOn(pane, 'g5.u')
   const back = await pane.find({ type: 'Button', key: 'preview.back' })
   expect(back?.text).toBe('← 返回')
   expect(await texts(pane)).toContain('CT-SYN p5')
@@ -214,7 +235,7 @@ test('at a short height a press opens it expanded; ← Back closes it, and ✕ c
   expect(await pane.find({ type: 'Button', key: 'preview' })).toBeUndefined()
   expect(await pane.find({ type: 'Button', key: 'g5.u' })).toBeDefined()
 
-  await pane.press({ key: 'g5.a' })
+  await openOn(pane, 'g5.a')
   expect(await pane.find({ type: 'Button', key: 'preview.back' })).toBeDefined()
   await pane.press({ key: 'preview' })
   expect(await pane.find({ type: 'Button', key: 'preview.back' })).toBeUndefined()
@@ -228,7 +249,7 @@ test('content past the region is cut, the last row saying how many lines are lef
   await start($, host(on, t.jsonl()))
   /* 30 rows: 26 left after the head and the footer, the region 10. */
   const pane = await mountPane($)
-  await pane.press({ key: 'g0.u' })
+  await openOn(pane, 'g0.u')
 
   const more = await pane.find({ type: 'Button', key: 'preview.more' })
   expect([more?.text, more?.props.hotkey]).toEqual(['展开', 'e'])
@@ -248,7 +269,7 @@ test("the region's height is set by the rows after the head, the search row and 
      lines, the cut line. */
   const pane = await mountPane($, 32)
   await world.clock.settle()
-  await pane.press({ key: 'g0.u' })
+  await openOn(pane, 'g0.u')
   const cutLine = async () => (await texts(pane)).find(x => x.startsWith('↓ '))
   const before = await cutLine()
   expect(before).toBe('↓ 还有 25 行 · ')
@@ -274,7 +295,7 @@ test('at a short height the Minimap goes first, then the preview shrinks to 4 ro
   const rows = (bodyRows: number) => ({ title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows }, view: {} })
   /* 23 rows: 18 left, the region 7, the Minimap 3, the list 8. */
   const pane = await mountPane($, 23)
-  await pane.press({ key: 'g5.u' })
+  await openOn(pane, 'g5.u')
   /* The kit refuses the jump: its notice goes after a while. */
   await world.clock.advance(5000)
   expect(await bars(pane)).toBe(true)
@@ -304,7 +325,7 @@ test('a running group is redrawn as rows arrive, with the latest text written so
   world.file = t.jsonl()
   await appendRow($, asked)
   await world.clock.advance(300)
-  await pane.press({ key: 'g1.u' })
+  await openOn(pane, 'g1.u')
   expect((await texts(pane)).some(s => s.endsWith('· 进行中'))).toBe(true)
   expect(await pane.find({ type: 'Markdown' })).toBeUndefined()
 
