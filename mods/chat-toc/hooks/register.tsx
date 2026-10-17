@@ -18,7 +18,7 @@
 
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderSurface } from 'claude-code'
-import { entryKey, groupOfKey } from './entries'
+import { entryKey } from './entries'
 import type { Entry } from './entries'
 import { compactionsOf, hasEarlierTurnsElsewhere, layRules } from './compactions'
 import type { Compaction, Listed } from './compactions'
@@ -45,7 +45,7 @@ import type { Refused } from './jump'
 import { carriesHistory, hidesPane, isClosedByPerson, reopensOn } from './lifecycle'
 import { CLEAR_CONTROL, PANE_COLUMNS, PANE_ID, SEARCH_FIELD, SEARCH_ROWS, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
 import type { ExpandedView, LabelActions, PreviewView, SearchView } from './pane'
-import { PREVIEW_CONTROL, PREVIEW_KEY, expandedBody, filesLine, isPreviewShown, metaLine, previewBody, previewPlan, typedInput } from './preview'
+import { PREVIEW_CONTROL, expandedBody, filesLine, metaLine, previewBody, previewPlan, typedInput } from './preview'
 import type { ExpandedBody, PathBase, PreviewBody } from './preview'
 import { FILTER_END, LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
 import { COPIED_MS, fillOf, fillRefusedText, hasReuse, reusableOf } from './reuse'
@@ -139,22 +139,22 @@ let opening: Promise<void> = Promise.resolve()
 /* The person's choices, read from `$.store` at each `session.start`. */
 let filter: ViewFilter = 'all'
 let layout: Layout = 'card'
-let isPreviewOn = true
 /* What the preview shows paths against: the session's working directory
    and the home directory, from `session.start`. */
 let pathBase: PathBase = { cwd: undefined, home: undefined }
-/* The group the expanded preview holds, by its opener's uuid, which a
-   regroup keeps: neither the Current position nor new turns change it.
-   Undefined draws the list. Closing the pane or the keys leaving it
-   returns to the list. */
-let expandedOpener: string | undefined
-/* The group the ring was last on while it is on one of the preview's own
-   Buttons, which then keeps showing it: they act on what it shows. */
-let heldSelection: number | undefined
-/* On the desktop, which reports no Current position: the group the
-   preview shows, by its opener's uuid, the entry pressed last or the match
-   a search's submit put there. Undefined shows the newest. */
-let pressedOpener: string | undefined
+/* The group the preview holds while it is open, by its opener's uuid,
+   which a regroup keeps: the entry pressed last, or the match a search's
+   submit jumped to. Neither the Current position, new turns, the View
+   filter nor the query change it; undefined is closed. In memory only: it
+   closes whenever the pane opens and when its group leaves the list. */
+let previewOpener: string | undefined
+/* Whether the person expanded the open preview over the list; closing the
+   pane or the keys leaving it return it to the region. One opened without
+   room for the region is drawn expanded anyway. */
+let isExpanded = false
+/* Whether the last drawing drew the expanded preview: the host then
+   scrolls the tree and moves the ring itself. */
+let isExpandedDrawn = false
 /* The host's release, from `$.session.version()` at `session.start`. */
 let hostBase: string | undefined
 /* The copy Button reading `Copied`: the group's opener, which Button, and
@@ -344,6 +344,13 @@ function forget(): void {
   compactions = []
   isEarlierElsewhere = false
   ruled = newMemo()
+  closePreviewNow()
+}
+
+/* The preview closed, expanded or not. */
+function closePreviewNow(): void {
+  previewOpener = undefined
+  isExpanded = false
 }
 
 /* The context use the host has now: at the start, after a hot reload,
@@ -804,15 +811,13 @@ function selectionMoved($: EngineInterface, element: string | undefined): void {
 async function loadChoices($: EngineInterface): Promise<void> {
   filter = filterOf(await $.store.get(FILTER_KEY).catch(() => undefined))
   layout = layoutOf(await $.store.get(LAYOUT_KEY).catch(() => undefined))
-  isPreviewOn = isPreviewShown(await $.store.get(PREVIEW_KEY).catch(() => undefined))
 }
 
-/* `p`: the preview shown or folded to its rule line, kept like the
-   Layout. */
-async function togglePreview($: EngineInterface): Promise<void> {
-  isPreviewOn = !isPreviewOn
+/* `p`, or a press on the ✕: the preview closed, from the region or
+   expanded. Nothing is kept. */
+async function closePreview($: EngineInterface): Promise<void> {
+  closePreviewNow()
   await update($, rev, n => n + 1)
-  await $.store.set(PREVIEW_KEY, isPreviewOn ? 'shown' : 'hidden').catch(() => undefined)
 }
 
 /* `f`: the keys into the search field. The host does not raise this
@@ -840,27 +845,36 @@ async function submitSearch($: EngineInterface, value: string): Promise<void> {
   const target = nearestMatch(found, (await read($, currentPosition)) ?? undefined)
   if (target !== undefined) {
     const side = jumpSide(filter)
+    openPreview(target)
     await jump($, { groupIndex: target, side, key: entryKey(target, side) })
   }
   await setQuery($, '')
 }
 
-/* A press on an entry on the desktop: the preview shows its group, and
-   the press asks to jump as on the terminal (the app refuses it, and the
-   pane says so). */
+/* The preview opened, or moved, onto listed group `at`. */
+function openPreview(at: number): void {
+  const opener = shownGroups()[at]?.openerUuid
+  if (opener === undefined || opener === previewOpener) return
+  previewOpener = opener
+  isExpanded = false
+}
+
+/* A click or Enter on an entry: the transcript jumps, and the preview
+   opens on its group. The scroll goes first, within the person's press;
+   on the desktop the app refuses it, and the pane says so. */
 async function pressEntry($: EngineInterface, entry: Entry): Promise<void> {
-  pressedOpener = shownGroups()[entry.groupIndex]?.openerUuid
-  await update($, rev, n => n + 1)
+  openPreview(entry.groupIndex)
   await jump($, entry)
+  await update($, rev, n => n + 1)
 }
 
 /* The desktop's submit (Enter, or the field's `show` button): the text
-   stays and the match nearest the Current position goes in the preview,
+   stays and the preview opens on the match nearest the Current position,
    the newest match, the desktop having no Current position. */
 async function showMatch($: EngineInterface, value: string): Promise<void> {
   const target = nearestMatch(matchedGroups(value), undefined)
   if (target === undefined) return
-  pressedOpener = shownGroups()[target]?.openerUuid
+  openPreview(target)
   await update($, rev, n => n + 1)
 }
 
@@ -926,29 +940,6 @@ function sendRing($: EngineInterface, key: string, left = RING_RETRIES): void {
 /* The preview drawn last, kept while its group and the room are the same:
    a long reply is folded once, not at every redraw. */
 const previewMemo = newMemo<PreviewBody>()
-
-/* The group the preview shows: the selected entry's while the pane holds
-   the keys (on the desktop, the entry pressed last), else the Current
-   position's, else the newest. While a query is
-   set (`matches`, its groups), the selected match, else the match nearest
-   the Current position, else the newest; none with no match. */
-function previewGroup(
-  groups: readonly TurnGroup[],
-  position: number | undefined,
-  matches: readonly number[] | undefined,
-  pressed: number | undefined,
-): number | undefined {
-  const onEntry = isPaneFocused ? groupOfKey(ring) : undefined
-  if (onEntry !== undefined) heldSelection = onEntry
-  const selected = pressed ?? onEntry ?? (isPaneFocused && isPreviewControl(ring) ? heldSelection : undefined)
-  if (selected !== undefined && selected < groups.length && (matches === undefined || matches.includes(selected))) return selected
-  if (matches !== undefined) return nearestMatch(matches, position)
-  if (position !== undefined && position < groups.length) return position
-  return groups.length - 1
-}
-
-/* The preview's own Buttons: its rule's, the cut line's, the label rows'. */
-const isPreviewControl = (key: string | undefined) => key === PREVIEW_CONTROL || (key?.startsWith(`${PREVIEW_CONTROL}.`) ?? false)
 
 /* The group a label-row Button acts on, found at the press among the
    groups listed now by its opener: nothing of it is kept from the drawing. */
@@ -1026,61 +1017,56 @@ type PreviewSource = {
 function previewOf(
   { groups, isRunningNow, width, nowMs, actionsOf }: PreviewSource,
   o: {
-    plan: { preview: number; state: 'shown' | 'hidden' | 'noRoom' | 'none' }
-    position: number | undefined
+    at: number
+    rows: number
     search: Searched | undefined
-    pressed: number | undefined
-    onToggle: () => Promise<void>
-    onMore: (opener: string) => Promise<void>
+    onClose: () => Promise<void>
+    onMore: () => Promise<void>
   },
 ): PreviewView {
-  const { plan, search } = o
-  const state = plan.state === 'none' ? 'hidden' : plan.state
-  const at = previewGroup(groups, o.position, search?.groupsMatched, o.pressed)
-  const group = at === undefined ? undefined : groups[at]
-  const match = at === undefined ? undefined : search?.matches.find(m => m.group === at)
+  const { at, search } = o
+  const group = groups[at]
+  const match = search?.matches.find(m => m.group === at)
   const isRunning = isRunningNow && at === groups.length - 1
   const year = new Date(nowMs).getFullYear()
   const body =
-    state !== 'shown' || group === undefined
+    group === undefined
       ? undefined
-      : remember(previewMemo, [group, isRunning, width, plan.preview, year, pathBase, matchShown(match)], () =>
+      : remember(previewMemo, [group, isRunning, width, o.rows, year, pathBase, matchShown(match)], () =>
           previewBody({
             meta: metaLine(group, isRunning, nowMs, width, match === undefined ? undefined : words.matched(matchedFields(match))),
             input: typedInput(group.facts),
             agent: isRunning ? group.facts.latestText : group.facts.lastText,
             files: filesLine(group.facts, pathBase, width, match?.paths),
-            rows: plan.preview,
+            rows: o.rows,
             width,
           }),
         )
   return {
-    state,
-    rows: plan.preview,
+    rows: o.rows,
     body,
     actions: body === undefined || group === undefined ? undefined : actionsOf(group, isRunning),
-    /* The no-room line is the preview shown without rows: `p` there leaves
-       the choice alone, or the preview would stay hidden once rows came
-       back. */
-    onToggle: state === 'noRoom' ? () => Promise.resolve() : o.onToggle,
-    onMore: () => (group === undefined ? Promise.resolve() : o.onMore(group.openerUuid)),
+    onClose: o.onClose,
+    onMore: o.onMore,
   }
 }
 
 /* `e`, or a press on the cut line: the preview expands over the list,
-   holding the group it showed; `e` again, or ← Back, returns. */
-async function expandPreview($: EngineInterface, opener: string | undefined): Promise<void> {
-  expandedOpener = opener
+   holding its group; `e` again, or ← Back, returns. */
+async function expandPreview($: EngineInterface, isOn: boolean): Promise<void> {
+  isExpanded = isOn
   await update($, rev, n => n + 1)
 }
 
 /* The expanded preview drawn last, kept while its group and width are. */
 const expandedMemo = newMemo<ExpandedBody>()
 
-/* The expanded preview of the group it holds; undefined when that group
-   is no longer listed (a rewind took it, another file was read). */
-function expandedOf({ groups, isRunningNow, width, nowMs, actionsOf }: PreviewSource, o: { hasHotkeys: boolean; onBack: () => Promise<void> }): ExpandedView | undefined {
-  const at = groupIndexOf(groups, expandedOpener)
+/* The expanded preview of the group the preview holds, listed group `at`. */
+function expandedOf(
+  { groups, isRunningNow, width, nowMs, actionsOf }: PreviewSource,
+  o: { at: number; hasHotkeys: boolean; onBack: () => Promise<void>; onClose: () => Promise<void> },
+): ExpandedView | undefined {
+  const { at } = o
   const group = groups[at]
   if (group === undefined) return undefined
   const isRunning = isRunningNow && at === groups.length - 1
@@ -1097,7 +1083,7 @@ function expandedOf({ groups, isRunningNow, width, nowMs, actionsOf }: PreviewSo
       hasHotkeys,
     }),
   )
-  return { body, actions: actionsOf(group, isRunning), onBack: o.onBack }
+  return { body, actions: actionsOf(group, isRunning), onBack: o.onBack, onClose: o.onClose }
 }
 
 export const register: Register = on => {
@@ -1158,8 +1144,9 @@ export const register: Register = on => {
     if (isClosedByPerson(e)) {
       await update($, isClosed, () => true).catch(() => undefined)
     }
+    /* The pane opens again with the preview closed. */
     if (hidesPane(e)) {
-      expandedOpener = undefined
+      closePreviewNow()
       await update($, isPaneHidden, () => true).catch(() => undefined)
     }
     return closed
@@ -1217,7 +1204,7 @@ export const register: Register = on => {
 
   on('ui.scroll', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     /* Expanded, the host scrolls the whole tree. */
-    if (e.origin.kind !== 'person' || expandedOpener !== undefined) return next(e)
+    if (e.origin.kind !== 'person' || isExpandedDrawn) return next(e)
     top = scrolledTop(lastDrawing.window, e.by)
     isPaused = true
     await update($, rev, n => n + 1)
@@ -1247,7 +1234,7 @@ export const register: Register = on => {
      on entries' first lines and scrolls the window at its ends (ring.ts). */
   on('ui.focus', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     /* Expanded, no entry is drawn: the ring goes where the host moves it. */
-    if (expandedOpener !== undefined) {
+    if (isExpandedDrawn) {
       const result = await next(e)
       if (result.deny === undefined) ring = e.element
       return result
@@ -1266,12 +1253,9 @@ export const register: Register = on => {
     const element = move.kind === 'land' ? move.key : e.element
     const result = await next(move.kind === 'land' ? { ...e, element: move.key } : e)
     if (result.deny === undefined) {
-      const was = ring
       ring = element
       pendingRing = undefined
       selectionMoved($, element)
-      /* The preview follows the selection. */
-      if (groupOfKey(element) !== groupOfKey(was)) redrawSoon($)
     }
     return result
   })
@@ -1310,7 +1294,7 @@ export const register: Register = on => {
     /* The keyboard pauses following; once it is given back, a position
        that moved meanwhile, or moves next, is followed again. */
     if (isPaneFocused && !wasFocused) isPaused = true
-    if (wasFocused && !isPaneFocused) expandedOpener = undefined
+    if (wasFocused && !isPaneFocused) isExpanded = false
     if (!isPaneFocused && position !== positionFollowed) {
       positionFollowed = position
       isPaused = false
@@ -1354,7 +1338,11 @@ export const register: Register = on => {
     const listRows = region - (hasForkLine ? 1 : 0) - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
     /* The Minimap, the list and the preview share the rows (preview.ts);
        the region's height comes from the rows before the notes. */
-    const plan = previewPlan({ rows: listRows, region, groups: isOk ? groups.length : 0, isShown: isPreviewOn })
+    /* The preview's group gone from the list (a rewind, another
+       conversation) closes it. */
+    const previewAt = groupIndexOf(groups, previewOpener)
+    if (previewAt === -1) closePreviewNow()
+    const plan = previewPlan({ rows: listRows, region, steady: region - (hasForkLine ? 1 : 0), groups: isOk ? groups.length : 0, isOpen: previewAt !== -1 })
     /* The Minimap's cells: a group with no Jump target is one the host
        refused or a compaction took. */
     const isOff = (g: number) => refused.has(sideKeyOf(groups[g] as TurnGroup, 'user'))
@@ -1377,7 +1365,7 @@ export const register: Register = on => {
     if (placed.refocusKey !== undefined) pendingRing = placed.refocusKey
     const window = windowOf(listed.heights, rows, top)
     lastDrawing = { ...drawnEntries, entries, window }
-    afterList = plan.state === 'none' || e.surface !== 'terminal' ? LAYOUT_CONTROL : PREVIEW_CONTROL
+    afterList = plan.state !== 'open' || e.surface !== 'terminal' ? LAYOUT_CONTROL : PREVIEW_CONTROL
     beforeList = e.surface !== 'terminal' ? FILTER_END : searchText === '' ? SEARCH_FIELD : CLEAR_CONTROL
     /* The ring move owed to an entry goes once this drawing shows it, and
        once more from the drawing after, which the confirm timer asks for. */
@@ -1396,25 +1384,25 @@ export const register: Register = on => {
       $.clock.after(0, () => sendRing($, owed))
     }
     const actionsOf = (group: TurnGroup, isRunning: boolean) => labelActions($, group, isRunning, e.surface)
-    /* The desktop reports no Current position: its preview shows the entry
-       pressed last. */
     const isTerminal = e.surface === 'terminal'
-    const pressedAt = isTerminal || pressedOpener === undefined ? -1 : groupIndexOf(groups, pressedOpener)
-    const pressed = pressedAt === -1 ? undefined : pressedAt
     const previewFrom: PreviewSource = { groups, isRunningNow, width, nowMs, actionsOf }
+    const onClose = () => closePreview($)
     const preview =
-      plan.state === 'none'
+      plan.state !== 'open'
         ? undefined
-        : previewOf(previewFrom, {
-            plan,
-            position: isTerminal ? position : undefined,
-            search,
-            pressed,
-            onToggle: () => togglePreview($),
-            onMore: opener => expandPreview($, opener),
+        : previewOf(previewFrom, { at: previewAt, rows: plan.preview, search, onClose, onMore: () => expandPreview($, true) })
+    /* Expanded by the person, or opened without room for the region, when
+       ← Back closes it. */
+    const expanded =
+      plan.state === 'closed' || (!isExpanded && plan.state !== 'noRoom')
+        ? undefined
+        : expandedOf(previewFrom, {
+            at: previewAt,
+            hasHotkeys: isTerminal,
+            onBack: plan.state === 'noRoom' ? onClose : () => expandPreview($, false),
+            onClose,
           })
-    const expanded = expandedOpener === undefined ? undefined : expandedOf(previewFrom, { hasHotkeys: isTerminal, onBack: () => expandPreview($, undefined) })
-    if (expanded === undefined) expandedOpener = undefined
+    isExpandedDrawn = expanded !== undefined
     const searchView: SearchView = {
       query: searchText,
       count: search === undefined ? undefined : { matches: search.matches.length, of: groups.length },
@@ -1447,7 +1435,7 @@ export const register: Register = on => {
       count: isOk && groups.length > 0 ? groups.length : undefined,
       contextPercent,
       isEarlierElsewhere: hasForkLine,
-      onPress: (entry: Entry) => jump($, entry),
+      onPress: (entry: Entry) => pressEntry($, entry),
       onFilter: (chosen: ViewFilter) => chooseFilter($, chosen),
     }
     const drawn =
@@ -1479,7 +1467,6 @@ export const register: Register = on => {
             matches: search?.groupsMatched,
             preview,
             expanded,
-            onPress: (entry: Entry) => pressEntry($, entry),
             runningGroup: isRunningNow ? groups.length - 1 : undefined,
             stripLabels: stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs),
             onLayout: to => chooseLayout($, to),

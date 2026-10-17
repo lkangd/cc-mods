@@ -99,23 +99,28 @@ test('the region is 40% of the rows left after the head and the footer, held to 
   expect([10, 20, 30, 40, 60].map(previewRows)).toEqual([4, 8, 12, 14, 14])
 })
 
-test('when rows run short the Minimap goes first, then the preview shrinks to 4 rows, then it leaves one line; the list keeps 8', () => {
+test('when rows run short the Minimap goes first, then an open preview shrinks to 4 rows, then it has no room; the list keeps 8', () => {
   // 30 rows left: preview 12, Minimap 3, list 15
-  expect(previewPlan({ rows: 30, groups: 5, isShown: true })).toEqual({ preview: 12, state: 'shown', hasBars: true })
+  expect(previewPlan({ rows: 30, groups: 5, isOpen: true })).toEqual({ preview: 12, state: 'open', hasBars: true })
   // 22 left: preview 9; with the Minimap the list would have 10
-  expect(previewPlan({ rows: 22, groups: 5, isShown: true })).toEqual({ preview: 9, state: 'shown', hasBars: true })
+  expect(previewPlan({ rows: 22, groups: 5, isOpen: true })).toEqual({ preview: 9, state: 'open', hasBars: true })
   // 18 left: 7 + 3 + 8 = 18 keeps the Minimap; 17 does not
-  expect(previewPlan({ rows: 18, groups: 5, isShown: true })).toEqual({ preview: 7, state: 'shown', hasBars: true })
-  expect(previewPlan({ rows: 17, groups: 5, isShown: true })).toEqual({ preview: 7, state: 'shown', hasBars: false })
+  expect(previewPlan({ rows: 18, groups: 5, isOpen: true })).toEqual({ preview: 7, state: 'open', hasBars: true })
+  expect(previewPlan({ rows: 17, groups: 5, isOpen: true })).toEqual({ preview: 7, state: 'open', hasBars: false })
   // 14 left: the preview shrinks to fit the list's 8, down to 4
-  expect(previewPlan({ rows: 14, groups: 5, isShown: true })).toEqual({ preview: 6, state: 'shown', hasBars: false })
-  expect(previewPlan({ rows: 12, groups: 5, isShown: true })).toEqual({ preview: 4, state: 'shown', hasBars: false })
-  expect(previewPlan({ rows: 11, groups: 5, isShown: true })).toEqual({ preview: 1, state: 'noRoom', hasBars: false })
-  // hidden, one line; the Minimap as before
-  expect(previewPlan({ rows: 12, groups: 5, isShown: false })).toEqual({ preview: 1, state: 'hidden', hasBars: true })
+  expect(previewPlan({ rows: 14, groups: 5, isOpen: true })).toEqual({ preview: 6, state: 'open', hasBars: false })
+  expect(previewPlan({ rows: 12, groups: 5, isOpen: true })).toEqual({ preview: 4, state: 'open', hasBars: false })
+  // 11 left: no room for 4 beside the list's 8; it takes no row of the list
+  expect(previewPlan({ rows: 11, groups: 5, isOpen: true })).toEqual({ preview: 0, state: 'noRoom', hasBars: false })
+  // a note under the list (11 rows with it, 12 without) neither closes nor expands it: the list gives up a row
+  expect(previewPlan({ rows: 11, steady: 12, groups: 5, isOpen: true })).toEqual({ preview: 4, state: 'open', hasBars: false })
+  expect(previewPlan({ rows: 12, steady: 11, groups: 5, isOpen: true })).toEqual({ preview: 0, state: 'noRoom', hasBars: false })
+  // closed, no row at all; the Minimap as the list's rows allow
+  expect(previewPlan({ rows: 11, groups: 5, isOpen: false })).toEqual({ preview: 0, state: 'closed', hasBars: true })
+  expect(previewPlan({ rows: 10, groups: 5, isOpen: false })).toEqual({ preview: 0, state: 'closed', hasBars: false })
   // one group draws no Minimap; no group, no preview
-  expect(previewPlan({ rows: 30, groups: 1, isShown: true })).toEqual({ preview: 12, state: 'shown', hasBars: false })
-  expect(previewPlan({ rows: 30, groups: 0, isShown: true })).toEqual({ preview: 0, state: 'none', hasBars: false })
+  expect(previewPlan({ rows: 30, groups: 1, isOpen: true })).toEqual({ preview: 12, state: 'open', hasBars: false })
+  expect(previewPlan({ rows: 30, groups: 0, isOpen: true })).toEqual({ preview: 0, state: 'closed', hasBars: false })
 })
 
 const body = (input: string, agent: string | undefined, files: string | undefined, rows: number, width = 20) =>

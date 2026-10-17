@@ -130,11 +130,11 @@ test('down past the window scrolls it one entry and puts the ring there', async 
   const world = host(on, t.jsonl())
   await start($, world)
   /* The head, the search row, three 1-line prompts with their gaps, the
-     preview's one line (no room for more), the footer. */
-  const pane = await mountPane($, 12)
+     footer; the preview is closed. */
+  const pane = await mountPane($, 11)
   const prompts = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN'))
 
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 12, contentRows: 12, origin: { kind: 'person' } } as never)
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 11, contentRows: 12, origin: { kind: 'person' } } as never)
   expect(await prompts()).toEqual(['CT-SYN prompt 3', 'CT-SYN prompt 4', 'CT-SYN prompt 5'])
 
   await arrow($, 'g5.u')

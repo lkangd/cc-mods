@@ -87,16 +87,16 @@ test('with rows for the list to keep eight, the Minimap is drawn; with fewer, it
   const { t } = session()
   await start($, host(on, t.jsonl()))
 
-  /* The head, the search row and the footer take five rows, the preview
-     7 of the 18 left, the Minimap three. */
-  expect((await cells(await mountPane($, 23))).length).toBe(4)
+  /* The head, the search row and the footer take five rows, the Minimap
+     three; the preview is closed. */
+  expect((await cells(await mountPane($, 16))).length).toBe(4)
 })
 
 test('with one row fewer the list keeps its rows and the Minimap goes', async ($, on) => {
   const { t } = session()
   await start($, host(on, t.jsonl()))
 
-  expect(await cells(await mountPane($, 22))).toEqual([])
+  expect(await cells(await mountPane($, 15))).toEqual([])
 })
 
 test('past the cells the width holds, a cell stands for several groups, the first cell the first group', async ($, on) => {

@@ -174,11 +174,10 @@ test('lines that are not rows are skipped and counted at the bottom of the pane'
 
   expect(await buttonTexts(pane)).toEqual(expect.arrayContaining(['CT-SYN one', 'CT-SYN two']))
   const drawn = await texts(pane)
-  /* Below the list, above the preview and the footer's count. */
+  /* Below the list, above the footer's count; the preview is closed. */
   const at = drawn.indexOf('有 2 行无法识别，目录可能不完整')
   expect(at).toBeGreaterThan(-1)
-  /* The preview's rule comes next. */
-  expect(drawn[at + 1]).toBe('─ ')
+  expect(drawn[at + 1]).toBe('2 轮')
 })
 
 test('a line longer than a chunk is skipped and counted, and the rows around it are listed', async ($, on) => {

@@ -444,7 +444,7 @@ class PaneScreen(unittest.TestCase):
         self.assertEqual(len(pane.notes), 2)                                # the Minimap's two rows
         self.assertEqual((pane.layout, pane.footer), ("卡片", "20 轮"))
         self.assertEqual([r.strip() for r in pane.preview if r.strip()],
-                         ["─ p: 预览 ──────────────────────────────────", "10月9日 09:07 · 输出 20", "用户",
+                         ["─ 预览 ──────────────────────────────── p:", "10月9日 09:07 · 输出 20", "用户",
                           "F19 rewind 之后的新分支", "Agent", "F19 回复：新分支。"])
         self.assertIsNone(toc_verifier.parse_pane(screen("card-2.1.295.txt")).preview)
 

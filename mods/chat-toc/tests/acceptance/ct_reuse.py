@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""CT-REUSE-001 in a real host (chat-toc 0.2 spec §7; ticket 17): Reuse and
-copy from the preview's label rows.
+"""CT-REUSE-001 in a real host (chat-toc 0.2 spec §7; tickets 17 and 22): Reuse
+and copy from the preview's label rows, the preview opened by Enter on an
+entry or a click on it.
 
-    $PY ct_reuse.py --host 2.1.287 [--host current] [--only fill,copy,rules,hidden,dialog,running,widths] [--out DIR]
+    $PY ct_reuse.py --host 2.1.287 [--host current] [--only fill,copy,rules,closed,dialog,running,widths] [--out DIR]
 
   fill     `r` on R00 (a prompt with a code block) fills the empty composer
            with the input as typed, and the keyboard moves there; with a draft
@@ -13,12 +14,13 @@ copy from the preview's label rows.
   rules    the `!cmd` has `c` but no `r`, and `c` copies `!echo R01`; the
            image-only input has neither; R03 (text and an image) fills its
            text only, with the `图片未包含` toast
-  hidden   folded by `p`, `r`, `c` and `a` do nothing; a short terminal whose
-           preview cuts the `Agent` label row takes `a` with it, and after `e`
-           `a` copies again
-  dialog   a click on `r: 填入` under `/model`'s picker shows the
+  closed   before any press, and once `p` closed it, `r`, `c` and `a` do
+           nothing; a short terminal whose preview cuts the `Agent` label row
+           takes `a` with it, and after `e` `a` copies again
+  dialog   a click on `r: 填入` (the preview opened by a click first) under
+           `/model`'s picker shows the
            `无法填入：有对话框打开` toast and leaves the composer empty
-  running  a live turn against fake_api.py (no model): its preview has
+  running  a live turn against fake_api.py (no model): pressed, its preview has
            `r: 填入 · c: 复制` and no `a`; a click on `r: 填入` fills its input
            while it runs; once it ends `a: 复制` is drawn
   widths   at 36 columns the label rows hold their Buttons on one row, in
@@ -44,7 +46,7 @@ import toc_verifier as v  # noqa: E402
 import transcript_fixture as tf  # noqa: E402
 import fake_api  # noqa: E402
 from gate_scenarios import FAKE_KEY, fake_api_world  # noqa: E402
-from ct_preview import body, focus, listed, pane, pointer_off, shown_input, widen  # noqa: E402
+from ct_preview import body, click_entry, entry_at, focus, listed, pane, pointer_off, ring_row, shown_input, widen  # noqa: E402
 
 PLUGIN = HERE.parent.parent
 SESSION = "00000000-0000-4000-8000-0000000017a0"
@@ -106,10 +108,20 @@ def labels(p) -> dict:
     return out
 
 
-def walk_to(t, prefix: str) -> bool:
+def walk_to(t, prefix: str, key: str = "up") -> bool:
+    """↑ (or ↓) through the entries until the ring is on the one whose input
+    starts with `prefix`, then Enter: the preview opens on it."""
     for _ in range(40):
-        t.key("up")
-        if (shown_input(pane(t)) or "").startswith(prefix):
+        t.key(key)
+        y = ring_row(t)
+        p = pane(t)
+        e = entry_at(p, y) if y is not None and p is not None else None
+        if e is not None and e.user_text.startswith(prefix):
+            t.key("enter")
+            try:
+                t.wait_for(lambda term: (shown_input(pane(term)) or "").startswith(prefix), f"the preview on {prefix}", timeout=5)
+            except h.ScenarioFailure:
+                return False
             return True
     return False
 
@@ -124,7 +136,7 @@ def scenario(world, host, run, steps):
     actual, ev = {}, []
     t = h.launch(world, host, [PLUGIN], ["--resume", SESSION], run=run)
     try:
-        t.wait_for(listed, "the Pane with its preview", timeout=60)
+        t.wait_for(listed, "the Pane listing the session", timeout=60)
         steps(t, actual, ev)
     except h.ScenarioFailure as failure:
         actual["failure"] = str(failure)
@@ -222,11 +234,11 @@ def rules(host, run):
         time.sleep(0.8)
         actual["shellCopied"] = pbpaste()
         ev.append(t.snap("rules shell"))
-        if not walk_to(t, "（只有图片）"):
+        if not walk_to(t, "（只有图片）", "down"):
             raise h.ScenarioFailure("the preview never showed R02")
         actual["imageOnly"] = labels(pane(t))
         ev.append(t.snap("rules image only"))
-        if not walk_to(t, "R03"):
+        if not walk_to(t, "R03", "down"):
             raise h.ScenarioFailure("the preview never showed R03")
         t.type("r")
         t.wait_for(lambda term: "R03 看图" in composer(term), "R03 in the composer", timeout=5)
@@ -247,27 +259,32 @@ def rules(host, run):
             "`a: 复制` kept; R03: `r` fills `R03 看图` and the `图片未包含` toast shows", actual, bool(ok), ev)
 
 
-def hidden(host, run):
+def closed(host, run):
     world = h.World(token="")
     r_fixture(world, host)
     pbcopy(SENTINEL)
 
     def steps(t, actual, ev):
         focus(t)
-        if not walk_to(t, "R00"):
-            raise h.ScenarioFailure("the preview never showed R00")
-        t.type("p")
-        t.wait_for(lambda term: (q := pane(term)) is not None and q.preview is not None and not body(q), "the folded preview", timeout=5)
-        # no hotkey is drawn: each key goes back to the composer as typed
+        # no hotkey is drawn before a press: each key goes to the composer as typed
         for key in "rca":
             t.type(key)
             time.sleep(0.5)
-        actual["folded"] = {"composer": composer(t), "clipboard": pbpaste()}
-        ev.append(t.snap("hidden folded"))
+        actual["beforePress"] = {"composer": composer(t), "clipboard": pbpaste()}
+        ev.append(t.snap("closed before a press"))
         clear_composer(t)
         focus(t)
+        if not walk_to(t, "R00"):
+            raise h.ScenarioFailure("the preview never showed R00")
         t.type("p")
-        t.wait_for(lambda term: bool(body(pane(term))), "the preview shown again", timeout=5)
+        t.wait_for(lambda term: (q := pane(term)) is not None and q.preview is None, "p closing the preview", timeout=5)
+        for key in "rca":
+            t.type(key)
+            time.sleep(0.5)
+        actual["closedByP"] = {"composer": composer(t), "clipboard": pbpaste()}
+        ev.append(t.snap("closed by p"))
+        clear_composer(t)
+        focus(t)
         if not walk_to(t, "R00"):
             raise h.ScenarioFailure("the preview never showed R00 again")
         cut = None
@@ -283,29 +300,28 @@ def hidden(host, run):
         if cut is None:
             raise h.ScenarioFailure("no height cut the Agent label row")
         actual["cut"] = {"labels": labels(pane(t)), "preview": pane(t).preview}
-        ev.append(t.snap("hidden cut"))
+        ev.append(t.snap("closed cut"))
         t.type("a")
         time.sleep(0.6)
         actual["aCut"] = {"composer": composer(t), "clipboard": pbpaste()}
         clear_composer(t)
         focus(t)
-        if not walk_to(t, "R00"):
-            raise h.ScenarioFailure("the cut preview never showed R00 again")
         t.type("e")
         time.sleep(1.0)
         t.type("a")
         time.sleep(0.8)
         actual["aExpanded"] = pbpaste()
-        ev.append(t.snap("hidden expanded"))
+        ev.append(t.snap("closed expanded"))
 
     actual, ev = scenario(world, host, run, steps)
-    ok = ("failure" not in actual and actual.get("folded") == {"composer": ["rca"], "clipboard": SENTINEL}
+    ok = ("failure" not in actual and actual.get("beforePress") == {"composer": ["rca"], "clipboard": SENTINEL}
+          and actual.get("closedByP") == {"composer": ["rca"], "clipboard": SENTINEL}
           and "Agent" not in actual.get("cut", {}).get("labels", {"Agent": 1})
           and actual.get("aCut") == {"composer": ["a"], "clipboard": SENTINEL}
           and actual.get("aExpanded") == R00_REPLY)
-    return ("R fixture", "folded by `p`, `r` `c` `a` are no hotkeys: typed into the composer as `rca`, nothing filled "
-            "or copied; at a height whose preview cuts R00 before its `Agent` row, `a` is typed too and copies nothing; "
-            "after `e`, `a` copies the reply",
+    return ("R fixture", "before any press, and once `p` closed the preview, `r` `c` `a` are no hotkeys: typed into the "
+            "composer as `rca`, nothing filled or copied; at a height whose preview cuts R00 before its `Agent` row, `a` "
+            "is typed too and copies nothing; after `e`, `a` copies the reply",
             actual, bool(ok), ev)
 
 
@@ -314,7 +330,7 @@ def dialog(host, run):
     r_fixture(world, host)
 
     def steps(t, actual, ev):
-        pointer_off(t)
+        click_entry(t, "R04")
         t.command("/model", wait=1.5)
         t.wait_for(lambda term: term.find("Select model") is not None, "the /model picker", timeout=15)
         at = t.find("r: 填入")
@@ -349,10 +365,13 @@ def running(host, run):
         t = h.launch(world, host, [PLUGIN], ["--resume", SESSION], run=run,
                      env={"ANTHROPIC_BASE_URL": api.url, "ANTHROPIC_API_KEY": FAKE_KEY})
         try:
-            t.wait_for(listed, "the Pane with its preview", timeout=60)
+            t.wait_for(listed, "the Pane listing the session", timeout=60)
             t.type(LIVE)
             time.sleep(0.4)
             t.key("enter")
+            t.wait_for(lambda term: any(e.user_text.startswith("R05") for e in (pane(term).entries if pane(term) else [])),
+                       "the running group listed", timeout=20)
+            click_entry(t, "R05", calm=False)
             seen = {}
 
             def running_now(term):
@@ -402,7 +421,12 @@ def widths(host, run):
         actual = {}
         t = h.launch(world, host, [PLUGIN], ["--resume", SESSION], run=run, env=env)
         try:
-            t.wait_for(lambda term: term.find(f"{reuse} · {copy_}") is not None, "the label row", timeout=60)
+            # the verifier reads the Chinese Pane only: R04's entry is found by its text right of the border
+            in_pane = lambda r: "│" in r and "R04 小问题" in r.rsplit("│", 1)[1]  # noqa: E731
+            t.wait_for(lambda term: any(in_pane(r) for r in term.rows()), "the Pane listing R04", timeout=60)
+            y, row = next((y, r) for y, r in enumerate(t.rows()) if in_pane(r))
+            t.click(sum(h.cell_width(c) for c in row[:row.rfind("R04 小问题")]), y)
+            t.wait_for(lambda term: term.find(f"{reuse} · {copy_}") is not None, "the label row", timeout=10)
             focus(t)
             widen(t, -2)
             pointer_off(t)
@@ -437,7 +461,7 @@ def widths(host, run):
             "`c: Copied` too, and the `Agent` row `a: 复制` / `a: Copy`", out, bool(ok), ev_all)
 
 
-SCENARIOS = {"fill": fill, "copy": copy, "rules": rules, "hidden": hidden, "dialog": dialog, "running": running,
+SCENARIOS = {"fill": fill, "copy": copy, "rules": rules, "closed": closed, "dialog": dialog, "running": running,
              "widths": widths}
 
 

@@ -307,3 +307,24 @@ test('under a query the lit group shows only when it matches, and the nearest ma
   await world.clock.settle()
   expect(await prompts(pane)).toEqual(['CT-SYN prompt 7', 'CT-SYN prompt 17'])
 })
+
+/* CT-PREV-001: the preview opens only on a press and holds that group: the
+   Current position moving and the walk to the previous group move it not. */
+test('the Current position moving and ‹ open nothing, and leave an open preview on the group pressed', async ($, on) => {
+  const { pane, view, world } = await session($, on, 30)
+  const markdown = async () => (await pane.findAll({ type: 'Markdown' })).map(m => m.props.text)
+
+  await view(18)
+  await pane.press({ key: 'walk.previous' })
+  await world.clock.settle()
+  expect(await markdown()).toEqual([])
+
+  await pane.press({ key: 'g19.u' })
+  expect(await markdown()).toEqual(['CT-SYN answer 19'])
+  await view(17)
+  expect(await litKeys(pane)).toEqual(['g17.u', 'g17.a'])
+  expect(await markdown()).toEqual(['CT-SYN answer 19'])
+  await pane.press({ key: 'walk.previous' })
+  await world.clock.settle()
+  expect(await markdown()).toEqual(['CT-SYN answer 19'])
+})
