@@ -30,3 +30,5 @@ Done on `chat-toc-0.2/22-preview-on-press` (2026-10-17).
 - Desktop got only what keeps it working with the preview closed by default: the rule's `✕` and the Back row's `✕` close it. Its drawing is ticket 24's.
 - `perf_scenarios.py` now opens the preview with a click right after the resume, so CT-PERF-001 runs with it open; the perf runs were not repeated for this ticket.
 - PTY on 2.1.287 and 2.1.295: `ct_preview.py` (all nine), `ct_search.py` (all eight), `ct_reuse.py` (all seven), and the gate's `ui-001`, `ui-002`, `ui-003`, `sec-001`.
+
+- **Confirmed by the user** (2026-10-19): the room told by the rows before the passing notes, and an open preview drawn expanded while the Pane is too short.

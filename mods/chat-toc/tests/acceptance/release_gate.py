@@ -346,6 +346,11 @@ def main() -> int:
     p.add_argument("--commit", required=True)
     p.add_argument("--screens", action="store_true", help="copy the sign-off screens from build/pty-runs/ct25-layouts-*")
     a = parser.parse_args()
+    # absolute: the hosts run in their worlds' project folders, and the
+    # generated tsconfig resolves its paths from its own folder
+    a.gate = a.gate.resolve()
+    if getattr(a, "types", None):
+        a.types = a.types.resolve()
     return run_gate(a) if a.cmd == "run" else report(a)
 
 

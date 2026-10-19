@@ -1,5 +1,6 @@
 """CT-PERF-001 and CT-PERF-002: chat-toc on a 20 MiB transcript, timed in
-the real host, the preview open (a click on the newest entry opens it).
+the real host, the preview open (a click on the newest entry selects it,
+and a click on the `p: 预览` Button under it opens it).
 
 usage:
   $PY perf_scenarios.py run <host-version|current> <many|heavy> [--runs 3] [--out DIR]
@@ -192,12 +193,21 @@ def one_run(host: h.Host, kind: str, run: h.Run, n: int) -> dict:
         actual["tocLagMs"] = round(max(0.0, toc_ready - host_ready) * 1000)
         rows = t.settle(quiet=1.0)
         evidence.append(t.snap(f"{kind}-{n} after resume"))
-        # the preview is closed until a press (ticket 22): a click on the
-        # newest entry opens it, and the later clicks keep it open
+        # the preview is closed until asked (tickets 22, 24): a click on the
+        # newest entry selects it, `p: 预览` under it opens it, and the later
+        # clicks move it
         opened = v.parse_pane(rows)
         if opened is not None and opened.entries and opened.entries[-1].user_row is not None:
             t.click(opened.left + 4, opened.entries[-1].user_row)
             rows = t.settle(quiet=1.0)
+            time.sleep(1.0)                         # a second click too soon after the first is lost
+            q = v.parse_pane(t.rows())
+            chosen = next((e for e in (q.entries if q else []) if e.action_row is not None), None)
+            if chosen is not None:
+                row = t.rows()[chosen.action_row]
+                at = row.find("p: 预览")
+                t.click(sum(h.cell_width(c) for c in row[:at]), chosen.action_row)
+                rows = t.settle(quiet=1.0)
         shown = v.parse_pane(rows)
         actual["previewRows"] = len(shown.preview or []) if shown else 0
 

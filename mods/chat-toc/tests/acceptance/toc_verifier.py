@@ -423,6 +423,10 @@ _SEARCH_ROW = re.compile(r"^f: (?:搜索|Find)(?: (?P<rest>.*))?$")
 _SEARCH_COUNT = re.compile(r"\s*(\d+ (?:/|of) \d+)$")
 _SEARCH_SUBMIT = re.compile(r"\s*⏎ (?:跳转|jump)\s*")
 SEARCH_PLACEHOLDERS = ("词或文件路径", "words or a file path")
+# The selected entry's row of Buttons on the terminal while the preview is
+# closed (0.2, ticket 24): `p: 预览 · r: 填入 · c: 复制` beside the rail,
+# `r` and `c` drawn only when they can act, `c` reading `已复制` a moment.
+_ACTION_ROW = re.compile(r"^p: (?:预览|Preview)(?: · r: (?:填入|Reuse))?(?: · c: (?:复制|已复制|Copy|Copied))?$")
 _ASIDE = re.compile(r"^(.*?)\s+(\d\d:\d\d)$")
 _AGENT_HEAD = re.compile(r"^(?:(?:进行中|已中断|出错)(?: · \d+ 步)?|\d+ 步(?: · 无文字回复)?|无文字回复)")
 
@@ -477,6 +481,9 @@ class PaneEntry:
     agent_off: bool = False
     highlighted: bool = False
     clipped: bool = False      # may continue below the window
+    selected: str | None = None     # 'user' or 'agent': the side whose row of Buttons shows under it
+    actions: list[str] = dataclasses.field(default_factory=list)   # that row's Buttons, `p: 预览` first
+    action_row: int | None = None
 
     @property
     def has_user(self) -> bool:
@@ -490,7 +497,7 @@ class PaneEntry:
         return {"row": self.row, "day": self.day, "time": self.time, "userLines": self.user_lines,
                 "agentHead": self.agent_head, "agentLines": self.agent_lines, "running": self.running,
                 "userOff": self.user_off, "agentOff": self.agent_off,
-                "highlighted": self.highlighted}
+                "highlighted": self.highlighted, **({"selected": self.selected} if self.selected else {})}
 
 
 @dataclasses.dataclass
@@ -637,6 +644,10 @@ def parse_pane(rows: list[str]) -> Pane | None:
             if start:
                 current.agent_lines.append(start)
             side = "agent"
+        elif rest[:1] in _RAILS and rest[1:3] == "  " and _ACTION_ROW.match(rest[3:].strip()):
+            if current is not None and side is not None:
+                current.selected, current.action_row = side, y
+                current.actions = rest[3:].strip().split(" · ")
         elif rest[:1] in _RAILS and rest[1:3] == "  " and rest[3:].strip():
             body = rest[3:].strip()
             if current is None:
