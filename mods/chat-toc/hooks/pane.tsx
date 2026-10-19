@@ -19,7 +19,7 @@ import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
 import { text as words, turnsAndContextUse } from './text'
 import { BACK_CONTROL, EXPAND_HOTKEY, MORE_CONTROL, PREVIEW_CONTROL, PREVIEW_HOTKEY } from './preview'
-import { NEXT_ACTION, NEXT_CONTROL, PREVIOUS_ACTION, PREVIOUS_CONTROL } from './walk'
+import { NEXT_ACTION, NEXT_CONTROL, PREVIOUS_ACTION, PREVIOUS_CONTROL, isWalkKey } from './walk'
 import type { WalkDirection } from './walk'
 import type { ExpandedBody, PreviewBody } from './preview'
 import { COPY_INPUT_CONTROL, COPY_INPUT_HOTKEY, COPY_TEXT_CONTROL, COPY_TEXT_HOTKEY, REUSE_CONTROL, REUSE_HOTKEY } from './reuse'
@@ -400,6 +400,15 @@ export type SelectedView = {
 export const OPEN_ACTION = 'preview'
 export const REUSE_ACTION = 'reuse'
 export const COPY_ACTION = 'copy'
+
+/* A click on a terminal Button presses it and leaves the keys in the
+   composer; after these presses the pane asks for them, so its hotkeys
+   work at once. Not Reuse, which hands the keys to the composer, nor ‹ ›,
+   which the person's chord presses from the composer as well. */
+export function claimsKeys(element: string): boolean {
+  if (isWalkKey(element) || element === REUSE_CONTROL) return false
+  return !element.endsWith(`:${REUSE_ACTION}`)
+}
 
 export type PaneView = {
   entries: readonly Entry[]
