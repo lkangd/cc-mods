@@ -44,7 +44,7 @@ function focusedPane($: Engine, bodyRows = 30) {
     component: 'Pane',
     requestId: PANE,
     viewport: { columns: 160, rows: 40, isFullscreen: true },
-    props: { title: '目录', isFocused: true, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows }, view: {} },
+    props: { title: 'ChatTOC', isFocused: true, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows }, view: {} },
   })
 }
 
@@ -186,7 +186,7 @@ test('the keys leaving the pane return it to the list', async ($, on) => {
   await pane.press({ key: 'preview.more' })
   expect(await keys(pane)).toContain('preview.back')
 
-  await pane.redraw({ title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} })
+  await pane.redraw({ title: 'ChatTOC', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} })
   expect(await keys(pane)).not.toContain('preview.back')
   expect((await keys(pane)).some(isEntryKey)).toBe(true)
 })

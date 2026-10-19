@@ -277,7 +277,7 @@ test('the ring moving from an entry onto the label-row Buttons keeps the preview
     component: 'Pane',
     requestId: PANE,
     viewport: { columns: 160, rows: 40, isFullscreen: true },
-    props: { title: '目录', isFocused: true, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+    props: { title: 'ChatTOC', isFocused: true, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
   })
   const arrow = (element: string) => $.ui.focus({ component: 'Pane', requestId: PANE, element, origin: { kind: 'person' } } as never)
 

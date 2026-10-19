@@ -32,7 +32,7 @@ function desktopPane($: Engine, isFocused = false) {
     surface: 'desktop',
     component: 'Pane',
     requestId: PANE,
-    props: { title: '目录', isFocused, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+    props: { title: 'ChatTOC', isFocused, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
   } as never)
 }
 
@@ -352,7 +352,7 @@ test('expanded, the pane losing the focus keeps the expanded preview on the desk
   await pane.press({ key: 'preview.more' })
   await world.clock.settle()
 
-  await pane.redraw({ title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} } as never)
+  await pane.redraw({ title: 'ChatTOC', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} } as never)
   await world.clock.settle()
   expect((await pane.find({ type: 'Button', key: 'preview.more' }))?.text).toBe('← 返回')
   expect(await entryKeys(pane)).toEqual([])

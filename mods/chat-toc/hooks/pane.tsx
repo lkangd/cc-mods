@@ -26,6 +26,9 @@ import { COPY_INPUT_CONTROL, COPY_INPUT_HOTKEY, COPY_TEXT_CONTROL, COPY_TEXT_HOT
 import type { CopySide } from './reuse'
 
 export const PANE_ID = 'chat-toc'
+/* The pane's title, the plugin's name in every language: the desktop draws
+   it at the pane's top, the terminal on its tab beside other panes. */
+export const PANE_TITLE = 'ChatTOC'
 export const PANE_COLUMNS = 44
 
 /* 2.1.287 draws the pane's ✕ at the right end of the body's first row: the

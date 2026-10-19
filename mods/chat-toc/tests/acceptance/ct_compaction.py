@@ -273,10 +273,10 @@ def live(world, host, run):
                 raise h.ScenarioFailure("no ✕ on the Pane")
             row = t.rows()[mark[0]]
             t.click(sum(h.cell_width(c) for c in row[:mark[1]]), mark[0])
-            t.wait_for(lambda term: term.find("☰ ChatTOC") is not None, "the band above the prompt", timeout=15)
+            t.wait_for(lambda term: term.find("ChatTOC  ‹ ›") is not None, "the band above the prompt", timeout=15)
             t.settle()
             evidence.append(t.snap("ctx in the band"))
-            band = next((r for r in t.rows() if "☰ ChatTOC" in r), "")
+            band = next((r for r in t.rows() if "ChatTOC  ‹ ›" in r), "")
             actual["band"] = band.strip()
             actual["bandHasContext"] = "· 上下文已用 47%" in band
 

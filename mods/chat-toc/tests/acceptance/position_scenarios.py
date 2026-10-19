@@ -57,7 +57,7 @@ PLUGIN = HERE.parent.parent
 # The footer's left while the list is listed: the turn count (0.1.1 dropped
 # the "⏸ 暂停跟随" note there; a pause shows only as a window that stays put)
 COUNT = re.compile(r"^\d+ 轮")
-BAND = "☰ ChatTOC"
+BAND = "ChatTOC  ‹ ›"
 TURN = re.compile(r"T(\d{4})|模块 (\d+)")
 SITED = re.compile(r"^[❯⏺] T(\d{4}) |第 \d 行说明：模块 (\d+)")
 # the 300-turn fixture's last group, and the last line of its reply
@@ -348,7 +348,7 @@ def coex(run):
                           "ringOnBand": band is not None and any(c[3] for c in styles[band]), "composerTyped": typed}
         ok = (actual["diffInFront"] and band is not None and "‹ ›" in rows[band] and not actual["band"]["ringOnBand"]
               and typed)
-        click_tab(t, "目录")
+        click_tab(t, "ChatTOC")
         rows, p, s = look(t, quiet=1.5)
         actual["bandGoneInFront"] = not any(BAND in r for r in rows)
         ok = ok and actual["bandGoneInFront"]
@@ -368,7 +368,7 @@ def coex(run):
         ok = ok and actual["tocBehind"]
         wheel_transcript(t, up=True, ticks=40, gap=0.05)
         settle(t, 1.5)
-        click_tab(t, "目录")
+        click_tab(t, "ChatTOC")
         rows, p, s = look(t, quiet=1.0)
         ev.append(t.snap("chat-toc tab clicked: in front again"))
         actual["back"] = s

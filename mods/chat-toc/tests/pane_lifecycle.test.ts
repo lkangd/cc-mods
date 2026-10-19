@@ -11,7 +11,7 @@ setLanguage('zh')
    stays closed once the person closes it, comes back with /chat-toc, and
    opens again for the new session after /clear and /resume. */
 
-const OPEN = { id: PANE, title: '目录', columns: 44 }
+const OPEN = { id: PANE, title: 'ChatTOC', columns: 44 }
 const SESSION = { cwd: '/home/synthetic/project', surface: 'terminal', isInteractive: true } as const
 const OTHER_TRANSCRIPT = '/home/synthetic/.claude/projects/p/synthetic-next.jsonl'
 
@@ -70,7 +70,7 @@ test('/chat-toc opens the pane when it is not open, and asks for the keyboard', 
 test('/chat-toc on an open pane, shown or behind another tab, raises it and asks for the keyboard', async ($, on) => {
   const world = host(on)
   await start($, world)
-  world.panes = [{ id: PANE, title: '目录', isShown: false, isFocused: false, isPlaced: true }]
+  world.panes = [{ id: PANE, title: 'ChatTOC', isShown: false, isFocused: false, isPlaced: true }]
   world.opens.length = 0
 
   await $.command.run({ command: 'chat-toc', args: '' } as never)

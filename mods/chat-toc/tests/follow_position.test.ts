@@ -162,7 +162,7 @@ test('the transcript redrawing the same view does not end the pause', async ($, 
 
 test('the pane holding the keyboard pauses following', async ($, on) => {
   const { pane, view } = await session($, on)
-  const props = { title: '目录', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 14 }, view: {} }
+  const props = { title: 'ChatTOC', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 14 }, view: {} }
 
   await pane.redraw({ ...props, isFocused: true })
 
@@ -211,7 +211,7 @@ test('a Layout switch with no selection keeps the lit group in the window', asyn
 test('a switch with the focus ring on the filter row, where a hotkey finds it, keeps the lit group in the window', async ($, on) => {
   const { pane, view } = await session($, on)
   await view(10)
-  const props = { title: '目录', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 14 }, view: {} }
+  const props = { title: 'ChatTOC', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 14 }, view: {} }
   await pane.redraw({ ...props, isFocused: true })
   await $.ui.focus({ component: 'Pane', requestId: PANE, element: 'f-user', origin: { kind: 'person' } } as never)
   await scrollPane($, -30)

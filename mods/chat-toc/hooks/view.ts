@@ -1,7 +1,8 @@
 /* The two choices the person makes about what the pane shows: the View
    filter (which sides of the Turn groups) and the Layout (how each side is
-   drawn). Both are kept in `$.store` across sessions, the only things
-   chat-toc keeps; a value it does not know reads as the default. */
+   drawn). Both are kept in `$.store` across sessions, as is whether the
+   band above the prompt is hidden (band.ts), the only things chat-toc
+   keeps; a value it does not know reads as the default. */
 
 import { text as words } from './text'
 
