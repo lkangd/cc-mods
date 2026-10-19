@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """CT-PREV-001 and CT-PREV-002 in a real host (chat-toc 0.2 spec §1, §3, §4;
 tickets 13, 15 and 22): the preview region at the bottom of the Pane, opened
-by a press on an entry and closed by its ✕, and the preview expanded over the
+by `p` on an entry pressed (or its `p: 预览` Button) and closed by its ✕, and the preview expanded over the
 list.
 
     $PY ct_preview.py --host 2.1.287 [--host current] [--only press,close,facts,cut,short,widths,expand,cap,running] [--out DIR]
 
 CT-PREV-001:
 
-  press    no preview until a press: none at the start, none while ↑ moves
-           the ring; Enter on the ring's entry opens it on that group; ↑
+  press    no preview until asked: none at the start, none while ↑ moves
+           the ring; Enter on the ring's entry selects it, its row of Buttons
+           under it, and `p` opens the preview on that group; ↑
            again, a click on another entry (which moves it there), scrolling
            the transcript (the Current position moves), a View filter switch
            and a new turn leave it on the group pressed
@@ -26,7 +27,8 @@ CT-PREV-001:
   short    with the preview open, as the terminal gets shorter the Minimap
            goes first, then the region shrinks (down to 4 rows), then it is
            drawn expanded; while the region shows, the list keeps 8 rows; at
-           that height `e: ← 返回` closes it and a press opens it expanded again
+           that height `e: ← 返回` closes it, and a press on an entry then
+           its `p: 预览` opens it expanded again
   widths   opened by a press, the three Layouts at 36, 44 and 56 columns each
            draw the region whole: its rule `─ 预览 ─── p: ✕` across the Pane,
            the meta line, the footer below; the group stays across the switches
@@ -39,7 +41,7 @@ CT-PREV-002:
            the top
   cap      a 200,000-character pasted input: expanded, it stops at the cap
            with `… 还有 N 字未显示 · c: 复制`, the reply and the footer after it
-  running  a live turn against fake_api.py (no model): a press on its entry
+  running  a live turn against fake_api.py (no model): a press on its entry and `p: 预览`
            opens it, a click on its cut line expands it while it runs, and
            the expanded meta line and text follow the turn as it grows
 
@@ -190,19 +192,42 @@ def cell_of(row: str, x: int) -> int:
     return sum(h.cell_width(c) for c in row[:x])
 
 
+def selected_entry(t, prefix: str):
+    """The entry whose input starts with `prefix` when its row of Buttons
+    (`p: 预览 · …`) shows under it."""
+    p = pane(t)
+    return next((e for e in (p.entries if p else []) if e.user_text.startswith(prefix) and e.action_row is not None), None)
+
+
+def click_open(t, prefix: str) -> None:
+    """A click on `p: 预览` under the selected entry `prefix`. A second click
+    too soon after the press on the entry is lost, so it waits a moment."""
+    time.sleep(1.0)
+    e = selected_entry(t, prefix)
+    if e is None:
+        raise h.ScenarioFailure(f"no row of Buttons under {prefix}")
+    click_text(t, "p: 预览", row=e.action_row, right_of=pane(t).left)
+
+
 def click_entry(t, prefix: str, opens: bool = True, calm: bool = True) -> None:
     """A click on the User input of the entry whose input starts with
-    `prefix`, the Pane's window scrolled up to it when it is not in sight;
-    with `opens`, until the preview shows that group. Without `calm` (a
-    turn running: the screen never settles) the pointer is moved off without
+    `prefix`, the Pane's window scrolled up to it when it is not in sight.
+    The click selects it, and moves an open preview there (spec §3); with
+    `opens`, a closed preview is then opened by the `p: 预览` Button under
+    the entry, until the preview shows that group. Without `calm` (a turn
+    running: the screen never settles) the pointer is moved off without
     waiting."""
+    there = lambda term: (shown_input(pane(term)) or "").startswith(prefix)
     for _ in range(8):
         p = pane(t)
         e = next((e for e in (p.entries if p else []) if e.user_text.startswith(prefix) and e.user_row is not None), None)
         if e is not None:
             t.click(p.left + 4, e.user_row)
             if opens:
-                t.wait_for(lambda term: (shown_input(pane(term)) or "").startswith(prefix), f"the preview on {prefix}", timeout=10)
+                t.wait_for(lambda term: there(term) or selected_entry(term, prefix) is not None, f"{prefix} selected", timeout=10)
+                if not there(t):
+                    click_open(t, prefix)
+                t.wait_for(there, f"the preview on {prefix}", timeout=10)
             if calm:
                 pointer_off(t)
             else:
@@ -325,10 +350,17 @@ def press(host, run):
         if on is None:
             raise h.ScenarioFailure("↑ never reached an entry")
         t.key("enter")
-        t.wait_for(lambda term: (shown_input(pane(term)) or "").startswith(on), f"Enter opening the preview on {on}", timeout=10)
+        t.wait_for(lambda term: selected_entry(term, on) is not None, f"Enter selecting {on}", timeout=10)
         pointer_off(t)
-        actual["enter"] = {"ring": on, "preview": (shown_input(pane(t)) or "")[:3]}
+        e = selected_entry(t, on)
+        actual["enter"] = {"ring": on, "selected": e.user_text[:3] if e else None, "actions": e.actions if e else None,
+                           "closed": closed(t)}
         ev.append(t.snap(f"press Enter on {on}"))
+        t.type("p")
+        t.wait_for(lambda term: (shown_input(pane(term)) or "").startswith(on), f"p opening the preview on {on}", timeout=10)
+        pointer_off(t)
+        actual["p"] = {"preview": (shown_input(pane(t)) or "")[:3], "rowGone": selected_entry(t, on) is None}
+        ev.append(t.snap(f"press p on {on}"))
         held = []
         for _ in range(2):
             t.key("up")
@@ -370,12 +402,15 @@ def press(host, run):
     x = actual
     other = x.get("click", {}).get("pressed")
     ok = ("failure" not in x and x["atStart"]["closed"] and all(m["closed"] for m in x["ringMovesClosed"])
-          and x["enter"]["preview"] == x["enter"]["ring"] and all(s == x["enter"]["ring"] for s in x["ringMovesOpen"])
+          and x["enter"]["selected"] == x["enter"]["ring"] and x["enter"]["closed"] and x["enter"]["actions"][:1] == ["p: 预览"]
+          and x["p"]["preview"] == x["enter"]["ring"] and x["p"]["rowGone"]
+          and all(s == x["enter"]["ring"] for s in x["ringMovesOpen"])
           and x["click"]["preview"] == other
           and x["scrolled"]["litAfter"] != x["scrolled"]["litBefore"] and x["scrolled"]["preview"] == other
           and x["filter"] == other and x["newTurn"] == other)
     return ("V fixture (8 groups), then one submit (not logged in: no model call)",
-            "no preview at the start nor while ↑ moves the ring; Enter on the ring's entry opens it on that group, and ↑ "
+            "no preview at the start nor while ↑ moves the ring; Enter on the ring's entry selects it (its row "
+            "`p: 预览 · …` under it, the preview still closed), p opens it on that group and the row goes, and ↑ "
             "leaves it there; a click on another entry moves it there; scrolling the transcript (the lit group moves), a "
             "switch to 用户 and a new turn leave it on the group clicked", actual, bool(ok), ev)
 
@@ -473,7 +508,7 @@ def facts(host, run):
           and files is not None and files["names"] == expected_names[: len(files["names"])]
           and files["more"] == len(expected_names) - len(files["names"]) and files["read"] == 1)
     return ("V fixture: V00 (4 steps, turn_duration 150 s + 50 s, output 100 + 1200 under one id twice + 40 + 300), "
-            "V01 (no usage, no turn_duration); each opened by a click on its entry",
+            "V01 (no usage, no turn_duration); each opened by a click on its entry and its `p: 预览`",
             {"meta": want, "files": "改 " + ", ".join(expected_names) + " (a prefix, the rest as +N) · 读 1"},
             actual, bool(ok), ev)
 
@@ -502,7 +537,7 @@ def cut(host, run):
     actual["cutLine"] = last
     ok = ("failure" not in actual and m is not None and shown >= 1 and int(m.group(1)) == LONG_LINES - shown
           and "V02 第 0 行" in rows)
-    return ("V fixture: V02's reply of 40 lines, opened by a click", "the region shows the reply's first lines and ends in "
+    return ("V fixture: V02's reply of 40 lines, opened by a click and `p: 预览`", "the region shows the reply's first lines and ends in "
             "`↓ 还有 N 行 · e: 展开` with N the lines not shown", actual, bool(ok), ev)
 
 
@@ -551,7 +586,10 @@ def short(host, run):
         p = pane(t)
         e = p.entries[-1]
         t.click(p.left + 4, e.user_row)
-        t.wait_for(lambda term: BACK in "\n".join(term.rows()), "a press opening it expanded", timeout=5)
+        t.wait_for(lambda term: selected_entry(term, e.user_text[:3]) is not None, "the press selecting the entry", timeout=5)
+        actual["pressSelects"] = {"lines": lines, "pressed": e.user_text[:3], "closed": closed(t)}
+        click_open(t, e.user_text[:3])
+        t.wait_for(lambda term: BACK in "\n".join(term.rows()), "p: 预览 opening it expanded", timeout=5)
         actual["pressExpands"] = {"lines": lines, "pressed": e.user_text[:3]}
         ev.append(t.snap(f"short press expanded at {lines}"))
     except h.ScenarioFailure as failure:
@@ -569,12 +607,12 @@ def short(host, run):
     floor_ok = all((x["listRows"] or 0) >= 8 for x in with_bars + without_bars)
     shrink_ok = min((x["region"] for x in without_bars), default=0) == 4
     ok = ("failure" not in actual and bool(order_ok) and floor_ok and shrink_ok
-          and "backCloses" in actual and "pressExpands" in actual)
+          and "backCloses" in actual and actual.get("pressSelects", {}).get("closed") and "pressExpands" in actual)
     actual["checks"] = {"order": bool(order_ok), "listKeeps8": floor_ok, "shrinksTo4": shrink_ok}
     return ("V fixture, the preview opened on V07, the terminal from 44 lines down to 14",
             "the Minimap leaves first, then the region shrinks down to 4 rows, then the preview is drawn expanded; while "
-            "the region shows, the list keeps 8 rows; at the tallest of those heights `e: ← 返回` closes it and a press on "
-            "an entry opens it expanded again", actual, bool(ok), ev)
+            "the region shows, the list keeps 8 rows; at the tallest of those heights `e: ← 返回` closes it, and a press on "
+            "an entry selects it (still closed) and its `p: 预览` opens the preview expanded", actual, bool(ok), ev)
 
 
 def widths(host, run):
@@ -724,7 +762,7 @@ def expand(host, run):
         }
     x["checks"] = checks
     ok = "failure" not in x and all(checks.values())
-    return ("V fixture: V02's reply of 40 lines, opened by a click, the Pane focused",
+    return ("V fixture: V02's reply of 40 lines, opened by a click and `p: 预览`, the Pane focused",
             "e expands the preview over the list (the filter row kept, the Back Button `e: ← 返回` at its top with "
             "`p: ✕`, no entry); the host scrolls the whole tree: 5 wheel ticks, PgDn to the end with the footer, PgUp to "
             "the top, ↓ one row; e with the Back Button scrolled away, a click on it, and Esc each return to the list with "
@@ -778,7 +816,7 @@ def cap(host, run):
           and int(shown[-1].split()[3]) < PASTED_LINES - 1
           and "P01 回复" in bottom and any(re.match(r"^\d+ 轮", r) for r in bottom))
     return ("P fixture: P01's input a paste of 4,000 lines (about 200,000 characters), a short reply",
-            "opened by a click and expanded, the input starts whole at the top; at the end (End) it stops early with "
+            "opened by a click and `p: 预览`, then expanded, the input starts whole at the top; at the end (End) it stops early with "
             "`… 还有 N 字未显示 · c: 复制` (N about 140,000), the reply and the footer drawn after it",
             actual, bool(ok), ev)
 
@@ -788,7 +826,7 @@ LIVE = "CT-PREV-002 进行中的合成一轮 " + "很长的输入用来让预览
 
 def running(host, run):
     """A live turn against fake_api.py, its input long enough to be cut by
-    the region; a press on its entry opens it, and a click on the cut line
+    the region; a press on its entry and `p: 预览` open it, and a click on the cut line
     expands it while it runs."""
     world = h.World(token="")
     fake_api_world(world)
@@ -835,7 +873,7 @@ def running(host, run):
           and any(s.startswith("进行中 · 2 步") for s in states) and states[-1].startswith("2 步")
           and "完成" in actual.get("final", []) and has_back(actual.get("final", [])))
     return ("V fixture + one live turn against fake_api.py (two Read steps, 4 s apart; no model)",
-            "a press on the running group's entry opens it, a click on its cut line expands it; still expanded, its meta "
+            "a press on the running group's entry and its `p: 预览` open it, a click on its cut line expands it; still expanded, its meta "
             "line goes 进行中 · 1 步, 进行中 · 2 步, then 2 步 with the closing text 完成 under Agent", actual, bool(ok), ev)
 
 

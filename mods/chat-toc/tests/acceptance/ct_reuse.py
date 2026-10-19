@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """CT-REUSE-001 in a real host (chat-toc 0.2 spec §7; tickets 17 and 22): Reuse
-and copy from the preview's label rows, the preview opened by Enter on an
-entry or a click on it.
+and copy from the preview's label rows, the preview opened by `p` on an
+entry selected by Enter or a click (ticket 24), and from the selected
+entry's row of Buttons while the preview is closed.
 
     $PY ct_reuse.py --host 2.1.287 [--host current] [--only fill,copy,rules,closed,dialog,running,widths] [--out DIR]
 
@@ -14,10 +15,13 @@ entry or a click on it.
   rules    the `!cmd` has `c` but no `r`, and `c` copies `!echo R01`; the
            image-only input has neither; R03 (text and an image) fills its
            text only, with the `图片未包含` toast
-  closed   before any press, and once `p` closed it, `r`, `c` and `a` do
-           nothing; a short terminal whose preview cuts the `Agent` label row
-           takes `a` with it, and after `e` `a` copies again
-  dialog   a click on `r: 填入` (the preview opened by a click first) under
+  closed   before any press `r`, `c` and `a` do nothing; once `p` closed it,
+           the selected entry's row `p: 预览 · r: 填入 · c: 复制` is back:
+           `a` does nothing, `c` copies the side selected and `r` fills the
+           input; a short
+           terminal whose preview cuts the `Agent` label row takes `a` with
+           it, and after `e` `a` copies again
+  dialog   a click on `r: 填入` (the preview opened by a click and `p: 预览` first) under
            `/model`'s picker shows the
            `无法填入：有对话框打开` toast and leaves the composer empty
   running  a live turn against fake_api.py (no model): pressed, its preview has
@@ -46,7 +50,7 @@ import toc_verifier as v  # noqa: E402
 import transcript_fixture as tf  # noqa: E402
 import fake_api  # noqa: E402
 from gate_scenarios import FAKE_KEY, fake_api_world  # noqa: E402
-from ct_preview import body, click_entry, entry_at, focus, listed, pane, pointer_off, ring_row, shown_input, widen  # noqa: E402
+from ct_preview import body, click_entry, entry_at, focus, listed, pane, pointer_off, ring_row, selected_entry, shown_input, widen  # noqa: E402
 
 PLUGIN = HERE.parent.parent
 SESSION = "00000000-0000-4000-8000-0000000017a0"
@@ -110,7 +114,8 @@ def labels(p) -> dict:
 
 def walk_to(t, prefix: str, key: str = "up") -> bool:
     """↑ (or ↓) through the entries until the ring is on the one whose input
-    starts with `prefix`, then Enter: the preview opens on it."""
+    starts with `prefix`, then Enter, which selects it (or moves an open
+    preview there), then `p` when the preview is closed: it opens on it."""
     for _ in range(40):
         t.key(key)
         y = ring_row(t)
@@ -118,8 +123,12 @@ def walk_to(t, prefix: str, key: str = "up") -> bool:
         e = entry_at(p, y) if y is not None and p is not None else None
         if e is not None and e.user_text.startswith(prefix):
             t.key("enter")
+            there = lambda term: (shown_input(pane(term)) or "").startswith(prefix)
             try:
-                t.wait_for(lambda term: (shown_input(pane(term)) or "").startswith(prefix), f"the preview on {prefix}", timeout=5)
+                t.wait_for(lambda term: there(term) or selected_entry(term, prefix) is not None, f"{prefix} selected", timeout=5)
+                if not there(t):
+                    t.type("p")
+                t.wait_for(there, f"the preview on {prefix}", timeout=5)
             except h.ScenarioFailure:
                 return False
             return True
@@ -278,11 +287,26 @@ def closed(host, run):
             raise h.ScenarioFailure("the preview never showed R00")
         t.type("p")
         t.wait_for(lambda term: (q := pane(term)) is not None and q.preview is None, "p closing the preview", timeout=5)
-        for key in "rca":
-            t.type(key)
-            time.sleep(0.5)
-        actual["closedByP"] = {"composer": composer(t), "clipboard": pbpaste()}
+        row = selected_entry(t, "R00")
+        t.type("a")
+        time.sleep(0.5)
+        actual["closedByP"] = {"row": row.actions if row else None, "composer": composer(t), "clipboard": pbpaste()}
         ev.append(t.snap("closed by p"))
+        clear_composer(t)
+        focus(t)
+        t.type("c")
+        time.sleep(0.8)
+        row = selected_entry(t, "R00")
+        # the ring walked up onto one of R00's sides: `c` copies that side
+        actual["rowCopy"] = {"side": row.selected if row else None, "clipboard": pbpaste(), "row": row.actions if row else None}
+        ev.append(t.snap("closed row copy"))
+        pbcopy(SENTINEL)
+        t.type("r")
+        try:
+            t.wait_for(lambda term: "R00 修一下" in composer(term), "R00 filled from the row", timeout=5)
+        except h.ScenarioFailure:
+            pass
+        actual["rowFill"] = composer(t)
         clear_composer(t)
         focus(t)
         if not walk_to(t, "R00"):
@@ -315,12 +339,16 @@ def closed(host, run):
 
     actual, ev = scenario(world, host, run, steps)
     ok = ("failure" not in actual and actual.get("beforePress") == {"composer": ["rca"], "clipboard": SENTINEL}
-          and actual.get("closedByP") == {"composer": ["rca"], "clipboard": SENTINEL}
+          and actual.get("closedByP") == {"row": ["p: 预览", "r: 填入", "c: 复制"], "composer": ["a"], "clipboard": SENTINEL}
+          and actual.get("rowCopy", {}).get("row") == ["p: 预览", "r: 填入", "c: 已复制"]
+          and actual["rowCopy"]["clipboard"] == {"user": R00, "agent": R00_REPLY}.get(actual["rowCopy"]["side"])
+          and actual.get("rowFill") == R00.split("\n")
           and "Agent" not in actual.get("cut", {}).get("labels", {"Agent": 1})
           and actual.get("aCut") == {"composer": ["a"], "clipboard": SENTINEL}
           and actual.get("aExpanded") == R00_REPLY)
-    return ("R fixture", "before any press, and once `p` closed the preview, `r` `c` `a` are no hotkeys: typed into the "
-            "composer as `rca`, nothing filled or copied; at a height whose preview cuts R00 before its `Agent` row, `a` "
+    return ("R fixture", "before any press `r` `c` `a` are no hotkeys: typed into the composer as `rca`, nothing filled "
+            "or copied; once `p` closed the preview, R00's row `p: 预览 · r: 填入 · c: 复制` is back, `a` is typed into the "
+            "composer, `c` copies the side selected (`c: 已复制`) and `r` fills R00's input; at a height whose preview cuts R00 before its `Agent` row, `a` "
             "is typed too and copies nothing; after `e`, `a` copies the reply",
             actual, bool(ok), ev)
 
@@ -412,9 +440,9 @@ def running(host, run):
 def widths(host, run):
     out = {}
     ev_all = []
-    for language, env, user, reuse, copy_, copied, agent_copy in (
-            ("zh", None, "用户", "r: 填入", "c: 复制", "c: 已复制", "a: 复制"),
-            ("en", {"LC_MESSAGES": "en_US.UTF-8"}, "User", "r: Reuse", "c: Copy", "c: Copied", "a: Copy")):
+    for language, env, user, reuse, copy_, copied, agent_copy, open_ in (
+            ("zh", None, "用户", "r: 填入", "c: 复制", "c: 已复制", "a: 复制", "p: 预览"),
+            ("en", {"LC_MESSAGES": "en_US.UTF-8"}, "User", "r: Reuse", "c: Copy", "c: Copied", "a: Copy", "p: Preview")):
         world = h.World(token="")
         r_fixture(world, host)
         pbcopy(SENTINEL)
@@ -426,7 +454,12 @@ def widths(host, run):
             t.wait_for(lambda term: any(in_pane(r) for r in term.rows()), "the Pane listing R04", timeout=60)
             y, row = next((y, r) for y, r in enumerate(t.rows()) if in_pane(r))
             t.click(sum(h.cell_width(c) for c in row[:row.rfind("R04 小问题")]), y)
-            t.wait_for(lambda term: term.find(f"{reuse} · {copy_}") is not None, "the label row", timeout=10)
+            # the click selects R04; the row of Buttons under it opens the preview
+            t.wait_for(lambda term: term.find(open_) is not None, f"{open_} under R04", timeout=10)
+            time.sleep(1.0)
+            y, x = t.find(open_)
+            t.click(x, y)
+            t.wait_for(lambda term: term.find(open_) is None and term.find(f"{reuse} · {copy_}") is not None, "the label row", timeout=10)
             focus(t)
             widen(t, -2)
             pointer_off(t)

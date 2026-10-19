@@ -448,6 +448,19 @@ class PaneScreen(unittest.TestCase):
                           "F19 rewind 之后的新分支", "Agent", "F19 回复：新分支。"])
         self.assertIsNone(toc_verifier.parse_pane(screen("card-2.1.295.txt")).preview)
 
+    def test_reads_the_selected_entrys_row_of_buttons_apart_from_its_text(self):
+        rows = screen("card-2.1.295.txt")
+        at = next(y for y, r in enumerate(rows) if "●  F16" in r)
+        left = rows[at].index("●")
+        rows.insert(at + 1, rows[at][:left] + "│  p: 预览 · r: 填入 · c: 复制")
+        pane = toc_verifier.parse_pane(rows)
+        f16 = next(e for e in pane.entries if e.user_text.startswith("F16"))
+        self.assertEqual((f16.user_text, f16.selected, f16.actions, f16.action_row),
+                         ("F16 压缩之前的最后一轮", "user", ["p: 预览", "r: 填入", "c: 复制"], at + 1))
+        self.assertEqual((f16.agent_row, f16.agent_head), (at + 2, ""))
+        self.assertEqual([e.user_text[:3] for e in pane.entries if e.selected], ["F16"])
+        self.assertTrue(toc_verifier.compare_window(forms_groups(), pane)["ok"])
+
     def test_reads_the_filter_from_the_tab_rule(self):
         pane = toc_verifier.parse_pane(screen("card-agent-2.1.295.txt"))
         self.assertEqual(pane.filter, "agent")

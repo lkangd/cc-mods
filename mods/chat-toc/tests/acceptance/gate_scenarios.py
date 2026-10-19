@@ -34,19 +34,19 @@ transcript file wherever the Pane's entries are judged.
                  and the closing text
   ui-001         1/2/3 switch the View filter at once, each list equals the
                  verifier's for that filter, the preview region (opened by a
-                 click on an entry first) drawn under it on the group
+                 click on an entry and its `p: 预览` first) drawn under it on the group
                  clicked; the choice survives a new process; a value chat-toc
                  does not know reads as 全部
   ui-002         `l` and the Layout button cycle 卡片/紧凑/时间轴 listing the
                  same entries, each with the preview region (opened by a
-                 click) under the list on the group clicked; the choice
+                 click and `p: 预览`) under the list on the group clicked; the choice
                  survives a new process; an unknown value reads as 卡片 (the
                  region at 36/44/56 columns: ct_preview.py widths)
   ui-003         focused, ↑↓ step one side at a time through the entries
                  without skipping a dimmed one, opening no preview; the
                  inverse ring and the highlight (the dark theme's
                  `suggestion`) are drawn apart; Enter jumps like a click and
-                 opens the preview on that group
+                 selects the entry, opening no preview; `p` opens it on that group
   ui-004         under dark, light, dark-ansi and light-ansi the lit marks are
                  the theme's `suggestion` and the dimmed text its `inactive`;
                  /theme from Dark to Light redraws the Pane at once; the
@@ -617,14 +617,26 @@ def preview_turn(p) -> int | None:
 
 
 def open_preview(t) -> int:
-    """A click on the newest entry with an Agent side opens the preview on its
-    group; the turn it shows."""
+    """A click on the newest entry with an Agent side selects it, and a click
+    on the `p: 预览` Button under it opens the preview on its group (ticket
+    24); the turn it shows."""
     p = pane(t)
     e = next((e for e in reversed(p.entries) if e.has_user and e.agent_head is not None and turn_of(e.user_text) is not None), None)
     if e is None:
         raise h.ScenarioFailure("no entry to press")
     t.click(p.left + 4, e.user_row)
     turn = turn_of(e.user_text)
+    selected = lambda q: next((x for x in (q.entries if q else []) if x.action_row is not None and turn_of(x.user_text) == turn), None)
+    t.wait_for(lambda term: selected(pane(term)) is not None, f"T{turn:04d} selected", timeout=10)
+    time.sleep(1.0)                                     # a second click too soon after the first is lost
+    p = pane(t)
+    row = t.rows()[selected(p).action_row]
+    at = row.find("p: 预览")
+    while at >= 0 and sum(h.cell_width(c) for c in row[:at]) < p.left:
+        at = row.find("p: 预览", at + 1)
+    if at < 0:
+        raise h.ScenarioFailure(f"no p: 预览 under T{turn:04d}")
+    t.click(sum(h.cell_width(c) for c in row[:at]), selected(p).action_row)
     t.wait_for(lambda term: preview_turn(pane(term)) == turn, f"the preview on T{turn:04d}", timeout=10)
     return turn
 
@@ -893,7 +905,17 @@ def ui_003(host, run):
         top = h.transcript_text(rows, pane(t).left).splitlines()[:6]
         actual["enterJumped"] = "T0002 用户问题" in "\n".join(top)
         actual["noPreviewWhileWalking"] = not any(w["preview"] for w in walk)
-        actual["enterOpensPreview"] = preview_turn(pane(t)) == 2
+        p = pane(t)
+        actual["enterSelects"] = (p.preview is None
+                                  and [(turn_of(e.user_text), e.selected) for e in p.entries if e.selected] == [(2, "user")])
+        t.type("p")
+        try:
+            t.wait_for(lambda term: preview_turn(pane(term)) == 2, "p opening the preview on T0002", timeout=10)
+            actual["pOpensPreview"] = True
+        except h.ScenarioFailure:
+            actual["pOpensPreview"] = False
+        pointer_off(t)
+        ev.append(t.snap("ui-003 p on T0002"))
 
         # the jump lights T0002; one ↑ moves the ring off it, onto T0001's
         # dimmed Agent side (not skipped), while the highlight stays
@@ -947,13 +969,13 @@ def ui_003(host, run):
         t.close()
         world.remove()
     ok = all(actual.get(k) is True for k in ("dimmedBeforeKeys", "oneSideAtATime", "ringOnDimmed", "enterJumped",
-                                               "noPreviewWhileWalking", "enterOpensPreview",
+                                               "noPreviewWhileWalking", "enterSelects", "pOpensPreview",
                                                "ringAndHighlightApart", "highlightNotInverse", "fFocusesField", "tabFromFieldOnEntry",
                                                "neverOnStep")) \
         and len(actual.get("highlightColour", [])) == 1 and is_lit(actual["highlightColour"][0])
     return ("CT-UI-003", "turns 12 compacted after T0001, --resume: T0000-T0001 dimmed from the start",
             "focused, ↑ walks one side at a time (agent, user, the turn before's agent, ...), opening no preview; Enter on "
-            "T0002's user side puts that prompt at the top, lights it and opens the preview on it; one more ↑ moves the inverse ring off it onto T0001's Agent side "
+            "T0002's user side puts that prompt at the top, lights it and selects it, opening no preview; p opens the preview on it; one more ↑ moves the inverse ring off it onto T0001's Agent side "
             "on its hollow branch (not skipped) while the lit ◉ in the theme's `suggestion` (not inverse) stays on T0002; "
             "`f` then Tab from the field lands on an entry, and ↑ from it never stops on ‹ or ›",
             actual, ok, ev)
@@ -1001,12 +1023,12 @@ def sec_001(host, run):
         t.wait_for(lambda term: (q := pane(term)) is not None and (q.search or {}).get("text", "").startswith(marker[:12])
                    and len(q.entries) == 1, "the marker in the search field", timeout=10)
         actual["inQuery"] = True
-        # Enter jumps to the match and opens the preview on it (ticket 22)
+        # Enter jumps to the match and selects it, opening no preview (ticket 24)
         t.key("enter")
-        t.wait_for(lambda term: (q := pane(term)) is not None and q.preview is not None, "the preview on the match", timeout=10)
+        t.wait_for(lambda term: (q := pane(term)) is not None and any(e.selected for e in q.entries), "the match selected", timeout=10)
         t.key("esc")
         time.sleep(0.5)
-        # the marker reused and copied from the preview, which shows the match
+        # the marker reused and copied from the match's row of Buttons
         # (0.2): into the composer and the clipboard, nowhere else
         focus_pane(t)
         t.type("r")
@@ -1064,7 +1086,7 @@ def sec_001(host, run):
           and set(actual["storeKeys"]) <= {"viewFilter", "layout"}
           and "failure" not in actual)
     return ("CT-SEC-001", "turns 6 + one submitted prompt holding a synthetic unique marker",
-            "the marker is drawn in the Pane, typed into the search field (Enter opening the preview on it), reused into the composer (r) and copied (c), and appears in none of: chat-toc's $.store file (which holds only viewFilter "
+            "the marker is drawn in the Pane, typed into the search field (Enter selecting the match), reused into the composer (r) and copied (c) from its row, and appears in none of: chat-toc's $.store file (which holds only viewFilter "
             "and layout), its plugin data directory, the debug log's chat-toc lines (CHAT_TOC_PERF on, a jump, a hot reload); "
             "the release evidence is scanned for it too (release_gate.py)", actual, ok, ev)
 

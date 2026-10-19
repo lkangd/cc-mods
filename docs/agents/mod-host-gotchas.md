@@ -67,6 +67,8 @@ Install into a scratch dir, never globally: `npm install --prefix <dir> @anthrop
 - Rewind without a model: Esc Esc on the empty composer, Up to the prompt, Enter, Enter (restore), then backspaces to clear the restored prompt.
 - `settle()` never goes quiet while the spinner turns: snap a running turn with a short timeout. A `fake_api.py` turn that reads a file outside the project raises a permission dialog: point `read_path` inside it.
 - The shell is fish: `$var` with spaces does not word-split. Drive loops from Python.
+- A click on a Pane Button a fraction of a second after a click on another one is lost, even when it is drawn already (2.1.295, chat-toc ticket 21: an entry, then the `p: 预览` under it). Wait about 1 s between two clicks.
+- Pass absolute paths to the drivers (`--out`, `--gate`, `--types`): the host runs in the world's project folder, so a relative `--debug-file` lands there and the driver never finds it.
 
 ## Claude Code Desktop
 
