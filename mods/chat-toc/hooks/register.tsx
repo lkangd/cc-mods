@@ -17,7 +17,7 @@
    this file, so every call on `$` is made here or in one of them. */
 
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderSurface } from 'claude-code'
+import type { EngineInterface, Register, RenderElement, RenderSurface } from 'claude-code'
 import { entryKey } from './entries'
 import type { Entry } from './entries'
 import { compactionsOf, hasEarlierTurnsElsewhere, layRules } from './compactions'
@@ -45,7 +45,7 @@ import {
 } from './jump'
 import type { Refused } from './jump'
 import { carriesHistory, hidesPane, isClosedByPerson, reopensOn } from './lifecycle'
-import { CLEAR_CONTROL, PANE_COLUMNS, PANE_ID, SEARCH_FIELD, SEARCH_ROWS, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
+import { CLEAR_CONTROL, PANE_COLUMNS, PANE_ID, SEARCH_CONTROL, SEARCH_FIELD, SEARCH_ROWS, claimsKeys, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
 import type { ExpandedView, LabelActions, PreviewView, SearchView } from './pane'
 import { PREVIEW_CONTROL, expandedBody, filesLine, metaLine, previewBody, previewPlan, typedInput } from './preview'
 import type { ExpandedBody, PathBase, PreviewBody } from './preview'
@@ -201,6 +201,8 @@ let lastDrawing: Drawing = { entries: [], keys: [], indexOf: new Map(), heights:
    as its moves and chat-toc's own sends left it. */
 let ring: string | undefined
 let isPaneFocused = false
+/* The desktop's tree as last drawn, and what it was drawn from. */
+let desktopDrawn: { from: string; tree: RenderElement } | undefined
 /* The first control the last drawing put after the entries, and the last
    one before them. */
 let afterList = LAYOUT_CONTROL
@@ -376,6 +378,8 @@ function forget(): void {
 function closePreviewNow(): void {
   previewOpener = undefined
   isExpanded = false
+  /* Closed with the pane, it changes no rev: the desktop's tree goes too. */
+  desktopDrawn = undefined
 }
 
 /* The context use the host has now: at the start, after a hot reload,
@@ -709,6 +713,17 @@ function openPane($: EngineInterface, focus?: true) {
   return $.ui.open({ id: PANE_ID, title: words.paneTitle, columns: PANE_COLUMNS, ...(focus === undefined ? {} : { focus }) })
 }
 
+/* The keys asked for the open pane, as /chat-toc asks: the host grants them
+   only over an empty composer with no dialog up, else they stay put. Says
+   whether they were asked for. */
+async function claimKeys($: EngineInterface): Promise<boolean> {
+  if (isPaneFocused) return false
+  const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
+  if (pane === undefined || !pane.isShown || pane.isFocused) return false
+  await openPane($, true).catch(() => undefined)
+  return true
+}
+
 /* Opens the pane unasked, unless the person closed it in this session or it
    is open already, as it stays across a hot reload. Where and whether it is
    drawn is the host's call: it is kept however the host places it. While it
@@ -951,9 +966,13 @@ async function pressEntry($: EngineInterface, entry: Entry): Promise<void> {
    window's bottom, the window moves so both show. */
 function select($: EngineInterface, key: string): void {
   selectedKey = key
+  /* The desktop draws no selection. A redraw there retires every Button's
+     handle, and a click whose focus selected the entry then reaches the
+     host with a retired one: the host drops the press. */
+  if (paneSurface !== 'terminal') return
   const drawn = lastDrawing
   const index = drawn.indexOf.get(key)
-  if (index !== undefined && paneSurface === 'terminal') {
+  if (index !== undefined) {
     const heights = drawn.heightsWith(index)
     const window = windowOf(heights, drawn.rows, top ?? drawn.window.start)
     if (index >= window.end) top = topRevealing(heights, drawn.rows, window, index)
@@ -1329,6 +1348,17 @@ export const register: Register = on => {
     return drawBand($.ui.resolve(e), { counts: bandCounts(), onOpen: () => openAsked($), onWalk: direction => walkTurn($, direction, false) })
   })
 
+  /* A click presses a terminal Button and leaves the keys in the composer;
+     after the press the pane asks for them, so its hotkeys work at once. */
+  on('ui.press', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
+    const pressed = await next(e)
+    if (e.surface !== 'terminal' || !claimsKeys(e.element)) return pressed
+    /* Find's own move into the field was refused while the pane did not
+       hold the keys: it goes again once they are asked for. */
+    if ((await claimKeys($)) && e.element === SEARCH_CONTROL) await focusSearch($)
+    return pressed
+  })
+
   /* The arrows walk the host's focus ring Button by Button; this keeps it
      on entries' first lines and scrolls the window at its ends (ring.ts). */
   on('ui.focus', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
@@ -1378,7 +1408,7 @@ export const register: Register = on => {
     const began = perfNow()
     paneSurface = e.surface
     /* What the drawing needs of the host first; the rest is its own work. */
-    await read($, rev)
+    const revDrawn = await read($, rev)
     const position = (await read($, currentPosition)) ?? undefined
     const isCarried = await read($, isCarriedOver)
     const searchText = await read($, query)
@@ -1408,6 +1438,30 @@ export const register: Register = on => {
     }
     const isHeld = isPaused || isPaneFocused
     positionDrawn = position
+    /* The desktop asks for a drawing when the focus comes or goes, which
+       shows nothing new there. Drawn again, every Button would take a new
+       handle, and the click that brought the focus would reach the host
+       with a retired one, which it drops: the same tree keeps them. */
+    const drawnFrom =
+      e.surface === 'terminal'
+        ? undefined
+        : JSON.stringify({
+            rev: revDrawn,
+            position,
+            searchText,
+            isCarried,
+            day: new Date(nowMs).toDateString(),
+            columns: e.props.bodyColumns,
+            rows: e.props.scroll.bodyRows,
+            placement: e.props.placement,
+            view: e.props.view,
+            source,
+            filter,
+            layout,
+            contextPercent,
+            hostBase,
+          })
+    if (drawnFrom !== undefined && desktopDrawn?.from === drawnFrom) return desktopDrawn.tree
     const isOk = source === 'ok'
     const width = e.props.bodyColumns
     const wasTable = entryCache.table
@@ -1627,6 +1681,7 @@ export const register: Register = on => {
         timed($, 'listed', [ended - loadedAt])
       }
     }
+    desktopDrawn = drawnFrom === undefined ? undefined : { from: drawnFrom, tree: drawn }
     return drawn
   })
 }
