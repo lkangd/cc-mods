@@ -5,7 +5,7 @@ import { LIST_BUDGET } from '../hooks/desktop'
 import { setLanguage, text as words } from '../hooks/text'
 import { transcript } from './fixture'
 
-/* Scrolling on Claude Code Desktop (spec §8, ticket 23): the host scrolls
+/* Scrolling on Claude Code Desktop (0.2 spec §8, ticket 23): the host scrolls
    the Pane's whole tree, so the person's scroll passes through and the list
    is not windowed by rows. A tree is bounded at 100,000 serialized
    characters, so the list draws the newest entries within a budget, with

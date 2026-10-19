@@ -53,7 +53,7 @@ LEAD = "chat-toc-perf "            # perf.ts PERF_LEAD
 RELOADED = "chat-toc@inline reloaded"
 SUBMITS = 5
 
-# CT-PERF-001 thresholds (spec §9), ms
+# CT-PERF-001 thresholds (MVP spec §9), ms
 LIMITS = {
     "tocLagMs": 4000, "idleWholeMs": 1000, "tailReadMs": 150, "appendModelMs": 1000,
     "paneOwnMs": 16, "paneTotalMs": 100, "positionMs": 2, "positionResidueMs": 5,

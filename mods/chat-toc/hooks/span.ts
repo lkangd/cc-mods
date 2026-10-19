@@ -1,4 +1,4 @@
-/* The part of the list the desktop draws (spec §8, Scrolling). There the
+/* The part of the list the desktop draws (0.2 spec §8, Scrolling). There the
    host scrolls the Pane's whole tree, and a tree is bounded at 100,000
    serialized characters, Svg sources included, so the list is not windowed
    by rows: it draws a run of entries whose characters fit a budget, the
@@ -42,7 +42,7 @@ export function spanEnding(list: SpanList, end: number, budget: number): TocWind
 /* The run ending at `end - 1` as spanEnding draws it, unless that reaches
    the list's first entry with budget to spare: then the run from the first
    entry filling the budget, so the earliest part is drawn as full as any
-   other (spec §8). */
+   other (0.2 spec §8). */
 export function spanEndingFilled(list: SpanList, end: number, budget: number): TocWindow {
   const run = spanEnding(list, end, budget)
   return run.start === 0 ? spanStarting(list, 0, budget) : run

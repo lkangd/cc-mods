@@ -7,7 +7,7 @@
    lines. A Box's width and height count cells there, as on the terminal.
    The desktop reports no Current position: nothing is lit, nothing pauses.
 
-   The 0.2 additions (spec §8): the filters as native Buttons beside the
+   The 0.2 additions (0.2 spec §8): the filters as native Buttons beside the
    Layout Select, one native height; a native search field under them (no
    `f` Button) with a ✕ while there is a query, the strip drawing the
    matches in the accent colour and the context use after its count; the
@@ -446,7 +446,7 @@ export function drawDesktopPane(elements: ElementTable, view: DesktopView): Rend
         <Box flexDirection="column">
           <Box flexDirection="row" justifyContent="space-between">
             {/* Under the cut line's key: the pressed Button stays in the
-                tree, so the pane keeps the focus (spec §8). */}
+                tree, so the pane keeps the focus (0.2 spec §8). */}
             <Button key={MORE_CONTROL} plain onPress={() => expanded.onBack()}>
               {words.back}
             </Button>

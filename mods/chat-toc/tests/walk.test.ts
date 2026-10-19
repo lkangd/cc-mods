@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { listedGroups, walkFrom } from '../hooks/walk'
 
-/* The previous and next Turn group (spec §6): which group a press of ‹ or ›
+/* The previous and next Turn group (0.2 spec §6): which group a press of ‹ or ›
    jumps to, from the Current position over the groups the list shows. */
 
 const all = () => true

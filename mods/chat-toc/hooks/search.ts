@@ -1,4 +1,4 @@
-/* Search (spec §2): which Turn groups hold every word of a query, and in
+/* Search (0.2 spec §2): which Turn groups hold every word of a query, and in
    which fields. The fields are the User input as typed, the last text and
    the absolute paths of the files the group touched (facts.ts); the View
    filter picks among them. Each group's fields are kept NFKC-normalised

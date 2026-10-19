@@ -15,7 +15,7 @@ setLanguage('zh')
 
 /* The pane's entry table: entries kept per group and the list rebuilt only
    when the groups, the width, the View filter or the Layout change, so a
-   long session's redraw does not fold every entry again (spec §7). */
+   long session's redraw does not fold every entry again (MVP spec §7). */
 
 const NOW = new Date(2026, 9, 10, 18, 0).getTime()
 const tool = (id: string): Row => ({ type: 'tool_use', id, name: 'Bash', input: {} })

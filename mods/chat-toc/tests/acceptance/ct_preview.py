@@ -212,7 +212,7 @@ def click_open(t, prefix: str) -> None:
 def click_entry(t, prefix: str, opens: bool = True, calm: bool = True) -> None:
     """A click on the User input of the entry whose input starts with
     `prefix`, the Pane's window scrolled up to it when it is not in sight.
-    The click selects it, and moves an open preview there (spec §3); with
+    The click selects it, and moves an open preview there (0.2 spec §3); with
     `opens`, a closed preview is then opened by the `p: 预览` Button under
     the entry, until the preview shows that group. Without `calm` (a turn
     running: the screen never settles) the pointer is moved off without

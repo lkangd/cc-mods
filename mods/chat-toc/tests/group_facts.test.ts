@@ -4,7 +4,7 @@ import { setLanguage } from '../hooks/text'
 import { transcript } from './fixture'
 
 /* The facts each Turn group carries for the preview, search and reuse
-   (spec §4), read through the whole-file model. */
+   (0.2 spec §4), read through the whole-file model. */
 
 const factsOf = (jsonl: string) => tocModel(jsonl).groups.map(g => g.facts)
 

@@ -1,4 +1,4 @@
-/* Reuse and copy (spec §7): what the preview's label-row Buttons put in
+/* Reuse and copy (0.2 spec §7): what the preview's label-row Buttons put in
    the composer or on the clipboard for a Turn group, which of them a group
    gets, and how a fill keeps the person's draft. pane.tsx draws the
    Buttons; register.tsx makes the calls, reading the group at the press. */

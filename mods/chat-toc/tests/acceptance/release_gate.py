@@ -23,7 +23,7 @@ the host's own claude-code.d.ts for tsc on a version newer than the minimum
   ct_preview.py        CT-PREV-001, CT-PREV-002 (0.2: the preview region, expanded)
   ct_search.py         CT-FIND-001, CT-FIND-002 (0.2: search)
   ct_reuse.py          CT-REUSE-001 (0.2: Reuse and copy from the preview)
-  ct_step.py           CT-STEP-001 (0.2: the previous and next Turn group, keys bound)
+  ct_walk.py           CT-STEP-001 (0.2: the previous and next Turn group, keys bound)
   perf_scenarios.py    CT-PERF-001, CT-PERF-002 (20 MiB many and heavy, 3 runs each; 0.2: search)
 
 `report` gathers every run.jsonl record, checks that each MUST scenario of
@@ -107,7 +107,7 @@ def run_gate(args) -> int:
             ("ct-preview", [py, HERE / "ct_preview.py", "--host", v, "--out", runs / "ct-preview"]),
             ("ct-search", [py, HERE / "ct_search.py", "--host", v, "--out", runs / "ct-search"]),
             ("ct-reuse", [py, HERE / "ct_reuse.py", "--host", v, "--out", runs / "ct-reuse"]),
-            ("ct-step", [py, HERE / "ct_step.py", "--host", v, "--out", runs / "ct-step"]),
+            ("ct-walk", [py, HERE / "ct_walk.py", "--host", v, "--out", runs / "ct-walk"]),
         ]
         for name, argv in scripts:
             codes[name] = sh([str(a) for a in argv], logs / f"{name}.log", env=env, timeout=5400)

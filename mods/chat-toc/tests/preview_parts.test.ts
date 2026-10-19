@@ -5,7 +5,7 @@ import type { TurnGroup } from '../hooks/groups'
 import { setLanguage } from '../hooks/text'
 import { transcript } from './fixture'
 
-/* The preview's parts as pure functions (spec §3, §4): its words, its size
+/* The preview's parts as pure functions (0.2 spec §3, §4): its words, its size
    and what it cuts. */
 
 const NOW = new Date(2026, 9, 16, 18, 0).getTime()
@@ -162,7 +162,7 @@ test('the Agent text is cut at the rows it gets, whole source lines first, never
   expect((huge.agent?.text.length ?? 0) <= 10_000).toBe(true)
 })
 
-/* The expanded preview (spec §3 "Expanded", "Text cap"). */
+/* The expanded preview (0.2 spec §3 "Expanded", "Text cap"). */
 
 test('the expanded text is whole while the User input and the last text together stay within the cap', () => {
   expect(capTexts('ab', 'cd', 10)).toEqual({ input: { shown: 'ab', left: 0 }, agent: { shown: 'cd', left: 0 } })

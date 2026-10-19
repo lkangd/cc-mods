@@ -1,4 +1,4 @@
-/* When the pane opens and stays closed (spec §2), as plain decisions;
+/* When the pane opens and stays closed (MVP spec §2), as plain decisions;
    register.tsx makes the calls on `$`. */
 
 import type { PaneCloseInput } from 'claude-code'
