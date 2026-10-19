@@ -1,0 +1,65 @@
+==== ctx timeline at 44 columns (64 rows)
+                                                                                                                             │1: 全部   2: 用户   3: Agent               ✕
+ ▐▛███▛█   Claude Code v2.1.287                                                                                              │━━━━━━━─────────────────────────────────────
+▝▜██████▀  Opus 5.5 · API Usage Billing                                                                                      │f: 搜索 词或文件路径                     ‹ ›
+ ▝▝   ▝▝   <tmp>/project                                    │▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+                                                                                                                             │10月17日 17:38                         17:38
+▎ Auto mode is now Claude Code's default permission mode.                                                                    │
+▎ Auto mode lets Claude handle permission prompts automatically. Claude checks each tool call for risky actions and prompt   │─ 今天 · 10月17日 ──────────────────────────
+▎ injection before executing, runs the ones it assesses as lower-risk, and blocks the rest.                                  │17:38 ●  CT-CTX 第一轮合成问题
+▎ https://code.claude.com/docs/en/permission-modes                                                                           │      ├╴ ok
+                                                                                                                             │      │
+❯ CT-CTX 第一轮合成问题                                                                                                      │17:38 ●  /compact
+                                                                                                                             │
+⏺ ok                                                                                                                         │╌ 已压缩 17:38 ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+                                                                                                                             │17:38 ◉  CT-CTX 压缩之后的合成问题
+✻ Worked for 0s · done 5:38 PM                                                                                               │      ┣╸ ok
+                                                                                                                             │
+❯ /compact                                                                                                                   │
+  ⎿  Compacted (ctrl+o to see full summary)                                                                                  │
+                                                                                                                             │
+❯ CT-CTX 压缩之后的合成问题                                                                                                  │
+                                                                                                                             │
+⏺ ok                                                                                                                         │
+                                                                                                                             │
+✻ Baked for 0s · done 5:38 PM                                                                                                │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │────────────────────────────────────────────
+                                                                                                                             │3 轮 · 上下文已用 47%         l: 布局 时间轴
+                                                                                                                             │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents

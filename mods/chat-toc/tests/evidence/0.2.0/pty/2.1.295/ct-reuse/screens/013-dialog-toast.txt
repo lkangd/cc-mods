@@ -1,0 +1,45 @@
+==== dialog toast (44 rows)
+                                                                                                   ╭────────────────────────╮│                                          ✕
+ ▐▛███▛█   Claude Code v2.1.295                                                                    │ chat-toc               ││1: 全部   2: 用户   3: Agent
+▝▜██████▀  Haiku 4.5 · API Usage Billing                                                           │ 无法填入：有对话框打开 ││━━━━━━━─────────────────────────────────────
+ ▝▝   ▝▝   <tmp>/project          ╰────────────────────────╯│f: 搜索 词或文件路径                     ‹ ›
+                                                                                                                             │▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+                                                                                                                             │10月9日 09:00                          09:01
+❯ R00 修一下                                                                                                                 │
+                                                                                                                             │●  !echo R01                           09:00
+  const a = 1                                                                                                                ││
+                                                                                                                             │●  （只有图片）                        09:00
+⏺ R00 完成                                                                                                                   │├╴ R02 回复
+                                                                                                                             ││
+  - one                                                                                                                      │●  R03 看图                            09:00
+                                                                                                                             │├╴ R03 回复
+! echo R01                                                                                                                   ││
+  ⎿  R01                                                                                                                     │◉  R04 小问题                          09:01
+  ⎿  [Image #1]                                                                                                              │┣╸ R04 回复
+                                                                                                                             │
+⏺ R02 回复                                                                                                                   │─ 预览 ──────────────────────────────── p: ✕
+                                                                                                                             │10月9日 09:01 · 输出 20
+❯ R03 看图 [Image #1]                                                                                                        │用户                       r: 填入 · c: 复制
+  ⎿  [Image #1]                                                                                                              │R04 小问题
+                                                                                                                             │Agent                                a: 复制
+⏺ R03 回复                                                                                                                   │R04 回复
+                                                                                                                             │
+❯ R04 小问题                                                                                                                 │
+                                                                                                                             │
+⏺ R04 回复                                                                                                                   │
+                                                                                                                             │────────────────────────────────────────────
+                                                                                                                             │5 轮 · 上下文已用 0%            l: 布局 卡片
+▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
+   Select model
+   Switch between Claude models. Your pick becomes the default for new sessions. For other/previous model names, specify with --model.
+
+     1. Default (recommended)  Use the default model (currently Opus 5.5) · $4/$20 per Mtok
+     2. Opus                   Opus 5.5 · Best for everyday, complex tasks · $4/$20 per Mtok
+     3. Fable                  Fable 5.1 · Most capable for your hardest and longest-running tasks · $10/$50 per Mtok
+     4. Sonnet                 Sonnet 5.5 · Efficient for routine tasks · $2/$10 per Mtok
+     5. Haiku                  Haiku 5.5 · Fastest for quick answers · $0.10/$0.50 per Mtok ($0.50/$2.50 for prompts over 100k)
+   ❯ 6. Haiku 4.5 ✔            Newer version available · select Haiku for Haiku 5.5
+
+   ○ Effort not supported for Haiku 4.5
+
+   Enter to set as default · s to use this session only · Esc to cancel

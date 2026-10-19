@@ -1,0 +1,45 @@
+==== cap expanded top (44 rows)
+❯ P01 pasted line 0000 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx P01 pasted line 0001 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx P01 pasted line 0… │1: 全部   2: 用户   3: Agent               ✕
+                                                                                                                             │━━━━━━━─────────────────────────────────────
+❯ P01 pasted line 0000 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │f: 搜索 词或文件路径                     ‹ ›
+  P01 pasted line 0001 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │e: ← 返回                               p: ✕
+  P01 pasted line 0002 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │10月9日 09:00 · 输出 20
+  P01 pasted line 0003 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │用户                       r: 填入 · c: 复制
+  P01 pasted line 0004 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0000
+  P01 pasted line 0005 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0006 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0001
+  P01 pasted line 0007 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0008 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0002
+  P01 pasted line 0009 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0010 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0003
+  P01 pasted line 0011 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0012 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0004
+  P01 pasted line 0013 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0014 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0005
+  P01 pasted line 0015 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0016 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0006
+  P01 pasted line 0017 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0018 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0007
+  P01 pasted line 0019 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0020 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0008
+  P01 pasted line 0021 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0022 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0009
+  P01 pasted line 0023 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0024 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0010
+  P01 pasted line 0025 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0026 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0011
+  P01 pasted line 0027 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0028 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0012
+  P01 pasted line 0029 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0030 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0013
+  P01 pasted line 0031 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0032 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0014
+  P01 pasted line 0033 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0034 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0015
+  P01 pasted line 0035 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  P01 pasted line 0036 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx                                                                        │P01 pasted line 0016
+                                                                                                 Not logged in · Run /login  │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents
