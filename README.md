@@ -1,3 +1,5 @@
+English | [简体中文](README.zh-CN.md)
+
 # cc-mods
 
 A collection of Claude Code mods. Each mod is its own plugin under `mods/<mod name>/`: none depends on another or shares code or data, they can be enabled together, and each has its own install and usage notes.
@@ -49,7 +51,7 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 ### Getting started
 
 1. Start Claude Code in the fullscreen layout. The contents dock on the right by themselves, titled "ChatTOC" (2.1.287 draws no title row).
-2. If the contents do not show, the terminal is narrower than Claude Code docks them by itself, and a line above the prompt stands in for them: `ChatTOC  ‹ ›  │  12 user turns · 80 agent steps   Open contents ❯   ✕`. Where the line is too narrow for all of it, the counts shorten from the end, then the name goes; Claude Code Desktop draws no `‹ ›`. Widen the terminal and they dock by themselves, and the line goes; or click `Open contents ❯` (or run `/chat-toc`): Claude Code then docks them in a narrower terminal too, and below that places them above the prompt. Outside the fullscreen layout they open above the prompt by themselves; run `/tui fullscreen` to dock them on the right.
+2. If the contents do not show, the terminal is narrower than Claude Code docks them by itself, and a line above the prompt stands in for them: `ChatTOC  ‹ ›  │  12 user turns · 80 agent steps   Open contents ❯  ✕`. Where the line is too narrow for all of it, the counts shorten from the end, then the name goes; Claude Code Desktop draws no `‹ ›`. Widen the terminal and they dock by themselves, and the line goes; or click `Open contents ❯` (or run `/chat-toc`): Claude Code then docks them in a narrower terminal too, and below that places them above the prompt. Outside the fullscreen layout they open above the prompt by themselves; run `/tui fullscreen` to dock them on the right.
 
 3. Click any entry to jump back to that turn in the conversation. After closing the pane with ✕, `/chat-toc` opens it again at any time, with the focus in it.
 
@@ -59,7 +61,7 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 | --- | --- |
 | Click your input in an entry (from the `●` line) | Jumps to that input, at the top of the screen, and selects the entry; it opens no preview. A slash command or `!` command jumps to the row right after it and keeps the input row in sight |
 | Click the Agent's reply in an entry (from the `├╴` line) | Jumps to the turn's last text reply (without one, to the last thing the turn drew), and selects the entry |
-| Click a block in the row of blocks under the filters | Jumps to that turn, as clicking its entry does, but selects nothing. One block per turn, as tall as the steps the Agent took; with more turns than the pane is wide, a block stands for several and jumps to the first of them. The block of the turn you are on is the bright one. Hidden with fewer than two turns or in a very short pane |
+| Click a block in the row of blocks under the filters | Jumps to that turn, as clicking its entry does, but selects nothing. One block per turn, as tall as the steps the Agent took; with more turns than the pane is wide, a block stands for several and jumps to the first of them that can be jumped to. The block of the turn you are on is the bright one. Hidden with fewer than two turns or in a very short pane |
 | Wheel over the contents | Scrolls the contents by entries and pauses following |
 | `Ctrl+X` then `Tab`; or `/chat-toc` with an empty prompt | Moves the focus into the contents |
 | Any click in the contents, with an empty prompt | Also moves the focus into the contents, so the keys below work at once. Not after `r: Reuse` (the focus goes to the prompt) or `‹ ›`. With text in the prompt the focus stays there. A key that is none of the contents' keys goes back to the prompt and is typed there, but one that is (`c`, `p`, `r`, `f`, …) acts on the contents |
@@ -90,7 +92,7 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 | Claude Code Desktop: type in the search field under the view choices | Narrows the list as on the terminal, at each change; the row of bars draws the matching turns in the accent colour and the rest dim. There is no `f: Find`: click the field |
 | Claude Code Desktop: `Enter` in the search field, or its `show` button | Keeps the search and opens the preview on the newest match (the app cannot jump, nor say which turn you are viewing) |
 | Claude Code Desktop: click `✕` on the preview's top line, `↓ 12 more lines · expand` on its last line, `← Back` | As `p`, `e` and `e: ← Back` on the terminal. Desktop has no hotkeys, so none of the buttons names a key |
-| Claude Code Desktop: scroll the contents; click `↑ 12 earlier turns` at the list's top, `↓ 12 later turns` at its bottom, `↑ Back to top` after the last entry | The app scrolls the whole contents, the view choices and the search field with them. A long conversation lists its newest turns (as many as fit in what the app takes in one drawing, about 15 in the Card layout); `↑` lists the turns before them and `↓` goes back toward the newest, and either closes an open preview. A search or a view choice narrows the list first. `↑ Back to top` scrolls the contents back to the view choices |
+| Claude Code Desktop: scroll the contents; click `↑ 12 earlier turns` at the list's top, `↓ 12 later turns` at its bottom, `↑ Back to top` after the last entry | The app scrolls the whole contents, the view choices and the search field with them. A long conversation lists its newest turns (as many as fit in what the app takes in one drawing, about 45 in the Card layout); `↑` lists the turns before them and `↓` goes back toward the newest, and either closes an open preview. A search or a view choice narrows the list first. `↑ Back to top` scrolls the contents back to the view choices |
 | Claude Code Desktop: click `Copy` on the preview's `User` or `Agent` line | Copies as `c` and `a` do; a copy the app cannot take says "Too long to copy here". There is no Reuse in Desktop |
 
 The hotkeys `1` `2` `3` `l` `p` `e` `f` `r` `c` `a` work only with the focus in the contents, and not while it is in the search field, which takes every letter typed; `p` `r` `c` only while the selected entry's row or the open preview shows their button; `e` `a` only while the preview is open, `e` only while it is cut or expanded (`a` not while a short preview cuts the `Agent` line, until `e`). `‹` `›` have no hotkey, and `↑` `↓` pass over them.
@@ -159,7 +161,7 @@ chat-toc binds no key of its own. `‹` and `›` answer two Claude Code keybind
   - `--resume`, `--continue`, `/resume` in a session, `--fork-session`: the contents rebuild from that session and can jump to turns long ago that never showed.
   - Several terminals each show only their own session.
   - Enabling chat-toc in a running session (enable it in `/plugin`, or `claude plugin enable` then `/reload-plugins`): no restart needed; the contents list the conversation so far at once. If this session's transcript cannot be found, they show "The contents appear after the next message".
-- **With other docked panes** (such as `/diff`): they share the dock by Claude Code's tab rules. A newly opened pane always comes to the front; when chat-toc is pushed back it takes no focus, and the line above the prompt shows (`ChatTOC  ‹ ›  │  …   Open contents ❯   ✕`) as it does while the contents are closed; brought to the front, the contents draw again and the line goes.
+- **With other docked panes** (such as `/diff`): they share the dock by Claude Code's tab rules. A newly opened pane always comes to the front; when chat-toc is pushed back it takes no focus, and the line above the prompt shows (`ChatTOC  ‹ ›  │  …   Open contents ❯  ✕`) as it does while the contents are closed; brought to the front, the contents draw again and the line goes.
 - **A narrowing terminal**: when the terminal gets so narrow that Claude Code moves the docked contents above the prompt, they stay there and still list the entries; widen it and they dock again.
 - **Language**: the words follow the system language: Chinese when the first set of `LC_ALL`, `LC_MESSAGES` and `LANG` starts with `zh`, English otherwise. This README quotes the English words.
 
@@ -167,12 +169,12 @@ chat-toc binds no key of its own. `‹` and `›` answer two Claude Code keybind
 
 - Reads only the current session's transcript file (the one Claude Code writes itself), taking the rows along the current branch. Past 4 MiB it runs a read-only local `sh` (`dd` with `head`; Windows PowerShell on Windows) to read it in chunks by offset.
 - Writes no files, keeps no archive, never goes online, and has no consent flow.
-- The plugin's store keeps two preferences only: the view (all / User / Agent) and the layout. Whether the preview is open, and on which turn, is held in memory only (a value an earlier 0.2 build stored for the preview is ignored). Prompt text, the search you type, file paths, durations and token counts are held in memory only and appear only in what the contents draw, never in the store, logs or error messages. Text goes to the prompt or the clipboard only when you press `r`, `c` or `a`.
+- The plugin's store keeps three preferences only: the view (all / User / Agent), the layout, and whether the band above the prompt is hidden. Whether the preview is open, and on which turn, is held in memory only (a value an earlier 0.2 build stored for the preview is ignored). Prompt text, the search you type, file paths, durations and token counts are held in memory only and appear only in what the contents draw, never in the store, logs or error messages. Text goes to the prompt or the clipboard only when you press `r`, `c` or `a`.
 
 ### Uninstall
 
 1. Run `claude plugin uninstall chat-toc@cc-mods` (for a local load, drop `--plugin-dir`).
-2. After uninstalling, the preferences may remain in `~/.claude/plugins/store/chat-toc_*.json` (a marketplace install is `chat-toc_cc-mods-*.json`, a local load `chat-toc_inline-*.json`; with `CLAUDE_CONFIG_DIR` set, under its `plugins/store/`). Delete them by hand if you like; they hold no prompt text either way.
+2. After uninstalling, the preferences may remain in `~/.claude/plugins/store/chat-toc_*.json` (a marketplace install is `chat-toc_cc-mods-*.json`, a local load `chat-toc_chat-toc-local-*.json`; older builds wrote `chat-toc_inline-*.json`; with `CLAUDE_CONFIG_DIR` set, under its `plugins/store/`). Delete them by hand if you like; they hold no prompt text either way.
 
 ### Known limits
 
