@@ -135,9 +135,9 @@ let drawnUpTo: number | undefined
 let paneSurface: RenderSurface = 'terminal'
 /* Whether the host answered a jump that it cannot scroll its transcript
    at all (Claude Code Desktop): a press then jumps no more, and says
-   nothing (spec §8). */
+   nothing (0.2 spec §8). */
 let isTranscriptUnscrollable = false
-/* The terminal's selected entry (spec §3): the one last pressed, or the
+/* The terminal's selected entry (0.2 spec §3): the one last pressed, or the
    one the focus ring last landed on; the row of Buttons under it opens the
    preview. Undefined selects none. */
 let selectedKey: string | undefined
@@ -848,7 +848,7 @@ async function loadChoices($: EngineInterface): Promise<void> {
    expanded. Nothing is kept. */
 async function closePreview($: EngineInterface): Promise<void> {
   /* On the desktop the ✕ leaving the tree takes the pane's focus with it,
-     and the next click would only give it back (spec §8): the focus goes
+     and the next click would only give it back (0.2 spec §8): the focus goes
      to the preview's entry first, or, expanded, once the list is back. */
   const wasExpanded = isExpandedDrawn
   const to = previewEntry ?? TOP_CONTROL
@@ -928,20 +928,19 @@ async function moveList($: EngineInterface, group: number | undefined): Promise<
   const isEarlier = group !== undefined && group < (entries[window.start]?.groupIndex ?? 0)
   const to = keys[isEarlier ? window.start - 1 : window.end]
   /* The preview's group leaves the drawn part: its contents and the list
-     would not match (spec §8). */
+     would not match (0.2 spec §8). */
   closePreviewNow()
   drawnUpTo = group
   await update($, rev, n => n + 1)
   if (to !== undefined) $.clock.after(0, () => void keepFocus($, to))
 }
 
-/* A click or Enter on an entry: the transcript jumps, and the preview
-   opens on its group. The scroll goes first, within the person's press;
-   on the desktop the app refuses it, and the pane says so. */
+/* A click or Enter on an entry: the transcript jumps. The terminal
+   selects the entry, the person opening the preview from its row, and a
+   press while the preview is open moves it there; the desktop, which
+   cannot jump, opens it. The scroll goes first, within the person's
+   press; the desktop's refusal says nothing. */
 async function pressEntry($: EngineInterface, entry: Entry): Promise<void> {
-  /* The terminal jumps and selects; the person opens the preview from the
-     selected entry's row, and once open a press moves it. The desktop,
-     which cannot jump, opens it. */
   if (paneSurface !== 'terminal' || previewOpener !== undefined) openPreview(entry.groupIndex)
   if (paneSurface === 'terminal') select($, entry.key)
   await jump($, entry)
@@ -1401,7 +1400,7 @@ export const register: Register = on => {
     if (isPaneFocused && !wasFocused) isPaused = true
     /* Leaving the pane returns the expanded preview to the region, on the
        terminal: on the desktop a press that takes its Button out of the
-       tree takes the focus too (spec §8). */
+       tree takes the focus too (0.2 spec §8). */
     if (wasFocused && !isPaneFocused && e.surface === 'terminal') isExpanded = false
     if (!isPaneFocused && position !== positionFollowed) {
       positionFollowed = position

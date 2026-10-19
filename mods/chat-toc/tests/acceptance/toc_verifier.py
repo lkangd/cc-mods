@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """The independent verifier: what the chat-toc Pane should list, and how it differs.
 
-It walks the transcript file's conversation chain by itself (spec §3: from the
+It walks the transcript file's conversation chain by itself (MVP spec §3: from the
 newest leaf along `parentUuid`, along `logicalParentUuid` across a compact
-boundary) and applies the Turn group rules (spec §4) by itself. It shares no
+boundary) and applies the Turn group rules (MVP spec §4) by itself. It shares no
 code with the plugin; when the two disagree, one of them is wrong, and the
 diff says where.
 

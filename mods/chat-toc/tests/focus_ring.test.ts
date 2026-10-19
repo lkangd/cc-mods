@@ -153,7 +153,7 @@ test('down past the window scrolls it one entry and puts the ring there', async 
      is checked in the terminal. */
   expect((await arrow($, 'g5.u.1')).deny).toBeDefined()
   await world.clock.advance(1)
-  /* g6 selected, with its row of Buttons under it (spec §3). */
+  /* g6 selected, with its row of Buttons under it (0.2 spec §3). */
   expect(await prompts()).toEqual(['CT-SYN prompt 5', 'CT-SYN prompt 6'])
   expect(world.focuses.map(f => f.element)).toEqual(['g5.u'])
 

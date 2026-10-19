@@ -5,7 +5,7 @@ import { transcript } from './fixture'
 
 /* CT-STEP-001's automated half: the ‹ › Buttons at the search row's right
    end and in the band, the borrowed actions they carry, and the focus ring
-   stepping over them (spec §1, §6). The scroll a press makes never reaches
+   stepping over them (0.2 spec §1, §6). The scroll a press makes never reaches
    the test kit: the walk is tested in walk.test.ts and the jump in a PTY. */
 
 function session() {

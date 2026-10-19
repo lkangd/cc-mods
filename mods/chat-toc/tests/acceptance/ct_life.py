@@ -1,4 +1,4 @@
-"""CT-LIFE-001 and CT-LIFE-002 in a real host (spec §2, ticket 20).
+"""CT-LIFE-001 and CT-LIFE-002 in a real host (MVP spec §2, ticket 20).
 
   CT-LIFE-001  the Pane opens by itself; after the person's ✕ it stays closed
                (also across a hot reload); /chat-toc opens it again and a

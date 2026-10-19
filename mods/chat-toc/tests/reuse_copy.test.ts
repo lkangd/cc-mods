@@ -7,7 +7,7 @@ import { tocModel } from '../hooks/model'
 import { setLanguage } from '../hooks/text'
 
 /* CT-REUSE-001's automated half: Reuse and copy from the preview's label
-   rows (spec §7). The worlds speak Chinese (host.ts). */
+   rows (0.2 spec §7). The worlds speak Chinese (host.ts). */
 
 const CODE = 'CT-SYN fix this\n\n```ts\nconst a = 1\n```'
 

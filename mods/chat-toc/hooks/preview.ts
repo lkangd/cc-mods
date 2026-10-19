@@ -1,6 +1,6 @@
 /* The preview: a region at the bottom of the terminal Pane that shows one
    Turn group whole, opened by a press on an entry and closed by its ✕
-   (spec §3). This file holds its words (the meta line, the
+   (0.2 spec §3). This file holds its words (the meta line, the
    files line), its size against the rows the Pane has, and what of the
    group fits in it; pane.tsx draws it.
 

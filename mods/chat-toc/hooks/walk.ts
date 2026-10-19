@@ -1,4 +1,4 @@
-/* The walk to the previous and next Turn group (spec §6): two plain
+/* The walk to the previous and next Turn group (0.2 spec §6): two plain
    Buttons, `‹` and `›`, at the search row's right end and in the band,
    that move the transcript from the Current position to the group before or after it
    among the groups the list shows. Each carries a borrowed keybinding

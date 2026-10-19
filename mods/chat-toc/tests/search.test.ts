@@ -5,7 +5,7 @@ import { indexGroups, matchShown, matchesOf, nearestMatch, newSearchIndex, query
 import { transcript } from './fixture'
 import { setLanguage } from '../hooks/text'
 
-/* Search's index and matcher (spec §2): the words of a query, which groups
+/* Search's index and matcher (0.2 spec §2): the words of a query, which groups
    hold every one of them, and in which fields. */
 
 const use = (id: string, name: string, input: Record<string, unknown>) => ({ type: 'tool_use', id, name, input })

@@ -1,4 +1,4 @@
-"""CT-COMPAT-003 in a real host (spec §2, ticket 26), as the user revised it
+"""CT-COMPAT-003 in a real host (MVP spec §2, ticket 26), as the user revised it
 on 2026-10-14 (f1f5494, MVP spec "Opening by itself checks nothing") and
 0.2 spec §6: at every start chat-toc asks for its Pane; the host places an
 unasked Pane only from its floor (144 columns) and leaves it waiting

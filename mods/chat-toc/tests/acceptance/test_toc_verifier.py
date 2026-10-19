@@ -251,7 +251,7 @@ class AgentSide(unittest.TestCase):
         ])
 
     def test_an_api_error_text_is_the_last_text_of_its_group(self):
-        # spec §4: the last text is the text after the last tool_use; the error row's text is one
+        # MVP spec §4: the last text is the text after the last tool_use; the error row's text is one
         t = Rows()
         t.prompt("出错")
         t.tool()

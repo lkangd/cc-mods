@@ -4,7 +4,7 @@ chat-toc is a Claude Code plugin: in a fullscreen terminal it docks the current 
 
 - How to use it (requirements, install, controls, display rules, privacy, uninstall, known limits) is written only in [the root README's chat-toc section](../../README.md#chat-toc); this file does not repeat it.
 - Domain terms (Transcript, Turn group, User input, Agent reply, View filter, Layout, Current position, Jump target) are in [`CONTEXT.md`](CONTEXT.md). The code and this file use these terms; text for users always uses the words on screen.
-- Spec and tickets: `.scratch/chat-toc/spec.md`, `.scratch/chat-toc/issues/`.
+- Spec and tickets: the MVP (0.1) in `.scratch/chat-toc/spec.md` and `.scratch/chat-toc/issues/`, 0.2 in `.scratch/chat-toc-0.2/spec.md` and `.scratch/chat-toc-0.2/issues/`. Comments cite them as "MVP spec §N" and "0.2 spec §N".
 
 ## Layout of the folder
 
@@ -129,7 +129,7 @@ Every start is in a temporary HOME and `CLAUDE_CONFIG_DIR`: onboarding done, the
 | CT-PREV-001 (the preview region, opened by `p` on an entry selected), CT-PREV-002 (expanded) | `$PY mods/chat-toc/tests/acceptance/ct_preview.py --host 2.1.287 [--host current] [--only press,close,facts,cut,short,widths,expand,cap,running]` (`expand`, `cap` and `running` record CT-PREV-002; `running` runs against `fake_api.py`, no model call) |
 | CT-REUSE-001 (Reuse and copy) | `$PY mods/chat-toc/tests/acceptance/ct_reuse.py --host 2.1.287 [--host current] [--only fill,copy,rules,closed,dialog,running,widths]` (writes the system clipboard and puts the person's back at the end; `running` runs against `fake_api.py`; `widths` also runs in English) |
 | CT-FIND-001, CT-FIND-002 (search) | `$PY mods/chat-toc/tests/acceptance/ct_search.py --host 2.1.287 [--host current] [--only narrow,filter,live,widths,keys,entry,keep,minimap]` (`widths` also runs in English; `keep` makes a temporary project a repository with a change, so `/diff` opens) |
-| CT-STEP-001 (‹ ›, the keys bound) | `$PY mods/chat-toc/tests/acceptance/ct_step.py --host 2.1.287 [--host current] [--only pane,keys]` (`keys` writes the world's `keybindings.json` binding `meta+k`/`meta+j`, runs one turn against `fake_api.py` on 127.0.0.1, and makes the project a repository with a change, so `/diff` opens) |
+| CT-STEP-001 (‹ ›, the keys bound) | `$PY mods/chat-toc/tests/acceptance/ct_walk.py --host 2.1.287 [--host current] [--only pane,keys]` (`keys` writes the world's `keybindings.json` binding `meta+k`/`meta+j`, runs one turn against `fake_api.py` on 127.0.0.1, and makes the project a repository with a change, so `/diff` opens) |
 | CT-CMPCT-001 (a query's part too), CT-CTX-001, CT-LIFE-003 (live `/compact`) | `$PY mods/chat-toc/tests/acceptance/ct_compaction.py --host 2.1.287 [--only fixture,fork,live]` (`live` runs against `fake_api.py` on 127.0.0.1 stating chosen `usage` figures; no model call) |
 | CT-JUMP-001–003, 005, CT-UI-005 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003 005]` (005 also records CT-UI-005: the notice line's inverse and foreground read about every 30 ms) |
 | CT-POS-001–003, CT-COEX-001, CT-LIFE-006, CT-MAP-001 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6 map1]` (coex runs `git init` on a repository with changes in a temporary project, so `/diff` opens) |

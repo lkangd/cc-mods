@@ -3,7 +3,7 @@ import type { Engine } from 'claude-code/testing'
 import { PANE, appendRow, drawnButtons, host, isBarKey, isEntryKey, mountPane, start, openOn } from './host'
 import { transcript } from './fixture'
 
-/* CT-PREV-002's automated half: the expanded preview (spec §3 "Expanded",
+/* CT-PREV-002's automated half: the expanded preview (0.2 spec §3 "Expanded",
    "Text cap"). The worlds speak Chinese (host.ts). */
 
 const LONG = Array.from({ length: 30 }, (_, i) => `CT-SYN line ${i}`).join('\n')

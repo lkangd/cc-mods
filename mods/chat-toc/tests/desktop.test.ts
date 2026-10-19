@@ -150,7 +150,7 @@ test('a rail run stays under the 4,096 px the host draws an Svg at, a long day c
   expect(rails.every(r => Number(r.height) <= 4096)).toBe(true)
 })
 
-/* The 0.2 additions on the desktop (spec §8). */
+/* The 0.2 additions on the desktop (0.2 spec §8). */
 
 const type = ($: Engine, text: string) => $.ui.input({ plugin: 'chat-toc', key: 'search', text, kind: 'change' })
 const enter = ($: Engine, text: string) => $.ui.input({ plugin: 'chat-toc', key: 'search', text })

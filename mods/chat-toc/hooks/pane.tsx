@@ -389,7 +389,7 @@ export function footerStatus(count: number, percent: number | undefined, bodyCol
 
 /* The selected entry while the preview is closed: under it, a row of
    Buttons opening the preview on its group, reusing its User input and
-   copying its side (spec §3). */
+   copying its side (0.2 spec §3). */
 export type SelectedView = {
   key: string
   actions: LabelActions

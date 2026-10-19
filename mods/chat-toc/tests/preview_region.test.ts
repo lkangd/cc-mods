@@ -4,7 +4,7 @@ import { PANE, appendRow, drawHint, drawnButtons, host, mountPane, start, openOn
 import { hostMessagesOf, rewoundTo, transcript } from './fixture'
 
 /* CT-PREV-001's automated half: the preview region at the bottom of the
-   terminal Pane (spec §1, §3), closed until a press on an entry. The
+   terminal Pane (0.2 spec §1, §3), closed until a press on an entry. The
    worlds speak Chinese (host.ts). */
 
 function two() {

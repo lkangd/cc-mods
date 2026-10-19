@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """CT-STEP-001 in a real host (chat-toc 0.2 spec §6; ticket 18): the ‹ ›
-Buttons stepping the transcript to the previous or next Turn group.
+Buttons walking the transcript to the previous or next Turn group.
 
-    $PY ct_step.py --host 2.1.287 [--host current] [--only pane,keys] [--out DIR]
+    $PY ct_walk.py --host 2.1.287 [--host current] [--only pane,keys] [--out DIR]
 
   pane   clicks on the search row's ‹ ›: from the newest group › does
          nothing; ‹ walks back group by group to K02 (each lit, its prompt
@@ -12,10 +12,10 @@ Buttons stepping the transcript to the previous or next Turn group.
          K05, landing on its reply. With the query `needle` (K06, K08) ›
          walks K06, K08, then nothing; ‹ goes back to K06; the query stays.
   keys   the world's keybindings.json binds meta+k / meta+j to the borrowed
-         actions: from the composer they step as the clicks do, during a
+         actions: from the composer they walk as the clicks do, during a
          running turn too (fake_api.py, no model); with the Pane closed the
-         band draws ‹ › and the keys and a click on it step; with /diff in
-         front the band draws them again and the keys step; the Pane's tab
+         band draws ‹ › and the keys and a click on it walk; with /diff in
+         front the band draws them again and the keys walk; the Pane's tab
          clicked back to the front, the band goes.
 
 The session is the K fixture built here, resumed in the harness's isolated,
@@ -115,7 +115,7 @@ def notes(t) -> bool:
     return any("无法跳转" in r for r in t.rows())
 
 
-def click_step(t, mark: str) -> None:
+def click_walk(t, mark: str) -> None:
     p = pane(t)
     cs.click_text(t, mark, row=cs.search_row(t), right_of=p.left)
     cp.pointer_off(t)
@@ -154,27 +154,27 @@ def pane_clicks(host, run):
         ready(t)
         actual["searchRow"] = pane(t).search
         before = top(t)
-        click_step(t, "›")
+        click_walk(t, "›")
         time.sleep(1.0)
         actual["nextAtEnd"] = {"lit": lit(pane(t)), "top": top(t), "topBefore": before}
         walk = []
         for want in range(GROUPS - 2, 1, -1):
-            click_step(t, "‹")
+            click_walk(t, "‹")
             p = wait_lit(t, want, f"‹ lighting K{want:02d}")
             walk.append({"lit": lit(p), "top": top(t)})
         actual["back"] = walk
         ev.append(t.snap("pane walked back to K02"))
-        click_step(t, "‹")
+        click_walk(t, "‹")
         t.wait_for(lambda term: notes(term), "the notice for the compacted groups", timeout=10)
         actual["pastCompacted"] = {"notice": True, "lit": lit(pane(t)), "top": top(t)}
         ev.append(t.snap("pane ‹ from K02: the notice"))
-        click_step(t, "›")
+        click_walk(t, "›")
         p = wait_lit(t, 3, "› lighting K03")
         actual["forward"] = {"lit": lit(p), "top": top(t)}
         p = pane(t)
         cs.click_text(t, "3: Agent", row=p.filter_row, right_of=p.left)
         t.wait_for(lambda term: (q := pane(term)) is not None and q.filter == "agent", "the Agent filter", timeout=10)
-        click_step(t, "›")
+        click_walk(t, "›")
         p = wait_lit(t, 5, "› under Agent lighting K05")
         actual["agent"] = {"lit": lit(p), "top": top(t),
                            "replyAtTop": "K05 回复" in "\n".join(h.transcript_text(t.rows(), p.left).splitlines()[1:6])}
@@ -187,14 +187,14 @@ def pane_clicks(host, run):
         cp.pointer_off(t)
         query = []
         for mark, want in (("›", 6), ("›", 8)):
-            click_step(t, mark)
+            click_walk(t, mark)
             p = wait_lit(t, want, f"{mark} under the query lighting K{want:02d}")
             query.append({"lit": lit(p), "top": top(t), "search": p.search, "listed": [label(e) for e in p.entries]})
-        click_step(t, "›")
+        click_walk(t, "›")
         time.sleep(1.0)
         p = pane(t)
         query.append({"lit": lit(p), "top": top(t), "search": p.search})
-        click_step(t, "‹")
+        click_walk(t, "‹")
         p = wait_lit(t, 6, "‹ under the query lighting K06")
         query.append({"lit": lit(p), "top": top(t), "search": p.search})
         actual["query"] = query
@@ -305,13 +305,13 @@ def keys(host, run):
         finally:
             t.close()
             world.remove()
-    has_step = lambda row: row is not None and "‹ ›" in row  # noqa: E731
+    has_walk = lambda row: row is not None and "‹ ›" in row  # noqa: E731
     ok = ("failure" not in actual and [s["lit"] for s in actual["composer"]] == [8, 7, 8]
           and all(s["top"][:1] == [s["lit"]] for s in actual["composer"]) and actual["composerUntouched"]
           and actual["duringTurn"]["lit"] == GROUPS - 1 and actual["duringTurn"]["running"] and GROUPS - 1 in actual["duringTurn"]["inView"]
           and actual["backTabKey"]["frontAfter"] == actual["backTabKey"]["frontBefore"]
           and actual["backTabClick"]["after"] != actual["backTabClick"]["before"]
-          and has_step(actual.get("bandClosed")) and has_step(actual.get("bandBackTab")) and actual.get("bandGoneInFront"))
+          and has_walk(actual.get("bandClosed")) and has_walk(actual.get("bandBackTab")) and actual.get("bandGoneInFront"))
     return ("K fixture, keybindings.json binding meta+k / meta+j, one live turn against fake_api.py (no model)",
             "from the composer meta+k, meta+k, meta+j light K08, K07, K08 with each prompt at the top and the composer "
             "untouched; during a running turn meta+k lights K09 (in view); the Pane closed, the band draws ‹ › and "
@@ -332,7 +332,7 @@ def main() -> int:
     failed = 0
     for version in args.host or ["current"]:
         host = h.Host(version)
-        run = h.Run(args.out, f"ct-step-{host.version}")
+        run = h.Run(args.out, f"ct-walk-{host.version}")
         for name in [n for n in args.only.split(",") if n] or list(SCENARIOS):
             fn = SCENARIOS[name]
             try:
