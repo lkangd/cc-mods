@@ -6,7 +6,7 @@ A collection of Claude Code mods. Each mod is its own plugin under `mods/<mod na
 
 | Mod | Version | What it does |
 | --- | --- | --- |
-| [chat-toc](#chat-toc) | 0.1.3 | Docks the current session's contents beside the conversation; a click jumps back to any turn |
+| [chat-toc](#chat-toc) | 0.2.0 | Docks the current session's contents beside the conversation; a click jumps back to any turn |
 
 For a new mod, add a row to the table above and a section at the same level as chat-toc's below.
 
@@ -196,4 +196,4 @@ chat-toc binds no key of its own. `‹` and `›` answer two Claude Code keybind
 
 - Local load (without the marketplace): `claude --plugin-dir /path/to/cc-mods/mods/chat-toc`
 - Development, tests, PTY acceptance and the release checklist are in [`mods/chat-toc/README.md`](mods/chat-toc/README.md).
-- Release evidence: `mods/chat-toc/tests/evidence/0.1.3/` (commit under test 28eefdf). All 37 MUST scenarios ran under `--plugin-dir` on Claude Code 2.1.287 and 2.1.295: 37/37 on both, with no failures, nothing missing and nothing skipped; the local folder marketplace smoke passed on both versions, and the GitHub install-level check after the release is in `marketplace.md`. The visual check of how the three layouts look and whether the colours tell apart awaits sign-off (it does not block a release).
+- Release evidence: `mods/chat-toc/tests/evidence/0.2.0/` (plugin code under test 3ac792b; the release raised the version in 1cd431d, with only comments changed in the code between them). All 46 MUST scenarios ran under `--plugin-dir` on Claude Code 2.1.287 and 2.1.295: 188 records, with no failures, nothing missing and nothing skipped; the local folder marketplace smoke, run again at 0.2.0, passed on both versions, and the GitHub install-level check after the release is in `marketplace.md`.

@@ -1,0 +1,3851 @@
+[
+ {
+  "ok": true,
+  "start": 0,
+  "entries": [
+   {
+    "index": 0,
+    "key": "61b339ff-2481-44e5-998b-88dbaa99e079",
+    "expected": {
+     "key": "61b339ff-2481-44e5-998b-88dbaa99e079",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:00",
+     "userText": "T0000 用户问题：请检查第 0 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0000 回复：\n第 1 行说明：模块 0 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 0 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 0 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 0 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 7,
+     "day": "10月9日",
+     "time": "09:00",
+     "userLines": [
+      "T0000 用户问题：请检查第 0 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0000 回复： 第 1 行说明：模块 0",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 1,
+    "key": "6794cd2e-ae72-4aff-9645-9afed1ba5c0f",
+    "expected": {
+     "key": "6794cd2e-ae72-4aff-9645-9afed1ba5c0f",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:00",
+     "userText": "T0001 用户问题：请检查第 1 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0001 回复：\n第 1 行说明：模块 1 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 1 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 1 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 1 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 12,
+     "day": null,
+     "time": "09:00",
+     "userLines": [
+      "T0001 用户问题：请检查第 1 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0001 回复： 第 1 行说明：模块 1",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 2,
+    "key": "f7ab62a8-1529-455d-b9f0-9825a406bf0c",
+    "expected": {
+     "key": "f7ab62a8-1529-455d-b9f0-9825a406bf0c",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:01",
+     "userText": "T0002 用户问题：请检查第 2 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0002 回复：\n第 1 行说明：模块 2 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 2 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 2 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 2 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 17,
+     "day": null,
+     "time": "09:01",
+     "userLines": [
+      "T0002 用户问题：请检查第 2 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0002 回复： 第 1 行说明：模块 2",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 3,
+    "key": "db04a838-f570-43ef-b26b-2b3079ec55a3",
+    "expected": {
+     "key": "db04a838-f570-43ef-b26b-2b3079ec55a3",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:02",
+     "userText": "T0003 用户问题：请检查第 3 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0003 回复：\n第 1 行说明：模块 3 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 3 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 3 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 3 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 22,
+     "day": null,
+     "time": "09:02",
+     "userLines": [
+      "T0003 用户问题：请检查第 3 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0003 回复： 第 1 行说明：模块 3",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 4,
+    "key": "ff9d608a-5c67-4c72-bbdb-4de81db6027c",
+    "expected": {
+     "key": "ff9d608a-5c67-4c72-bbdb-4de81db6027c",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:02",
+     "userText": "T0004 用户问题：请检查第 4 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0004 回复：\n第 1 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 27,
+     "day": null,
+     "time": "09:02",
+     "userLines": [
+      "T0004 用户问题：请检查第 4 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0004 回复： 第 1 行说明：模块 4",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 5,
+    "key": "b1b0d8fe-00f1-468e-aeec-6a9b074ce872",
+    "expected": {
+     "key": "b1b0d8fe-00f1-468e-aeec-6a9b074ce872",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:03",
+     "userText": "T0005 用户问题：请检查第 5 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0005 回复：\n第 1 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 32,
+     "day": null,
+     "time": "09:03",
+     "userLines": [
+      "T0005 用户问题：请检查第 5 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0005 回复： 第 1 行说明：模块 5",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 0,
+   "problems": 0,
+   "partialTop": false,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 2,
+  "entries": [
+   {
+    "index": 2,
+    "key": "f7ab62a8-1529-455d-b9f0-9825a406bf0c",
+    "expected": {
+     "key": "f7ab62a8-1529-455d-b9f0-9825a406bf0c",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:01",
+     "userText": "T0002 用户问题：请检查第 2 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0002 回复：\n第 1 行说明：模块 2 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 2 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 2 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 2 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "day": null,
+     "time": "09:01",
+     "userLines": [
+      "T0002 用户问题：请检查第 2 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0002 回复： 第 1 行说明：模块 2",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 3,
+    "key": "db04a838-f570-43ef-b26b-2b3079ec55a3",
+    "expected": {
+     "key": "db04a838-f570-43ef-b26b-2b3079ec55a3",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:02",
+     "userText": "T0003 用户问题：请检查第 3 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0003 回复：\n第 1 行说明：模块 3 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 3 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 3 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 3 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "day": null,
+     "time": "09:02",
+     "userLines": [
+      "T0003 用户问题：请检查第 3 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0003 回复： 第 1 行说明：模块 3",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 4,
+    "key": "ff9d608a-5c67-4c72-bbdb-4de81db6027c",
+    "expected": {
+     "key": "ff9d608a-5c67-4c72-bbdb-4de81db6027c",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:02",
+     "userText": "T0004 用户问题：请检查第 4 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0004 回复：\n第 1 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "day": null,
+     "time": "09:02",
+     "userLines": [
+      "T0004 用户问题：请检查第 4 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0004 回复： 第 1 行说明：模块 4",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 5,
+    "key": "b1b0d8fe-00f1-468e-aeec-6a9b074ce872",
+    "expected": {
+     "key": "b1b0d8fe-00f1-468e-aeec-6a9b074ce872",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:03",
+     "userText": "T0005 用户问题：请检查第 5 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0005 回复：\n第 1 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 24,
+     "day": null,
+     "time": "09:03",
+     "userLines": [
+      "T0005 用户问题：请检查第 5 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0005 回复： 第 1 行说明：模块 5",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 6,
+    "key": "afc371e1-b069-4dc0-8b00-67a7ef1c28a2",
+    "expected": {
+     "key": "afc371e1-b069-4dc0-8b00-67a7ef1c28a2",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:04",
+     "userText": "T0006 用户问题：请检查第 6 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0006 回复：\n第 1 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 29,
+     "day": null,
+     "time": "09:04",
+     "userLines": [
+      "T0006 用户问题：请检查第 6 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0006 回复： 第 1 行说明：模块 6",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 7,
+    "key": "a8cdfd74-adac-4faf-8276-ea3f2e01ab2d",
+    "expected": {
+     "key": "a8cdfd74-adac-4faf-8276-ea3f2e01ab2d",
+     "kind": "command",
+     "day": "10月9日",
+     "time": "09:04",
+     "userText": "/tui",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 34,
+     "day": null,
+     "time": "09:04",
+     "userLines": [
+      "/tui"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 2,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 4,
+  "entries": [
+   {
+    "index": 4,
+    "key": "ff9d608a-5c67-4c72-bbdb-4de81db6027c",
+    "expected": {
+     "key": "ff9d608a-5c67-4c72-bbdb-4de81db6027c",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:02",
+     "userText": "T0004 用户问题：请检查第 4 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0004 回复：\n第 1 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 4 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "day": null,
+     "time": "09:02",
+     "userLines": [
+      "T0004 用户问题：请检查第 4 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0004 回复： 第 1 行说明：模块 4",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 5,
+    "key": "b1b0d8fe-00f1-468e-aeec-6a9b074ce872",
+    "expected": {
+     "key": "b1b0d8fe-00f1-468e-aeec-6a9b074ce872",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:03",
+     "userText": "T0005 用户问题：请检查第 5 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0005 回复：\n第 1 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 5 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "day": null,
+     "time": "09:03",
+     "userLines": [
+      "T0005 用户问题：请检查第 5 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0005 回复： 第 1 行说明：模块 5",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 6,
+    "key": "afc371e1-b069-4dc0-8b00-67a7ef1c28a2",
+    "expected": {
+     "key": "afc371e1-b069-4dc0-8b00-67a7ef1c28a2",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:04",
+     "userText": "T0006 用户问题：请检查第 6 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0006 回复：\n第 1 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "day": null,
+     "time": "09:04",
+     "userLines": [
+      "T0006 用户问题：请检查第 6 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0006 回复： 第 1 行说明：模块 6",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 7,
+    "key": "a8cdfd74-adac-4faf-8276-ea3f2e01ab2d",
+    "expected": {
+     "key": "a8cdfd74-adac-4faf-8276-ea3f2e01ab2d",
+     "kind": "command",
+     "day": "10月9日",
+     "time": "09:04",
+     "userText": "/tui",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 24,
+     "day": null,
+     "time": "09:04",
+     "userLines": [
+      "/tui"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 8,
+    "key": "2deb27a1-7c41-408a-b195-9bfb9f7c62bb",
+    "expected": {
+     "key": "2deb27a1-7c41-408a-b195-9bfb9f7c62bb",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:05",
+     "userText": "T0008 用户问题：请检查第 8 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0008 回复：\n第 1 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 26,
+     "day": null,
+     "time": "09:05",
+     "userLines": [
+      "T0008 用户问题：请检查第 8 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0008 回复： 第 1 行说明：模块 8",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 9,
+    "key": "c66ad56a-527f-4ea0-845a-be77bb75156a",
+    "expected": {
+     "key": "c66ad56a-527f-4ea0-845a-be77bb75156a",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:05",
+     "userText": "T0009 用户问题：请检查第 9 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0009 回复：\n第 1 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 31,
+     "day": null,
+     "time": "09:05",
+     "userLines": [
+      "T0009 用户问题：请检查第 9 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0009 回复： 第 1 行说明：模块 9",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 4,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 6,
+  "entries": [
+   {
+    "index": 6,
+    "key": "afc371e1-b069-4dc0-8b00-67a7ef1c28a2",
+    "expected": {
+     "key": "afc371e1-b069-4dc0-8b00-67a7ef1c28a2",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:04",
+     "userText": "T0006 用户问题：请检查第 6 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0006 回复：\n第 1 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 6 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "day": null,
+     "time": "09:04",
+     "userLines": [
+      "T0006 用户问题：请检查第 6 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0006 回复： 第 1 行说明：模块 6",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 7,
+    "key": "a8cdfd74-adac-4faf-8276-ea3f2e01ab2d",
+    "expected": {
+     "key": "a8cdfd74-adac-4faf-8276-ea3f2e01ab2d",
+     "kind": "command",
+     "day": "10月9日",
+     "time": "09:04",
+     "userText": "/tui",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "day": null,
+     "time": "09:04",
+     "userLines": [
+      "/tui"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 8,
+    "key": "2deb27a1-7c41-408a-b195-9bfb9f7c62bb",
+    "expected": {
+     "key": "2deb27a1-7c41-408a-b195-9bfb9f7c62bb",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:05",
+     "userText": "T0008 用户问题：请检查第 8 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0008 回复：\n第 1 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 16,
+     "day": null,
+     "time": "09:05",
+     "userLines": [
+      "T0008 用户问题：请检查第 8 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0008 回复： 第 1 行说明：模块 8",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 9,
+    "key": "c66ad56a-527f-4ea0-845a-be77bb75156a",
+    "expected": {
+     "key": "c66ad56a-527f-4ea0-845a-be77bb75156a",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:05",
+     "userText": "T0009 用户问题：请检查第 9 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0009 回复：\n第 1 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 21,
+     "day": null,
+     "time": "09:05",
+     "userLines": [
+      "T0009 用户问题：请检查第 9 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0009 回复： 第 1 行说明：模块 9",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 10,
+    "key": "a414ee1d-4261-4a20-a037-010e25f013ba",
+    "expected": {
+     "key": "a414ee1d-4261-4a20-a037-010e25f013ba",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:06",
+     "userText": "T0010 用户问题：请检查第 10 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0010 回复：\n第 1 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 26,
+     "day": null,
+     "time": "09:06",
+     "userLines": [
+      "T0010 用户问题：请检查第 10 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0010 回复： 第 1 行说明：模块 10",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 11,
+    "key": "d541eaa0-4fa0-4557-9d82-ff35dbe4644b",
+    "expected": {
+     "key": "d541eaa0-4fa0-4557-9d82-ff35dbe4644b",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:07",
+     "userText": "T0011 用户问题：请检查第 11 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0011 回复：\n第 1 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 31,
+     "day": null,
+     "time": "09:07",
+     "userLines": [
+      "T0011 用户问题：请检查第 11 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0011 回复： 第 1 行说明：模块 11",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 6,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 8,
+  "entries": [
+   {
+    "index": 8,
+    "key": "2deb27a1-7c41-408a-b195-9bfb9f7c62bb",
+    "expected": {
+     "key": "2deb27a1-7c41-408a-b195-9bfb9f7c62bb",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:05",
+     "userText": "T0008 用户问题：请检查第 8 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0008 回复：\n第 1 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 8 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 6,
+     "day": null,
+     "time": "09:05",
+     "userLines": [
+      "T0008 用户问题：请检查第 8 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0008 回复： 第 1 行说明：模块 8",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 9,
+    "key": "c66ad56a-527f-4ea0-845a-be77bb75156a",
+    "expected": {
+     "key": "c66ad56a-527f-4ea0-845a-be77bb75156a",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:05",
+     "userText": "T0009 用户问题：请检查第 9 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0009 回复：\n第 1 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 9 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 11,
+     "day": null,
+     "time": "09:05",
+     "userLines": [
+      "T0009 用户问题：请检查第 9 个模块的",
+      "状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0009 回复： 第 1 行说明：模块 9",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 10,
+    "key": "a414ee1d-4261-4a20-a037-010e25f013ba",
+    "expected": {
+     "key": "a414ee1d-4261-4a20-a037-010e25f013ba",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:06",
+     "userText": "T0010 用户问题：请检查第 10 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0010 回复：\n第 1 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 16,
+     "day": null,
+     "time": "09:06",
+     "userLines": [
+      "T0010 用户问题：请检查第 10 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0010 回复： 第 1 行说明：模块 10",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 11,
+    "key": "d541eaa0-4fa0-4557-9d82-ff35dbe4644b",
+    "expected": {
+     "key": "d541eaa0-4fa0-4557-9d82-ff35dbe4644b",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:07",
+     "userText": "T0011 用户问题：请检查第 11 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0011 回复：\n第 1 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 21,
+     "day": null,
+     "time": "09:07",
+     "userLines": [
+      "T0011 用户问题：请检查第 11 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0011 回复： 第 1 行说明：模块 11",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 12,
+    "key": "c1d23f24-7dd5-44b7-a7b1-ad95ecc3c82a",
+    "expected": {
+     "key": "c1d23f24-7dd5-44b7-a7b1-ad95ecc3c82a",
+     "kind": "bang",
+     "day": "10月9日",
+     "time": "09:08",
+     "userText": "!echo T0012",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 26,
+     "day": null,
+     "time": "09:08",
+     "userLines": [
+      "!echo T0012"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 13,
+    "key": "f66fa51d-67e6-43b2-8c7c-13256d44f8e1",
+    "expected": {
+     "key": "f66fa51d-67e6-43b2-8c7c-13256d44f8e1",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:08",
+     "userText": "T0013 用户问题：请检查第 13 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0013 回复：\n第 1 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 28,
+     "day": null,
+     "time": "09:08",
+     "userLines": [
+      "T0013 用户问题：请检查第 13 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0013 回复： 第 1 行说明：模块 13",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 14,
+    "key": "ccd3a82b-50e0-41d7-9497-855d8b082833",
+    "expected": {
+     "key": "ccd3a82b-50e0-41d7-9497-855d8b082833",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:08",
+     "userText": "T0014 用户问题：请检查第 14 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0014 回复：\n第 1 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 33,
+     "day": null,
+     "time": "09:08",
+     "userLines": [
+      "T0014 用户问题：请检查第 14 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 7,
+   "start": 8,
+   "problems": 0,
+   "partialTop": false,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 10,
+  "entries": [
+   {
+    "index": 10,
+    "key": "a414ee1d-4261-4a20-a037-010e25f013ba",
+    "expected": {
+     "key": "a414ee1d-4261-4a20-a037-010e25f013ba",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:06",
+     "userText": "T0010 用户问题：请检查第 10 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0010 回复：\n第 1 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 10 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 6,
+     "day": null,
+     "time": "09:06",
+     "userLines": [
+      "T0010 用户问题：请检查第 10 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0010 回复： 第 1 行说明：模块 10",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 11,
+    "key": "d541eaa0-4fa0-4557-9d82-ff35dbe4644b",
+    "expected": {
+     "key": "d541eaa0-4fa0-4557-9d82-ff35dbe4644b",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:07",
+     "userText": "T0011 用户问题：请检查第 11 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0011 回复：\n第 1 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 11 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 11,
+     "day": null,
+     "time": "09:07",
+     "userLines": [
+      "T0011 用户问题：请检查第 11 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0011 回复： 第 1 行说明：模块 11",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 12,
+    "key": "c1d23f24-7dd5-44b7-a7b1-ad95ecc3c82a",
+    "expected": {
+     "key": "c1d23f24-7dd5-44b7-a7b1-ad95ecc3c82a",
+     "kind": "bang",
+     "day": "10月9日",
+     "time": "09:08",
+     "userText": "!echo T0012",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 16,
+     "day": null,
+     "time": "09:08",
+     "userLines": [
+      "!echo T0012"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 13,
+    "key": "f66fa51d-67e6-43b2-8c7c-13256d44f8e1",
+    "expected": {
+     "key": "f66fa51d-67e6-43b2-8c7c-13256d44f8e1",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:08",
+     "userText": "T0013 用户问题：请检查第 13 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0013 回复：\n第 1 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 18,
+     "day": null,
+     "time": "09:08",
+     "userLines": [
+      "T0013 用户问题：请检查第 13 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0013 回复： 第 1 行说明：模块 13",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 14,
+    "key": "ccd3a82b-50e0-41d7-9497-855d8b082833",
+    "expected": {
+     "key": "ccd3a82b-50e0-41d7-9497-855d8b082833",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:08",
+     "userText": "T0014 用户问题：请检查第 14 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0014 回复：\n第 1 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 23,
+     "day": null,
+     "time": "09:08",
+     "userLines": [
+      "T0014 用户问题：请检查第 14 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0014 回复： 第 1 行说明：模块 14",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 15,
+    "key": "408b97cd-476f-4e0f-beb4-951e70ba8749",
+    "expected": {
+     "key": "408b97cd-476f-4e0f-beb4-951e70ba8749",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:09",
+     "userText": "T0015 用户问题：请检查第 15 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0015 回复：\n第 1 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 28,
+     "day": null,
+     "time": "09:09",
+     "userLines": [
+      "T0015 用户问题：请检查第 15 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0015 回复： 第 1 行说明：模块 15",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 16,
+    "key": "e3ac0343-6656-40e2-9feb-61d12c4a6dfb",
+    "expected": {
+     "key": "e3ac0343-6656-40e2-9feb-61d12c4a6dfb",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:10",
+     "userText": "T0016 用户问题：请检查第 16 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0016 回复：\n第 1 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 33,
+     "day": null,
+     "time": "09:10",
+     "userLines": [
+      "T0016 用户问题：请检查第 16 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 7,
+   "start": 10,
+   "problems": 0,
+   "partialTop": false,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 12,
+  "entries": [
+   {
+    "index": 12,
+    "key": "c1d23f24-7dd5-44b7-a7b1-ad95ecc3c82a",
+    "expected": {
+     "key": "c1d23f24-7dd5-44b7-a7b1-ad95ecc3c82a",
+     "kind": "bang",
+     "day": "10月9日",
+     "time": "09:08",
+     "userText": "!echo T0012",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 6,
+     "day": null,
+     "time": "09:08",
+     "userLines": [
+      "!echo T0012"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 13,
+    "key": "f66fa51d-67e6-43b2-8c7c-13256d44f8e1",
+    "expected": {
+     "key": "f66fa51d-67e6-43b2-8c7c-13256d44f8e1",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:08",
+     "userText": "T0013 用户问题：请检查第 13 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0013 回复：\n第 1 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 13 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 8,
+     "day": null,
+     "time": "09:08",
+     "userLines": [
+      "T0013 用户问题：请检查第 13 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0013 回复： 第 1 行说明：模块 13",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 14,
+    "key": "ccd3a82b-50e0-41d7-9497-855d8b082833",
+    "expected": {
+     "key": "ccd3a82b-50e0-41d7-9497-855d8b082833",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:08",
+     "userText": "T0014 用户问题：请检查第 14 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0014 回复：\n第 1 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 14 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 13,
+     "day": null,
+     "time": "09:08",
+     "userLines": [
+      "T0014 用户问题：请检查第 14 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0014 回复： 第 1 行说明：模块 14",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 15,
+    "key": "408b97cd-476f-4e0f-beb4-951e70ba8749",
+    "expected": {
+     "key": "408b97cd-476f-4e0f-beb4-951e70ba8749",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:09",
+     "userText": "T0015 用户问题：请检查第 15 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0015 回复：\n第 1 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 18,
+     "day": null,
+     "time": "09:09",
+     "userLines": [
+      "T0015 用户问题：请检查第 15 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0015 回复： 第 1 行说明：模块 15",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 16,
+    "key": "e3ac0343-6656-40e2-9feb-61d12c4a6dfb",
+    "expected": {
+     "key": "e3ac0343-6656-40e2-9feb-61d12c4a6dfb",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:10",
+     "userText": "T0016 用户问题：请检查第 16 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0016 回复：\n第 1 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 23,
+     "day": null,
+     "time": "09:10",
+     "userLines": [
+      "T0016 用户问题：请检查第 16 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0016 回复： 第 1 行说明：模块 16",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 17,
+    "key": "364f26bb-a31e-44cf-9f3c-1ad7a35962b9",
+    "expected": {
+     "key": "364f26bb-a31e-44cf-9f3c-1ad7a35962b9",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:11",
+     "userText": "T0017 用户问题：请检查第 17 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0017 回复：\n第 1 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 28,
+     "day": null,
+     "time": "09:11",
+     "userLines": [
+      "T0017 用户问题：请检查第 17 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0017 回复： 第 1 行说明：模块 17",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 18,
+    "key": "4eab740b-87f9-46d6-9dea-fba373f9bda5",
+    "expected": {
+     "key": "4eab740b-87f9-46d6-9dea-fba373f9bda5",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:12",
+     "userText": "T0018 用户问题：请检查第 18 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0018 回复：\n第 1 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 33,
+     "day": null,
+     "time": "09:12",
+     "userLines": [
+      "T0018 用户问题：请检查第 18 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 7,
+   "start": 12,
+   "problems": 0,
+   "partialTop": false,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 15,
+  "entries": [
+   {
+    "index": 15,
+    "key": "408b97cd-476f-4e0f-beb4-951e70ba8749",
+    "expected": {
+     "key": "408b97cd-476f-4e0f-beb4-951e70ba8749",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:09",
+     "userText": "T0015 用户问题：请检查第 15 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0015 回复：\n第 1 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 15 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "day": null,
+     "time": "09:09",
+     "userLines": [
+      "T0015 用户问题：请检查第 15 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0015 回复： 第 1 行说明：模块 15",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 16,
+    "key": "e3ac0343-6656-40e2-9feb-61d12c4a6dfb",
+    "expected": {
+     "key": "e3ac0343-6656-40e2-9feb-61d12c4a6dfb",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:10",
+     "userText": "T0016 用户问题：请检查第 16 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0016 回复：\n第 1 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 16 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "day": null,
+     "time": "09:10",
+     "userLines": [
+      "T0016 用户问题：请检查第 16 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0016 回复： 第 1 行说明：模块 16",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 17,
+    "key": "364f26bb-a31e-44cf-9f3c-1ad7a35962b9",
+    "expected": {
+     "key": "364f26bb-a31e-44cf-9f3c-1ad7a35962b9",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:11",
+     "userText": "T0017 用户问题：请检查第 17 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0017 回复：\n第 1 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "day": null,
+     "time": "09:11",
+     "userLines": [
+      "T0017 用户问题：请检查第 17 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0017 回复： 第 1 行说明：模块 17",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 18,
+    "key": "4eab740b-87f9-46d6-9dea-fba373f9bda5",
+    "expected": {
+     "key": "4eab740b-87f9-46d6-9dea-fba373f9bda5",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:12",
+     "userText": "T0018 用户问题：请检查第 18 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0018 回复：\n第 1 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 24,
+     "day": null,
+     "time": "09:12",
+     "userLines": [
+      "T0018 用户问题：请检查第 18 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0018 回复： 第 1 行说明：模块 18",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 19,
+    "key": "d8109ce6-c3ec-469f-b516-7f44e91ede43",
+    "expected": {
+     "key": "d8109ce6-c3ec-469f-b516-7f44e91ede43",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:12",
+     "userText": "T0019 用户问题：请检查第 19 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0019 回复：\n第 1 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 29,
+     "day": null,
+     "time": "09:12",
+     "userLines": [
+      "T0019 用户问题：请检查第 19 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0019 回复： 第 1 行说明：模块 19",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 20,
+    "key": "6a3db103-5f5f-4076-811d-9484d8d8dd47",
+    "expected": {
+     "key": "6a3db103-5f5f-4076-811d-9484d8d8dd47",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:13",
+     "userText": "T0020 用户问题：请检查第 20 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0020 回复：\n第 1 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 34,
+     "day": null,
+     "time": "09:13",
+     "userLines": [
+      "T0020 用户问题：请检查第 20 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 15,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 17,
+  "entries": [
+   {
+    "index": 17,
+    "key": "364f26bb-a31e-44cf-9f3c-1ad7a35962b9",
+    "expected": {
+     "key": "364f26bb-a31e-44cf-9f3c-1ad7a35962b9",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:11",
+     "userText": "T0017 用户问题：请检查第 17 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0017 回复：\n第 1 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 17 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "day": null,
+     "time": "09:11",
+     "userLines": [
+      "T0017 用户问题：请检查第 17 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0017 回复： 第 1 行说明：模块 17",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 18,
+    "key": "4eab740b-87f9-46d6-9dea-fba373f9bda5",
+    "expected": {
+     "key": "4eab740b-87f9-46d6-9dea-fba373f9bda5",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:12",
+     "userText": "T0018 用户问题：请检查第 18 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0018 回复：\n第 1 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 18 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "day": null,
+     "time": "09:12",
+     "userLines": [
+      "T0018 用户问题：请检查第 18 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0018 回复： 第 1 行说明：模块 18",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 19,
+    "key": "d8109ce6-c3ec-469f-b516-7f44e91ede43",
+    "expected": {
+     "key": "d8109ce6-c3ec-469f-b516-7f44e91ede43",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:12",
+     "userText": "T0019 用户问题：请检查第 19 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0019 回复：\n第 1 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "day": null,
+     "time": "09:12",
+     "userLines": [
+      "T0019 用户问题：请检查第 19 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0019 回复： 第 1 行说明：模块 19",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 20,
+    "key": "6a3db103-5f5f-4076-811d-9484d8d8dd47",
+    "expected": {
+     "key": "6a3db103-5f5f-4076-811d-9484d8d8dd47",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:13",
+     "userText": "T0020 用户问题：请检查第 20 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0020 回复：\n第 1 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 24,
+     "day": null,
+     "time": "09:13",
+     "userLines": [
+      "T0020 用户问题：请检查第 20 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0020 回复： 第 1 行说明：模块 20",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 21,
+    "key": "91be6ab8-7544-4511-8852-46bf2502307f",
+    "expected": {
+     "key": "91be6ab8-7544-4511-8852-46bf2502307f",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:14",
+     "userText": "T0021 用户问题：请检查第 21 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0021 回复：\n第 1 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 29,
+     "day": null,
+     "time": "09:14",
+     "userLines": [
+      "T0021 用户问题：请检查第 21 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0021 回复： 第 1 行说明：模块 21",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 22,
+    "key": "df391f6c-89ee-4ffc-8d78-c14d90f57980",
+    "expected": {
+     "key": "df391f6c-89ee-4ffc-8d78-c14d90f57980",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:14",
+     "userText": "T0022 用户问题：请检查第 22 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0022 回复：\n第 1 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 34,
+     "day": null,
+     "time": "09:14",
+     "userLines": [
+      "T0022 用户问题：请检查第 22 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 17,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 19,
+  "entries": [
+   {
+    "index": 19,
+    "key": "d8109ce6-c3ec-469f-b516-7f44e91ede43",
+    "expected": {
+     "key": "d8109ce6-c3ec-469f-b516-7f44e91ede43",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:12",
+     "userText": "T0019 用户问题：请检查第 19 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0019 回复：\n第 1 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 19 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "day": null,
+     "time": "09:12",
+     "userLines": [
+      "T0019 用户问题：请检查第 19 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0019 回复： 第 1 行说明：模块 19",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 20,
+    "key": "6a3db103-5f5f-4076-811d-9484d8d8dd47",
+    "expected": {
+     "key": "6a3db103-5f5f-4076-811d-9484d8d8dd47",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:13",
+     "userText": "T0020 用户问题：请检查第 20 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0020 回复：\n第 1 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 20 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "day": null,
+     "time": "09:13",
+     "userLines": [
+      "T0020 用户问题：请检查第 20 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0020 回复： 第 1 行说明：模块 20",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 21,
+    "key": "91be6ab8-7544-4511-8852-46bf2502307f",
+    "expected": {
+     "key": "91be6ab8-7544-4511-8852-46bf2502307f",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:14",
+     "userText": "T0021 用户问题：请检查第 21 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0021 回复：\n第 1 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "day": null,
+     "time": "09:14",
+     "userLines": [
+      "T0021 用户问题：请检查第 21 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0021 回复： 第 1 行说明：模块 21",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 22,
+    "key": "df391f6c-89ee-4ffc-8d78-c14d90f57980",
+    "expected": {
+     "key": "df391f6c-89ee-4ffc-8d78-c14d90f57980",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:14",
+     "userText": "T0022 用户问题：请检查第 22 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0022 回复：\n第 1 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 24,
+     "day": null,
+     "time": "09:14",
+     "userLines": [
+      "T0022 用户问题：请检查第 22 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0022 回复： 第 1 行说明：模块 22",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 23,
+    "key": "a1a38d93-0d2e-4610-9655-5894510ef81d",
+    "expected": {
+     "key": "a1a38d93-0d2e-4610-9655-5894510ef81d",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:15",
+     "userText": "T0023 用户问题：请检查第 23 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0023 回复：\n第 1 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 29,
+     "day": null,
+     "time": "09:15",
+     "userLines": [
+      "T0023 用户问题：请检查第 23 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0023 回复： 第 1 行说明：模块 23",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 24,
+    "key": "334cf8df-e87d-42af-a442-5cc3a7be7aea",
+    "expected": {
+     "key": "334cf8df-e87d-42af-a442-5cc3a7be7aea",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:16",
+     "userText": "T0024 用户问题：请检查第 24 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0024 回复：\n第 1 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 34,
+     "day": null,
+     "time": "09:16",
+     "userLines": [
+      "T0024 用户问题：请检查第 24 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 19,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 21,
+  "entries": [
+   {
+    "index": 21,
+    "key": "91be6ab8-7544-4511-8852-46bf2502307f",
+    "expected": {
+     "key": "91be6ab8-7544-4511-8852-46bf2502307f",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:14",
+     "userText": "T0021 用户问题：请检查第 21 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0021 回复：\n第 1 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 21 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "day": null,
+     "time": "09:14",
+     "userLines": [
+      "T0021 用户问题：请检查第 21 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0021 回复： 第 1 行说明：模块 21",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 22,
+    "key": "df391f6c-89ee-4ffc-8d78-c14d90f57980",
+    "expected": {
+     "key": "df391f6c-89ee-4ffc-8d78-c14d90f57980",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:14",
+     "userText": "T0022 用户问题：请检查第 22 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0022 回复：\n第 1 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 22 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "day": null,
+     "time": "09:14",
+     "userLines": [
+      "T0022 用户问题：请检查第 22 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0022 回复： 第 1 行说明：模块 22",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 23,
+    "key": "a1a38d93-0d2e-4610-9655-5894510ef81d",
+    "expected": {
+     "key": "a1a38d93-0d2e-4610-9655-5894510ef81d",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:15",
+     "userText": "T0023 用户问题：请检查第 23 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0023 回复：\n第 1 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "day": null,
+     "time": "09:15",
+     "userLines": [
+      "T0023 用户问题：请检查第 23 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0023 回复： 第 1 行说明：模块 23",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 24,
+    "key": "334cf8df-e87d-42af-a442-5cc3a7be7aea",
+    "expected": {
+     "key": "334cf8df-e87d-42af-a442-5cc3a7be7aea",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:16",
+     "userText": "T0024 用户问题：请检查第 24 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0024 回复：\n第 1 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 24,
+     "day": null,
+     "time": "09:16",
+     "userLines": [
+      "T0024 用户问题：请检查第 24 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0024 回复： 第 1 行说明：模块 24",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 25,
+    "key": "75da3770-f03a-446e-9b86-973516a8e92c",
+    "expected": {
+     "key": "75da3770-f03a-446e-9b86-973516a8e92c",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:16",
+     "userText": "T0025 用户问题：请检查第 25 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0025 回复：\n第 1 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 29,
+     "day": null,
+     "time": "09:16",
+     "userLines": [
+      "T0025 用户问题：请检查第 25 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0025 回复： 第 1 行说明：模块 25",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 26,
+    "key": "8e8efcdd-dccb-4a91-84b0-d1fe6f619eb3",
+    "expected": {
+     "key": "8e8efcdd-dccb-4a91-84b0-d1fe6f619eb3",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:17",
+     "userText": "T0026 用户问题：请检查第 26 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0026 回复：\n第 1 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 34,
+     "day": null,
+     "time": "09:17",
+     "userLines": [
+      "T0026 用户问题：请检查第 26 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 21,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 23,
+  "entries": [
+   {
+    "index": 23,
+    "key": "a1a38d93-0d2e-4610-9655-5894510ef81d",
+    "expected": {
+     "key": "a1a38d93-0d2e-4610-9655-5894510ef81d",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:15",
+     "userText": "T0023 用户问题：请检查第 23 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0023 回复：\n第 1 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 23 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "day": null,
+     "time": "09:15",
+     "userLines": [
+      "T0023 用户问题：请检查第 23 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0023 回复： 第 1 行说明：模块 23",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 24,
+    "key": "334cf8df-e87d-42af-a442-5cc3a7be7aea",
+    "expected": {
+     "key": "334cf8df-e87d-42af-a442-5cc3a7be7aea",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:16",
+     "userText": "T0024 用户问题：请检查第 24 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0024 回复：\n第 1 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 24 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "day": null,
+     "time": "09:16",
+     "userLines": [
+      "T0024 用户问题：请检查第 24 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0024 回复： 第 1 行说明：模块 24",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 25,
+    "key": "75da3770-f03a-446e-9b86-973516a8e92c",
+    "expected": {
+     "key": "75da3770-f03a-446e-9b86-973516a8e92c",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:16",
+     "userText": "T0025 用户问题：请检查第 25 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0025 回复：\n第 1 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "day": null,
+     "time": "09:16",
+     "userLines": [
+      "T0025 用户问题：请检查第 25 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0025 回复： 第 1 行说明：模块 25",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 26,
+    "key": "8e8efcdd-dccb-4a91-84b0-d1fe6f619eb3",
+    "expected": {
+     "key": "8e8efcdd-dccb-4a91-84b0-d1fe6f619eb3",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:17",
+     "userText": "T0026 用户问题：请检查第 26 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0026 回复：\n第 1 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 24,
+     "day": null,
+     "time": "09:17",
+     "userLines": [
+      "T0026 用户问题：请检查第 26 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0026 回复： 第 1 行说明：模块 26",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 27,
+    "key": "6fa18cbc-b379-4533-a0ef-85de18bd2b66",
+    "expected": {
+     "key": "6fa18cbc-b379-4533-a0ef-85de18bd2b66",
+     "kind": "command",
+     "day": "10月9日",
+     "time": "09:18",
+     "userText": "/tui",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 29,
+     "day": null,
+     "time": "09:18",
+     "userLines": [
+      "/tui"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 28,
+    "key": "1b19ce8d-1bd6-4357-bfa4-00a25c9ce958",
+    "expected": {
+     "key": "1b19ce8d-1bd6-4357-bfa4-00a25c9ce958",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:18",
+     "userText": "T0028 用户问题：请检查第 28 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0028 回复：\n第 1 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 31,
+     "day": null,
+     "time": "09:18",
+     "userLines": [
+      "T0028 用户问题：请检查第 28 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0028 回复： 第 1 行说明：模块 28",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 23,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 25,
+  "entries": [
+   {
+    "index": 25,
+    "key": "75da3770-f03a-446e-9b86-973516a8e92c",
+    "expected": {
+     "key": "75da3770-f03a-446e-9b86-973516a8e92c",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:16",
+     "userText": "T0025 用户问题：请检查第 25 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0025 回复：\n第 1 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 25 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "day": null,
+     "time": "09:16",
+     "userLines": [
+      "T0025 用户问题：请检查第 25 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0025 回复： 第 1 行说明：模块 25",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 26,
+    "key": "8e8efcdd-dccb-4a91-84b0-d1fe6f619eb3",
+    "expected": {
+     "key": "8e8efcdd-dccb-4a91-84b0-d1fe6f619eb3",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:17",
+     "userText": "T0026 用户问题：请检查第 26 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0026 回复：\n第 1 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 26 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 14,
+     "day": null,
+     "time": "09:17",
+     "userLines": [
+      "T0026 用户问题：请检查第 26 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0026 回复： 第 1 行说明：模块 26",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 27,
+    "key": "6fa18cbc-b379-4533-a0ef-85de18bd2b66",
+    "expected": {
+     "key": "6fa18cbc-b379-4533-a0ef-85de18bd2b66",
+     "kind": "command",
+     "day": "10月9日",
+     "time": "09:18",
+     "userText": "/tui",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 19,
+     "day": null,
+     "time": "09:18",
+     "userLines": [
+      "/tui"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 28,
+    "key": "1b19ce8d-1bd6-4357-bfa4-00a25c9ce958",
+    "expected": {
+     "key": "1b19ce8d-1bd6-4357-bfa4-00a25c9ce958",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:18",
+     "userText": "T0028 用户问题：请检查第 28 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0028 回复：\n第 1 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 21,
+     "day": null,
+     "time": "09:18",
+     "userLines": [
+      "T0028 用户问题：请检查第 28 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0028 回复： 第 1 行说明：模块 28",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 29,
+    "key": "4ff329c2-72f4-442e-9389-a757d86f7fad",
+    "expected": {
+     "key": "4ff329c2-72f4-442e-9389-a757d86f7fad",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:19",
+     "userText": "T0029 用户问题：请检查第 29 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0029 回复：\n第 1 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 26,
+     "day": null,
+     "time": "09:19",
+     "userLines": [
+      "T0029 用户问题：请检查第 29 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0029 回复： 第 1 行说明：模块 29",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 30,
+    "key": "b52bc855-b914-419e-a6b9-c38baf3c51fa",
+    "expected": {
+     "key": "b52bc855-b914-419e-a6b9-c38baf3c51fa",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:20",
+     "userText": "T0030 用户问题：请检查第 30 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0030 回复：\n第 1 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 31,
+     "day": null,
+     "time": "09:20",
+     "userLines": [
+      "T0030 用户问题：请检查第 30 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0030 回复： 第 1 行说明：模块 30",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 25,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 27,
+  "entries": [
+   {
+    "index": 27,
+    "key": "6fa18cbc-b379-4533-a0ef-85de18bd2b66",
+    "expected": {
+     "key": "6fa18cbc-b379-4533-a0ef-85de18bd2b66",
+     "kind": "command",
+     "day": "10月9日",
+     "time": "09:18",
+     "userText": "/tui",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 9,
+     "day": null,
+     "time": "09:18",
+     "userLines": [
+      "/tui"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 28,
+    "key": "1b19ce8d-1bd6-4357-bfa4-00a25c9ce958",
+    "expected": {
+     "key": "1b19ce8d-1bd6-4357-bfa4-00a25c9ce958",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:18",
+     "userText": "T0028 用户问题：请检查第 28 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0028 回复：\n第 1 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 28 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 11,
+     "day": null,
+     "time": "09:18",
+     "userLines": [
+      "T0028 用户问题：请检查第 28 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0028 回复： 第 1 行说明：模块 28",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 29,
+    "key": "4ff329c2-72f4-442e-9389-a757d86f7fad",
+    "expected": {
+     "key": "4ff329c2-72f4-442e-9389-a757d86f7fad",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:19",
+     "userText": "T0029 用户问题：请检查第 29 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0029 回复：\n第 1 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 16,
+     "day": null,
+     "time": "09:19",
+     "userLines": [
+      "T0029 用户问题：请检查第 29 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0029 回复： 第 1 行说明：模块 29",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 30,
+    "key": "b52bc855-b914-419e-a6b9-c38baf3c51fa",
+    "expected": {
+     "key": "b52bc855-b914-419e-a6b9-c38baf3c51fa",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:20",
+     "userText": "T0030 用户问题：请检查第 30 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0030 回复：\n第 1 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 21,
+     "day": null,
+     "time": "09:20",
+     "userLines": [
+      "T0030 用户问题：请检查第 30 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0030 回复： 第 1 行说明：模块 30",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 31,
+    "key": "268b9b8d-bd1d-436f-af9a-223819d8b8d5",
+    "expected": {
+     "key": "268b9b8d-bd1d-436f-af9a-223819d8b8d5",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:20",
+     "userText": "T0031 用户问题：请检查第 31 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0031 回复：\n第 1 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 26,
+     "day": null,
+     "time": "09:20",
+     "userLines": [
+      "T0031 用户问题：请检查第 31 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0031 回复： 第 1 行说明：模块 31",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 32,
+    "key": "da6ae6b2-7f79-46d6-bb57-029a87581c86",
+    "expected": {
+     "key": "da6ae6b2-7f79-46d6-bb57-029a87581c86",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:21",
+     "userText": "T0032 用户问题：请检查第 32 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0032 回复：\n第 1 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 31,
+     "day": null,
+     "time": "09:21",
+     "userLines": [
+      "T0032 用户问题：请检查第 32 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0032 回复： 第 1 行说明：模块 32",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 27,
+   "problems": 0,
+   "partialTop": true,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 29,
+  "entries": [
+   {
+    "index": 29,
+    "key": "4ff329c2-72f4-442e-9389-a757d86f7fad",
+    "expected": {
+     "key": "4ff329c2-72f4-442e-9389-a757d86f7fad",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:19",
+     "userText": "T0029 用户问题：请检查第 29 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0029 回复：\n第 1 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 29 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 6,
+     "day": null,
+     "time": "09:19",
+     "userLines": [
+      "T0029 用户问题：请检查第 29 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0029 回复： 第 1 行说明：模块 29",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 30,
+    "key": "b52bc855-b914-419e-a6b9-c38baf3c51fa",
+    "expected": {
+     "key": "b52bc855-b914-419e-a6b9-c38baf3c51fa",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:20",
+     "userText": "T0030 用户问题：请检查第 30 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0030 回复：\n第 1 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 30 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 11,
+     "day": null,
+     "time": "09:20",
+     "userLines": [
+      "T0030 用户问题：请检查第 30 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0030 回复： 第 1 行说明：模块 30",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 31,
+    "key": "268b9b8d-bd1d-436f-af9a-223819d8b8d5",
+    "expected": {
+     "key": "268b9b8d-bd1d-436f-af9a-223819d8b8d5",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:20",
+     "userText": "T0031 用户问题：请检查第 31 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0031 回复：\n第 1 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 16,
+     "day": null,
+     "time": "09:20",
+     "userLines": [
+      "T0031 用户问题：请检查第 31 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0031 回复： 第 1 行说明：模块 31",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 32,
+    "key": "da6ae6b2-7f79-46d6-bb57-029a87581c86",
+    "expected": {
+     "key": "da6ae6b2-7f79-46d6-bb57-029a87581c86",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:21",
+     "userText": "T0032 用户问题：请检查第 32 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0032 回复：\n第 1 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 21,
+     "day": null,
+     "time": "09:21",
+     "userLines": [
+      "T0032 用户问题：请检查第 32 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0032 回复： 第 1 行说明：模块 32",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 33,
+    "key": "f17fa620-0573-4c26-acfb-49f8fbe22180",
+    "expected": {
+     "key": "f17fa620-0573-4c26-acfb-49f8fbe22180",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:22",
+     "userText": "T0033 用户问题：请检查第 33 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0033 回复：\n第 1 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 26,
+     "day": null,
+     "time": "09:22",
+     "userLines": [
+      "T0033 用户问题：请检查第 33 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0033 回复： 第 1 行说明：模块 33",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 34,
+    "key": "8a95ebbb-8006-4c34-8937-186a1e262318",
+    "expected": {
+     "key": "8a95ebbb-8006-4c34-8937-186a1e262318",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:22",
+     "userText": "T0034 用户问题：请检查第 34 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0034 回复：\n第 1 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 31,
+     "day": null,
+     "time": "09:22",
+     "userLines": [
+      "T0034 用户问题：请检查第 34 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0034 回复： 第 1 行说明：模块 34",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 29,
+   "problems": 0,
+   "partialTop": false,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 31,
+  "entries": [
+   {
+    "index": 31,
+    "key": "268b9b8d-bd1d-436f-af9a-223819d8b8d5",
+    "expected": {
+     "key": "268b9b8d-bd1d-436f-af9a-223819d8b8d5",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:20",
+     "userText": "T0031 用户问题：请检查第 31 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0031 回复：\n第 1 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 31 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 6,
+     "day": null,
+     "time": "09:20",
+     "userLines": [
+      "T0031 用户问题：请检查第 31 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0031 回复： 第 1 行说明：模块 31",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 32,
+    "key": "da6ae6b2-7f79-46d6-bb57-029a87581c86",
+    "expected": {
+     "key": "da6ae6b2-7f79-46d6-bb57-029a87581c86",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:21",
+     "userText": "T0032 用户问题：请检查第 32 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0032 回复：\n第 1 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 32 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 11,
+     "day": null,
+     "time": "09:21",
+     "userLines": [
+      "T0032 用户问题：请检查第 32 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0032 回复： 第 1 行说明：模块 32",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 33,
+    "key": "f17fa620-0573-4c26-acfb-49f8fbe22180",
+    "expected": {
+     "key": "f17fa620-0573-4c26-acfb-49f8fbe22180",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:22",
+     "userText": "T0033 用户问题：请检查第 33 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0033 回复：\n第 1 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 16,
+     "day": null,
+     "time": "09:22",
+     "userLines": [
+      "T0033 用户问题：请检查第 33 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0033 回复： 第 1 行说明：模块 33",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 34,
+    "key": "8a95ebbb-8006-4c34-8937-186a1e262318",
+    "expected": {
+     "key": "8a95ebbb-8006-4c34-8937-186a1e262318",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:22",
+     "userText": "T0034 用户问题：请检查第 34 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0034 回复：\n第 1 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 21,
+     "day": null,
+     "time": "09:22",
+     "userLines": [
+      "T0034 用户问题：请检查第 34 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0034 回复： 第 1 行说明：模块 34",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 35,
+    "key": "7d166ee8-b9ce-4d15-b52d-62342833e1a0",
+    "expected": {
+     "key": "7d166ee8-b9ce-4d15-b52d-62342833e1a0",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:23",
+     "userText": "T0035 用户问题：请检查第 35 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0035 回复：\n第 1 行说明：模块 35 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 35 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 35 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 35 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 26,
+     "day": null,
+     "time": "09:23",
+     "userLines": [
+      "T0035 用户问题：请检查第 35 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0035 回复： 第 1 行说明：模块 35",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 36,
+    "key": "3b0a893f-4e87-4c2a-8601-b6eba5a8b4a1",
+    "expected": {
+     "key": "3b0a893f-4e87-4c2a-8601-b6eba5a8b4a1",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:24",
+     "userText": "T0036 用户问题：请检查第 36 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0036 回复：\n第 1 行说明：模块 36 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 36 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 36 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 36 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 31,
+     "day": null,
+     "time": "09:24",
+     "userLines": [
+      "T0036 用户问题：请检查第 36 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0036 回复： 第 1 行说明：模块 36",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 6,
+   "start": 31,
+   "problems": 0,
+   "partialTop": false,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ },
+ {
+  "ok": true,
+  "start": 33,
+  "entries": [
+   {
+    "index": 33,
+    "key": "f17fa620-0573-4c26-acfb-49f8fbe22180",
+    "expected": {
+     "key": "f17fa620-0573-4c26-acfb-49f8fbe22180",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:22",
+     "userText": "T0033 用户问题：请检查第 33 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0033 回复：\n第 1 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 33 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 6,
+     "day": null,
+     "time": "09:22",
+     "userLines": [
+      "T0033 用户问题：请检查第 33 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0033 回复： 第 1 行说明：模块 33",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 34,
+    "key": "8a95ebbb-8006-4c34-8937-186a1e262318",
+    "expected": {
+     "key": "8a95ebbb-8006-4c34-8937-186a1e262318",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:22",
+     "userText": "T0034 用户问题：请检查第 34 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "2 步",
+     "lastText": "T0034 回复：\n第 1 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 34 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 2,
+     "status": "done"
+    },
+    "actual": {
+     "row": 11,
+     "day": null,
+     "time": "09:22",
+     "userLines": [
+      "T0034 用户问题：请检查第 34 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "2 步",
+     "agentLines": [
+      "T0034 回复： 第 1 行说明：模块 34",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 35,
+    "key": "7d166ee8-b9ce-4d15-b52d-62342833e1a0",
+    "expected": {
+     "key": "7d166ee8-b9ce-4d15-b52d-62342833e1a0",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:23",
+     "userText": "T0035 用户问题：请检查第 35 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0035 回复：\n第 1 行说明：模块 35 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 35 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 35 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 35 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 16,
+     "day": null,
+     "time": "09:23",
+     "userLines": [
+      "T0035 用户问题：请检查第 35 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0035 回复： 第 1 行说明：模块 35",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 36,
+    "key": "3b0a893f-4e87-4c2a-8601-b6eba5a8b4a1",
+    "expected": {
+     "key": "3b0a893f-4e87-4c2a-8601-b6eba5a8b4a1",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:24",
+     "userText": "T0036 用户问题：请检查第 36 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0036 回复：\n第 1 行说明：模块 36 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 36 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 36 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 36 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 21,
+     "day": null,
+     "time": "09:24",
+     "userLines": [
+      "T0036 用户问题：请检查第 36 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0036 回复： 第 1 行说明：模块 36",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 37,
+    "key": "2da31485-7d81-4ff8-9d5a-06c4f955a457",
+    "expected": {
+     "key": "2da31485-7d81-4ff8-9d5a-06c4f955a457",
+     "kind": "bang",
+     "day": "10月9日",
+     "time": "09:24",
+     "userText": "!echo T0037",
+     "agentHead": null,
+     "lastText": null,
+     "steps": 0,
+     "status": "done"
+    },
+    "actual": {
+     "row": 26,
+     "day": null,
+     "time": "09:24",
+     "userLines": [
+      "!echo T0037"
+     ],
+     "agentHead": null,
+     "agentLines": [],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 38,
+    "key": "1aa9c45e-f0ed-4615-ba34-86d40918d5fd",
+    "expected": {
+     "key": "1aa9c45e-f0ed-4615-ba34-86d40918d5fd",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:25",
+     "userText": "T0038 用户问题：请检查第 38 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "3 步",
+     "lastText": "T0038 回复：\n第 1 行说明：模块 38 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 38 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 38 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 38 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 3,
+     "status": "done"
+    },
+    "actual": {
+     "row": 28,
+     "day": null,
+     "time": "09:25",
+     "userLines": [
+      "T0038 用户问题：请检查第 38 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "3 步",
+     "agentLines": [
+      "T0038 回复： 第 1 行说明：模块 38",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": false
+    },
+    "problems": []
+   },
+   {
+    "index": 39,
+    "key": "f680f45f-52d5-4d48-bed7-4d76a56a91f6",
+    "expected": {
+     "key": "f680f45f-52d5-4d48-bed7-4d76a56a91f6",
+     "kind": "prompt",
+     "day": "10月9日",
+     "time": "09:26",
+     "userText": "T0039 用户问题：请检查第 39 个模块的状态， 并说明下一步该做什么。",
+     "agentHead": "1 步",
+     "lastText": "T0039 回复：\n第 1 行说明：模块 39 的检查结果正常，没有发现需要处理的问题。\n第 2 行说明：模块 39 的检查结果正常，没有发现需要处理的问题。\n第 3 行说明：模块 39 的检查结果正常，没有发现需要处理的问题。\n第 4 行说明：模块 39 的检查结果正常，没有发现需要处理的问题。",
+     "steps": 1,
+     "status": "done"
+    },
+    "actual": {
+     "row": 33,
+     "day": null,
+     "time": "09:26",
+     "userLines": [
+      "T0039 用户问题：请检查第 39 个模块",
+      "的状态， 并说明下一步该做什么。"
+     ],
+     "agentHead": "1 步",
+     "agentLines": [
+      "T0039 回复： 第 1 行说明：模块 39",
+      "的检查结果正常，没有发现需要处理的问题。…"
+     ],
+     "running": false,
+     "userOff": false,
+     "agentOff": false,
+     "highlighted": true
+    },
+    "problems": []
+   }
+  ],
+  "summary": {
+   "filter": "all",
+   "expectedTotal": 40,
+   "windowEntries": 7,
+   "start": 33,
+   "problems": 0,
+   "partialTop": false,
+   "notes": [
+    "▅▆█▅▆█▅▁█▅▆█▁▆█▅▆█▅▆█▅▆█▅▆█▁▆█▅▆█▅▆█▅▁█▅▁▁▁▁",
+    "10月9日 09:00                          09:26"
+   ]
+  }
+ }
+]

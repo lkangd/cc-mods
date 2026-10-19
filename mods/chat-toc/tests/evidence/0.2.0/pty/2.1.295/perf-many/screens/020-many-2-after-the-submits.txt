@@ -1,0 +1,45 @@
+==== many-2 after the submits (44 rows)
+                                                                                                                             │                                          ✕
+❯ T4520 用户问题：请检查第 4520 个模块的状态，                                                                               │1: 全部   2: 用户   3: Agent
+  并说明下一步该做什么。                                                                                                     │━━━━━━━─────────────────────────────────────
+                                                                                                                             │f: 搜索 词或文件路径                     ‹ ›
+  Ran 3 shell commands                                                                                                       │████████████████████████████████████████████
+                                                                                                                             │10月9日 09:00                          17:28
+⏺ T4520 回复：                                                                                                               │
+  第 1 行说明：模块 4520 的检查结果正常，没有发现需要处理的问题。                                                            │●  T4518 用户问题：请检查第 4518 个模  10:54
+  第 2 行说明：模块 4520 的检查结果正常，没有发现需要处理的问题。                                                            ││  块的状态， 并说明下一步该做什么。
+  第 3 行说明：模块 4520 的检查结果正常，没有发现需要处理的问题。                                                            │├╴ 1 步 · T4518 回复： 第 1 行说明：模块
+  第 4 行说明：模块 4520 的检查结果正常，没有发现需要处理的问题。                                                            ││  4518 的检查结果正常，没有发现需要处理的…
+                                                                                                                             ││
+⏺ chat-toc: reloaded (13 hooks: classic.SessionStart, session.start, classic.UserPromptSubmit, command.run, ui.close,        │●  T4519 用户问题：请检查第 4519 个模  10:54
+  session.append, session.measure, session.compact, turn.start, turn.complete, ui.scroll, ui.render, ui.focus)               ││  块的状态， 并说明下一步该做什么。
+                                                                                                                             │├╴ 2 步 · T4519 回复： 第 1 行说明：模块
+❯ CT-PERF 追加的合成 prompt 0                                                                                                ││  4519 的检查结果正常，没有发现需要处理的…
+  ⎿  Not logged in · Please run /login                                                                                       ││
+                                                                                                                             │●  T4520 用户问题：请检查第 4520 个模  10:55
+✻ Brewed for 0s · done 5:28 PM                                                                                               ││  块的状态， 并说明下一步该做什么。
+                                                                                                                             │├╴ 3 步 · T4520 回复： 第 1 行说明：模块
+❯ CT-PERF 追加的合成 prompt 1                                                                                                ││  4520 的检查结果正常，没有发现需要处理的…
+  ⎿  Not logged in · Please run /login                                                                                       │
+                                                                                                                             │─ 今天 · 10月17日 ──────────────────────────
+✻ Crunched for 0s · done 5:28 PM                                                                                             │●  CT-PERF 追加的合成 prompt 0         17:28
+                                                                                                                             │├╴ 出错 · Not logged in · Please run /login
+❯ CT-PERF 追加的合成 prompt 2                                                                                                ││
+  ⎿  Not logged in · Please run /login                                                                                       │●  CT-PERF 追加的合成 prompt 1         17:28
+                                                                                                                             │├╴ 出错 · Not logged in · Please run /login
+✻ Worked for 0s · done 5:28 PM                                                                                               ││
+                                                                                                                             │●  CT-PERF 追加的合成 prompt 2         17:28
+❯ CT-PERF 追加的合成 prompt 3                                                                                                │├╴ 出错 · Not logged in · Please run /login
+  ⎿  Not logged in · Please run /login                                                                                       ││
+                                                                                                                             │●  CT-PERF 追加的合成 prompt 3         17:28
+✻ Cooked for 0s · done 5:28 PM                                                                                               │├╴ 出错 · Not logged in · Please run /login
+                                                                                                                             ││
+❯ CT-PERF 追加的合成 prompt 4                                                                                                │◉  CT-PERF 追加的合成 prompt 4         17:28
+  ⎿  Not logged in · Please run /login                                                                                       │┣╸ 出错 · Not logged in · Please run /login
+                                                                                                                             │────────────────────────────────────────────
+✻ Sautéed for 0s · done 5:28 PM                                                                                              │4526 轮 · 上下文已用 0%         l: 布局 卡片
+                                                                                                 Not logged in · Run /login  │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · ? for shortcuts · ← for agents

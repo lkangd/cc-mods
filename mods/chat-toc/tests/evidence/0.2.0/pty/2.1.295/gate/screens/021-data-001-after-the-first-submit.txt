@@ -1,0 +1,45 @@
+==== data-001 after the first submit (44 rows)
+                                                                                                                             │                                          ✕
+ ▐▛███▛█   Claude Code v2.1.295                                                                                              │1: 全部   2: 用户   3: Agent
+▝▜██████▀  Opus 5.5 · API Usage Billing                                                                                      │━━━━━━━─────────────────────────────────────
+ ▝▝   ▝▝   <tmp>/project                                    │f: 搜索 词或文件路径                     ‹ ›
+                                                                                                                             │─ 今天 · 10月17日 ──────────────────────────
+▎ Auto mode is now Claude Code's default permission mode.                                                                    │◉  CT-SYN 第一条合成 prompt            17:07
+▎ Auto mode lets Claude handle permission prompts automatically. Claude checks each tool call for risky actions and prompt   │┣╸ 出错 · Not logged in · Please run /login
+▎ injection before executing, runs the ones it assesses as lower-risk, and blocks the rest.                                  │
+▎ https://code.claude.com/docs/en/permission-modes                                                                           │
+  1 more notice hidden                                                                                                       │
+                                                                                                                             │
+❯ CT-SYN 第一条合成 prompt                                                                                                   │
+  ⎿  Not logged in · Please run /login                                                                                       │
+                                                                                                                             │
+✻ Cogitated for 0s · done 5:07 PM                                                                                            │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │────────────────────────────────────────────
+                                                                                                                             │1 轮                            l: 布局 卡片
+                                                                                                         ◐ medium · /effort  │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents

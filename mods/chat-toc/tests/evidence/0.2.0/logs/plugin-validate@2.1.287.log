@@ -1,0 +1,17 @@
+$ <npx>/node_modules/@anthropic-ai/claude-code/bin/claude.exe plugin validate <repo>/mods/chat-toc
+# 2026-10-17T17:35:27, exit 0
+Validating plugin manifest: <repo>/mods/chat-toc/.claude-plugin/plugin.json
+
+  ❯ types ./types/index.d.ts declares on $: nothing (no EngineInterface member)
+  ❯ types ./types/index.d.ts declares state: chat-toc.transcriptPath, chat-toc.rev, chat-toc.isClosed, chat-toc.isCarriedOver, chat-toc.isPaneHidden, chat-toc.currentPosition, chat-toc.compactedAt, chat-toc.query
+
+Validating hooks: <repo>/mods/chat-toc/hooks/hooks.json
+
+  ❯ ./register.tsx hooks: classic.SessionStart, session.start, classic.UserPromptSubmit, command.run{command=chat-toc}, ui.close, session.append, session.measure, session.compact, turn.start, turn.complete, ui.scroll{component=Pane, requestId=?}, ui.render{component=PromptHint, surface=terminal}, ui.render{component=AbovePrompt}, ui.focus{component=Pane, requestId=?}, ui.render{component=?}, ui.render{component=Pane, requestId=?}
+  ❯ ./register.tsx calls: $.clock.after, $.clock.now, $.command.register, $.env.get (via askLanguage, askPerf, learnPaths, locate), $.fs.exists (via readSource), $.fs.read (via readSource), $.fs.stat (via readSource), $.process.run (via runChunk), $.prompt.fill (via reuseInput), $.prompt.read (via reuseInput), $.session.id (via locate), $.session.messages (via checkRewind), $.session.turns (via checkRewind), $.session.usage (via readContextUse), $.session.version (via askVersion), $.state.get, $.state.set, $.store.get (via loadChoices), $.store.set (via chooseFilter, chooseLayout), $.ui.copy (via copyOut), $.ui.focus (via focusSearch, keepFocus, sendRing), $.ui.log (via timed), $.ui.open (via openPane), $.ui.panes, $.ui.resolve, $.ui.scroll (via backToTop, jump), $.ui.toast (via copyOut, reuseInput, say)
+  ❯ ./register.tsx env writes: nothing
+  ❯ ./register.tsx env reads: CHAT_TOC_PERF, CLAUDE_CONFIG_DIR, HOME, LANG, LC_ALL, LC_MESSAGES, USERPROFILE
+  ❯ ./register.tsx state writes: chat-toc.compactedAt, chat-toc.currentPosition, chat-toc.isCarriedOver, chat-toc.isClosed, chat-toc.isPaneHidden, chat-toc.query, chat-toc.rev, chat-toc.transcriptPath
+  ❯ ./register.tsx state reads: chat-toc.compactedAt, chat-toc.currentPosition, chat-toc.isCarriedOver, chat-toc.isClosed, chat-toc.isPaneHidden, chat-toc.query, chat-toc.rev, chat-toc.transcriptPath
+
+✔ Validation passed

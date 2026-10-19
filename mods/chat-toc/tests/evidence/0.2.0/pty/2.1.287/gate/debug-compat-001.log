@@ -1,0 +1,1100 @@
+2026-10-17T09:43:36.408Z [DEBUG] MDM settings load completed in 0ms
+2026-10-17T09:43:36.412Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /Library/Application Support/ClaudeCode/managed-settings.json
+2026-10-17T09:43:36.450Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/project/.claude/settings.json
+2026-10-17T09:43:36.451Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/project/.claude/settings.local.json
+2026-10-17T09:43:36.451Z [DEBUG] CA certs: Config fallback - globalEnv keys: , settingsEnv keys: none
+2026-10-17T09:43:36.453Z [DEBUG] [init] configureGlobalMTLS starting
+2026-10-17T09:43:36.453Z [DEBUG] [init] configureGlobalMTLS complete
+2026-10-17T09:43:36.453Z [DEBUG] [init] configureGlobalAgents starting
+2026-10-17T09:43:36.453Z [DEBUG] CA certs: stores=bundled,system, extraCertsPath=undefined
+2026-10-17T09:43:36.453Z [DEBUG] CA certs: Loaded 121 bundled root certificates
+2026-10-17T09:43:36.468Z [DEBUG] CA certs: Dropped 1 expired certificate(s) from system store
+2026-10-17T09:43:36.468Z [DEBUG] CA certs: Loaded 2 system CA certificates
+2026-10-17T09:43:36.468Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-10-17T09:43:36.468Z [DEBUG] [init] configureGlobalAgents complete
+2026-10-17T09:43:36.470Z [DEBUG] Error log sink initialized
+2026-10-17T09:43:36.470Z [DEBUG] clearPluginCache: invalidating loadAllPlugins cache (preAction: --plugin-dir inline plugins)
+2026-10-17T09:43:36.473Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.473Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.2c58012f316a
+2026-10-17T09:43:36.473Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.473Z [DEBUG] Temp file written successfully, size: 290 bytes
+2026-10-17T09:43:36.473Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.2c58012f316a to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.474Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.474Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.474Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.b8fc76be116a
+2026-10-17T09:43:36.474Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.474Z [DEBUG] Temp file written successfully, size: 373 bytes
+2026-10-17T09:43:36.474Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.b8fc76be116a to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.475Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.475Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.475Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.e88fe940cdbd
+2026-10-17T09:43:36.475Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.475Z [DEBUG] Temp file written successfully, size: 409 bytes
+2026-10-17T09:43:36.475Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.e88fe940cdbd to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.475Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.476Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.476Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.64e4e999a597
+2026-10-17T09:43:36.476Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.476Z [DEBUG] Temp file written successfully, size: 448 bytes
+2026-10-17T09:43:36.476Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.64e4e999a597 to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.476Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.477Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.477Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.c37a3ad342ec
+2026-10-17T09:43:36.477Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.477Z [DEBUG] Temp file written successfully, size: 475 bytes
+2026-10-17T09:43:36.477Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.c37a3ad342ec to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.477Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.478Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.478Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.a1bdde5c719e
+2026-10-17T09:43:36.478Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.478Z [DEBUG] Temp file written successfully, size: 523 bytes
+2026-10-17T09:43:36.478Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.a1bdde5c719e to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.478Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.479Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.479Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.1c9d436e4378
+2026-10-17T09:43:36.479Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.479Z [DEBUG] Temp file written successfully, size: 549 bytes
+2026-10-17T09:43:36.479Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.1c9d436e4378 to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.479Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.485Z [DEBUG] [Claude in Chrome] Disabled: OAuth token has no scope accepted by /api/oauth/validate (needs user:profile, user:office, or user:ccr_inference; env-var and setup-token sessions default to user:inference only)
+2026-10-17T09:43:36.487Z [DEBUG] [ToolSearch:optimistic] mode=tst, ENABLE_TOOL_SEARCH=undefined, result=true
+2026-10-17T09:43:36.566Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-10-17T09:43:36.567Z [DEBUG] [STARTUP] Running setup()...
+2026-10-17T09:43:36.570Z [DEBUG] Loading skills from: managed=/Library/Application Support/ClaudeCode/.claude/skills, user=<tmp>/home/.claude/skills, project=[]
+2026-10-17T09:43:36.570Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/agents: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/agents'
+2026-10-17T09:43:36.570Z [DEBUG] Failed to stat directory <tmp>/home/.claude/agents: ENOENT: no such file or directory, stat '<tmp>/home/.claude/agents'
+2026-10-17T09:43:36.571Z [DEBUG] installed_plugins.json doesn't exist, returning empty V2 object
+2026-10-17T09:43:36.571Z [DEBUG] --plugin-dir <repo>/mods/chat-toc is one plugin: .claude-plugin at its top marks it
+2026-10-17T09:43:36.571Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/commands: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/commands'
+2026-10-17T09:43:36.571Z [DEBUG] Failed to stat directory <tmp>/home/.claude/commands: ENOENT: no such file or directory, stat '<tmp>/home/.claude/commands'
+2026-10-17T09:43:36.571Z [DEBUG] Loaded 0 unique skills (0 unconditional, 0 conditional, managed: 0, user: 0, project: 0, additional: 0, legacy commands: 0)
+2026-10-17T09:43:36.578Z [DEBUG] Read hooks.json for plugin chat-toc (enabled=true): <repo>/mods/chat-toc/hooks/hooks.json
+2026-10-17T09:43:36.579Z [DEBUG] Loaded inline plugin from path: chat-toc
+2026-10-17T09:43:36.579Z [DEBUG] Loaded 1 directory-loaded plugins
+2026-10-17T09:43:36.580Z [DEBUG] Found 4 plugins (4 enabled, 0 disabled)
+2026-10-17T09:43:36.580Z [DEBUG] getPluginSkills: Processing 4 enabled plugins
+2026-10-17T09:43:36.580Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-17T09:43:36.580Z [DEBUG] Checking plugin cc-plugin-agents-md: skillsPath=none, skillsPaths=0 paths
+2026-10-17T09:43:36.580Z [DEBUG] Checking plugin cc-plugin-plugin-authoring: skillsPath=none, skillsPaths=0 paths
+2026-10-17T09:43:36.580Z [DEBUG] Checking plugin cc-plugin-diff: skillsPath=none, skillsPaths=0 paths
+2026-10-17T09:43:36.580Z [DEBUG] Total plugin workflows loaded: 0
+2026-10-17T09:43:36.580Z [DEBUG] Total plugin commands loaded: 0
+2026-10-17T09:43:36.580Z [DEBUG] Total plugin skills loaded: 0 (0 duplicate/user-owned entries skipped)
+2026-10-17T09:43:36.580Z [DEBUG] Total plugin agents loaded: 0
+2026-10-17T09:43:36.581Z [INFO] [uds-messaging] Listening: /tmp/cc-socks/21144.sock
+2026-10-17T09:43:36.581Z [INFO] [uds-messaging] Inject messages (auth line optional here): { echo '{"type":"auth","token":"[REDACTED]"$CLAUDE_CODE_MESSAGING_TOKEN"'"}'; echo '{"type":"user","message":{"role":"user","content":"hello"}}'; } | socat - UNIX-CONNECT:/tmp/cc-socks/21144.sock
+2026-10-17T09:43:36.583Z [INFO] [uds-messaging] Connect when the data is ready (e.g. out=$(cmd); printf '%s\n' "$out" | nc -U "$CLAUDE_CODE_MESSAGING_SOCKET" — or the socat form above): a connection that sends no complete line within 30000 ms is closed
+2026-10-17T09:43:36.584Z [DEBUG] Error log sink initialized
+2026-10-17T09:43:36.585Z [DEBUG] cc-plugin-sec-default@builtin not seated: no managed settings and not a Team or Enterprise organization (none)
+2026-10-17T09:43:36.586Z [DEBUG] [STARTUP] setup() completed in 19ms
+2026-10-17T09:43:36.586Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-10-17T09:43:36.589Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 39 bundled skills, 1 builtin plugin skills
+2026-10-17T09:43:36.592Z [DEBUG] [STARTUP] Commands and agents loaded in 6ms
+2026-10-17T09:43:36.594Z [DEBUG] [STARTUP] Running showSetupScreens()...
+2026-10-17T09:43:36.596Z [DEBUG] Git remote URL: null
+2026-10-17T09:43:36.596Z [DEBUG] No git remote URL found
+2026-10-17T09:43:36.597Z [DEBUG] Cleared mTLS configuration cache
+2026-10-17T09:43:36.597Z [DEBUG] Cleared proxy agent cache
+2026-10-17T09:43:36.597Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-10-17T09:43:36.597Z [DEBUG] [STARTUP] showSetupScreens() completed in 3ms
+2026-10-17T09:43:36.597Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-10-17T09:43:36.598Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-10-17T09:43:36.598Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-10-17T09:43:36.598Z [DEBUG] Starting background startup prefetches
+2026-10-17T09:43:36.598Z [DEBUG] [Bootstrap] Skipped: Nonessential traffic disabled
+2026-10-17T09:43:36.617Z [DEBUG] [STARTUP] MCP configs resolved in 15ms (awaited at +51ms)
+2026-10-17T09:43:36.619Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-17T09:43:36.620Z [DEBUG] Initialized versioned plugins system with 0 plugins
+2026-10-17T09:43:36.622Z [DEBUG] LSP Diagnostics: Resetting all state (0 pending, 0 files tracked)
+2026-10-17T09:43:36.622Z [DEBUG] Total LSP servers loaded: 0
+2026-10-17T09:43:36.622Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-10-17T09:43:36.622Z [DEBUG] LSP manager initialized with 0 servers
+2026-10-17T09:43:36.622Z [DEBUG] LSP server manager initialized successfully
+2026-10-17T09:43:36.623Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-10-17T09:43:36.655Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-17T09:43:36.659Z [DEBUG] FileHistory: No need to copy file history for resuming with same session id: 00000000-0000-4000-8000-000000000001
+2026-10-17T09:43:36.660Z [DEBUG] [Perfetto] initializePerfettoTracing called, env value: undefined
+2026-10-17T09:43:36.660Z [DEBUG] [3P telemetry] isTelemetryEnabled=false (CLAUDE_CODE_ENABLE_TELEMETRY=undefined)
+2026-10-17T09:43:36.661Z [DEBUG] getPluginSkills: Processing 4 enabled plugins
+2026-10-17T09:43:36.662Z [DEBUG] Checking plugin chat-toc: skillsPath=none, skillsPaths=0 paths
+2026-10-17T09:43:36.662Z [DEBUG] Checking plugin cc-plugin-agents-md: skillsPath=none, skillsPaths=0 paths
+2026-10-17T09:43:36.662Z [DEBUG] Checking plugin cc-plugin-plugin-authoring: skillsPath=none, skillsPaths=0 paths
+2026-10-17T09:43:36.662Z [DEBUG] Checking plugin cc-plugin-diff: skillsPath=none, skillsPaths=0 paths
+2026-10-17T09:43:36.662Z [DEBUG] Total plugin workflows loaded: 0
+2026-10-17T09:43:36.662Z [DEBUG] Total plugin commands loaded: 0
+2026-10-17T09:43:36.663Z [DEBUG] Ripgrep first use test: PASSED (mode=embedded, path=<npx>/node_modules/@anthropic-ai/claude-code/bin/claude.exe)
+2026-10-17T09:43:36.663Z [DEBUG] "rg error (signal=undefined, code=2, stderr: rg: <tmp>/home/.claude/plugins/cache: IO error for operation on <tmp>/home/.claude/plugins/cache: No such file or directory (os error 2)\n), 0 results"
+2026-10-17T09:43:36.663Z [DEBUG] Total plugin skills loaded: 0 (0 duplicate/user-owned entries skipped)
+2026-10-17T09:43:36.663Z [DEBUG] Loading skills from: managed=/Library/Application Support/ClaudeCode/.claude/skills, user=<tmp>/home/.claude/skills, project=[]
+2026-10-17T09:43:36.664Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.664Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.093ead7b8da7
+2026-10-17T09:43:36.664Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/commands: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/commands'
+2026-10-17T09:43:36.664Z [DEBUG] Failed to stat directory <tmp>/home/.claude/commands: ENOENT: no such file or directory, stat '<tmp>/home/.claude/commands'
+2026-10-17T09:43:36.664Z [DEBUG] Loaded 0 unique skills (0 unconditional, 0 conditional, managed: 0, user: 0, project: 0, additional: 0, legacy commands: 0)
+2026-10-17T09:43:36.665Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 39 bundled skills, 1 builtin plugin skills
+2026-10-17T09:43:36.669Z [DEBUG] [3P telemetry] Event dropped (no event logger initialized): plugin_loaded
+2026-10-17T09:43:36.673Z [DEBUG] [Bootstrap] Skipped: Nonessential traffic disabled
+2026-10-17T09:43:36.692Z [DEBUG] [keybindings] KeybindingSetup initialized with 217 bindings, 0 warnings
+2026-10-17T09:43:36.719Z [DEBUG] Fast mode unavailable: Fast mode is currently unavailable
+2026-10-17T09:43:36.734Z [DEBUG] [engine] send set_max_thinking_tokens max=null
+2026-10-17T09:43:36.734Z [DEBUG] [engine] send set_model model=claude-haiku-4-5
+2026-10-17T09:43:36.737Z [DEBUG] prompt.edit: unhooked; the composer relays nothing
+2026-10-17T09:43:36.740Z [DEBUG] [claudeai-mcp] Disabled: API-key auth precedence active
+2026-10-17T09:43:36.740Z [DEBUG] performStartupChecks called
+2026-10-17T09:43:36.742Z [DEBUG] [jobStateNameSync] watch skipped: Error: ENOENT: no such file or directory, watch '<tmp>/home/.claude/jobs/00000000'
+2026-10-17T09:43:36.745Z [DEBUG] [REPL:mount] REPL mounted, disabled=false
+2026-10-17T09:43:36.747Z [DEBUG] [ScheduledTasks] scheduler start() — enabled=false, hasTasks=false
+2026-10-17T09:43:36.747Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/project/.claude/settings.json
+2026-10-17T09:43:36.747Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: <tmp>/project/.claude/settings.local.json
+2026-10-17T09:43:36.747Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: /Library/Application Support/ClaudeCode/managed-settings.json
+2026-10-17T09:43:36.754Z [DEBUG] [servedCatalog] off (essential_traffic)
+2026-10-17T09:43:36.757Z [DEBUG] High write ratio: blit=0, write=2845 (100.0% writes), screen=44x170
+2026-10-17T09:43:36.762Z [DEBUG] Starting background plugin installations
+2026-10-17T09:43:36.762Z [DEBUG] [auto-mode] verifyAutoModeGateAccess: enabledState=enabled disabledBySettings=false model=claude-haiku-4-5 modelSupported=false disableFastModeBreakerFires=false carouselAvailable=false canEnterAuto=false
+2026-10-17T09:43:36.762Z [WARN] auto mode disabled: model claude-haiku-4-5 does not support auto mode
+2026-10-17T09:43:36.762Z [DEBUG] performBackgroundPluginInstallations called
+2026-10-17T09:43:36.763Z [DEBUG] [auto-mode] kickOutOfAutoIfNeeded applying: ctx.mode=auto ctx.prePlanMode=undefined reason=model
+2026-10-17T09:43:36.763Z [DEBUG] Applying permission update: Setting mode to 'default'
+2026-10-17T09:43:36.767Z [DEBUG] [keybindings] Watching for changes to <tmp>/home/.claude/keybindings.json
+2026-10-17T09:43:36.768Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-17T09:43:36.768Z [DEBUG] [sessionRegistry] sweep permitted (domain darwin)
+2026-10-17T09:43:36.768Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/agents: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/agents'
+2026-10-17T09:43:36.768Z [DEBUG] Failed to stat directory <tmp>/home/.claude/agents: ENOENT: no such file or directory, stat '<tmp>/home/.claude/agents'
+2026-10-17T09:43:36.768Z [DEBUG] memory index backfill: ENOENT: no such file or directory, scandir '<tmp>/home/.claude/projects/-private-var-folders-nh-5vhmfmd556j33t3g996v6c080000gn-T-ctoc-5pwdkil3-project/memory/'
+2026-10-17T09:43:36.768Z [DEBUG] No CLAUDE.md/rules files found
+2026-10-17T09:43:36.770Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.828Z [DEBUG] Total plugin agents loaded: 0
+2026-10-17T09:43:36.829Z [DEBUG] Temp file written successfully, size: 629 bytes
+2026-10-17T09:43:36.829Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.093ead7b8da7 to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.834Z [DEBUG] [FileIndex] getProjectFiles called, respectGitignore=true
+2026-10-17T09:43:36.834Z [DEBUG] [FileIndex] getFilesUsingGit called
+2026-10-17T09:43:36.834Z [DEBUG] [FileIndex] not a git repo, returning null
+2026-10-17T09:43:36.834Z [DEBUG] [FileIndex] git ls-files returned null, falling back to ripgrep
+2026-10-17T09:43:36.835Z [DEBUG] Git remote URL: null
+2026-10-17T09:43:36.835Z [DEBUG] No git remote URL found
+2026-10-17T09:43:36.835Z [DEBUG] Not in a GitHub repository, skipping path mapping update
+2026-10-17T09:43:36.836Z [DEBUG] XTVERSION: no reply (terminal ignored query)
+2026-10-17T09:43:36.836Z [DEBUG] Terminal capabilities: extendedKeys=no (env: terminal=xterm-256color, no answer); synchronizedOutput=no (env: no known terminal, no answer); kittyKeyboard=no (probe: no reply to CSI ? u); kittyGraphics=no (env: terminal=xterm-256color, not asked yet, no answer); mousePixels=no (env: terminal=xterm-256color, not asked yet, no answer); terminal said: no reply to CSI ? u; DECRQM 2026 not asked (no XTVERSION reply)
+2026-10-17T09:43:36.836Z [DEBUG] DECSTBM: gated (TMUX=unset ZELLIJ=unset TERM_PROGRAM=unset TERM=xterm-256color)
+2026-10-17T09:43:36.836Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.837Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/routines: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/routines'
+2026-10-17T09:43:36.837Z [DEBUG] Failed to stat directory <tmp>/home/.claude/output-styles: ENOENT: no such file or directory, stat '<tmp>/home/.claude/output-styles'
+2026-10-17T09:43:36.837Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/output-styles: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/output-styles'
+2026-10-17T09:43:36.837Z [DEBUG] Failed to stat directory <tmp>/home/.claude/skills: ENOENT: no such file or directory, stat '<tmp>/home/.claude/skills'
+2026-10-17T09:43:36.837Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/skills: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/skills'
+2026-10-17T09:43:36.837Z [DEBUG] Failed to stat directory <tmp>/home/.claude/workflows: ENOENT: no such file or directory, stat '<tmp>/home/.claude/workflows'
+2026-10-17T09:43:36.837Z [DEBUG] Failed to stat directory /Library/Application Support/ClaudeCode/.claude/workflows: ENOENT: no such file or directory, stat '/Library/Application Support/ClaudeCode/.claude/workflows'
+2026-10-17T09:43:36.837Z [DEBUG] Failed to stat directory <tmp>/home/.claude/routines: ENOENT: no such file or directory, stat '<tmp>/home/.claude/routines'
+2026-10-17T09:43:36.840Z [DEBUG] Watching <tmp>/project for <tmp>/project/.claude to appear
+2026-10-17T09:43:36.840Z [DEBUG] Watching for changes in setting files <tmp>/home/.claude/settings.json, /Library/Application Support/ClaudeCode/managed-settings.json...
+2026-10-17T09:43:36.844Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.844Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.8a97d0306ed7
+2026-10-17T09:43:36.845Z [DEBUG] [FileIndex] ripgrep: 0 files in 11ms
+2026-10-17T09:43:36.845Z [DEBUG] [FileIndex] cache refresh completed in 11ms
+2026-10-17T09:43:36.875Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.875Z [DEBUG] plugin cc-plugin-agents-md: no pluginConfigs["agents-md@builtin" or "cc-plugin-agents-md@builtin"].options in user, --settings or managed settings (project settings are not read); every option is its default
+2026-10-17T09:43:36.875Z [DEBUG] hooks worker spawned (one for every plugin)
+2026-10-17T09:43:36.877Z [DEBUG] Temp file written successfully, size: 629 bytes
+2026-10-17T09:43:36.877Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.8a97d0306ed7 to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.878Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.883Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.883Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.5cf1b12a04b9
+2026-10-17T09:43:36.884Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.885Z [DEBUG] Temp file written successfully, size: 1174 bytes
+2026-10-17T09:43:36.885Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.5cf1b12a04b9 to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.885Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.888Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:36.888Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.f4b64af7e9e3
+2026-10-17T09:43:36.888Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:36.888Z [DEBUG] Temp file written successfully, size: 1247 bytes
+2026-10-17T09:43:36.888Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.f4b64af7e9e3 to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:36.889Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically
+2026-10-17T09:43:36.916Z [DEBUG] hooks module chat-toc@inline loaded (worker, environment 1, tier user); events: classic.SessionStart,session.start,classic.UserPromptSubmit,command.run,ui.close,session.append,session.measure,session.compact,turn.start,turn.complete,ui.scroll,ui.render,ui.focus
+2026-10-17T09:43:36.916Z [DEBUG] hooks module cc-plugin-agents-md@builtin loaded (native, environment 2, tier builtin); events: session.start,prompt.context,agent.spawn,tool.call
+2026-10-17T09:43:36.917Z [DEBUG] hooks module cc-plugin-diff@builtin loaded (native, environment 3, tier builtin); events: session.start,ui.render,command.run,ui.close,ui.focus,ui.scroll,tool.call,prompt.submit
+2026-10-17T09:43:36.918Z [DEBUG] engine.create: no plugin-provided interfaces; $ built for chat-toc,cc-plugin-agents-md,cc-plugin-diff
+2026-10-17T09:43:36.918Z [DEBUG] plugin.register: cc-plugin-agents-md (builtin, cc-plugin-agents-md@builtin), judged by core alone: admitted
+2026-10-17T09:43:36.918Z [DEBUG] plugin.register: cc-plugin-diff (builtin, cc-plugin-diff@builtin), judged by core alone: admitted
+2026-10-17T09:43:36.918Z [DEBUG] plugin.register: chat-toc (user, chat-toc@inline), judged by core alone: admitted
+2026-10-17T09:43:36.922Z [DEBUG] plugin-dir watch: watching chat-toc; folders of plugins none
+2026-10-17T09:43:36.936Z [DEBUG] Artifact gates frozen: capabilities=true comments=false db=true files=false types=false type_create=false type_catalog=false read_page_data=false room=false verify=false delete=false preview=false preview_browser=unread open=false endpoints=false pin=true share=false flag_source=disabled gb_fresh=false
+2026-10-17T09:43:36.936Z [DEBUG] Artifact input schema built: assets=false copy_from=false assets_source=cold_no_identity
+2026-10-17T09:43:36.979Z [DEBUG] High write ratio: blit=559, write=2451 (81.4% writes), screen=44x170
+2026-10-17T09:43:36.979Z [DEBUG] anchor: libSystem *at loaded through bun:ffi
+2026-10-17T09:43:36.987Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.3ms (native link, next() included)
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.5ms (worker hop, next() included) key=91be6ab8-7544-4511-8852-46bf2502307f
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.4ms (worker hop, next() included) key=collapsed-406f3b3b-d2ee-4b1c-aaf4-2d39c0655543
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.4ms (worker hop, next() included) key=5ae10604-9f4d-4964-ae7e-74f5054d94af
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.4ms (worker hop, next() included) key=df391f6c-89ee-4ffc-8d78-c14d90f57980
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.3ms (worker hop, next() included) key=collapsed-4c76c947-0276-490d-a79e-5b8e8e068a05
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.3ms (worker hop, next() included) key=fc9aea31-d1b7-497b-be5f-acc46e4a348e
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.3ms (worker hop, next() included) key=a1a38d93-0d2e-4610-9655-5894510ef81d
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.2ms (worker hop, next() included) key=collapsed-7ae27fb0-b0aa-46e0-a908-6d4c50afa90b
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.2ms (worker hop, next() included) key=9fc9d856-41a0-453d-ad02-0aef369c286b
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.2ms (worker hop, next() included) key=334cf8df-e87d-42af-a442-5cc3a7be7aea
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.1ms (worker hop, next() included) key=collapsed-2ddc6995-a66b-4d1c-9222-283ce9e2648b
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.1ms (worker hop, next() included) key=0b17fd6d-2b91-4b13-a9b1-e6e9964ade47
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.1ms (worker hop, next() included) key=75da3770-f03a-446e-9b86-973516a8e92c
+2026-10-17T09:43:36.988Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.0ms (worker hop, next() included) key=collapsed-260c31cc-3ac5-4dc3-8e6a-28788fdecf77
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.0ms (worker hop, next() included) key=0794c880-ab6d-47c4-92ff-d346e0db9204
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 18.0ms (worker hop, next() included) key=8e8efcdd-dccb-4a91-84b0-d1fe6f619eb3
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.9ms (worker hop, next() included) key=collapsed-022004fc-04bf-4113-a842-b894ac1d6bdb
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.9ms (worker hop, next() included) key=a8724493-eaad-4a99-9e6e-8f475ba65528
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.8ms (worker hop, next() included) key=1b19ce8d-1bd6-4357-bfa4-00a25c9ce958
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.8ms (worker hop, next() included) key=collapsed-f015cb17-e2ac-4528-9367-c711b234ab46
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.8ms (worker hop, next() included) key=17b55905-113c-49fc-b122-b96362fadfcb
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.7ms (worker hop, next() included) key=4ff329c2-72f4-442e-9389-a757d86f7fad
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.7ms (worker hop, next() included) key=collapsed-009c0abd-0c0a-433b-bc73-588cba445010
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.7ms (worker hop, next() included) key=9e2a797d-fba6-4c06-bb79-bbdbb7df8515
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.7ms (worker hop, next() included) key=b52bc855-b914-419e-a6b9-c38baf3c51fa
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.6ms (worker hop, next() included) key=collapsed-16802870-db3d-4e51-890d-5d8a5e7656ff
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.6ms (worker hop, next() included) key=5a2948af-8f47-428c-801a-ea37ec15b169
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.6ms (worker hop, next() included) key=268b9b8d-bd1d-436f-af9a-223819d8b8d5
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.6ms (worker hop, next() included) key=collapsed-07395a65-0fdf-4b55-aafd-98d81d0818e6
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.5ms (worker hop, next() included) key=0f5f6e69-e36b-4014-bc17-07ad199c0979
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.5ms (worker hop, next() included) key=da6ae6b2-7f79-46d6-bb57-029a87581c86
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.5ms (worker hop, next() included) key=collapsed-21d33187-67b0-4853-b9e2-b0ea8c28589d
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.5ms (worker hop, next() included) key=e47a66e4-aebf-442e-a8fe-7bcc2da131f6
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.4ms (worker hop, next() included) key=f17fa620-0573-4c26-acfb-49f8fbe22180
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.4ms (worker hop, next() included) key=collapsed-c9eec923-3f31-46d9-b2e6-22d8dff10797
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.4ms (worker hop, next() included) key=a843b228-6f01-4005-b4e1-e131f0073747
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.3ms (worker hop, next() included) key=8a95ebbb-8006-4c34-8937-186a1e262318
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.3ms (worker hop, next() included) key=collapsed-eab93edf-e53f-4ea1-885e-8a4a321ff431
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.3ms (worker hop, next() included) key=47a66dbb-8cfa-4d84-a340-8ca3ed1f4d44
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.3ms (worker hop, next() included) key=7d166ee8-b9ce-4d15-b52d-62342833e1a0
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.3ms (worker hop, next() included) key=collapsed-314d511c-db6a-4e21-b94d-57aac71e5b4e
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.2ms (worker hop, next() included) key=9d533ca4-9da5-4829-ab8b-2fce806ada4c
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.2ms (worker hop, next() included) key=3b0a893f-4e87-4c2a-8601-b6eba5a8b4a1
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.1ms (worker hop, next() included) key=collapsed-e3eaa214-d582-4922-b614-f7c59e4c9eb9
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.1ms (worker hop, next() included) key=2cd77007-02a2-40b4-810c-ad1ba230ff9b
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.1ms (worker hop, next() included) key=1aa9c45e-f0ed-4615-ba34-86d40918d5fd
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.0ms (worker hop, next() included) key=collapsed-ea8ef44e-d8cd-4d40-84a1-94d1507a0681
+2026-10-17T09:43:36.989Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.0ms (worker hop, next() included) key=b1fd5b73-1c4f-4334-aeec-00f6da0fe803
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.0ms (worker hop, next() included) key=f680f45f-52d5-4d48-bed7-4d76a56a91f6
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.9ms (worker hop, next() included) key=collapsed-2c7cb0b1-6f1c-428a-b74e-20ecf35f86c8
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.9ms (worker hop, next() included) key=dda32e98-e666-4c29-8a1e-1e934e9fb267
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.7ms (worker hop, next() included) key=prompt-hint
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.9ms (worker hop, next() included) key=9d533ca4-9da5-4829-ab8b-2fce806ada4c
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.8ms (worker hop, next() included) key=3b0a893f-4e87-4c2a-8601-b6eba5a8b4a1
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.8ms (worker hop, next() included) key=collapsed-e3eaa214-d582-4922-b614-f7c59e4c9eb9
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.8ms (worker hop, next() included) key=2cd77007-02a2-40b4-810c-ad1ba230ff9b
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.7ms (worker hop, next() included) key=1aa9c45e-f0ed-4615-ba34-86d40918d5fd
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.7ms (worker hop, next() included) key=collapsed-ea8ef44e-d8cd-4d40-84a1-94d1507a0681
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.7ms (worker hop, next() included) key=b1fd5b73-1c4f-4334-aeec-00f6da0fe803
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.6ms (worker hop, next() included) key=f680f45f-52d5-4d48-bed7-4d76a56a91f6
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.6ms (worker hop, next() included) key=collapsed-2c7cb0b1-6f1c-428a-b74e-20ecf35f86c8
+2026-10-17T09:43:36.990Z [DEBUG] hooks module chat-toc@inline ui.render settled in 12.6ms (worker hop, next() included) key=dda32e98-e666-4c29-8a1e-1e934e9fb267
+2026-10-17T09:43:37.013Z [DEBUG] High write ratio: blit=559, write=2451 (81.4% writes), screen=44x170
+2026-10-17T09:43:37.017Z [DEBUG] chat-toc (user) answered ui.render without next() in 8.0ms; nothing beneath it ran for this dispatch
+2026-10-17T09:43:37.017Z [DEBUG] hooks module chat-toc@inline ui.render settled in 44.4ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.9ms (worker hop, next() included) key=9d533ca4-9da5-4829-ab8b-2fce806ada4c
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.8ms (worker hop, next() included) key=3b0a893f-4e87-4c2a-8601-b6eba5a8b4a1
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.8ms (worker hop, next() included) key=collapsed-e3eaa214-d582-4922-b614-f7c59e4c9eb9
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.7ms (worker hop, next() included) key=2cd77007-02a2-40b4-810c-ad1ba230ff9b
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.7ms (worker hop, next() included) key=1aa9c45e-f0ed-4615-ba34-86d40918d5fd
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.7ms (worker hop, next() included) key=collapsed-ea8ef44e-d8cd-4d40-84a1-94d1507a0681
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.6ms (worker hop, next() included) key=b1fd5b73-1c4f-4334-aeec-00f6da0fe803
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.6ms (worker hop, next() included) key=f680f45f-52d5-4d48-bed7-4d76a56a91f6
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.5ms (worker hop, next() included) key=collapsed-2c7cb0b1-6f1c-428a-b74e-20ecf35f86c8
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 9.5ms (worker hop, next() included) key=dda32e98-e666-4c29-8a1e-1e934e9fb267
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.9ms (worker hop, next() included) key=9d533ca4-9da5-4829-ab8b-2fce806ada4c
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.9ms (worker hop, next() included) key=3b0a893f-4e87-4c2a-8601-b6eba5a8b4a1
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.9ms (worker hop, next() included) key=collapsed-e3eaa214-d582-4922-b614-f7c59e4c9eb9
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.8ms (worker hop, next() included) key=2cd77007-02a2-40b4-810c-ad1ba230ff9b
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.8ms (worker hop, next() included) key=1aa9c45e-f0ed-4615-ba34-86d40918d5fd
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.8ms (worker hop, next() included) key=collapsed-ea8ef44e-d8cd-4d40-84a1-94d1507a0681
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.7ms (worker hop, next() included) key=b1fd5b73-1c4f-4334-aeec-00f6da0fe803
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.7ms (worker hop, next() included) key=f680f45f-52d5-4d48-bed7-4d76a56a91f6
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.7ms (worker hop, next() included) key=collapsed-2c7cb0b1-6f1c-428a-b74e-20ecf35f86c8
+2026-10-17T09:43:37.020Z [DEBUG] hooks module chat-toc@inline ui.render settled in 7.7ms (worker hop, next() included) key=dda32e98-e666-4c29-8a1e-1e934e9fb267
+2026-10-17T09:43:37.056Z [DEBUG] High write ratio: blit=7310, write=8160 (52.7% writes), screen=44x170
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.2ms (worker hop, next() included) key=91be6ab8-7544-4511-8852-46bf2502307f
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.2ms (worker hop, next() included) key=collapsed-406f3b3b-d2ee-4b1c-aaf4-2d39c0655543
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.2ms (worker hop, next() included) key=5ae10604-9f4d-4964-ae7e-74f5054d94af
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.2ms (worker hop, next() included) key=df391f6c-89ee-4ffc-8d78-c14d90f57980
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.1ms (worker hop, next() included) key=collapsed-4c76c947-0276-490d-a79e-5b8e8e068a05
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.1ms (worker hop, next() included) key=fc9aea31-d1b7-497b-be5f-acc46e4a348e
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.1ms (worker hop, next() included) key=a1a38d93-0d2e-4610-9655-5894510ef81d
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.1ms (worker hop, next() included) key=collapsed-7ae27fb0-b0aa-46e0-a908-6d4c50afa90b
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.1ms (worker hop, next() included) key=9fc9d856-41a0-453d-ad02-0aef369c286b
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.0ms (worker hop, next() included) key=334cf8df-e87d-42af-a442-5cc3a7be7aea
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.0ms (worker hop, next() included) key=collapsed-2ddc6995-a66b-4d1c-9222-283ce9e2648b
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.0ms (worker hop, next() included) key=0b17fd6d-2b91-4b13-a9b1-e6e9964ade47
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.0ms (worker hop, next() included) key=75da3770-f03a-446e-9b86-973516a8e92c
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.0ms (worker hop, next() included) key=collapsed-260c31cc-3ac5-4dc3-8e6a-28788fdecf77
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.0ms (worker hop, next() included) key=0794c880-ab6d-47c4-92ff-d346e0db9204
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 16.0ms (worker hop, next() included) key=8e8efcdd-dccb-4a91-84b0-d1fe6f619eb3
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.9ms (worker hop, next() included) key=collapsed-022004fc-04bf-4113-a842-b894ac1d6bdb
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.9ms (worker hop, next() included) key=a8724493-eaad-4a99-9e6e-8f475ba65528
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.9ms (worker hop, next() included) key=1b19ce8d-1bd6-4357-bfa4-00a25c9ce958
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.9ms (worker hop, next() included) key=collapsed-f015cb17-e2ac-4528-9367-c711b234ab46
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.9ms (worker hop, next() included) key=17b55905-113c-49fc-b122-b96362fadfcb
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.9ms (worker hop, next() included) key=4ff329c2-72f4-442e-9389-a757d86f7fad
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.8ms (worker hop, next() included) key=collapsed-009c0abd-0c0a-433b-bc73-588cba445010
+2026-10-17T09:43:37.068Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.8ms (worker hop, next() included) key=9d533ca4-9da5-4829-ab8b-2fce806ada4c
+2026-10-17T09:43:37.069Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.8ms (worker hop, next() included) key=3b0a893f-4e87-4c2a-8601-b6eba5a8b4a1
+2026-10-17T09:43:37.069Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.8ms (worker hop, next() included) key=collapsed-e3eaa214-d582-4922-b614-f7c59e4c9eb9
+2026-10-17T09:43:37.069Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.8ms (worker hop, next() included) key=2cd77007-02a2-40b4-810c-ad1ba230ff9b
+2026-10-17T09:43:37.069Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.8ms (worker hop, next() included) key=1aa9c45e-f0ed-4615-ba34-86d40918d5fd
+2026-10-17T09:43:37.069Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.8ms (worker hop, next() included) key=collapsed-ea8ef44e-d8cd-4d40-84a1-94d1507a0681
+2026-10-17T09:43:37.069Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.7ms (worker hop, next() included) key=b1fd5b73-1c4f-4334-aeec-00f6da0fe803
+2026-10-17T09:43:37.069Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.7ms (worker hop, next() included) key=f680f45f-52d5-4d48-bed7-4d76a56a91f6
+2026-10-17T09:43:37.069Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.7ms (worker hop, next() included) key=collapsed-2c7cb0b1-6f1c-428a-b74e-20ecf35f86c8
+2026-10-17T09:43:37.069Z [DEBUG] hooks module chat-toc@inline ui.render settled in 15.7ms (worker hop, next() included) key=dda32e98-e666-4c29-8a1e-1e934e9fb267
+2026-10-17T09:43:37.069Z [DEBUG] hooks module chat-toc@inline ui.render settled in 14.3ms (worker hop, next() included) key=dda32e98-e666-4c29-8a1e-1e934e9fb267
+2026-10-17T09:43:37.188Z [DEBUG] [fs.watch probe] verdict: delivers
+2026-10-17T09:43:37.198Z [DEBUG] hooks module chat-toc@inline ui.render settled in 10.3ms (worker hop, next() included) key=9d533ca4-9da5-4829-ab8b-2fce806ada4c
+2026-10-17T09:43:37.198Z [DEBUG] hooks module chat-toc@inline ui.render settled in 10.3ms (worker hop, next() included) key=dda32e98-e666-4c29-8a1e-1e934e9fb267
+2026-10-17T09:43:37.205Z [DEBUG] High write ratio: blit=1020, write=2364 (69.9% writes), screen=44x170
+2026-10-17T09:43:37.210Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.0ms (worker hop, next() included) key=collapsed-211a758e-eab7-42a9-96cb-f3ae126161d6
+2026-10-17T09:43:37.210Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.9ms (worker hop, next() included) key=964a5150-3a5a-4558-97db-1001072f6ac9
+2026-10-17T09:43:37.210Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.9ms (worker hop, next() included) key=ccd3a82b-50e0-41d7-9497-855d8b082833
+2026-10-17T09:43:37.210Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.9ms (worker hop, next() included) key=collapsed-f3e7376a-565b-49e6-9b5a-b181a7f15433
+2026-10-17T09:43:37.210Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.8ms (worker hop, next() included) key=3b02b98f-1078-4539-9c96-22509e9aee64
+2026-10-17T09:43:37.210Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.8ms (worker hop, next() included) key=408b97cd-476f-4e0f-beb4-951e70ba8749
+2026-10-17T09:43:37.210Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.7ms (worker hop, next() included) key=collapsed-963ea94a-bcaf-4d6c-9e87-bcc71a32aaf8
+2026-10-17T09:43:37.210Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.7ms (worker hop, next() included) key=5fd47534-4f51-4fb1-95f0-f13360de74dd
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.7ms (worker hop, next() included) key=e3ac0343-6656-40e2-9feb-61d12c4a6dfb
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.6ms (worker hop, next() included) key=collapsed-5992c8d9-9db1-4f63-9dfc-9d309edb59ce
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.6ms (worker hop, next() included) key=cb0acb58-2bed-4fc5-8f93-cc41ac7983c5
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.6ms (worker hop, next() included) key=364f26bb-a31e-44cf-9f3c-1ad7a35962b9
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.5ms (worker hop, next() included) key=collapsed-755cd0bf-4f63-479f-b585-92f2be565388
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.5ms (worker hop, next() included) key=6bbceff3-8533-4c75-9630-8385b0a348c7
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.5ms (worker hop, next() included) key=4eab740b-87f9-46d6-9dea-fba373f9bda5
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.4ms (worker hop, next() included) key=collapsed-8d3cf3ca-d4f7-41f2-877f-ba581f306690
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.4ms (worker hop, next() included) key=875e9bf5-dc40-478c-a143-985a3a632145
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.4ms (worker hop, next() included) key=d8109ce6-c3ec-469f-b516-7f44e91ede43
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.3ms (worker hop, next() included) key=collapsed-88a27615-08c6-4ee8-82be-a7753d32d01e
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.3ms (worker hop, next() included) key=747a7ff6-85a2-4301-a91d-6197eb97b930
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.3ms (worker hop, next() included) key=6a3db103-5f5f-4076-811d-9484d8d8dd47
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.2ms (worker hop, next() included) key=collapsed-871a7fdf-129a-4537-8bce-986455dff491
+2026-10-17T09:43:37.211Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.2ms (worker hop, next() included) key=d39d68e4-8c5c-4776-ad53-1a012ae9fe78
+2026-10-17T09:43:37.218Z [DEBUG] type root of chat-toc at <repo>/mods/chat-toc/.claude-plugin/types: entries claude-code, claude-code-tools, claude-code-mcp; wrote nothing
+2026-10-17T09:43:37.218Z [DEBUG] Registered 0 hooks from 4 plugins
+2026-10-17T09:43:37.219Z [DEBUG] session.start: raised (surface terminal, interactive)
+2026-10-17T09:43:37.220Z [DEBUG] High write ratio: blit=1020, write=2364 (69.9% writes), screen=44x170
+2026-10-17T09:43:37.220Z [DEBUG] Loaded plugins - Enabled: 4, Disabled: 0, Commands: 0, Agents: 0, Errors: 0
+2026-10-17T09:43:37.221Z [DEBUG] Plugin autoupdate: command-source refresh disabled by tengu_plugin_command_source_refresh (still excluding command-sourced plugins from the regular pass)
+2026-10-17T09:43:37.224Z [DEBUG] $.command.register (chat-toc): /chat-toc listed
+2026-10-17T09:43:37.229Z [DEBUG] $.command.register (cc-plugin-diff): /diff listed
+2026-10-17T09:43:37.230Z [DEBUG] hooks module cc-plugin-diff@builtin session.start settled in 1.6ms (native link, next() included)
+2026-10-17T09:43:37.230Z [DEBUG] hooks module cc-plugin-agents-md@builtin session.start settled in 1.7ms (native link, next() included)
+2026-10-17T09:43:37.231Z [DEBUG] hooks module chat-toc@inline session.start settled in 11.8ms (worker hop, next() included)
+2026-10-17T09:43:37.231Z [DEBUG] ui.open chat-toc chat-toc (unasked, 170 columns): placed
+2026-10-17T09:43:37.240Z [DEBUG] High write ratio: blit=0, write=4346 (100.0% writes), screen=44x170
+2026-10-17T09:43:37.242Z [DEBUG] hooks module chat-toc@inline classic.SessionStart settled in 22.8ms (worker hop, next() included)
+2026-10-17T09:43:37.251Z [DEBUG] hooks module chat-toc@inline ui.render settled in 13.6ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:37.254Z [DEBUG] High write ratio: blit=0, write=4369 (100.0% writes), screen=44x170
+2026-10-17T09:43:37.256Z [DEBUG] hooks module chat-toc@inline ui.render settled in 17.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:37.258Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.0ms (worker hop, next() included) key=9d533ca4-9da5-4829-ab8b-2fce806ada4c
+2026-10-17T09:43:37.279Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:37.281Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:37.305Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:37.307Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:37.350Z [DEBUG] hooks module cc-plugin-diff@builtin ui.render settled in 0.2ms (native link, next() included)
+2026-10-17T09:43:37.350Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.6ms (worker hop, next() included) key=collapsed-2ddc6995-a66b-4d1c-9222-283ce9e2648b
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.6ms (worker hop, next() included) key=0b17fd6d-2b91-4b13-a9b1-e6e9964ade47
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.6ms (worker hop, next() included) key=75da3770-f03a-446e-9b86-973516a8e92c
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.6ms (worker hop, next() included) key=collapsed-260c31cc-3ac5-4dc3-8e6a-28788fdecf77
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.6ms (worker hop, next() included) key=0794c880-ab6d-47c4-92ff-d346e0db9204
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.6ms (worker hop, next() included) key=8e8efcdd-dccb-4a91-84b0-d1fe6f619eb3
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.6ms (worker hop, next() included) key=collapsed-022004fc-04bf-4113-a842-b894ac1d6bdb
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=a8724493-eaad-4a99-9e6e-8f475ba65528
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=1b19ce8d-1bd6-4357-bfa4-00a25c9ce958
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=collapsed-f015cb17-e2ac-4528-9367-c711b234ab46
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=17b55905-113c-49fc-b122-b96362fadfcb
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=4ff329c2-72f4-442e-9389-a757d86f7fad
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=collapsed-009c0abd-0c0a-433b-bc73-588cba445010
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=9e2a797d-fba6-4c06-bb79-bbdbb7df8515
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=b52bc855-b914-419e-a6b9-c38baf3c51fa
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=collapsed-16802870-db3d-4e51-890d-5d8a5e7656ff
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=5a2948af-8f47-428c-801a-ea37ec15b169
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=268b9b8d-bd1d-436f-af9a-223819d8b8d5
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=collapsed-07395a65-0fdf-4b55-aafd-98d81d0818e6
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=0f5f6e69-e36b-4014-bc17-07ad199c0979
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=da6ae6b2-7f79-46d6-bb57-029a87581c86
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=collapsed-21d33187-67b0-4853-b9e2-b0ea8c28589d
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=e47a66e4-aebf-442e-a8fe-7bcc2da131f6
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=f17fa620-0573-4c26-acfb-49f8fbe22180
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=collapsed-c9eec923-3f31-46d9-b2e6-22d8dff10797
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.5ms (worker hop, next() included) key=a843b228-6f01-4005-b4e1-e131f0073747
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.4ms (worker hop, next() included) key=8a95ebbb-8006-4c34-8937-186a1e262318
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.4ms (worker hop, next() included) key=collapsed-eab93edf-e53f-4ea1-885e-8a4a321ff431
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.4ms (worker hop, next() included) key=47a66dbb-8cfa-4d84-a340-8ca3ed1f4d44
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.4ms (worker hop, next() included) key=7d166ee8-b9ce-4d15-b52d-62342833e1a0
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.4ms (worker hop, next() included) key=collapsed-314d511c-db6a-4e21-b94d-57aac71e5b4e
+2026-10-17T09:43:37.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.4ms (worker hop, next() included) key=9d533ca4-9da5-4829-ab8b-2fce806ada4c
+2026-10-17T09:43:37.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.4ms (worker hop, next() included) key=3b0a893f-4e87-4c2a-8601-b6eba5a8b4a1
+2026-10-17T09:43:37.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.4ms (worker hop, next() included) key=collapsed-e3eaa214-d582-4922-b614-f7c59e4c9eb9
+2026-10-17T09:43:37.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.4ms (worker hop, next() included) key=2cd77007-02a2-40b4-810c-ad1ba230ff9b
+2026-10-17T09:43:37.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.3ms (worker hop, next() included) key=1aa9c45e-f0ed-4615-ba34-86d40918d5fd
+2026-10-17T09:43:37.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.3ms (worker hop, next() included) key=collapsed-ea8ef44e-d8cd-4d40-84a1-94d1507a0681
+2026-10-17T09:43:37.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.3ms (worker hop, next() included) key=b1fd5b73-1c4f-4334-aeec-00f6da0fe803
+2026-10-17T09:43:37.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.3ms (worker hop, next() included) key=f680f45f-52d5-4d48-bed7-4d76a56a91f6
+2026-10-17T09:43:37.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.3ms (worker hop, next() included) key=collapsed-2c7cb0b1-6f1c-428a-b74e-20ecf35f86c8
+2026-10-17T09:43:37.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.3ms (worker hop, next() included) key=dda32e98-e666-4c29-8a1e-1e934e9fb267
+2026-10-17T09:43:37.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.3ms (worker hop, next() included) key=prompt-hint
+2026-10-17T09:43:38.224Z [DEBUG] wheel accel: window (native) · base=1 · platform=darwin · TERM_PROGRAM=unset
+2026-10-17T09:43:38.231Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 2.9ms; nothing beneath it ran for this dispatch
+2026-10-17T09:43:38.231Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 6.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.231Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:38.231Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:38.234Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.288Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.288Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:38.288Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:38.291Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.347Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.347Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:38.348Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:38.350Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.408Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.408Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:38.409Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:38.410Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.468Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.468Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:38.469Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.4ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:38.470Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.528Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.528Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:38.528Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:38.530Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.585Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 5.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.585Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:38.586Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.6ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:38.588Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.643Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.643Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:38.643Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:38.645Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.697Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.697Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:38.698Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:38.700Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.751Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:38.751Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:38.752Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:38.754Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.235Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.235Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:39.236Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:39.238Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.294Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.295Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:39.295Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.4ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:39.297Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.346Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.346Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:39.347Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:39.348Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.407Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.407Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:39.407Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:39.409Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.466Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.466Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:39.467Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.4ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:39.469Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.526Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.526Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:39.527Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:39.529Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.586Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.586Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:39.587Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:39.589Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.646Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.646Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:39.647Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:39.649Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.697Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.697Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:39.698Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:39.699Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.750Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:39.750Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:39.751Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:39.752Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.235Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.235Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:40.236Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.4ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:40.238Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.290Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.290Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:40.291Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:40.293Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.349Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.349Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:40.350Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:40.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.409Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.409Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:40.410Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:40.412Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.469Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.469Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:40.470Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:40.471Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.529Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.529Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:40.530Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:40.531Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.588Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.588Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:40.588Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:40.590Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.638Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.638Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:40.639Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:40.641Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.697Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.697Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:40.699Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:40.702Z [DEBUG] hooks module chat-toc@inline ui.render settled in 5.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.753Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:40.753Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:40.756Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:40.759Z [DEBUG] hooks module chat-toc@inline ui.render settled in 6.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.230Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.230Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:41.231Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:41.233Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.289Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.289Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:41.290Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:41.292Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.349Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.349Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:41.350Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:41.352Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.411Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 5.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.411Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:41.412Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.5ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:41.414Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.467Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.468Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:41.468Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:41.470Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.518Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.518Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:41.519Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:41.521Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.578Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.578Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:41.579Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:41.580Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.642Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.642Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:41.643Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:41.644Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.698Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.698Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:41.698Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:41.700Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.750Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:41.750Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:41.750Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:41.752Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.224Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.224Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:42.224Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:42.226Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.283Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.283Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:42.283Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:42.285Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.343Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.343Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:42.344Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:42.346Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.403Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.403Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:42.404Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:42.405Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.454Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.454Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:42.454Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:42.456Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.514Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.514Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:42.514Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:42.516Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.574Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.574Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:42.574Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:42.576Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.626Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.626Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:42.627Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:42.628Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.686Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.686Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:42.687Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:42.688Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.746Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:42.746Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:42.747Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:42.749Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.220Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.220Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:43.221Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:43.223Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.280Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.280Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:43.280Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:43.282Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.340Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.340Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:43.340Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:43.342Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.401Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.402Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:43.402Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:43.404Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.456Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.456Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:43.457Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:43.459Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.517Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.517Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:43.517Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:43.519Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.576Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.576Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:43.577Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:43.578Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.636Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.636Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:43.636Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:43.638Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.694Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.694Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:43.695Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:43.697Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.754Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:43.754Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:43.755Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:43.757Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.244Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.244Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:44.245Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:44.246Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.303Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.303Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:44.304Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:44.306Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.368Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.368Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:44.368Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:44.370Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.424Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.424Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:44.424Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:44.426Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.474Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.474Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:44.475Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:44.476Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.530Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.530Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:44.531Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:44.532Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.590Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.590Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:44.590Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:44.592Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.650Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.650Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:44.650Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:44.652Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.711Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.711Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:44.711Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:44.713Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.761Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:44.761Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:44.761Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:44.763Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.254Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.254Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:45.255Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:45.256Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.313Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.314Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:45.314Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:45.316Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.376Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.376Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:45.376Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:45.378Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.432Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.432Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:45.433Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:45.434Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.484Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.484Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:45.485Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:45.487Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.544Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.544Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:45.545Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:45.546Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.603Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.604Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:45.604Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:45.606Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.665Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.665Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:45.666Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.6ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:45.668Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.718Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.718Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:45.719Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.4ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:45.720Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.774Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:45.774Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:45.775Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:45.776Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.266Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 5.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.266Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:46.266Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:46.268Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.323Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.323Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:46.323Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.8ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:46.325Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.371Z [DEBUG] AutoUpdaterWrapper: Installation type: npm-global
+2026-10-17T09:43:46.384Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.384Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:46.384Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:46.386Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.439Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.439Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:46.440Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:46.441Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.500Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.500Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:46.500Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:46.502Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.560Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.560Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:46.561Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:46.562Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.621Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.621Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:46.621Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.4ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:46.623Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.681Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.681Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:46.682Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.6ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:46.684Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.738Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 5.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.738Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:46.739Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.6ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:46.741Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.792Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.792Z [DEBUG] ui.scroll Pane chat-toc (person) by -1 to 0: moved
+2026-10-17T09:43:46.793Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:46.795Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:46.997Z [DEBUG] chat-toc (user) answered ui.render without next() 93 more times in the last 10s (the last in 2.6ms)
+2026-10-17T09:43:47.343Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:47.343Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:47.343Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:47.345Z [DEBUG] chat-toc (user) answered ui.render without next() in 2.3ms; nothing beneath it ran for this dispatch
+2026-10-17T09:43:47.345Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:47.415Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:47.415Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:47.416Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:47.417Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:47.462Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:47.462Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:47.463Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:47.464Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:47.952Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:47.952Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:47.953Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.4ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:47.955Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.004Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.004Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:48.005Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:48.007Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.061Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.061Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:48.062Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:48.063Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.121Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.121Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:48.122Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:48.125Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.230Z [DEBUG] chat-toc (user) answered ui.scroll without next() 96 more times in the last 10s (the last in 0.8ms)
+2026-10-17T09:43:48.627Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 1.8ms; nothing beneath it ran for this dispatch
+2026-10-17T09:43:48.628Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 7.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.628Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:48.629Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:48.632Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.684Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.684Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:48.685Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.7ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:48.687Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.733Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.733Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:48.734Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:48.735Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.786Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:48.786Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:48.787Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:48.788Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.256Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.256Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:49.257Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:49.258Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.310Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.310Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:49.311Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:49.312Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.373Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.373Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:49.374Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:49.375Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.430Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.430Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:49.431Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:49.432Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.912Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.912Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:49.913Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:49.914Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.968Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:49.968Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:49.968Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:49.970Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.029Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.029Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:50.030Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:50.032Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.089Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.089Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:50.090Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.5ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:50.091Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.563Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.563Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:50.564Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:50.565Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.617Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.617Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:50.618Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:50.619Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.669Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.669Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:50.671Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:50.674Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.727Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 5.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:50.727Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:50.729Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:50.731Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.201Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.201Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:51.202Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:51.204Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.258Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.258Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:51.259Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:51.260Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.318Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.318Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:51.319Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:51.320Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.374Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.374Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:51.375Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:51.376Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.862Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.862Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:51.862Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:51.864Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.921Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.921Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:51.922Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:51.924Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.981Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:51.981Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:51.982Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:51.984Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:52.041Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:52.041Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:52.042Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.2ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:52.044Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:52.549Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 8.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:52.549Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:52.550Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:52.553Z [DEBUG] hooks module chat-toc@inline ui.render settled in 4.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:52.603Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:52.603Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:52.604Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:52.605Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:52.663Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:52.663Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:52.663Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:52.665Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:52.713Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:52.713Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:52.714Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:52.715Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.190Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.190Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:53.191Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:53.192Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.249Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.249Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:53.250Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:53.252Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.310Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.310Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:53.310Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:53.312Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.368Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.368Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:53.368Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:53.370Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.856Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.856Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:53.856Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.4ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:53.859Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.910Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.910Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:53.910Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:53.912Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.968Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:53.969Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:53.969Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:53.972Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:54.026Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:54.026Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:54.027Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:54.028Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:54.512Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:54.512Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:54.512Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:54.513Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:54.571Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:54.571Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:54.571Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:54.573Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:54.631Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:54.631Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:54.631Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:54.633Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:54.684Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:54.685Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:54.685Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:54.687Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.179Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.179Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:55.180Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.4ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:55.182Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.229Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.9ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.229Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:55.230Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:55.231Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.289Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.289Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:55.290Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:55.291Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.349Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.349Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:55.350Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:55.351Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.835Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.835Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:55.835Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.8ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:55.837Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.888Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.888Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:55.889Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:55.890Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.946Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:55.946Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:55.946Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:55.948Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:56.003Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:56.003Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:56.003Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:56.005Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:56.477Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 4.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:56.477Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:56.478Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.7ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:56.480Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:56.528Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:56.528Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:56.529Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:56.531Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:56.584Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:56.584Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:56.584Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:56.586Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:56.644Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:56.644Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:56.644Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:56.646Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.165Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 13.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.165Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:57.166Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.5ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:57.168Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.4ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.215Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.215Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:57.216Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:57.217Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.275Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.275Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:57.276Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:57.277Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.335Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.335Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:57.335Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:57.337Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.347Z [DEBUG] chat-toc (user) answered ui.render without next() 62 more times in the last 10s (the last in 1.9ms)
+2026-10-17T09:43:57.802Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.802Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:57.802Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:57.803Z [DEBUG] chat-toc (user) answered ui.render without next() in 1.8ms; nothing beneath it ran for this dispatch
+2026-10-17T09:43:57.804Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.2ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.861Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.861Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:57.861Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:57.863Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.914Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.914Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:57.915Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.3ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:57.917Z [DEBUG] hooks module chat-toc@inline ui.render settled in 3.0ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.964Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.7ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:57.964Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:57.965Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:57.966Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:58.454Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:58.454Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:58.455Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:58.457Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:58.513Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.6ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:58.513Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:58.514Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.0ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:58.515Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.3ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:58.573Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 2.8ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:58.573Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:58.574Z [DEBUG] hooks module chat-toc@inline ui.render settled in 0.9ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:58.575Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:58.624Z [DEBUG] chat-toc (user) answered ui.scroll without next() 62 more times in the last 10s (the last in 0.7ms)
+2026-10-17T09:43:58.627Z [DEBUG] chat-toc (user) answered ui.scroll without next() in 0.8ms; nothing beneath it ran for this dispatch
+2026-10-17T09:43:58.627Z [DEBUG] hooks module chat-toc@inline ui.scroll settled in 3.1ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:58.627Z [DEBUG] ui.scroll Pane chat-toc (person) by 1 to 0: moved
+2026-10-17T09:43:58.628Z [DEBUG] hooks module chat-toc@inline ui.render settled in 1.1ms (worker hop, next() included) key=above-prompt
+2026-10-17T09:43:58.630Z [DEBUG] hooks module chat-toc@inline ui.render settled in 2.5ms (worker hop, next() included) key=chat-toc
+2026-10-17T09:43:59.164Z [DEBUG] [REPL:unmount] REPL unmounting
+2026-10-17T09:43:59.166Z [DEBUG] [uds-messaging] Shutting down
+2026-10-17T09:43:59.170Z [DEBUG] LSP server manager shut down successfully
+2026-10-17T09:43:59.173Z [DEBUG] Preserving file permissions: 100644
+2026-10-17T09:43:59.173Z [DEBUG] Writing to temp file: <tmp>/home/.claude/.claude.json.tmp.21144.10e268b6d579
+2026-10-17T09:43:59.173Z [DEBUG] Applied original permissions to temp file
+2026-10-17T09:43:59.173Z [DEBUG] Temp file written successfully, size: 1837 bytes
+2026-10-17T09:43:59.173Z [DEBUG] Renaming <tmp>/home/.claude/.claude.json.tmp.21144.10e268b6d579 to <tmp>/home/.claude/.claude.json
+2026-10-17T09:43:59.173Z [DEBUG] File <tmp>/home/.claude/.claude.json written atomically

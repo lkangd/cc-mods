@@ -1,0 +1,45 @@
+==== data-001 new session, before the first message (44 rows)
+                                                                                                                             │                                          ✕
+ ▐▛███▛█   Claude Code v2.1.295                                                                                              │1: 全部   2: 用户   3: Agent
+▝▜██████▀  Opus 5.5 · API Usage Billing                                                                                      │━━━━━━━─────────────────────────────────────
+ ▝▝   ▝▝   <tmp>/project                                    │f: 搜索 词或文件路径                     ‹ ›
+                                                                                                                             │本会话还没有对话
+▎ Auto mode is now Claude Code's default permission mode.                                                                    │
+▎ Auto mode lets Claude handle permission prompts automatically. Claude checks each tool call for risky actions and prompt   │
+▎ injection before executing, runs the ones it assesses as lower-risk, and blocks the rest.                                  │
+▎ https://code.claude.com/docs/en/permission-modes                                                                           │
+  1 more notice hidden                                                                                                       │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │
+                                                                                                                             │────────────────────────────────────────────
+                                                                                                                             │                                l: 布局 卡片
+                                                                                                         ◐ medium · /effort  │
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents
