@@ -26,7 +26,7 @@ function desktopPane($: Engine, bodyRows = 30) {
     surface: 'desktop',
     component: 'Pane',
     requestId: PANE,
-    props: { title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows }, view: {} },
+    props: { title: 'ChatTOC', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows }, view: {} },
   } as never)
 }
 

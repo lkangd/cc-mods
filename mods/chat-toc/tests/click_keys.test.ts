@@ -54,7 +54,7 @@ test('a press on the focused pane asks for nothing', async ($, on) => {
   expect(world.opens.length).toBe(before)
 })
 
-const DESKTOP_PROPS = { title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} }
+const DESKTOP_PROPS = { title: 'ChatTOC', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} }
 
 function desktopPane($: Engine) {
   return $.ui.mount({ plugin: 'chat-toc', surface: 'desktop', component: 'Pane', requestId: PANE, props: DESKTOP_PROPS } as never)

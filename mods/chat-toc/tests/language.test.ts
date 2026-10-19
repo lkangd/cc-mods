@@ -39,16 +39,17 @@ async function english($: Engine, on: Parameters<typeof host>[0], env: Record<st
   return world
 }
 
-test('an English locale opens the pane titled in English', async ($, on) => {
+test("the pane's title is the plugin's name in every language", async ($, on) => {
   const world = await english($, on, { LANG: 'en_US.UTF-8' })
 
-  expect(world.opens).toEqual([{ id: PANE, title: 'Contents', columns: 44 }])
+  expect(world.opens).toEqual([{ id: PANE, title: 'ChatTOC', columns: 44 }])
 })
 
 test('no locale at all is English', async ($, on) => {
-  const world = await english($, on, {})
+  await english($, on, {})
+  const pane = await mountPane($)
 
-  expect(world.opens).toEqual([{ id: PANE, title: 'Contents', columns: 44 }])
+  expect(drawnButtons(await pane.drawn()).filter(b => isControlKey(b.key)).map(b => b.label)[0]).toBe('All')
 })
 
 test('in English the filters, the Layout Button, the steps, the day and the count read in English', async ($, on) => {
@@ -68,9 +69,10 @@ test('in English the filters, the Layout Button, the steps, the day and the coun
 })
 
 test('a Chinese locale under LC_ALL wins over an English LANG', async ($, on) => {
-  const world = await english($, on, { LC_ALL: 'zh_CN.UTF-8', LANG: 'en_US.UTF-8' })
+  await english($, on, { LC_ALL: 'zh_CN.UTF-8', LANG: 'en_US.UTF-8' })
+  const pane = await mountPane($)
 
-  expect(world.opens).toEqual([{ id: PANE, title: '目录', columns: 44 }])
+  expect(drawnButtons(await pane.drawn()).filter(b => isControlKey(b.key)).map(b => b.label)[0]).toBe('全部')
 })
 
 test('on the desktop the filters and the strip read in English', async ($, on) => {
@@ -80,7 +82,7 @@ test('on the desktop the filters and the strip read in English', async ($, on) =
     surface: 'desktop',
     component: 'Pane',
     requestId: PANE,
-    props: { title: 'Contents', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+    props: { title: 'ChatTOC', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
   } as never)
 
   const svgs: { alt: string; source: string }[] = []

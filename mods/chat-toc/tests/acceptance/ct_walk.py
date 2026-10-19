@@ -49,7 +49,7 @@ REPLY_LINES = 24
 PREVIOUS, NEXT = "\x1bk", "\x1bj"
 BINDINGS = {"bindings": [{"context": "Global", "bindings": {
     "meta+k": "app:toggleDiffNoiseFilter", "meta+j": "app:toggleDiffPreSession"}}]}
-BAND = "☰ ChatTOC"
+BAND = "ChatTOC  ‹ ›"
 
 
 # ---------- the K fixture ----------
@@ -295,7 +295,7 @@ def keys(host, run):
             t.wait_for(lambda term: top(term) != before and top(term), "clicks on the band's ‹ moving the transcript", timeout=10)
             actual["backTabClick"] = {"before": before, "after": top(t)}
             ev.append(t.snap("keys band with /diff in front"))
-            cs.click_tab(t, "目录")
+            cs.click_tab(t, "ChatTOC")
             t.wait_for(lambda term: pane(term) is not None and pane(term).entries and band_row(term) is None, "the band gone with the Pane in front", timeout=10)
             actual["bandGoneInFront"] = True
             ev.append(t.snap("keys Pane in front again, no band"))

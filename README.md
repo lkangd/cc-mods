@@ -48,8 +48,8 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 
 ### Getting started
 
-1. Start Claude Code in the fullscreen layout. The contents dock on the right by themselves, titled "Contents" (2.1.287 draws no title row).
-2. If the contents do not show, the terminal is narrower than Claude Code docks them by itself, and a line above the prompt stands in for them: `☰ ChatTOC  ‹ ›  │  12 user turns · 80 agent steps   Open contents ❯`. Widen the terminal and they dock by themselves, and the line goes; or click `Open contents ❯` (or run `/chat-toc`): Claude Code then docks them in a narrower terminal too, and below that places them above the prompt. Outside the fullscreen layout they open above the prompt by themselves; run `/tui fullscreen` to dock them on the right.
+1. Start Claude Code in the fullscreen layout. The contents dock on the right by themselves, titled "ChatTOC" (2.1.287 draws no title row).
+2. If the contents do not show, the terminal is narrower than Claude Code docks them by itself, and a line above the prompt stands in for them: `ChatTOC  ‹ ›  │  12 user turns · 80 agent steps   Open contents ❯   ✕`. Where the line is too narrow for all of it, the counts shorten from the end, then the name goes; Claude Code Desktop draws no `‹ ›`. Widen the terminal and they dock by themselves, and the line goes; or click `Open contents ❯` (or run `/chat-toc`): Claude Code then docks them in a narrower terminal too, and below that places them above the prompt. Outside the fullscreen layout they open above the prompt by themselves; run `/tui fullscreen` to dock them on the right.
 
 3. Click any entry to jump back to that turn in the conversation. After closing the pane with ✕, `/chat-toc` opens it again at any time, with the focus in it.
 
@@ -82,6 +82,9 @@ claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 | `Esc` (focus in the contents) | Moves the focus back to the prompt; the contents stay open |
 | `Ctrl+X` then `←` / `→` | Widens / narrows the contents (a Claude Code feature). A width you set wins |
 | Click ✕ | Closes the contents; they do not open by themselves again this session. A new session (including after `/clear` or `/resume`) opens them again |
+| Click `ChatTOC` on the line above the prompt | Opens the contents, as `Open contents ❯` does. Claude Code Desktop, and the terminal before Claude Code 2.1.303, draw it in the plain text colour |
+| Click `✕` at the right end of the line above the prompt (right after `Open contents ❯` before Claude Code 2.1.295) | Hides that line, in this session and every later one, and says how to bring it back. `/chat-toc` still opens the contents |
+| `/chat-toc-band` | Shows the line above the prompt again |
 | `/chat-toc` | Opens the contents when closed, brings them to the front when open (also when another pane pushed them back); either way moves the focus into them (with an empty prompt). It never closes them |
 | Claude Code Desktop: click an entry | Opens the preview right under that turn's entries, in a box with a rounded border; clicking another entry moves it there. Opening it does not scroll the contents: when it falls below the edge, scroll to it. The click also asks to jump, which the Claude app refuses without a word (see [Known limits](#known-limits)) |
 | Claude Code Desktop: type in the search field under the view choices | Narrows the list as on the terminal, at each change; the row of bars draws the matching turns in the accent colour and the rest dim. There is no `f: Find`: click the field |
@@ -156,7 +159,7 @@ chat-toc binds no key of its own. `‹` and `›` answer two Claude Code keybind
   - `--resume`, `--continue`, `/resume` in a session, `--fork-session`: the contents rebuild from that session and can jump to turns long ago that never showed.
   - Several terminals each show only their own session.
   - Enabling chat-toc in a running session (enable it in `/plugin`, or `claude plugin enable` then `/reload-plugins`): no restart needed; the contents list the conversation so far at once. If this session's transcript cannot be found, they show "The contents appear after the next message".
-- **With other docked panes** (such as `/diff`): they share the dock by Claude Code's tab rules. A newly opened pane always comes to the front; when chat-toc is pushed back it takes no focus, and the line above the prompt shows (`☰ ChatTOC  ‹ ›  │  …   Open contents ❯`) as it does while the contents are closed; brought to the front, the contents draw again and the line goes.
+- **With other docked panes** (such as `/diff`): they share the dock by Claude Code's tab rules. A newly opened pane always comes to the front; when chat-toc is pushed back it takes no focus, and the line above the prompt shows (`ChatTOC  ‹ ›  │  …   Open contents ❯   ✕`) as it does while the contents are closed; brought to the front, the contents draw again and the line goes.
 - **A narrowing terminal**: when the terminal gets so narrow that Claude Code moves the docked contents above the prompt, they stay there and still list the entries; widen it and they dock again.
 - **Language**: the words follow the system language: Chinese when the first set of `LC_ALL`, `LC_MESSAGES` and `LANG` starts with `zh`, English otherwise. This README quotes the English words.
 

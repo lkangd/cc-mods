@@ -536,7 +536,7 @@ def keep(host, run):
         rows = t.settle(quiet=1.5)
         behind = v.parse_pane(rows)
         actual["diffInFront"] = behind is None or behind.search is None
-        click_tab(t, "目录")
+        click_tab(t, "ChatTOC")
         p = t.wait_for(held, "the query after a back tab", timeout=10)
         actual["backTab"] = {"search": p.search}
         ev.append(t.snap("keep after a back tab"))

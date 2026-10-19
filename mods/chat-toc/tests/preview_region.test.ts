@@ -31,7 +31,7 @@ function focusedPane($: Engine, bodyRows = 30) {
     component: 'Pane',
     requestId: PANE,
     viewport: { columns: 160, rows: 40, isFullscreen: true },
-    props: { title: '目录', isFocused: true, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows }, view: {} },
+    props: { title: 'ChatTOC', isFocused: true, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows }, view: {} },
   })
 }
 
@@ -292,7 +292,7 @@ test('at a short height the Minimap goes first, then the preview shrinks to 4 ro
   await start($, world)
   const bars = async (pane: Awaited<ReturnType<typeof mountPane>>) => drawnButtons(await pane.drawn()).some(b => /^m\.\d+$/.test(String(b.key)))
 
-  const rows = (bodyRows: number) => ({ title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows }, view: {} })
+  const rows = (bodyRows: number) => ({ title: 'ChatTOC', isFocused: false, bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows }, view: {} })
   /* 23 rows: 18 left, the region 7, the Minimap 3, the list 8. */
   const pane = await mountPane($, 23)
   await openOn(pane, 'g5.u')

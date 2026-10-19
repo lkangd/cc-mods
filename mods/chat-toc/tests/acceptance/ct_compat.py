@@ -2,7 +2,7 @@
 on 2026-10-14 (f1f5494, MVP spec "Opening by itself checks nothing") and
 0.2 spec §6: at every start chat-toc asks for its Pane; the host places an
 unasked Pane only from its floor (144 columns) and leaves it waiting
-undrawn below that, while the band above the prompt (`☰ ChatTOC … 展开目录
+undrawn below that, while the band above the prompt (`ChatTOC  ‹ › … 展开目录
 ❯`) stands for it. Whatever placement the host gives, dock or inline, is
 kept: chat-toc never closes its own Pane. No status line is written.
 
@@ -45,7 +45,7 @@ PLUGIN = pathlib.Path(__file__).resolve().parents[2]
 
 # the old status lines (before f1f5494): none may show any more
 OLD_STATUSES = ("目录只在全屏布局里停靠在右侧", "终端太窄，目录没有停靠", "终端太窄，目录暂时放在输入框上方", "非全屏布局里目录放在输入框上方")
-BAND = "☰ ChatTOC"
+BAND = "ChatTOC  ‹ ›"
 BAND_OPEN = "展开目录"
 FLOOR = re.compile(r"ui\.open chat-toc chat-toc \(unasked, (\d+) columns\): waits unplaced \(unasked below (\d+) columns")
 

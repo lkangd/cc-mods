@@ -51,7 +51,7 @@ test('Desktop draws no ‹ ›: it cannot move the transcript', async ($, on) =>
     surface: 'desktop',
     component: 'Pane',
     requestId: PANE,
-    props: { title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+    props: { title: 'ChatTOC', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
   } as never)
   await world.clock.settle()
   const keys = drawnButtons(await pane.drawn()).map(b => b.key)
@@ -69,7 +69,7 @@ test('the focus ring steps over ‹ ›: down from the search row lands on the f
     component: 'Pane',
     requestId: PANE,
     viewport: { columns: 160, rows: 40, isFullscreen: true },
-    props: { title: '目录', isFocused: true, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
+    props: { title: 'ChatTOC', isFocused: true, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
   })
   await world.clock.settle()
   const arrow = (element: string) => $.ui.focus({ component: 'Pane', requestId: PANE, element, origin: { kind: 'person' } } as never)

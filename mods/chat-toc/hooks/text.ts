@@ -17,8 +17,9 @@ export function languageOf(locale: Locale): Language {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 /* What the band above the prompt counts: the listed turns, and the agent's
-   steps (tool calls) across them; then the context use, when there is one. */
-export type BandCounts = { turns: number; steps: number; percent?: number | undefined }
+   steps (tool calls) across them; then the context use, when there is one.
+   A band too narrow for them all leaves the steps out. */
+export type BandCounts = { turns: number; steps?: number | undefined; percent?: number | undefined }
 
 /* A run of the band's counts; the numbers are drawn stronger. */
 export type BandPart = { text: string; isNumber: boolean }
@@ -36,8 +37,9 @@ const enContextUse = (percent: number, isShort: boolean) => (isShort ? `${percen
 const zhContextUse = (percent: number, isShort: boolean) => (isShort ? `已用 ${percent}%` : `上下文已用 ${percent}%`)
 
 const EN = {
-  paneTitle: 'Contents',
   commandDescription: 'Open the conversation contents',
+  bandCommandDescription: 'Show the ChatTOC band above the prompt again',
+  bandHidden: 'ChatTOC band hidden; /chat-toc-band shows it again',
   empty: 'No conversation in this session yet',
   notWritten: 'This session has no transcript file yet; the contents appear after the first message',
   unlocated: 'The contents appear after the next message',
@@ -51,13 +53,12 @@ const EN = {
   layoutButton: (name: string) => `Layout: ${name}`,
   turns: (n: number) => count(n, 'turn', 'turns'),
   steps: (n: number) => count(n, 'step', 'steps'),
-  bandCounts: (c: BandCounts): BandPart[] => [
+  /* `isShort` says the context use short. */
+  bandCounts: (c: BandCounts, isShort = false): BandPart[] => [
     n(c.turns),
     w(c.turns === 1 ? ' user turn' : ' user turns'),
-    w(' · '),
-    n(c.steps),
-    w(c.steps === 1 ? ' agent step' : ' agent steps'),
-    ...(c.percent === undefined ? [] : [w(` · ${enContextUse(c.percent, false)}`)]),
+    ...(c.steps === undefined ? [] : [w(' · '), n(c.steps), w(c.steps === 1 ? ' agent step' : ' agent steps')]),
+    ...(c.percent === undefined ? [] : [w(` · ${enContextUse(c.percent, isShort)}`)]),
   ],
   bandOpen: 'Open contents ❯',
   running: 'Running',
@@ -117,8 +118,9 @@ const EN = {
 export type Text = typeof EN
 
 const ZH: Text = {
-  paneTitle: '目录',
   commandDescription: '打开对话目录',
+  bandCommandDescription: '重新显示输入框上方的 ChatTOC 栏',
+  bandHidden: '已隐藏 ChatTOC 栏，/chat-toc-band 可重新显示',
   empty: '本会话还没有对话',
   notWritten: '本会话还没写进 transcript 文件，提交第一条消息后显示目录',
   unlocated: '提交下一条消息后显示目录',
@@ -132,13 +134,12 @@ const ZH: Text = {
   layoutButton: name => `布局 ${name}`,
   turns: n => `${n} 轮`,
   steps: n => `${n} 步`,
-  bandCounts: c => [
+  bandCounts: (c, isShort = false) => [
     w('用户 '),
     n(c.turns),
-    w(' 轮 · Agent '),
-    n(c.steps),
-    w(' 步'),
-    ...(c.percent === undefined ? [] : [w(` · ${zhContextUse(c.percent, false)}`)]),
+    w(' 轮'),
+    ...(c.steps === undefined ? [] : [w(' · Agent '), n(c.steps), w(' 步')]),
+    ...(c.percent === undefined ? [] : [w(` · ${zhContextUse(c.percent, isShort)}`)]),
   ],
   bandOpen: '展开目录 ❯',
   running: '进行中',

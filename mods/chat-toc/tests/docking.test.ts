@@ -6,7 +6,7 @@ import { PANE, host, mountPane, start } from './host'
    waiting undrawn; chat-toc neither closes it nor explains on the status
    line. */
 
-const OPEN = { id: PANE, title: '目录', columns: 44 }
+const OPEN = { id: PANE, title: 'ChatTOC', columns: 44 }
 const SESSION = { cwd: '/home/synthetic/project', surface: 'terminal', isInteractive: true } as const
 
 test('the pane opens at the start without waiting for the terminal to say its layout', async ($, on) => {
@@ -45,7 +45,7 @@ test('a docked pane the host turns inline is kept as it is', async ($, on) => {
   const pane = await mountPane($)
   await world.clock.settle()
 
-  await pane.redraw({ title: '目录', isFocused: false, bodyColumns: 96, placement: 'inline', scroll: { offset: 0, bodyRows: 12 }, view: {} })
+  await pane.redraw({ title: 'ChatTOC', isFocused: false, bodyColumns: 96, placement: 'inline', scroll: { offset: 0, bodyRows: 12 }, view: {} })
   await world.clock.settle()
 
   expect(world.closes).toEqual([])

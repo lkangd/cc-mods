@@ -45,12 +45,12 @@ import {
 } from './jump'
 import type { Refused } from './jump'
 import { carriesHistory, hidesPane, isClosedByPerson, reopensOn } from './lifecycle'
-import { CLEAR_CONTROL, PANE_COLUMNS, PANE_ID, SEARCH_CONTROL, SEARCH_FIELD, SEARCH_ROWS, claimsKeys, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
+import { CLEAR_CONTROL, PANE_COLUMNS, PANE_ID, PANE_TITLE, SEARCH_CONTROL, SEARCH_FIELD, SEARCH_ROWS, claimsKeys, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
 import type { ExpandedView, LabelActions, PreviewView, SearchView } from './pane'
 import { PREVIEW_CONTROL, expandedBody, filesLine, metaLine, previewBody, previewPlan, typedInput } from './preview'
 import type { ExpandedBody, PathBase, PreviewBody } from './preview'
 import { FILTER_END, LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
-import { COPIED_MS, fillOf, fillRefusedText, hasReuse, reusableOf } from './reuse'
+import { COPIED_MS, fillOf, fillRefusedText, hasReuse, isAtLeast, reusableOf } from './reuse'
 import type { CopySide } from './reuse'
 import { indexGroups, matchShown, matchedFields, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
 import type { Match } from './search'
@@ -59,7 +59,7 @@ import { listedGroups, walkFrom } from './walk'
 import type { WalkDirection } from './walk'
 import { languageOf, setLanguage, text as words } from './text'
 import type { BandCounts } from './text'
-import { drawBand } from './band'
+import { BAND_HIDDEN_KEY, DISMISS_RIGHT_SINCE, TITLE_PRESS_SINCE, drawBand } from './band'
 import { rewoundFrom } from './rewind'
 import { FILTER_KEY, LAYOUT_KEY, filterOf, jumpSide, layoutOf, nextLayout } from './view'
 import type { Layout, ViewFilter } from './view'
@@ -243,6 +243,9 @@ let isRedrawQueued = false
    the band again when the pane comes to the front by a switch of tabs, so
    the pane's drawing asks for it. */
 let isBandDrawn = false
+/* Whether the person hid the band with its ✕, read from `$.store` at each
+   `session.start`; `/chat-toc-band` shows it again. */
+let isBandHidden = false
 
 /* For the Current position (position.ts): the drawable rows' and the group
    openers' places on the chain, the last row drawn, the group a jump
@@ -710,7 +713,17 @@ async function locate($: EngineInterface, cwd: string): Promise<void> {
 }
 
 function openPane($: EngineInterface, focus?: true) {
-  return $.ui.open({ id: PANE_ID, title: words.paneTitle, columns: PANE_COLUMNS, ...(focus === undefined ? {} : { focus }) })
+  return $.ui.open({ id: PANE_ID, title: PANE_TITLE, columns: PANE_COLUMNS, ...(focus === undefined ? {} : { focus }) })
+}
+
+/* The band's ✕ hides it here and in every later session, saying how to
+   bring it back; `/chat-toc-band` shows it. A store that refuses it only
+   means it is not remembered. */
+async function setBandHidden($: EngineInterface, isHidden: boolean): Promise<void> {
+  isBandHidden = isHidden
+  await update($, rev, n => n + 1)
+  if (isHidden) $.ui.toast(words.bandHidden)
+  await $.store.set(BAND_HIDDEN_KEY, isHidden).catch(() => undefined)
 }
 
 /* The keys asked for the open pane, as /chat-toc asks: the host grants them
@@ -732,6 +745,8 @@ async function openUnasked($: EngineInterface): Promise<void> {
   if (await read($, isClosed)) return
   const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
   const isPlaced = pane === undefined ? (await openPane($)).isPlaced : pane.isPlaced
+  /* One kept across a hot reload takes the title this release gives it. */
+  if (pane !== undefined && pane.title !== PANE_TITLE) await openPane($).catch(() => undefined)
   await update($, isPaneHidden, () => !isPlaced)
 }
 
@@ -857,6 +872,7 @@ function selectionMoved($: EngineInterface, element: string | undefined): void {
 async function loadChoices($: EngineInterface): Promise<void> {
   filter = filterOf(await $.store.get(FILTER_KEY).catch(() => undefined))
   layout = layoutOf(await $.store.get(LAYOUT_KEY).catch(() => undefined))
+  isBandHidden = (await $.store.get(BAND_HIDDEN_KEY).catch(() => undefined)) === true
 }
 
 /* `p`, or a press on the ✕: the preview closed, from the region or
@@ -1231,6 +1247,7 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await askLanguage($)
     await $.command.register({ name: 'chat-toc', description: words.commandDescription, immediate: true })
+    await $.command.register({ name: 'chat-toc-band', description: words.bandCommandDescription, immediate: true })
     await loadChoices($)
     await learnPaths($, e.cwd)
     await readContextUse($)
@@ -1252,6 +1269,11 @@ export const register: Register = on => {
 
   on('command.run', { command: 'chat-toc' }, async $ => {
     await openAsked($)
+    return {}
+  })
+
+  on('command.run', { command: 'chat-toc-band' }, async $ => {
+    await setBandHidden($, false)
     return {}
   })
 
@@ -1343,9 +1365,18 @@ export const register: Register = on => {
     await read($, rev)
     await read($, isPaneHidden)
     const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
-    isBandDrawn = !e.props.hasSurvey && (pane === undefined || !pane.isPlaced || !pane.isShown)
+    isBandDrawn = !isBandHidden && !e.props.hasSurvey && (pane === undefined || !pane.isPlaced || !pane.isShown)
     if (!isBandDrawn) return next(e)
-    return drawBand($.ui.resolve(e), { counts: bandCounts(), onOpen: () => openAsked($), onWalk: direction => walkTurn($, direction, false) })
+    return drawBand($.ui.resolve(e), {
+      surface: e.surface,
+      columns: e.props.bodyColumns,
+      counts: bandCounts(),
+      hasStyledTitle: hostBase !== undefined && isAtLeast(hostBase, TITLE_PRESS_SINCE),
+      canPushRight: hostBase !== undefined && isAtLeast(hostBase, DISMISS_RIGHT_SINCE),
+      onOpen: () => openAsked($),
+      onWalk: direction => walkTurn($, direction, false),
+      onDismiss: () => setBandHidden($, true),
+    })
   })
 
   /* A click presses a terminal Button and leaves the keys in the composer;

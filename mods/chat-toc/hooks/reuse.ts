@@ -56,7 +56,7 @@ export const DESKTOP_REUSE_SINCE: string | undefined = undefined
 /* A release's numbers: `2.1.300-dev` is 2.1.300. */
 const releaseOf = (base: string) => base.split('-')[0]!.split('.').map(n => Number(n) || 0)
 
-function isAtLeast(base: string, since: string): boolean {
+export function isAtLeast(base: string, since: string): boolean {
   const a = releaseOf(base)
   const b = releaseOf(since)
   for (let i = 0; i < Math.max(a.length, b.length); i++) {

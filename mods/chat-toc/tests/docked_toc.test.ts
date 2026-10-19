@@ -9,15 +9,23 @@ test('a session start opens the docked pane, 44 columns wide', async ($, on) => 
   const world = host(on)
   await start($, world)
 
-  expect(world.opens).toEqual([{ id: PANE, title: '目录', columns: 44 }])
+  expect(world.opens).toEqual([{ id: PANE, title: 'ChatTOC', columns: 44 }])
 })
 
 test('a pane already open, as after a hot reload, is not opened again', async ($, on) => {
   const world = host(on)
-  world.panes = [{ id: PANE, title: '目录', isShown: true, isFocused: false, isPlaced: true }]
+  world.panes = [{ id: PANE, title: 'ChatTOC', isShown: true, isFocused: false, isPlaced: true }]
   await start($, world)
 
   expect(world.opens).toEqual([])
+})
+
+test('a pane kept across a hot reload under an older title is retitled, not opened anew', async ($, on) => {
+  const world = host(on)
+  world.panes = [{ id: PANE, title: '目录', isShown: true, isFocused: false, isPlaced: true }]
+  await start($, world)
+
+  expect(world.opens).toEqual([{ id: PANE, title: 'ChatTOC', columns: 44 }])
 })
 
 test('the /chat-toc command is registered and opens the pane', async ($, on) => {
@@ -28,7 +36,7 @@ test('the /chat-toc command is registered and opens the pane', async ($, on) => 
 
   const ran = await $.command.run({ command: 'chat-toc', args: '' } as never)
 
-  expect(world.opens).toEqual([{ id: PANE, title: '目录', columns: 44, focus: true }])
+  expect(world.opens).toEqual([{ id: PANE, title: 'ChatTOC', columns: 44, focus: true }])
   expect(ran).toBeDefined()
 })
 

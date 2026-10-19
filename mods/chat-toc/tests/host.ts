@@ -291,7 +291,7 @@ export function mountPane($: Engine, bodyRows = 30, placement: 'dock' | 'inline'
     requestId: PANE,
     viewport: { columns: 160, rows: 40, isFullscreen },
     props: {
-      title: '目录',
+      title: 'ChatTOC',
       isFocused: false,
       bodyColumns: 44,
       placement,

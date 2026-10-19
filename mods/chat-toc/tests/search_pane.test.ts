@@ -191,7 +191,7 @@ test('the query survives a filter switch, a Layout switch and the pane drawn aga
   await pane.press({ key: 'layout' })
   await world.clock.settle()
   expect((await field(pane))?.props.value).toBe('login')
-  await pane.redraw({ title: '目录', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} })
+  await pane.redraw({ title: 'ChatTOC', isFocused: false, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} })
   expect((await field(pane))?.props.value).toBe('login')
 })
 
@@ -267,7 +267,7 @@ test('the focus ring: up from the first entry lands on the search row, not the f
     component: 'Pane',
     requestId: PANE,
     viewport: { columns: 160, rows: 40, isFullscreen: true },
-    props: { title: '目录', isFocused: true, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
+    props: { title: 'ChatTOC', isFocused: true, bodyColumns: 44, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
   })
   await world.clock.settle()
   const arrow = (element: string) => $.ui.focus({ component: 'Pane', requestId: PANE, element, origin: { kind: 'person' } } as never)
