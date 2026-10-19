@@ -14,3 +14,15 @@
 证据：`pty/2.1.287/ct-marketplace/`、`pty/2.1.295/ct-marketplace/`（命令输出 `commands-local-*.txt`、debug 日志里 chat-toc 的行、截屏、`run.jsonl`）。
 
 会话中途经 marketplace 启用（CT-LIFE-007）另用运行目录里临时搭的目录 marketplace，见 `report.md` 与 `pty/<版本>/ct-mid-session/`。
+
+## 发布后：从 GitHub 的安装级检查
+
+- 脚本：`tests/acceptance/ct_marketplace.py --source github --host 2.1.287 --host current`，2026-10-19 10:28（UTC+8），main 在发布提交 `fa71b4d`，仓库默认分支确认为 `main`。隔离世界、未登录、没有 `--plugin-dir`，不调用模型。
+- 步骤：`claude plugin marketplace add lkangd/cc-mods`（宿主经 HTTPS 克隆仓库默认分支 main）→ `claude plugin install chat-toc@cc-mods`（复制进 `plugins/cache/cc-mods/chat-toc/0.2.0/`）→ `claude plugin list` → 全屏会话 `--resume` 一份 12 轮的合成 transcript → Pane 自动停靠 → 点 T0000 的用户侧。
+
+| Claude Code | add / install / list | `plugin list` | 加载为 | Pane 自动停靠 | 点击跳转 | 结果 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2.1.287 | 0 / 0 / 0 | `chat-toc@cc-mods` 0.2.0 enabled | `chat-toc@cc-mods` | 是 | T0000 到了视口顶部 | 通过 |
+| 2.1.295 | 0 / 0 / 0 | `chat-toc@cc-mods` 0.2.0 enabled | `chat-toc@cc-mods` | 是 | T0000 到了视口顶部 | 通过 |
+
+证据：`github-install/`（命令输出、debug 日志里 chat-toc 的行、截屏、`run.jsonl`）。
