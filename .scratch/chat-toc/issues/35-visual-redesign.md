@@ -1,44 +1,44 @@
-# 35: 界面改版——时间轨主体（方案 C）+ 页签与底栏（方案 A），桌面端单独绘制
+# 35: Redesign: time rail body (option C) + tabs and footer (option A), the desktop drawn on its own
 
-**What to build:** 按 2026-10-13 方案页（https://claude.ai/artifact/UaH5mTQ54cuS4Xd8cfV8Pt）的方案 C 改终端目录主体，顶部筛选与底部按钮改用方案 A 的展示方式；桌面端（及 vscode / mobile）按方案 C 的桌面版单独绘制。
+**What to build:** Change the terminal contents' body to option C of the 2026-10-13 options page (https://claude.ai/artifact/UaH5mTQ54cuS4Xd8cfV8Pt), and show the top filter and the bottom buttons the way option A does; draw the desktop (and vscode / mobile) on its own, following option C's desktop version.
 
-**Blocked by:** 无
+**Blocked by:** none
 
 **Status:** done
 
-## 已定的决定（2026-10-13）
+## Decisions made (2026-10-13)
 
-- 使用者选定：整体用方案 C；终端顶部与底部按钮的交互展示改用方案 A。桌面端同一轮一起做。
-- 测试接口（使用者确认）：`entriesOf` 条目生成、`wrapCells` 折行、Pane 绘制（test kit 的 `$.ui.mount`，含 `surface: 'desktop'`）、PTY 验收 verifier（`toc_verifier.parse_pane`）。
-- 顶部（方案 A）：三个 plain Button，label 只写名字（`全部`/`用户`/`Agent`），宿主画成 `1: 全部`；选中项不淡化，其余 `dimColor`；下一行是规则线，选中按钮正下方 `━`（`suggestion`），其余 `─`（`subtle`）；再空一行。布局按钮离开顶部。
-- 底部（方案 A）：一行 `─`（`subtle`），下一行左边 `N 轮`（淡化；N 是目录持有的 Turn group 数，不随筛选变）或暂停时 `⏸ 暂停跟随`（`warning`），右边 plain Button `l: 布局 卡片`。底栏固定在面板底部。跳转被拒说明和数据源说明仍在列表下方。
-- 主体（方案 C）：
-  - 用户侧首行节点 `●`，Agent 侧首行分支 `├╴`，续行与组间空行是轨道 `│`；当前位置变 `◉` / `┣╸` / `┃`，整条 gutter（含时间）用 `suggestion`。进行中的 Agent 侧在分支后加 `◐`（`claude`）。
-  - 卡片：没有时间列，`HH:MM` 在用户侧首行右端（淡化）；每侧最多 2 行。Agent 侧是「状态 · 回复」一段，整段淡化，不再有 `↳` 和单独的头行；也不再有「你 · 日期」头行。
-  - 紧凑：左列 `HH:MM`，每侧 1 行。时间轴：左列 `HH:MM`，每侧最多 2 行。时间写在组里第一个显示的那一侧。
-  - 日期分隔：列表里日期变化处（含第一组）插一行 `─ 10月12日 ───`，今天写 `今天 · 10月13日`，不是今年的带年份；读不到时间的组不触发、也不重置。卡片与时间轴里分隔前的组间空行不画轨道。
-  - 悬停：同侧各行变 `suggestion` 色，不再整侧反色（指针正下方那一行仍由宿主反色）。
-- 折行：右侧闭合标点不出现在行首（把上一行最后一个字带下来）；不超过 14 个字符的英文词 / 路径整体换到下一行。
-- 桌面端：按 `e.surface` 分树。顶部三个 Button（选中的 `variant="primary"`）加布局 Select（没有 Select 的 surface 用按钮循环）；Svg 缩略条每轮一根竖条，高度按步数，当前位置与进行中上色，Svg 内自带 `prefers-color-scheme` 与 `prefers-reduced-motion`；条目每侧一个 Button，不预先折行；日期分隔与时间列同终端；底部是轮数或暂停。条目窗口沿用终端的窗口逻辑，保证一棵树有界。
-- 规格里「不承诺 Desktop」改为承诺桌面端可用、观感由使用者在 Claude 应用里目检。
-- 没有 Jump target 的一侧（被拒、resume 前已 compact）：Agent 侧本来就整段淡化，分不出来，改为首行挂空心记号——用户侧 `○`、Agent 侧 `├┄`（`subtle`），用户侧文字仍淡化（使用者 2026-10-13 选定）。
+- The user chose: option C overall; the terminal's top and bottom buttons use option A's interaction and look. The desktop is done in the same round.
+- Test interfaces (the user confirmed): `entriesOf` entry generation, `wrapCells` line wrapping, Pane drawing (the test kit's `$.ui.mount`, including `surface: 'desktop'`), and the PTY acceptance verifier (`toc_verifier.parse_pane`).
+- Top (option A): three plain Buttons whose labels carry only the name (`All`/`User`/`Agent`), drawn by the host as `1: All`; the selected one is not dimmed and the others are `dimColor`; the next line is a rule line, with `━` (`suggestion`) right under the selected button and `─` (`subtle`) elsewhere; then one blank line. The Layout button leaves the top.
+- Bottom (option A): one line of `─` (`subtle`); on the next line, on the left `N turns` (dimmed; N is the number of Turn groups the contents hold, and does not change with the filter), or `⏸ Not following` (`warning`) when paused, and on the right a plain Button `l: Layout: Card`. The footer is fixed at the bottom of the pane. The jump-refused note and the data-source note stay below the list.
+- Body (option C):
+  - On the User side the first line has the node `●`, on the Agent side the first line has the branch `├╴`, and continuation lines and the blank lines between groups are the rail `│`; the Current position turns into `◉` / `┣╸` / `┃`, and the whole gutter (including the time) uses `suggestion`. A running Agent side gets `◐` (`claude`) after the branch.
+  - Card: no time column; `HH:MM` sits at the right end of the User side's first line (dimmed); at most 2 lines per side. The Agent side is one "state · reply" segment, dimmed as a whole, with no more `↳` and no separate head line; there is no more "you · date" head line either.
+  - Compact: `HH:MM` in the left column, 1 line per side. Timeline: `HH:MM` in the left column, at most 2 lines per side. The time is written on the first side shown in the group.
+  - Date separators: where the date changes in the list (including the first group), insert a line `─ Oct 12 ───`; today is written `Today · Oct 13`, and dates not in this year carry the year; a group whose time cannot be read neither triggers nor resets. In Card and Timeline, the blank line between groups before a separator does not draw the rail.
+  - Hover: the lines of the same side turn `suggestion` in colour, and the whole side is no longer inverse (the line right under the pointer is still inverted by the host).
+- Line wrapping: a closing punctuation mark on the right does not start a line (the last character of the previous line is brought down); an English word / path of no more than 14 characters moves to the next line as a whole.
+- Desktop: split the tree by `e.surface`. Three Buttons at the top (the selected one `variant="primary"`) plus a Layout Select (a surface without Select uses a button that cycles); the Svg minimap has one vertical bar per turn, its height by step count, with the Current position and running turns coloured, and the Svg carries its own `prefers-color-scheme` and `prefers-reduced-motion`; each side of an entry is one Button, not pre-wrapped; the date separators and the time column are the same as the terminal; the bottom is the turn count or paused. The entry window reuses the terminal's window logic, so the tree stays bounded.
+- "Desktop not promised" in the spec becomes a promise that the desktop works, with its look checked by the user by eye in the Claude app.
+- A side with no Jump target (refused, or compacted before a resume): the Agent side is already dimmed as a whole and so cannot be told apart, so a hollow mark hangs on the first line: `○` on the User side, `├┄` on the Agent side (`subtle`), and the User side's text is still dimmed (the user chose this on 2026-10-13).
 
-## 步骤
+## Steps
 
-- [x] 折行：避头标点、英文词整体换行
-- [x] 顶部页签与规则线
-- [x] 底栏：轮数 / 暂停、布局按钮
-- [x] 条目：卡片 / 紧凑 / 时间轴的新行模型
-- [x] 日期分隔与行高
-- [x] gutter：节点、轨道、当前位置、进行中；悬停色
-- [x] 桌面端分树与缩略条
-- [x] verifier 与场景脚本跟上新格式；两版宿主 PTY 验收
-- [x] 文档：spec、CONTEXT、根 README、开发者 README
+- [x] Line wrapping: no closing punctuation at the line start, English words wrapped as a whole
+- [x] Top tabs and the rule line
+- [x] Footer: turn count / paused, the Layout button
+- [x] Entries: the new line model of Card / Compact / Timeline
+- [x] Date separators and line height
+- [x] Gutter: node, rail, Current position, running; hover colour
+- [x] Desktop tree split and minimap
+- [x] The verifier and scenario scripts follow the new format; PTY acceptance on the host's two versions
+- [x] Docs: spec, CONTEXT, root README, developer README
 
 ## Comments
 
-- 2026-10-13 实现（分支 `chat-toc/35-visual-redesign`）：按测试接口逐轮红绿，`claude plugin test` 271 过，两版 tsc 与 validate 干净。首次建 4432 轮的条目表一度从约 30 ms 涨到约 50 ms（折行先把整段文字展开成数组、每字调一次宽度函数、每组多次解析时间戳），改成按需取字、宽度提到循环外、时间戳每组解析一次后与基线持平。「位置残留 5 ms」那条性能用例在机器负载约 20 时基线也会偶发失败，与本次改动无关。
-- verifier `parse_pane` 改读时间轨（节点、分支、空心记号、日期分隔、时间列、页签线、底栏），样本换成两版宿主上 forms fixture 的四种视图截屏（`tests/acceptance/testdata/`），30 个单元测试过。各场景脚本改用 `user_row` / `agent_row`，UI-003/UI-004 改读轨道记号与颜色。
-- 2026-10-13 CT-PERF-001（`release_gate.py run --only-perf`，两版串行）：头两轮在 load 10–20（`xctest`、Vibessage）下增量读取 p95 屡次超 150 ms；同负载下 0.1.2 与本版交替跑，0.1.2 也超（288 ms），读取路径未改，判为负载。另有 3 次运行在 pyte 内部崩溃（`screens.py` `render` 的 `IndexError`，34 号票也遇到过）：宿主在一帧中途用窄字符盖掉宽字符的首格，pyte 留下空占位格，自己的 `display` 读不了。`pty_harness.screen_rows` 把孤立占位格读作空格（与终端一致），`rows()` 改用它。load 2–5 时四个组合各 3 次全过：增量读取 p95 最大 107–128 ms，追加到模型 335–598 ms，空闲整份读取 181–366 ms，Pane 含宿主最大 11 ms。
-- 2026-10-13 发布 0.1.3（使用者决定不等桌面端实机目检，直接发布）：被测提交 `28eefdf`，`release_gate.py run --screens` 两版串行，当前版本 tsc 用 `plugin-authoring` skill 的 `claude-code.d.ts`。全部门禁通过（37 个 MUST × 2、validate、test 271、单元 49、两版 tsc、本地 marketplace 冒烟、签字截屏）；2.1.287 perf-many 第一轮有一次增量读取 167 ms（load 约 9），挪到 scratchpad 的 `gate-perf-attempt1/` 后 `--only-perf` 重跑通过。`report`：114 条记录全部通过，缺失 0，泄漏 0，证据在 `mods/chat-toc/tests/evidence/0.1.3/`。
-- 2026-10-13 推送 `d2f8caa..a6e65cb`（改版本身 `d2f8caa` 在交接后已推到 main，当时版本号仍是 0.1.2），默认分支确认为 `main`；从 GitHub 做的安装级检查两版都通过（0.1.3 enabled，Pane 自动停靠，点击跳转），结果补进 `marketplace.md`，证据在 `github-install/`。人工目检签字仍待使用者。
+- 2026-10-13 implementation (branch `chat-toc/35-visual-redesign`): red-green round by round against the test interfaces; `claude plugin test` passed 271, and tsc and validate are clean on both versions. Building the entry table for 4432 turns for the first time once rose from about 30 ms to about 50 ms (wrapping first expanded the whole text into an array, called the width function once per character, and parsed the timestamp several times per group); changed to take characters on demand, hoist the width out of the loop and parse the timestamp once per group, after which it is level with the baseline. The performance case "5 ms of residual position" also fails now and then on its baseline when the machine load is about 20, unrelated to this change.
+- The verifier `parse_pane` now reads the time rail (node, branch, hollow mark, date separator, time column, tab line, footer); the samples are replaced with screenshots of four views of the forms fixture on the host's two versions (`tests/acceptance/testdata/`), and 30 unit tests pass. The scenario scripts use `user_row` / `agent_row`, and UI-003/UI-004 read the rail marks and colours.
+- 2026-10-13 CT-PERF-001 (`release_gate.py run --only-perf`, two versions in series): in the first two rounds, at load 10–20 (`xctest`, Vibessage), the incremental read p95 went over 150 ms several times; under the same load, 0.1.2 and this version were run alternately, and 0.1.2 also went over (288 ms), the read path being unchanged, so it was judged to be load. Another 3 runs crashed inside pyte (`IndexError` in `screens.py` `render`, which ticket 34 also met): the host overwrote the first cell of a wide character with a narrow one in the middle of a frame, pyte left an empty placeholder cell, and its own `display` could not read it. `pty_harness.screen_rows` reads a lone placeholder cell as a space (as the terminal does), and `rows()` now uses it. At load 2–5 all four combinations passed 3 runs each: incremental read p95 at most 107–128 ms, appending to the model 335–598 ms, an idle whole read 181–366 ms, the Pane including the host at most 11 ms.
+- 2026-10-13 release 0.1.3 (the user decided not to wait for a by-eye check of the desktop on a real machine and to release now): commit under test `28eefdf`, `release_gate.py run --screens` on the two versions in series, with tsc on the current version using the `claude-code.d.ts` of the `plugin-authoring` skill. All gates passed (37 MUSTs × 2, validate, test 271, unit 49, tsc on both versions, the local marketplace smoke, the sign-off screenshots); in the first round, 2.1.287 perf-many had one incremental read of 167 ms (load about 9), and after it was moved to `gate-perf-attempt1/` in the scratchpad, `--only-perf` passed on rerun. `report`: 114 records all passed, missing 0, leaks 0, with evidence in `mods/chat-toc/tests/evidence/0.1.3/`.
+- 2026-10-13 pushed `d2f8caa..a6e65cb` (the redesign itself, `d2f8caa`, was pushed to main after the handoff, when the version number was still 0.1.2), the default branch confirmed as `main`; the install-level check from GitHub passed on both versions (0.1.3 enabled, the Pane docks by itself, click-to-jump works), the result added to `marketplace.md`, evidence in `github-install/`. The manual visual check sign-off still awaits the user.

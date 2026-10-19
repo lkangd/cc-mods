@@ -1,0 +1,44 @@
+0.15s session.start version=[object Object] mode=uncontrolled autofocus=undefined rows=undefined
+2.09s open  columns=undefined {"isPlaced":true}
+2.13s render #1 q="" built=29ms sinceChange=-1ms w=94
+4.47s render #2 q="" built=1ms sinceChange=-1ms w=94
+6.09s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+7.71s ui.input hook kind=change element=q value="abc" keys=plugin,element,component,requestId,surface,kind,value
+7.71s onInput #1 "abc"
+7.72s render #3 q="abc" built=1ms sinceChange=5ms w=94
+9.33s ui.input hook kind=change element=q value="abc1" keys=plugin,element,component,requestId,surface,kind,value
+9.34s onInput #2 "abc1"
+9.34s render #4 q="abc1" built=1ms sinceChange=3ms w=94
+10.96s ui.input hook kind=change element=q value="abc12" keys=plugin,element,component,requestId,surface,kind,value
+10.96s onInput #3 "abc12"
+10.96s render #5 q="abc12" built=1ms sinceChange=3ms w=94
+12.57s ui.input hook kind=change element=q value="abc123" keys=plugin,element,component,requestId,surface,kind,value
+12.57s onInput #4 "abc123"
+12.57s render #6 q="abc123" built=1ms sinceChange=3ms w=94
+14.18s ui.input hook kind=change element=q value="abc123l" keys=plugin,element,component,requestId,surface,kind,value
+14.19s onInput #5 "abc123l"
+14.19s render #7 q="abc123l" built=1ms sinceChange=4ms w=94
+19.06s ui.input hook kind=change element=q value="abc13l" keys=plugin,element,component,requestId,surface,kind,value
+19.06s onInput #6 "abc13l"
+19.06s render #8 q="abc13l" built=1ms sinceChange=3ms w=94
+25.57s ui.input hook kind=change element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+25.57s onInput #7 ""
+25.58s render #9 q="" built=5ms sinceChange=15ms w=94
+27.37s ui.input hook kind=change element=q value="xyz" keys=plugin,element,component,requestId,surface,kind,value
+27.41s onInput #8 "xyz"
+27.43s render #10 q="xyz" built=14ms sinceChange=19ms w=94
+28.94s ui.input hook kind=submit element=q value="xyz" keys=plugin,element,component,requestId,surface,kind,value
+28.94s onSubmit #1 "xyz"
+31.22s ui.input hook kind=submit element=q value="" keys=plugin,element,component,requestId,surface,kind,value
+31.22s onSubmit #2 ""
+32.88s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+34.49s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"e1","origin":{"kind":"person"}}
+36.16s ui.press hook element=e1
+36.16s PRESS e1
+37.82s ui.press hook element=e2
+37.82s PRESS e2
+39.44s ui.press hook element=link
+39.45s PRESS link
+41.07s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"tofind","origin":{"kind":"person"}}
+42.68s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+46.00s render #11 q="xyz" built=7ms sinceChange=18587ms w=94

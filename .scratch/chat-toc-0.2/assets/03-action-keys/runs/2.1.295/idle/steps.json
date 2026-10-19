@@ -1,0 +1,646 @@
+[
+ {
+  "step": "start",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "closed-noise (ctrl+x p)",
+  "presses": [
+   "3.4s PRESS band-noise in band (surface=terminal, working=false, renders={\"band\":2})"
+  ],
+  "log": [],
+  "press_event": [
+   "3.4s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-noise\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "closed-presession (meta+j)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "closed-banddebug (ctrl+x b)",
+  "presses": [
+   "7.0s PRESS band-debug in band (surface=terminal, working=false, renders={\"band\":2})"
+  ],
+  "log": [],
+  "press_event": [
+   "7.0s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-debug\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "digit-7-empty-composer",
+  "presses": [
+   "9.3s PRESS band-seven in band (surface=terminal, working=false, renders={\"band\":2})"
+  ],
+  "log": [],
+  "press_event": [
+   "9.3s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-seven\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "digit-7-after-draft-x",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ x7"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-pane",
+  "presses": [],
+  "log": [
+   "15.4s open action-probe {\"isPlaced\":true}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-noise (ctrl+x p)",
+  "presses": [
+   "17.5s PRESS noise in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "17.5s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-presession (meta+j)",
+  "presses": [
+   "19.3s PRESS presession in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "19.3s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"presession\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-repl (ctrl+x g)",
+  "presses": [
+   "21.1s PRESS repl in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "21.1s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"repl\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-panenext (ctrl+x .)",
+  "presses": [
+   "22.9s PRESS panenext in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "22.9s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"panenext\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-redraw (ctrl+x r)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-todos (ctrl+t)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-footer (ctrl+x d)",
+  "presses": [
+   "28.5s PRESS footer in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "28.5s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"footer\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-diffback (ctrl+x q)",
+  "presses": [
+   "30.3s PRESS diffback in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "30.3s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"diffback\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-prevfield (f6)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-banddebug (ctrl+x b)",
+  "presses": [
+   "33.9s PRESS band-debug in band (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "33.9s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-debug\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "draft-abc-noise (ctrl+x p)",
+  "presses": [
+   "36.5s PRESS noise in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "36.5s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯ abc"
+  ],
+  "ring": []
+ },
+ {
+  "step": "draft-abc-presession (meta+j)",
+  "presses": [
+   "38.3s PRESS presession in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "38.3s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"presession\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯ abc"
+  ],
+  "ring": []
+ },
+ {
+  "step": "ctrlx-tab-1",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "42:band noise"
+  ]
+ },
+ {
+  "step": "band-focused-noise (ctrl+x p)",
+  "presses": [
+   "42.6s PRESS noise in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "42.6s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "42:band noise"
+  ]
+ },
+ {
+  "step": "band-focused-banddebug (ctrl+x b)",
+  "presses": [
+   "44.4s PRESS band-debug in band (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "44.4s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-debug\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "42:band noise"
+  ]
+ },
+ {
+  "step": "band-focused-digit-7",
+  "presses": [
+   "46.3s PRESS band-seven in band (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "46.3s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-seven\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "42:band noise"
+  ]
+ },
+ {
+  "step": "ctrlx-tab-2",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "42:band debug"
+  ]
+ },
+ {
+  "step": "pane-focused-noise (ctrl+x p)",
+  "presses": [
+   "50.2s PRESS noise in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "50.2s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "42:band debug"
+  ]
+ },
+ {
+  "step": "pane-focused-presession (meta+j)",
+  "presses": [
+   "52.0s PRESS presession in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "52.0s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"presession\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "42:band debug"
+  ]
+ },
+ {
+  "step": "pane-focused-banddebug (ctrl+x b)",
+  "presses": [
+   "53.8s PRESS band-debug in band (surface=terminal, working=false, renders={\"band\":5,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "53.8s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-debug\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "42:band debug"
+  ]
+ },
+ {
+  "step": "pane-focused-digit-8",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ 8"
+  ],
+  "ring": []
+ },
+ {
+  "step": "pane-focused-digit-7",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ 87"
+  ],
+  "ring": []
+ },
+ {
+  "step": "esc-leave",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ 87"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-pane2",
+  "presses": [],
+  "log": [
+   "62.1s open action-probe-2 {\"isPlaced\":true}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "0:action-probe-2"
+  ]
+ },
+ {
+  "step": "pane2-front-noise (ctrl+x p)",
+  "presses": [
+   "64.2s PRESS noise2 in pane2 (surface=terminal, working=false, renders={\"band\":7,\"pane\":1,\"pane2\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "64.2s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise2\",\"component\":\"Pane\",\"requestId\":\"action-probe-2\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "0:action-probe-2"
+  ]
+ },
+ {
+  "step": "pane2-front-presession (meta+j)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "0:action-probe-2"
+  ]
+ },
+ {
+  "step": "pane2-front-panenext (ctrl+x .)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "0:action-probe"
+  ]
+ },
+ {
+  "step": "after-panenext",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "0:action-probe"
+  ]
+ },
+ {
+  "step": "after-panenext-noise (ctrl+x p)",
+  "presses": [
+   "71.5s PRESS noise in pane (surface=terminal, working=false, renders={\"band\":7,\"pane\":1,\"pane2\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "71.5s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "0:action-probe"
+  ]
+ },
+ {
+  "step": "after-panenext-presession (meta+j)",
+  "presses": [
+   "73.3s PRESS presession in pane (surface=terminal, working=false, renders={\"band\":7,\"pane\":1,\"pane2\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "73.3s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"presession\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "0:action-probe"
+  ]
+ },
+ {
+  "step": "close-pane2",
+  "presses": [],
+  "log": [
+   "75.5s closed2"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "close-pane",
+  "presses": [],
+  "log": [
+   "78.1s closed"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "closed-again-noise (ctrl+x p)",
+  "presses": [
+   "80.2s PRESS band-noise in band (surface=terminal, working=false, renders={\"band\":12,\"pane\":1,\"pane2\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "80.2s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-noise\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "closed-again-presession (meta+j)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "closed-again-banddebug (ctrl+x b)",
+  "presses": [
+   "83.8s PRESS band-debug in band (surface=terminal, working=false, renders={\"band\":12,\"pane\":1,\"pane2\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "83.8s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-debug\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "reopen-pane",
+  "presses": [],
+  "log": [
+   "86.2s open action-probe {\"isPlaced\":true}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "model-dialog",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "<no composer>"
+  ],
+  "ring": []
+ },
+ {
+  "step": "under-dialog-noise (ctrl+x p)",
+  "presses": [
+   "90.8s PRESS noise in pane (surface=terminal, working=false, renders={\"band\":15,\"pane\":2,\"pane2\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "90.8s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "<no composer>"
+  ],
+  "ring": []
+ },
+ {
+  "step": "under-dialog-presession (meta+j)",
+  "presses": [
+   "92.7s PRESS presession in pane (surface=terminal, working=false, renders={\"band\":15,\"pane\":2,\"pane2\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "92.7s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"presession\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "<no composer>"
+  ],
+  "ring": []
+ },
+ {
+  "step": "under-dialog-banddebug (ctrl+x b)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "<no composer>"
+  ],
+  "ring": []
+ },
+ {
+  "step": "dialog-esc",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "dialog-closed-noise (ctrl+x p)",
+  "presses": [
+   "98.2s PRESS noise in pane (surface=terminal, working=false, renders={\"band\":15,\"pane\":3,\"pane2\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "98.2s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "log",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ }
+]

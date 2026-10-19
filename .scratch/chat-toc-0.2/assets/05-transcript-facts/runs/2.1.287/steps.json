@@ -1,0 +1,52 @@
+[
+ {
+  "step": "start",
+  "at": 1792118905.600234,
+  "logLine": 2
+ },
+ {
+  "step": "plain turn",
+  "at": 1792118907.659285,
+  "logLine": 3
+ },
+ {
+  "step": "tool turn (2 Read steps, 2 s per request)",
+  "at": 1792118917.781374,
+  "logLine": 8
+ },
+ {
+  "step": "interrupted turn",
+  "at": 1792118928.337018,
+  "logLine": 12
+ },
+ {
+  "step": "queued prompt during a slow turn",
+  "at": 1792118935.050178,
+  "logLine": 16
+ },
+ {
+  "step": "/compact",
+  "at": 1792118956.163742,
+  "logLine": 23
+ },
+ {
+  "step": "turn after /compact",
+  "at": 1792118970.8540192,
+  "logLine": 29
+ },
+ {
+  "step": "turn near the window's end",
+  "at": 1792118976.418478,
+  "logLine": 33
+ },
+ {
+  "step": "prompt that may trigger auto-compaction",
+  "at": 1792118986.542956,
+  "logLine": 38
+ },
+ {
+  "step": "end",
+  "at": 1792119004.1662521,
+  "logLine": 43
+ }
+]

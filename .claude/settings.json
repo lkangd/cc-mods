@@ -1,5 +1,6 @@
 {
   "enabledPlugins": {
-    "mattpocock-skills@mattpocock": true
+    "mattpocock-skills@mattpocock": true,
+    "taste-skill@taste-skill": true
   }
 }

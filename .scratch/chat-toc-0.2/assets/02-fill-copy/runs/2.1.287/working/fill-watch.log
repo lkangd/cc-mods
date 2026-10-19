@@ -1,0 +1,3 @@
+10.7s prompt.fill saw {"text":"FILL-R","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+13.2s ui.copy saw {"chars":32,"head":"COPY-PROBE 短文 😀\nsecond line\tt","surface":"terminal"} -> {"value":{"isCopied":true}}
+18.2s prompt.fill saw {"text":"+FILL-A","mode":"append","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}

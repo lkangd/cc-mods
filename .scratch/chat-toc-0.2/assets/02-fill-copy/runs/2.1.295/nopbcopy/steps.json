@@ -1,0 +1,32 @@
+[
+ {
+  "step": "copy-small",
+  "composer": [
+   "❯"
+  ],
+  "clipboard": {
+   "chars": 6,
+   "head": "BEFORE"
+  }
+ },
+ {
+  "step": "copy-100k",
+  "composer": [
+   "❯"
+  ],
+  "clipboard": {
+   "chars": 6,
+   "head": "BEFORE"
+  }
+ },
+ {
+  "step": "copy-2m",
+  "composer": [
+   "❯"
+  ],
+  "clipboard": {
+   "chars": 6,
+   "head": "BEFORE"
+  }
+ }
+]

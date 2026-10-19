@@ -1,6 +1,7 @@
 /* A stand-in for Claude Code beneath chat-toc: the transcript file, the
    clock, the panes, and a record of what chat-toc asked of them. */
 
+import { isBarKey } from '../hooks/bars'
 import { mock } from 'claude-code/testing'
 import type { Engine, MockClock } from 'claude-code/testing'
 import type { On, PaneOpenArgs, UiPane } from 'claude-code'
@@ -31,6 +32,11 @@ export function drawnButtons(tree: unknown): DrawnButton[] {
 
 /* Entry Buttons are keyed `g<group>.<side>[.<line>]`; the filter row's are not. */
 export const isEntryKey = (key: unknown) => typeof key === 'string' && /^g\d+\./.test(key)
+
+export { isBarKey }
+
+/* The filter row's and the footer's Buttons: neither an entry's nor a cell. */
+export const isControlKey = (key: unknown) => !isEntryKey(key) && !isBarKey(key)
 
 /* The text of every entry Button drawn, in order. */
 export async function entryTexts(pane: { findAll: (q: { type: string }) => Promise<{ key: string | undefined; text: string }[]> }) {
@@ -66,7 +72,9 @@ export type Host = {
   refuseStore?: boolean
   /* Where the pane's focus ring went, and who moved it. */
   focuses: { element: string | undefined; origin: string }[]
-  /* The process environment `$.env.get` reads. */
+  /* The process environment `$.env.get` reads. LANG is Chinese unless a
+     test says otherwise: the suites before English (ticket 37) check the
+     Chinese words. */
   env: Record<string, string>
   /* The lines chat-toc logged, and where to. */
   logs: { text: string; to: string | undefined }[]
@@ -77,6 +85,20 @@ export type Host = {
      as the host does. */
   messages: HostMessage[]
   messageCalls: number
+  /* The context use `$.session.usage()` gives: absent before the first
+     response and from a compaction until the next. */
+  percent: number | undefined
+  /* The prompt box: the draft as it stands, and what a fill answers. A
+     fill under `refuseFill` keeps the draft and answers so. */
+  draft: string
+  fills: { text: string; mode: string | undefined }[]
+  refuseFill?: 'dialog' | 'hook'
+  /* What reached the clipboard, each copy in order, and what a copy
+     answers while set. */
+  copies: { text: string; surface: string | undefined }[]
+  refuseCopy?: 'no-surface' | 'no-clipboard' | 'refused'
+  /* The toasts chat-toc showed, in order. */
+  toasts: string[]
 }
 
 /* What the shell and Windows PowerShell commands of a chunked read write:
@@ -120,11 +142,16 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     store: { ...stored },
     focuses: [],
     statuses: [],
-    env: {},
+    env: { LANG: 'zh_CN.UTF-8' },
     logs: [],
     sessionId: 'synthetic-session',
     messages: [],
     messageCalls: 0,
+    percent: undefined,
+    draft: '',
+    fills: [],
+    copies: [],
+    toasts: [],
   }
   on('env.get', (_$, e) => ({ value: world.env[e.name] }))
   on('session.turns', () => ({ value: world.messages.filter(m => m.role === 'user' && !(m.toolResults?.length ?? 0)).length }))
@@ -132,6 +159,15 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     world.messageCalls += 1
     return { value: world.messages as never }
   })
+  on('session.usage', () => ({
+    value: {
+      startedAt: NOW,
+      context: { window: 1_000_000, ...(world.percent === undefined ? {} : { tokens: world.percent * 10_000, percent: world.percent }) },
+      rateLimits: [],
+    },
+  }))
+  on('session.measure', (_$, e) => ({ changed: e.changed }))
+  on('session.compact', (_$, e) => ({ messages: e.messages }))
   on('session.id', () => {
     if (world.sessionId === undefined) throw new Error('CT-SYN no session id')
     return { value: world.sessionId }
@@ -197,6 +233,23 @@ export function host(on: On, file?: string, path = TRANSCRIPT, stored: Record<st
     if (world.hold) await world.hold
     return { value: text }
   })
+  on('prompt.read', () => ({ value: { text: world.draft, cursor: world.draft.length } }))
+  on('prompt.fill', (_$, e) => {
+    if (world.refuseFill === 'dialog') return { isFilled: false, refusal: 'dialog' as const }
+    if (world.refuseFill === 'hook') return { isFilled: false }
+    world.fills.push({ text: e.text, mode: e.mode })
+    world.draft = e.mode === 'append' ? world.draft + e.text : e.text
+    return { isFilled: true }
+  })
+  on('ui.copy', (_$, e) => {
+    if (world.refuseCopy !== undefined) return { value: { isCopied: false as const, reason: world.refuseCopy } }
+    world.copies.push({ text: e.text, surface: e.surface })
+    return { value: { isCopied: true as const } }
+  })
+  on('ui.toast', (_$, e) => {
+    world.toasts.push(e.text)
+    return { value: undefined }
+  })
   on('ui.scroll', (_$, e) => {
     world.scrolls.push({ ...e })
     return {}
@@ -257,4 +310,12 @@ export function appendRow($: Engine, uuid: string, agentId?: string) {
     uuid,
     ...(agentId === undefined ? {} : { agentId }),
   })
+}
+
+/* On the terminal a press on an entry jumps and selects it; the preview
+   opens from the row under it (0.2 spec §3). Presses `key`, then the row's
+   `p: 预览` when it is drawn (the preview not open yet). */
+export async function openOn(pane: { press: (t: { key: string }) => Promise<unknown>; find: (q: { type: string; key: string }) => Promise<unknown> }, key: string): Promise<void> {
+  await pane.press({ key })
+  if ((await pane.find({ type: 'Button', key: `${key}:preview` })) !== undefined) await pane.press({ key: `${key}:preview` })
 }

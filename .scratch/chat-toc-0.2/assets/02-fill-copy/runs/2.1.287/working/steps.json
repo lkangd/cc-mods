@@ -1,0 +1,42 @@
+[
+ {
+  "step": "turn-running",
+  "composer": [
+   "❯"
+  ]
+ },
+ {
+  "step": "fill-while-running",
+  "composer": [
+   "❯ FILL-R"
+  ]
+ },
+ {
+  "step": "copy-while-running",
+  "composer": [
+   "❯ FILL-R"
+  ],
+  "clipboard": {
+   "chars": 31,
+   "head": "COPY-PROBE 短文 😀\nsecond line\ttab"
+  }
+ },
+ {
+  "step": "append-to-draft-while-running",
+  "composer": [
+   "❯ QUEUED+FILL-A"
+  ]
+ },
+ {
+  "step": "queued-enter",
+  "composer": [
+   "❯ Press up to edit queued messages"
+  ]
+ },
+ {
+  "step": "after-turn",
+  "composer": [
+   "❯"
+  ]
+ }
+]

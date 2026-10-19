@@ -1,0 +1,277 @@
+[
+ {
+  "step": "open-pane",
+  "sent": "\r",
+  "events": [
+   "1.95s open  columns=undefined {\"isPlaced\":true}"
+  ],
+  "renders": [
+   "render #1 q=\"\" built=15ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=1 c=0 s=0                                     ✕",
+   "q=\"\" mode=fixed rev=0",
+   "find: fixed",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #2 q=\"\" built=3ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0                                     ✕",
+   "q=\"\" mode=fixed rev=0",
+   "find: fixed",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "down-to-field",
+  "sent": "\u001b[B",
+  "events": [
+   "5.93s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0                                     ✕",
+   "q=\"\" mode=fixed rev=0",
+   "find: fixed  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "2:106-106:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   106,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-a",
+  "sent": "a",
+  "events": [
+   "7.55s ui.input hook kind=change element=q value=\"fixeda\" keys=plugin,element,component,requestId,surface,kind,value",
+   "7.55s onInput #1 \"fixeda\""
+  ],
+  "renders": [
+   "render #3 q=\"fixeda\" built=1ms sinceChange=3ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=1 s=0                                     ✕",
+   "q=\"fixeda\" mode=fixed rev=0",
+   "find: fixeda  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "4.32s render #2 q=\"\" built=3ms sinceChange=-1ms w=94"
+  ],
+  "ring": [
+   "2:107-107:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   107,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-b",
+  "sent": "b",
+  "events": [
+   "9.16s ui.input hook kind=change element=q value=\"fixedab\" keys=plugin,element,component,requestId,surface,kind,value",
+   "9.16s onInput #2 \"fixedab\""
+  ],
+  "renders": [
+   "render #4 q=\"fixedab\" built=0ms sinceChange=3ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=2 s=0                                     ✕",
+   "q=\"fixedab\" mode=fixed rev=0",
+   "find: fixedab  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "7.55s onInput #1 \"fixeda\""
+  ],
+  "ring": [
+   "2:108-108:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   108,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [
+   "render #5 q=\"fixedab\" built=13ms sinceChange=1952ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=5 c=2 s=0                                     ✕",
+   "q=\"fixedab\" mode=fixed rev=0",
+   "find: fixedab",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "7.55s render #3 q=\"fixeda\" built=1ms sinceChange=3ms w=94"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "bump-redraw",
+  "sent": "\r",
+  "events": [
+   "13.74s bumped"
+  ],
+  "renders": [
+   "render #6 q=\"fixedab\" built=11ms sinceChange=4590ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=2 s=0                                     ✕",
+   "q=\"fixedab\" mode=fixed rev=1",
+   "find: fixedab",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "9.16s onInput #2 \"fixedab\""
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "log",
+  "sent": "\r",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=2 s=0                                     ✕",
+   "q=\"fixedab\" mode=fixed rev=1",
+   "find: fixedab",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "9.16s onInput #2 \"fixedab\""
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ }
+]

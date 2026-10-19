@@ -1,0 +1,2 @@
+0.1s prompt.fill saw {"text":"BOOT-FILL","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}
+3.1s prompt.fill saw {"text":"BOOT-FILL-3S","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}

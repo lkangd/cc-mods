@@ -1,0 +1,92 @@
+[
+ {
+  "step": "open-pane",
+  "presses": [],
+  "log": [
+   "2.6s open action-probe {\"isPlaced\":true}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "submit",
+  "presses": [],
+  "log": [
+   "5.2s turn.start"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "running-noise (ctrl+x p)",
+  "presses": [
+   "8.8s PRESS noise in pane (surface=terminal, working=true, renders={\"band\":6,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "8.8s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "running-presession (meta+j)",
+  "presses": [
+   "11.0s PRESS presession in pane (surface=terminal, working=true, renders={\"band\":6,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "11.0s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"presession\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "running-banddebug (ctrl+x b)",
+  "presses": [
+   "13.2s PRESS band-debug in band (surface=terminal, working=true, renders={\"band\":6,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "13.2s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"band-debug\",\"component\":\"AbovePrompt\",\"requestId\":\"above-prompt\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "running-draft-noise (ctrl+x p)",
+  "presses": [
+   "15.4s PRESS noise in pane (surface=terminal, working=true, renders={\"band\":6,\"pane\":1})"
+  ],
+  "log": [],
+  "press_event": [
+   "15.4s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯ queued draft"
+  ],
+  "ring": []
+ },
+ {
+  "step": "after-turn",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ queued draft"
+  ],
+  "ring": []
+ }
+]

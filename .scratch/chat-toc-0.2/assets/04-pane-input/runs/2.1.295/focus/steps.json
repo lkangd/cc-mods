@@ -1,0 +1,1143 @@
+[
+ {
+  "step": "start",
+  "sent": null,
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "open-pane",
+  "sent": "\r",
+  "events": [
+   "3.78s open  columns=undefined {\"isPlaced\":true}"
+  ],
+  "renders": [
+   "render #1 q=\"\" built=16ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=1 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-abc-pane-open-unfocused",
+  "sent": null,
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ abc"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=1 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:5-5:·"
+  ],
+  "cursor": [
+   5,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ui.focus-q-from-composer",
+  "sent": "\r",
+  "events": [
+   "8.42s focus q {\"deny\":\"that site does not hold the keyboard\"}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=1 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #2 q=\"\" built=2ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=2 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-x-after-ctrlx-tab",
+  "sent": "x",
+  "events": [],
+  "renders": [
+   "render #3 q=\"\" built=3ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯ x"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:3-3:·"
+  ],
+  "cursor": [
+   3,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "tab-1",
+  "sent": "\t",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ x"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:3-3:·"
+  ],
+  "cursor": [
+   3,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-ab-after-tab",
+  "sent": "ab",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ xab"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:5-5:·"
+  ],
+  "cursor": [
+   5,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "tab-2",
+  "sent": "\t",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ xab"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:5-5:·"
+  ],
+  "cursor": [
+   5,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "shift-tab-back",
+  "sent": "\u001b[Z",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ xab"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:5-5:·"
+  ],
+  "cursor": [
+   5,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc-1",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ xab"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:5-5:·"
+  ],
+  "cursor": [
+   5,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-z-after-esc",
+  "sent": "z",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ xabz"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:6-6:·"
+  ],
+  "cursor": [
+   6,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc-2-empty-composer?",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ xabz"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=3 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:6-6:·"
+  ],
+  "cursor": [
+   6,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab-again",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #4 q=\"\" built=1ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "down-1",
+  "sent": "\u001b[B",
+  "events": [
+   "28.44s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "3:101-101:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   101,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "down-2",
+  "sent": "\u001b[B",
+  "events": [
+   "30.09s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"tofind\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "4:95-101:to·find",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "up-1",
+  "sent": "\u001b[A",
+  "events": [
+   "31.74s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "3:101-101:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   101,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "up-2",
+  "sent": "\u001b[A",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "0:168-168:✕",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "up-3",
+  "sent": "\u001b[A",
+  "events": [
+   "35.02s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"clear\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=4 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "9:95-99:clear",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc-3",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [
+   "render #5 q=\"\" built=3ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=5 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab-3",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #6 q=\"\" built=2ms sinceChange=-1ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "seek-tofind-0",
+  "sent": "\u001b[B",
+  "events": [
+   "40.88s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "3:101-101:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   101,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "seek-tofind-1",
+  "sent": "\u001b[B",
+  "events": [
+   "42.54s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"tofind\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "4:95-101:to·find",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "enter-on-tofind",
+  "sent": "\r",
+  "events": [
+   "44.18s ui.press hook element=tofind",
+   "44.18s PRESS tofind -> focus q {}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=6 c=0 s=0",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…",
+   "row 1 turn text 7 lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ip…"
+  ],
+  "ring": [
+   "3:101-101:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   101,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-q-after-ui.focus",
+  "sent": "q",
+  "events": [
+   "45.85s ui.input hook kind=change element=q value=\"q\" keys=plugin,element,component,requestId,surface,kind,value",
+   "45.85s onInput #1 \"q\""
+  ],
+  "renders": [
+   "render #7 q=\"q\" built=1ms sinceChange=3ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=7 c=1 s=0",
+   "q=\"q\" mode=uncontrolled rev=0",
+   "find: q  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "44.18s ui.press hook element=tofind"
+  ],
+  "ring": [
+   "3:102-102:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   102,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc-4",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [
+   "render #8 q=\"q\" built=3ms sinceChange=1695ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=8 c=1 s=0",
+   "q=\"q\" mode=uncontrolled rev=0",
+   "find: q",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "44.18s PRESS tofind -> focus q {}"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "click-on-entry-one",
+  "sent": null,
+  "events": [
+   "50.12s ui.press hook element=e1",
+   "50.12s PRESS e1"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=8 c=1 s=0",
+   "q=\"q\" mode=uncontrolled rev=0",
+   "find: q",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "44.18s PRESS tofind -> focus q {}"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-j-after-click-entry",
+  "sent": "j",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ j"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=8 c=1 s=0",
+   "q=\"q\" mode=uncontrolled rev=0",
+   "find: q",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "44.18s PRESS tofind -> focus q {}"
+  ],
+  "ring": [
+   "45:3-3:·"
+  ],
+  "cursor": [
+   3,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "click-on-field",
+  "sent": null,
+  "events": [
+   "54.41s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [
+   "render #9 q=\"q\" built=4ms sinceChange=8562ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=9 c=1 s=0",
+   "q=\"q\" mode=uncontrolled rev=0",
+   "find: q  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "47.55s render #8 q=\"q\" built=3ms sinceChange=1695ms w=94"
+  ],
+  "ring": [
+   "3:102-102:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   102,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-k-after-click",
+  "sent": "k",
+  "events": [
+   "56.23s ui.input hook kind=change element=q value=\"qk\" keys=plugin,element,component,requestId,surface,kind,value",
+   "56.23s onInput #2 \"qk\""
+  ],
+  "renders": [
+   "render #10 q=\"qk\" built=0ms sinceChange=2ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=10 c=2 s=0",
+   "q=\"qk\" mode=uncontrolled rev=0",
+   "find: qk  ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "54.41s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin…"
+  ],
+  "ring": [
+   "3:103-103:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   103,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc-5",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [
+   "render #11 q=\"qk\" built=5ms sinceChange=1707ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=11 c=2 s=0",
+   "q=\"qk\" mode=uncontrolled rev=0",
+   "find: qk",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "54.42s render #9 q=\"q\" built=4ms sinceChange=8562ms w=94"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "openfocus-already-open",
+  "sent": "\r",
+  "events": [
+   "60.55s open openfocus columns=undefined {\"isPlaced\":true}"
+  ],
+  "renders": [
+   "render #12 q=\"qk\" built=10ms sinceChange=4332ms w=94"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=12 c=2 s=0",
+   "q=\"qk\" mode=uncontrolled rev=0",
+   "find: qk",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "56.23s onInput #2 \"qk\""
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-o-after-openfocus",
+  "sent": "o",
+  "events": [],
+  "renders": [
+   "render #13 q=\"qk\" built=2ms sinceChange=6484ms w=94"
+  ],
+  "composer": [
+   "❯ o"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=13 c=2 s=0",
+   "q=\"qk\" mode=uncontrolled rev=0",
+   "find: qk",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "56.23s render #10 q=\"qk\" built=0ms sinceChange=2ms w=94"
+  ],
+  "ring": [
+   "45:3-3:·"
+  ],
+  "cursor": [
+   3,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc-6",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯ o"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=13 c=2 s=0",
+   "q=\"qk\" mode=uncontrolled rev=0",
+   "find: qk",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "56.23s render #10 q=\"qk\" built=0ms sinceChange=2ms w=94"
+  ],
+  "ring": [
+   "45:3-3:·"
+  ],
+  "cursor": [
+   3,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "log",
+  "sent": "\r",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=94 r=13 c=2 s=0",
+   "q=\"qk\" mode=uncontrolled rev=0",
+   "find: qk",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "56.23s render #10 q=\"qk\" built=0ms sinceChange=2ms w=94"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ }
+]

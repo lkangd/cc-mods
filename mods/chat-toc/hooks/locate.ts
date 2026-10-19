@@ -10,10 +10,6 @@
 
 const NAME_LIMIT = 200
 
-/* Said in the pane while no path is known: the next submit's classic event
-   brings one. */
-export const UNLOCATED_TEXT = '提交下一条消息后显示目录'
-
 /* Java's String.hashCode over UTF-16 units, as the host computes it. */
 function javaHash(text: string): number {
   let h = 0

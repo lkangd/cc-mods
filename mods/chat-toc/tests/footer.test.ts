@@ -3,8 +3,8 @@ import type { Engine } from 'claude-code/testing'
 import { PANE, drawnButtons, host, mountPane, start } from './host'
 import { transcript } from './fixture'
 
-/* The footer at the pane's bottom: a rule, then what the list holds (or
-   that following is paused) on the left and the Layout Button on the right. */
+/* The footer at the pane's bottom: a rule, then what the list holds on the
+   left and the Layout Button on the right. */
 
 function three() {
   const t = transcript(new Date(2026, 9, 10, 9, 4).getTime())
@@ -55,13 +55,11 @@ test('a rule across the pane stands above the footer', async ($, on) => {
   expect(rule?.props.color).toBe('subtle')
 })
 
-test('while the keyboard is in the pane, the footer says following is paused instead of the count', async ($, on) => {
+test('while the keyboard is in the pane, the footer still shows the count', async ($, on) => {
   await start($, host(on, three().jsonl()))
   const pane = await focusedPane($)
 
-  const paused = await pane.find({ type: 'Text', text: '⏸ 暂停跟随' })
-  expect(paused?.props.color).toBe('warning')
-  expect(await pane.find({ type: 'Text', text: '3 轮' })).toBeUndefined()
+  expect(await pane.find({ type: 'Text', text: '3 轮' })).toBeDefined()
 })
 
 test('a session with no conversation yet shows no count', async ($, on) => {

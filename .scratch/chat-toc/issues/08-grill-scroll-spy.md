@@ -1,4 +1,4 @@
-# 决定是否做当前位置高亮
+# Decide whether to highlight the current position
 
 Type: grilling
 Status: resolved
@@ -6,20 +6,20 @@ Blocked by: 07
 
 ## Question
 
-根据 2.1.287 上 `props.onScreen` 是否存在：当前位置高亮（cc-switch 的左侧竖线）做不做；若 2.1.287 没有，是抬高最低版本、按版本能力降级（无高亮且可感知），还是不做；高亮取哪一组（视口顶部所属 Turn group？距底多近时强制末组？），以及 TOC 列表是否随之把高亮项滚入视野。
+Depending on whether 2.1.287 has `props.onScreen`: build the current position highlight (cc-switch's bar on the left) or not; if 2.1.287 lacks it, raise the minimum version, fall back by version capability (no highlight, perceptibly), or drop it; which group the highlight takes (the Turn group of the viewport's top? how close to the bottom forces the last group?), and whether the TOC list scrolls the highlighted item into view.
 
 ## Answer
 
-**做，但以「实测 requestId 与 transcript 行身份的对应」的结果为前提。** 2.1.287 已有 `props.onScreen`（见「在 Claude Code 2.1.287 上核对关键 API」），抬高最低版本或按版本降级的分支不存在。
+**Build it, on the premise of the results of "Measure how requestId maps to transcript rows".** 2.1.287 already has `props.onScreen` (see "Check the key APIs on Claude Code 2.1.287"), so the branches of raising the minimum version or falling back by version do not arise.
 
-1. **前提与退路**：只有实测确认全屏交互下 `onScreen` 在滚动时可靠上报、数字与屏幕一致、`requestId` 能对到 Turn group，才做。任一项不成立就从 MVP 拿掉高亮，不做降级提示、不写状态栏说明：这不是版本缺口，使用者无从补救，缺了高亮也不误导。此时 TOC 滚动退回「位于底部时跟随最新」。
-2. **取哪一组**：只高亮一组 —— 视口顶部那一行所属的 Turn group。「顶部那一行」是屏上各行（`onScreen` 非 `null`）里 transcript 顺序最靠前的那行，被切掉上半截的（`first > 0`）也算。该行不属于任何组（compact 摘要、hook 提示、会话开头说明等）就归到它前面最近的一组；前面没有组就不高亮。不做「屏上所有组」的区间标记。
-3. **到底部强制末组**：transcript 最后一行完整在屏上（`last === of - 1`）时，无论顶部是哪组，都高亮最后一组。按「整行可见」判断，不设距底行数阈值。
-4. **与选择光标分开**：当前位置高亮是被动的、跟 transcript 视口走；↑↓ 选择光标只在 Pane 有焦点时存在。两者独立，可落在不同组上。Enter/点击跳转后视口移动，高亮自然更新到目标组，兼作跳转成功的反馈。具体样式（竖线、底色）交原型定。
-5. **TOC 列表滚动**：TOC 的滚动位置统一由高亮组决定，取代原先独立的 `isFollowing`；transcript 在底部时高亮末组，TOC 也就停在最新。使用者手动滚动 TOC 后、或 Pane 有焦点在用 ↑↓ 选择时，暂停自动滚动；高亮组下一次因 transcript 视口变化而改变时恢复跟随。
+1. **Premise and way out**: build it only if measurements confirm that in fullscreen interactive mode `onScreen` reports reliably while scrolling, its numbers match the screen and `requestId` maps to a Turn group. If any fails, drop the highlight from the MVP with no fallback notice and no status line note: it is not a version gap, the person can do nothing about it, and a missing highlight misleads no one. The TOC's scrolling then falls back to "follow the newest when at the bottom".
+2. **Which group**: only one group lights: the Turn group of the viewport's top row. "The top row" is the earliest row in transcript order among the rows on screen (`onScreen` not `null`), counting one with its upper half cut off (`first > 0`). A row in no group (the compaction summary, a hook note, the session's opening notes) counts for the nearest group before it; with no group before it, nothing lights. No range mark for "every group on screen".
+3. **The last group at the bottom**: when the transcript's last row is wholly on screen (`last === of - 1`), the last group lights whatever group is at the top. Judged by "the whole row visible", with no threshold of rows from the bottom.
+4. **Apart from the selection cursor**: the current position highlight is passive and follows the transcript's viewport; the ↑↓ selection cursor exists only while the Pane has the focus. The two are independent and can sit on different groups. After an Enter or click jump the viewport moves, so the highlight updates to the target group by itself, doubling as feedback that the jump worked. The exact style (bar, background) is the prototype's to settle.
+5. **The TOC list's scrolling**: the TOC's scroll position is always set by the highlighted group, replacing the separate `isFollowing`; with the transcript at its bottom the last group lights, so the TOC stays on the newest. After the person scrolls the TOC by hand, or while the Pane has the focus for ↑↓ selection, scrolling by itself pauses; it resumes when the highlighted group next changes because the transcript's viewport changed.
 
-术语：在 `mods/chat-toc/CONTEXT.md` 新增 **Current position**。
+Terms: **Current position** added to `mods/chat-toc/CONTEXT.md`.
 
-## 后续修订
+## Later revisions
 
-- 「原型验证停靠 TOC Pane 的外观与交互」实测：跳转成功后高亮锁在目标组，跳转引起的重绘停下后，视口第一次变化即解锁；Current position 只采信连续、并包含最近一次上报的那一段在屏行，`ToolUse` 不参与。见 [05](05-prototype-toc-pane.md)。
+- Measured in "Prototype the docked TOC Pane's look and interaction": after a successful jump the highlight locks on the target group and unlocks at the viewport's first change once the jump's redraws stop; the Current position believes only a contiguous run of on-screen rows holding the latest report, and `ToolUse` takes no part. See [05](05-prototype-toc-pane.md).

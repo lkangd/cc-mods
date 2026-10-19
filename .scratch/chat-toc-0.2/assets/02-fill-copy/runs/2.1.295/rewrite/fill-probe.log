@@ -1,0 +1,2 @@
+1.9s open {"isPlaced":true}
+5.9s fill multiline: result={"isFilled":true,"text":"L1 FIRST LINE\nL2 SECOND LINE\n```JS\nX()\n```","cursor":42} before={"text":"","cursor":0} after={"text":"L1 FIRST LINE\nL2 SECOND LINE\n```JS\nX()\n```","cursor":42}

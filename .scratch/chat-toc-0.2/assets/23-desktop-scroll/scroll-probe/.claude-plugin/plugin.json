@@ -1,0 +1,1 @@
+{ "name": "scroll-probe", "version": "0.0.1", "description": "Throwaway probe: a Pane tree taller than the pane on Desktop", "author": { "name": "probe" }, "types": "./types/index.d.ts" }

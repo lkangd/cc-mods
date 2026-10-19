@@ -1,8 +1,10 @@
 /* Current position: the Turn group the person is looking at in the
    transcript, the group of the row at the top of its view.
 
-   Only `UserMessage`, `AssistantMessage`, `CommandOutput` and `ToolGroup`
-   report where they are (sites.ts keeps the reports). The fullscreen
+   The sites sites.ts hooks report where their rows are: prompts, the
+   agent's text, command output, and tool rows, folded into a `ToolGroup`
+   or each its own `ToolUse` and `ToolResult` (a file edit's diff). A view
+   holding only rows drawn at none of them lights nothing. The fullscreen
    transcript is virtualised and a row it unmounts does not always report
    `null` first, so stale "on screen" records linger where the view used to
    be. Rows truly on screen sit next to each other in conversation order:
@@ -33,9 +35,9 @@ export type LiveRow = { order: number; onScreen: OnScreenRows; seq: number }
    each other. */
 export const LOCK_QUIET_MS = 300
 
-/* A row the host always draws at one of the four sites: a prompt, or the
-   agent's text. A command's output is drawn at a site in the session that
-   ran it but not after a resume, and a tool row only grouped, so those
+/* A row the host always draws at a site: a prompt, or the agent's text.
+   A command's output is drawn at a site in the session that ran it but not
+   after a resume, and a tool row at its group's or at its own, so those
    count once a site is seen drawing them; one counted and never reported
    on screen would cut every run around it. */
 function isSiteRow(row: TranscriptRow): boolean {

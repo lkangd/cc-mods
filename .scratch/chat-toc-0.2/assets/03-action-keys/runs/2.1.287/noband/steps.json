@@ -1,0 +1,114 @@
+[
+ {
+  "step": "nothing-mounted-noise (ctrl+x p)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ p"
+  ],
+  "ring": []
+ },
+ {
+  "step": "nothing-mounted-presession (meta+j)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯ p"
+  ],
+  "ring": []
+ },
+ {
+  "step": "open-pane",
+  "presses": [],
+  "log": [
+   "6.8s open action-probe {\"isPlaced\":true}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "ctrlx-tab",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "down",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "1:noise app:toggleDiffNoiseFilter"
+  ]
+ },
+ {
+  "step": "pane-focused-noise (ctrl+x p)",
+  "presses": [
+   "12.9s PRESS noise in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":2})"
+  ],
+  "log": [],
+  "press_event": [
+   "12.9s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"noise\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "1:noise app:toggleDiffNoiseFilter"
+  ]
+ },
+ {
+  "step": "pane-focused-presession (meta+j)",
+  "presses": [
+   "14.7s PRESS presession in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":2})"
+  ],
+  "log": [],
+  "press_event": [
+   "14.7s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"presession\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "1:noise app:toggleDiffNoiseFilter"
+  ]
+ },
+ {
+  "step": "pane-focused-digit-8",
+  "presses": [
+   "16.5s PRESS pane-eight in pane (surface=terminal, working=false, renders={\"band\":5,\"pane\":2})"
+  ],
+  "log": [],
+  "press_event": [
+   "16.5s ui.press hook: {\"plugin\":\"action-probe\",\"element\":\"pane-seven\",\"component\":\"Pane\",\"requestId\":\"action-probe\",\"surface\":\"terminal\"} keys=plugin,element,component,requestId,surface"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "1:noise app:toggleDiffNoiseFilter"
+  ]
+ },
+ {
+  "step": "esc",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ }
+]

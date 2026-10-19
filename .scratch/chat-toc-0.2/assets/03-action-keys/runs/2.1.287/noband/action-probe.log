@@ -1,0 +1,8 @@
+0.1s session.start version=[object Object]
+6.8s open action-probe {"isPlaced":true}
+12.9s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+12.9s PRESS noise in pane (surface=terminal, working=false, renders={"band":5,"pane":2})
+14.7s ui.press hook: {"plugin":"action-probe","element":"presession","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+14.7s PRESS presession in pane (surface=terminal, working=false, renders={"band":5,"pane":2})
+16.5s ui.press hook: {"plugin":"action-probe","element":"pane-seven","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+16.5s PRESS pane-eight in pane (surface=terminal, working=false, renders={"band":5,"pane":2})

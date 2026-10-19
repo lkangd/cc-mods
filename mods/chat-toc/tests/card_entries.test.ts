@@ -5,6 +5,10 @@ import { textCells, wrapCells } from '../hooks/cells'
 import { tocModel } from '../hooks/model'
 import { transcript } from './fixture'
 import type { Builder, Row } from './fixture'
+import { setLanguage } from '../hooks/text'
+
+/* These tests check the Chinese words (text.ts). */
+setLanguage('zh')
 
 /* The card Layout: each side of a Turn group up to two lines beside a
    3-column rail, the User input's time at the right of its first line, the

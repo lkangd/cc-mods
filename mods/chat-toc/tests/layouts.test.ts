@@ -7,6 +7,10 @@ import type { Layout, ViewFilter } from '../hooks/view'
 import { filterOf, layoutOf, nextLayout } from '../hooks/view'
 import { transcript } from './fixture'
 import type { Builder, Row } from './fixture'
+import { setLanguage } from '../hooks/text'
+
+/* These tests check the Chinese words (text.ts). */
+setLanguage('zh')
 
 /* The View filter and the three Layouts, at the seam that builds the
    entries: which sides show, and the lines each side draws. */

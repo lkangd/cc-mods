@@ -140,9 +140,20 @@ test('any growth, read in any slices, equals regrouping the whole file', () => {
       else if (kind === 13) uuids.push(t.interrupt(rand(2) === 0))
       else if (kind === 14) uuids.push(t.reply([{ type: 'text', text: 'API Error' }], { isApiErrorMessage: true }))
       else if (kind < 2) uuids.push(t.prompt(`CT-SYN p${run}.${step}`))
-      else if (kind < 4) uuids.push(t.reply([{ type: 'text', text: `a${step}` }]))
-      else if (kind === 4) uuids.push(t.reply([{ type: 'tool_use', id: `toolu_${step}`, name: 'Bash', input: {} }]))
+      /* The facts' rows too: usage under repeated message ids, file tools,
+         Bash diffs and turn durations. */
+      else if (kind < 4)
+        uuids.push(
+          rand(2) === 0
+            ? t.reply([{ type: 'text', text: `a${step}` }])
+            : t.row({ type: 'assistant', message: { id: `msg_${rand(3)}`, role: 'assistant', content: [{ type: 'text', text: `**a${step}**` }], usage: { output_tokens: rand(900) } } }),
+        )
+      else if (kind === 4)
+        uuids.push(t.reply([{ type: 'tool_use', id: `toolu_${step}`, name: ['Bash', 'Edit', 'Read', 'Write'][rand(4)], input: { file_path: `/p/f${rand(5)}.ts` } }]))
+      else if (kind === 5 && rand(2) === 0)
+        uuids.push(t.row({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: `toolu_${step}`, content: '' }] }, toolUseResult: { bashEditDiff: { changedFiles: [`/p/f${rand(5)}.ts`] } } }))
       else if (kind === 5) uuids.push(t.toolResult(`toolu_${step}`))
+      else if (kind === 9 && rand(2) === 0) uuids.push(t.row({ type: 'system', subtype: 'turn_duration', durationMs: rand(9000), isMeta: false }))
       else if (kind === 6) uuids.push(t.row({ type: 'user', isMeta: true, message: { role: 'user', content: 'meta' } }))
       else if (kind === 7 && uuids.length > 0 && rand(3) === 0) t.rewindTo(uuids[rand(uuids.length)] ?? null)
       else if (kind === 8 && rand(4) === 0) uuids.push(t.compact())

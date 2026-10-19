@@ -1,0 +1,24 @@
+0.10s session.start version=[object Object] mode=uncontrolled autofocus=undefined rows=undefined
+2.09s open  columns=undefined {"isPlaced":true}
+2.11s render #1 q="" built=16ms sinceChange=-1ms w=94
+4.45s render #2 q="" built=2ms sinceChange=-1ms w=94
+6.06s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+7.70s ui.input hook kind=change element=q value="keep" keys=plugin,element,component,requestId,surface,kind,value
+7.71s onInput #1 "keep"
+7.71s render #3 q="keep" built=1ms sinceChange=4ms w=94
+9.38s render #4 q="keep" built=4ms sinceChange=1668ms w=94
+11.96s bumped
+11.96s render #5 q="keep" built=7ms sinceChange=4257ms w=94
+14.10s render #6 q="keep" built=6ms sinceChange=6394ms w=88
+16.62s open2 {"isPlaced":true}
+21.02s ui.close hook {"id":"input-probe-2","origin":{"kind":"plugin"}}
+21.02s closed2
+23.38s render #7 q="keep" built=3ms sinceChange=15673ms w=88
+24.99s ui.focus hook {"component":"Pane","requestId":"input-probe","plugin":"input-probe","element":"q","origin":{"kind":"person"}}
+26.60s ui.input hook kind=change element=q value="keepX" keys=plugin,element,component,requestId,surface,kind,value
+26.61s onInput #2 "keepX"
+26.61s render #8 q="keepX" built=0ms sinceChange=2ms w=88
+28.27s render #9 q="keepX" built=4ms sinceChange=1669ms w=88
+30.84s ui.close hook {"id":"input-probe","origin":{"kind":"plugin"}}
+30.85s closed
+33.37s open  columns=undefined {"isPlaced":true}

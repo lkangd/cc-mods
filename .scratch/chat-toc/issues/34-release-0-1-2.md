@@ -1,27 +1,27 @@
-# 34: 发布 0.1.2
+# 34: Release 0.1.2
 
-**What to build:** 31–33 号票合入 main 后，以 0.1.2 发布 chat-toc。
+**What to build:** After tickets 31–33 merge into main, release chat-toc as 0.1.2.
 
-**Blocked by:** 31、32、33
+**Blocked by:** 31, 32, 33
 
 **Status:** done
 
-## 已定的决定（2026-10-12 grilling）
+## Decisions made (grilling, 2026-10-12)
 
-- 31–33 每张票一个分支（`chat-toc/3x-…`），测试先行，`--no-ff` 合入 main。
-- 三张都合入后发 0.1.2，按 README 的「发布清单」：2.1.287 与当前版本跑完整门禁（MUST 由 33 项增至 37 项：`CT-LIFE-007`、`CT-LIFE-008`、`CT-JUMP-005`、`CT-UI-005`，另修订 `CT-LIFE-004`）、marketplace 冒烟、GitHub 安装检查。
-- 推送前先问使用者。
-- PTY 验收与性能测试串行跑，在机器空闲时跑。
+- Each of tickets 31–33 gets a branch (`chat-toc/3x-…`), test first, merged into main with `--no-ff`.
+- Once all three are merged, release 0.1.2 by the README's "release checklist": the full gate on 2.1.287 and the current version (MUSTs rise from 33 to 37: `CT-LIFE-007`, `CT-LIFE-008`, `CT-JUMP-005`, `CT-UI-005`, and `CT-LIFE-004` is revised), the marketplace smoke, the GitHub install check.
+- Ask the user before pushing.
+- Run PTY acceptance and performance tests in series, when the machine is idle.
 
-## 步骤
+## Steps
 
-- [x] `release_gate.py` 的 MUST 表与签字说明加入新增项
-- [x] 门禁（证据目录 `mods/chat-toc/tests/evidence/0.1.2/`）
-- [x] 发布提交（marketplace 版本、根 README、证据目录）
-- [x] 经使用者同意后推送，从 GitHub 做安装级检查
+- [x] Add the new items to the MUST table and the sign-off notes of `release_gate.py`
+- [x] The gate (evidence directory `mods/chat-toc/tests/evidence/0.1.2/`)
+- [x] The release commit (marketplace version, root README, evidence directory)
+- [x] Push with the user's consent, and do the install-level check from GitHub
 
 ## Comments
-- 2026-10-12 门禁（被测提交 `4926422`，两版串行，`release_gate.py run --screens`）：除 perf-many 外全部通过（37 个 MUST、validate、test 251、单元 43、两版 tsc、本地 marketplace 冒烟、签字截屏）。perf-many 两版各有一次运行的「增量读取 ≤ 150 ms」超标（2.1.287 166 ms、2.1.295 275 ms），中位数 17–30 ms 与 0.1.1 相同；当时 load average 10–11.5，另有一个 `xctest` 占约 94% CPU。失败的 perf 运行挪到 scratchpad 的 `gate-attempt1/`。
-- 第二轮（`--only-perf`，load 6–7）：2.1.287 两种 perf 通过（many 增量读取最大 111–123 ms）；2.1.295 的 perf-many 在 pyte 内部崩溃（`screens.py` `render` 的 `IndexError`，驱动问题，没有产出记录），挪到 `gate-attempt2/`。
-- 第三轮（2.1.295 `--only-perf`，load 4–6）：两种 perf 通过（many 最大 67–128 ms）。`release_gate.py` 已改为部分重跑时合并 `codes.json`，不再需要按日志重建。`report`：114 条记录全部通过，缺失 0，泄漏 0。
-- 2026-10-13 使用者同意后推送（`48622c0..c887155`），默认分支确认为 `main`；从 GitHub 做的安装级检查两版都通过（0.1.2 enabled，Pane 自动停靠，点击跳转），结果补进 `marketplace.md`，证据在 `github-install/`。
+- 2026-10-12 gate (commit under test `4926422`, two versions in series, `release_gate.py run --screens`): everything passed except perf-many (37 MUSTs, validate, test 251, unit 43, tsc on both versions, the local marketplace smoke, the sign-off screenshots). On each of the two versions, one perf-many run went over the "incremental read ≤ 150 ms" limit (166 ms on 2.1.287, 275 ms on 2.1.295), with medians of 17–30 ms, the same as 0.1.1; the load average was 10–11.5 then, and an `xctest` was using about 94% CPU. The failed perf runs were moved to `gate-attempt1/` in the scratchpad.
+- Second round (`--only-perf`, load 6–7): both perf kinds passed on 2.1.287 (many's incremental read maximum 111–123 ms); perf-many on 2.1.295 crashed inside pyte (`IndexError` in `screens.py` `render`, a driver problem, no record produced), and was moved to `gate-attempt2/`.
+- Third round (2.1.295 `--only-perf`, load 4–6): both perf kinds passed (many's maximum 67–128 ms). `release_gate.py` was changed to merge `codes.json` on a partial rerun, so it no longer has to be rebuilt from the logs. `report`: 114 records all passed, missing 0, leaks 0.
+- 2026-10-13 pushed with the user's consent (`48622c0..c887155`), the default branch confirmed as `main`; the install-level check from GitHub passed on both versions (0.1.2 enabled, the Pane docks by itself, click-to-jump works), the result added to `marketplace.md`, evidence in `github-install/`.

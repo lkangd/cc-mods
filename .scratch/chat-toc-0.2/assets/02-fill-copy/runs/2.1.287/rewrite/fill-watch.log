@@ -1,0 +1,1 @@
+6.7s prompt.fill saw {"text":"L1 first line\nL2 second line\n```js\nx()\n```","mode":"replace","origin":{"kind":"plugin","name":"fill-probe"}} -> {"isFilled":true}

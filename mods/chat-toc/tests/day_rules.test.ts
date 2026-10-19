@@ -5,6 +5,10 @@ import { entryHeight } from '../hooks/pane'
 import { tocModel } from '../hooks/model'
 import { transcript } from './fixture'
 import type { Builder } from './fixture'
+import { setLanguage } from '../hooks/text'
+
+/* These tests check the Chinese words (text.ts). */
+setLanguage('zh')
 
 /* The day's rule: the list says the day where it changes, the first group's
    included, today as 今天. */

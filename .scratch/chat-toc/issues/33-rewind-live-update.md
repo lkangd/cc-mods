@@ -1,35 +1,35 @@
-# 33: rewind 后目录实时去掉被弃的条目
+# 33: After a rewind the contents drop the thrown-away entries at once
 
-**What to build:** Esc Esc 选中一条之前的 prompt 并 restore 对话后，目录在 500 ms 内去掉被弃分支的条目（包括 rewind 到的那条），不用等下一次提交。
+**What to build:** After Esc Esc picks an earlier prompt and restores the conversation, the contents drop the entries of the discarded branch (including the one rewound to) within 500 ms, without waiting for the next submit.
 
-**Blocked by:** 无
+**Blocked by:** none
 
 **Status:** done
 
-## 问题
+## Problem
 
-使用者反馈：rewind 之后右侧目录没有更新，过一会儿才更新。这是 0.1.0 契约里接受过的窗口（`06` 号票「不承诺」第 5 条：宿主没有 rewind 事件，文件也还没有变化），使用者现在要求去掉它。
+The user reported: after a rewind the right-hand contents do not update, and only update after a while. This is a window accepted in the 0.1.0 contract (ticket `06`, "not promised" item 5: the host has no rewind event, and the file has not changed yet), and the user now asks to remove it.
 
-## 已定的决定（2026-10-12 grilling）
+## Decisions made (grilling, 2026-10-12)
 
-- 触发：每次 `PromptHint` 的 `ui.render` 时读 `$.session.turns()`（廉价）。
-- 只有它少于目录已知的 prompt 数时，才调用 `$.session.messages()`，按条数与文本和文件对话链对齐，求出 rewind 点，隐藏其后的分组（包括 rewind 到的那条 User input，它的文字已回到输入框）。`turns()` 是否计入斜杠命令等，实现时测清后定比较口径。
-- 这个检测只「减」不「加」；只隐藏，不改文件读取状态。文件下次有新行时照常读，以文件为准（那时对话链已换分支）。
-- rewind 不落盘：rewind 后不提交就退出再 resume，被弃分支回来，目录跟宿主一致地显示它们。
-- `messages()` 只给最新 4096 条且没有 uuid：对齐从尾部按文本做。
-- 契约「不承诺」里那条接受窗口删除；「不保证能跳到 rewind 被弃的分支」改为只说 resume 前被 compact 的行。
+- Trigger: on every `ui.render` of `PromptHint`, read `$.session.turns()` (cheap).
+- Only when it is less than the number of prompts the contents know, call `$.session.messages()`, align by count and text against the file's conversation chain, work out the rewind point, and hide the groups after it (including the User input rewound to, whose text has returned to the input box). Whether `turns()` counts slash commands and so on is to be measured at implementation, and the comparison basis set then.
+- This detection only "subtracts", never "adds"; it only hides and does not change the file reading state. The next time the file has new lines, read as usual and let the file decide (the conversation chain will have switched branch by then).
+- A rewind is not written to disk: if you quit without submitting after a rewind and then resume, the discarded branch comes back, and the contents show it, in agreement with the host.
+- `messages()` gives only the latest 4096 entries and has no uuid: the alignment is done from the tail by text.
+- In the contract's "not promised", the item accepting the window is deleted; "no guarantee of jumping to the branch a rewind discarded" is changed to speak only of rows compacted before a resume.
 
-## 步骤
+## Steps
 
-- [x] 实测 `turns()` 的计数口径（斜杠命令、`!` 命令、compact 后、resume 后）
-- [x] 测试先行：对齐的纯函数（普通 rewind、rewind 到第一条、含本地命令组、compact 之后的 rewind、`messages()` 截在 4096 条）
-- [x] 测试先行：`turns()` 未减少时不调用 `messages()`；流式输出期间不误删最新一组
-- [x] 实现
-- [x] 验收契约：修订 `CT-LIFE-004`（restore 后 500 ms 内被弃条目从目录消失，不需要再提交）；新增 `CT-LIFE-008`（rewind 后不提交、退出再 resume，被弃分支回到目录，与宿主显示一致）；删除「不承诺」里的接受窗口；README 同步
-- [x] 两版宿主 PTY 验收
+- [x] Measure how `turns()` counts (slash commands, `!` commands, after a compaction, after a resume)
+- [x] Test first: the pure function for alignment (an ordinary rewind, a rewind to the first one, with a local command group, a rewind after a compaction, `messages()` cut at 4096 entries)
+- [x] Test first: when `turns()` has not decreased, `messages()` is not called; the latest group is not deleted by mistake during streaming output
+- [x] Implement
+- [x] Acceptance contract: revise `CT-LIFE-004` (within 500 ms of a restore the discarded entries vanish from the contents, with no further submit needed); add `CT-LIFE-008` (after a rewind, quit without submitting and resume: the discarded branch returns to the contents, matching what the host shows); delete the accepted window from "not promised"; sync the README
+- [x] PTY acceptance on the host's two versions
 
 ## Comments
 
-- 2026-10-12 spike（两版一致）：restore 前后 `.jsonl` 字节相同；除 `PromptHint` 的 `ui.render`（两次）外没有任何钩子触发；约 300 ms 后第一次轮询时 `$.session.messages()` 与 `turns()` 已是截短后的值。目前的 Pane 在 20 秒空闲、清空输入框、Esc、终端失焦再聚焦时都不变，下一次主循环 `session.append`（下一次提交，或 `/reload-plugins` 这类会记行的本地命令）后约 300 ms 才更新。登录状态下「过一会儿自己更新」最可能是终端失焦约 180 秒后宿主追加的 `system/away_summary` 行，未实证。「只恢复代码」不改对话（对话框原文：The conversation will be unchanged）。
-- 2026-10-12 实测（两版一致，探针插件，未登录）：`turns()` = `messages()` 里不是 tool result 的 user 条数；compact 摘要、`!` 的输入与输出都算，`/tui` 这类本地命令两者都不含；`messages()` 从最后一个 compact 摘要开始；restore 后在 `PromptHint` 的那次绘制里两者已经截短。
-- 2026-10-12 实现（分支 `chat-toc/33-rewind-live-update`）：`hooks/rewind.ts`。`messages()` 完整（< 4096）时从最后一个 compact 边界起按顺序对齐（能分清重复的 prompt），截断时从尾部找最晚吻合处；对不上（例如文件还没写进新的 compact）就什么都不改。最后一个仍持有的 user 行之后的分组全部隐藏——夹在其后的本地命令组也一起隐藏。文件下次有新行时清除隐藏、以文件为准。每次 `PromptHint` 绘制时检查一次、300 ms 后再查一次。PTY：`CT-LIFE-004` 两版都在 restore 后约 12 ms 去掉被弃条目（对照：`main` 的代码不去掉），`CT-LIFE-008` 两版通过。原来借 rewind 造被拒/淡化条目的 `CT-JUMP-003`、`CT-UI-003` 场景改写后两版通过。
+- 2026-10-12 spike (the two versions agree): the `.jsonl` bytes are the same before and after a restore; no hook fires other than the `ui.render` of `PromptHint` (twice); at the first poll about 300 ms later, `$.session.messages()` and `turns()` already hold the truncated values. The current Pane does not change during 20 seconds idle, clearing the input box, Esc, or the terminal losing and regaining focus; it updates about 300 ms after the next main-loop `session.append` (the next submit, or a local command that records a row, such as `/reload-plugins`). When logged in, the "updates by itself after a while" is most likely the `system/away_summary` row the host appends after the terminal has lost focus for about 180 seconds, not proven. "Restore code only" does not change the conversation (the dialog's own words: The conversation will be unchanged).
+- 2026-10-12 measured (the two versions agree, probe plugin, not logged in): `turns()` = the number of user entries in `messages()` that are not tool results; the compaction summary and the input and output of `!` all count, and local commands such as `/tui` are in neither; `messages()` starts from the last compaction summary; after a restore, both are already truncated in that very `PromptHint` draw.
+- 2026-10-12 implementation (branch `chat-toc/33-rewind-live-update`): `hooks/rewind.ts`. When `messages()` is complete (< 4096), align in order from the last compaction boundary (this can tell duplicate prompts apart); when truncated, find the latest match from the tail; if nothing matches (for example the file has not yet written the new compaction), change nothing. All groups after the last user row still held are hidden, and local command groups sandwiched after it are hidden with them. The next time the file has new lines, the hiding is cleared and the file decides. It checks once on each `PromptHint` draw and again 300 ms later. PTY: `CT-LIFE-004` removes the discarded entries about 12 ms after a restore on both versions (control: `main`'s code does not remove them), and `CT-LIFE-008` passes on both versions. The `CT-JUMP-003` and `CT-UI-003` scenarios that used a rewind to make refused/dimmed entries were rewritten and pass on both versions.

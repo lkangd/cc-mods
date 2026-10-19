@@ -1,0 +1,17 @@
+0.2s session.start version=[object Object]
+2.5s open action-probe {"isPlaced":true}
+5.0s focus {"deny":"that site does not hold the keyboard"}
+7.1s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+7.1s PRESS noise in pane (surface=terminal, working=false, renders={"band":6,"pane":1})
+8.9s ui.press hook: {"plugin":"action-probe","element":"presession","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+8.9s PRESS presession in pane (surface=terminal, working=false, renders={"band":6,"pane":1})
+10.8s ui.press hook: {"plugin":"action-probe","element":"band-debug","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+10.8s PRESS band-debug in band (surface=terminal, working=false, renders={"band":6,"pane":1})
+18.9s closed
+32.4s open action-probe {"isPlaced":true}
+34.5s ui.press hook: {"plugin":"action-probe","element":"noise","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+34.5s PRESS noise in pane (surface=terminal, working=false, renders={"band":13,"pane":3})
+36.3s ui.press hook: {"plugin":"action-probe","element":"presession","component":"Pane","requestId":"action-probe","surface":"terminal"} keys=plugin,element,component,requestId,surface
+36.3s PRESS presession in pane (surface=terminal, working=false, renders={"band":13,"pane":3})
+38.2s ui.press hook: {"plugin":"action-probe","element":"band-debug","component":"AbovePrompt","requestId":"above-prompt","surface":"terminal"} keys=plugin,element,component,requestId,surface
+38.2s PRESS band-debug in band (surface=terminal, working=false, renders={"band":13,"pane":3})

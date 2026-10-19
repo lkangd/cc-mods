@@ -1,0 +1,8 @@
+{
+  "name": "own-scroll-probe-local",
+  "owner": { "name": "lkangd" },
+  "description": "Throwaway: whether a plugin may scroll its own Pane on Desktop",
+  "plugins": [
+    { "name": "own-scroll-probe", "source": "./own-scroll-probe", "description": "A tall Pane whose Buttons and timers call $.ui.scroll on it", "version": "0.0.1" }
+  ]
+}

@@ -1,0 +1,68 @@
+[
+ {
+  "step": "open-pane",
+  "presses": [],
+  "log": [
+   "2.2s open action-probe {\"isPlaced\":true}"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "submit",
+  "presses": [],
+  "log": [
+   "4.8s turn.start"
+  ],
+  "press_event": [],
+  "composer": [
+   "<no composer>"
+  ],
+  "ring": []
+ },
+ {
+  "step": "permission-prompt-noise (ctrl+x p)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "<no composer>"
+  ],
+  "ring": []
+ },
+ {
+  "step": "permission-prompt-presession (meta+j)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "<no composer>"
+  ],
+  "ring": []
+ },
+ {
+  "step": "permission-prompt-banddebug (ctrl+x b)",
+  "presses": [],
+  "log": [],
+  "press_event": [],
+  "composer": [
+   "<no composer>"
+  ],
+  "ring": []
+ },
+ {
+  "step": "digit-7-under-prompt-esc",
+  "presses": [],
+  "log": [
+   "21.8s turn.complete"
+  ],
+  "press_event": [],
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ }
+]

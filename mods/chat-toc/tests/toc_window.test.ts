@@ -90,13 +90,13 @@ test('the wheel over the pane moves its window, and the newest shows first', asy
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
+  /* The preview is closed: the head, the search row, three prompts, the footer. */
   const pane = await mountPane($, 11)
 
   const shown = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN'))
   expect(await shown()).toEqual(['CT-SYN prompt 9', 'CT-SYN prompt 10', 'CT-SYN prompt 11'])
 
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -3, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
-  /* Scrolled, the footer says it stopped following; the window keeps its rows. */
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -3, bodyRows: 11, contentRows: 12, origin: { kind: 'person' } } as never)
+  /* Scrolled, the window keeps its rows. */
   expect(await shown()).toEqual(['CT-SYN prompt 6', 'CT-SYN prompt 7', 'CT-SYN prompt 8'])
-  expect(await pane.find({ type: 'Text', text: '⏸ 暂停跟随' })).toBeDefined()
 })

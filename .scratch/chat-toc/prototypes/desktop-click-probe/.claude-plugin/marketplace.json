@@ -1,0 +1,21 @@
+{
+  "name": "toc-probe-local",
+  "owner": {
+    "name": "lkangd"
+  },
+  "description": "Throwaway: which desktop elements carry a click without a button's chrome",
+  "plugins": [
+    {
+      "name": "toc-probe",
+      "source": "./toc-probe",
+      "description": "Throwaway desktop click probe for chat-toc",
+      "version": "0.0.1"
+    },
+    {
+      "name": "chat-toc",
+      "source": "./chat-toc",
+      "description": "chat-toc from the working tree, for Desktop checks",
+      "version": "0.1.3"
+    }
+  ]
+}

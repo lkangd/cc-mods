@@ -1,0 +1,36 @@
+[
+ {
+  "method": "POST",
+  "path": "/v1/messages?beta=true",
+  "stream": true,
+  "tools": 0
+ },
+ {
+  "method": "POST",
+  "path": "/v1/messages?beta=true",
+  "stream": true,
+  "tools": 23,
+  "scripted": 0
+ },
+ {
+  "method": "POST",
+  "path": "/v1/messages?beta=true",
+  "stream": true,
+  "tools": 23,
+  "scripted": 1
+ },
+ {
+  "method": "POST",
+  "path": "/v1/messages?beta=true",
+  "stream": true,
+  "tools": 23,
+  "scripted": 2
+ },
+ {
+  "method": "POST",
+  "path": "/v1/messages?beta=true",
+  "stream": true,
+  "tools": 23,
+  "scripted": 3
+ }
+]

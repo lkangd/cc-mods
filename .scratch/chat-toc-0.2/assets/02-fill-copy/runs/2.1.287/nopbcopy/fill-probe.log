@@ -1,0 +1,4 @@
+2.2s open {"isPlaced":true}
+4.8s copy small (32 chars, surface=terminal): result={"isCopied":true} in 4ms
+8.1s copy 100k (100000 chars, surface=terminal): result={"isCopied":true} in 34ms
+11.4s copy 2m (2000000 chars, surface=terminal): result={"isCopied":true} in 9ms

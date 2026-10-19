@@ -1,156 +1,174 @@
-# chat-toc（开发者说明）
+# chat-toc (developer notes)
 
-chat-toc 是一个 Claude Code 插件：在全屏终端里把当前会话的对话目录停靠在 transcript 右侧，点击条目跳回那一轮。
+chat-toc is a Claude Code plugin: in a fullscreen terminal it docks the current session's conversation contents to the right of the transcript, and a click on an entry jumps back to that turn.
 
-- 使用说明（环境要求、安装、操作、显示规则、隐私、卸载、已知限制）只写在[根 README 的 chat-toc 一节](../../README.md#chat-toc)，本文件不重复。
-- 领域术语（Transcript、Turn group、User input、Agent reply、View filter、Layout、Current position、Jump target）见 [`CONTEXT.md`](CONTEXT.md)。代码和本文件用这些术语；面向使用者的文字一律用界面上的字。
-- 规格与票据：`.scratch/chat-toc/spec.md`、`.scratch/chat-toc/issues/`。
+- How to use it (requirements, install, controls, display rules, privacy, uninstall, known limits) is written only in [the root README's chat-toc section](../../README.md#chat-toc); this file does not repeat it.
+- Domain terms (Transcript, Turn group, User input, Agent reply, View filter, Layout, Current position, Jump target) are in [`CONTEXT.md`](CONTEXT.md). The code and this file use these terms; text for users always uses the words on screen.
+- Spec and tickets: the MVP (0.1) in `.scratch/chat-toc/spec.md` and `.scratch/chat-toc/issues/`, 0.2 in `.scratch/chat-toc-0.2/spec.md` and `.scratch/chat-toc-0.2/issues/`. Comments cite them as "MVP spec §N" and "0.2 spec §N".
 
-与 prompt-history 互不依赖、不共享代码和数据；需要的部分各写一份，不抽公共库。
-
-## 目录结构
+## Layout of the folder
 
 ```text
 mods/chat-toc/
-├── .claude-plugin/plugin.json   name chat-toc、version、"types": "./types/index.d.ts"
-├── .claude/types/claude-code.d.ts   2.1.287 的宿主类型声明（tsc 用它查最低版本）
-├── types/index.d.ts             $.state 的契约（成员必须内联写在 PluginState['chat-toc'] 里）
+├── .claude-plugin/plugin.json   name chat-toc, version, "types": "./types/index.d.ts"
+├── .claude/types/claude-code.d.ts   2.1.287's host type declarations (tsc checks the minimum version with them)
+├── types/index.d.ts             the $.state contract (members written inline in PluginState['chat-toc'])
 ├── hooks/
-│   ├── hooks.json               只加载 ./register.tsx
-│   ├── register.tsx             所有碰 $ 的代码与全部 hook；其余文件都是纯函数
-│   ├── transcript.ts            解析 JSONL 行
-│   ├── chain.ts                 当前分支的对话链（parentUuid，compact 边界改沿 logicalParentUuid）
-│   ├── groups.ts                开组规则、用户侧文字、步数、末段、结局
-│   ├── regroup.ts               增量重组（只从末组开组行起重组）
-│   ├── model.ts                 整份重组；只作测试判据，register 不用
-│   ├── source.ts                ≤4 MiB 整读与 4,000,000 B 分块读（sh dd+head / Windows PowerShell 5.1）
-│   ├── reader.ts                300 ms 尾随、读时合并的闸门
-│   ├── entries.ts               三种 Layout 与 View filter 的条目、日期分隔、时间格式、Agent 侧状态字
-│   ├── table.ts                 条目表：按组缓存条目，只在数据、宽度、过滤、Layout 变化时重建；组到条目查表
-│   ├── cells.ts                 终端单元宽度与折行（避头标点、英文词整体换行）
-│   ├── window.ts                Pane 自管的可见窗口
-│   ├── ring.ts                  宿主焦点环落在条目第一行、窗口两端的滚动
-│   ├── view.ts                  View filter / Layout 的 $.store 键、认不出时回默认
-│   ├── sites.ts                 transcript 站点记录与 requestId → 行的四级匹配
-│   ├── jump.ts                  每一侧的跳转候选、被拒说明与淡化
-│   ├── position.ts              Current position：在屏行分段、二分查找、跳转锁定
-│   ├── perf.ts                  CHAT_TOC_PERF 下的耗时采样（只有数字），写进宿主 debug 日志
-│   ├── lifecycle.ts             关闭标记、重开时机、放置结果、状态栏文字
-│   ├── locate.ts                中途启用时推算 transcript 路径（宿主的项目目录命名规则）
-│   ├── rewind.ts                rewind 后按宿主的 messages 与文件对齐，找出不再持有的分组
-│   ├── pane.tsx                 终端 Pane 的绘制（过滤行与页签线、时间轨上的条目、底栏）
-│   ├── desktop.tsx              Desktop / VS Code / 移动端的 Pane 绘制（按 e.surface 分出的另一棵树）
-│   └── minimap.ts               Desktop 上方每轮步数缩略条的 SVG
+│   ├── hooks.json               loads ./register.tsx only
+│   ├── register.tsx             every line that touches $, and every hook; the other files are pure functions
+│   ├── text.ts                  every word drawn or said, English and Chinese, picked by the locale
+│   ├── transcript.ts            parses JSONL rows
+│   ├── chain.ts                 the current branch's conversation chain (parentUuid; across a compaction boundary, logicalParentUuid)
+│   ├── groups.ts                when a group opens, the User input text, steps, last text, ending
+│   ├── facts.ts                 each group's facts for the preview, search and reuse: the input as typed, files changed/read, duration, output tokens, the last text as Markdown
+│   ├── regroup.ts               incremental regrouping (only from the last group's opening row)
+│   ├── compactions.ts           compaction boundaries placed between groups, their rules among the groups shown (×N fold), the fork line's condition
+│   ├── model.ts                 whole regrouping; a test oracle only, register does not use it
+│   ├── source.ts                whole read up to 4 MiB, 4,000,000 B chunks past it (sh dd+head / Windows PowerShell 5.1)
+│   ├── reader.ts                the gate: 300 ms trailing, reads merged while one runs
+│   ├── entries.ts               entries for the three Layouts and the View filter, day rules, time format, the Agent side's state words
+│   ├── table.ts                 the entry table: entries cached per group, rebuilt only when the data, width, filter or Layout change; group-to-entry lookup; the table narrowed to a query's matches
+│   ├── cells.ts                 terminal cell widths and folding (no closing punctuation at a line's start, English words kept whole)
+│   ├── window.ts                the Pane's own visible window
+│   ├── bars.ts                  the terminal Minimap: a one-cell Button per Turn group, blocks by steps, buckets past the width, the press target, the hide rule
+│   ├── ring.ts                  the host's focus ring on an entry's first line, scrolling at the window's ends, stepping over ‹ › and the Minimap
+│   ├── view.ts                  the View filter / Layout $.store keys, the default for a value not known
+│   ├── sites.ts                 transcript site records and the four-step requestId → row match
+│   ├── jump.ts                  each side's jump candidates, refusal notes and dimming
+│   ├── memo.ts                  the one-entry memo a drawing keeps its work in (the matches, the narrowed and ruled list, the preview)
+│   ├── position.ts              Current position: on-screen row runs, binary search, the jump lock
+│   ├── perf.ts                  timing samples under CHAT_TOC_PERF (numbers only), written to the host's debug log
+│   ├── lifecycle.ts             the close mark, when to reopen, placement outcomes
+│   ├── locate.ts                works out the transcript path when enabled mid-session (the host's project folder naming)
+│   ├── rewind.ts                after a rewind, lines the host's messages up with the file to find the groups no longer held
+│   ├── preview.ts               the preview's words (meta line, files line), its size against the rows (and what gives way first), what of a group fits
+│   ├── reuse.ts                 Reuse and copy: which label-row Buttons a group gets, the text each takes, how a fill keeps the draft
+│   ├── search.ts                search: each group's NFKC lower-cased fields indexed at regroup, the matcher (words AND, the View filter's fields), the match nearest a position
+│   ├── walk.ts                  ‹ ›: the borrowed actions, the groups the list shows, the walk from the Current position to the previous or next one with a Jump target
+│   ├── pane.tsx                 the terminal Pane (filter row and tab rule, the search row, entries on the time rail, the preview region, footer)
+│   ├── desktop.tsx              the Pane on Desktop / VS Code / mobile (another tree, split on e.surface); what an entry costs serialized
+│   ├── span.ts                  the part of the list Desktop draws: the newest Turn groups within a character budget, moved by ↑ and ↓
+│   └── minimap.ts               the SVG strip of steps per turn over the desktop list
 └── tests/
-    ├── *.test.ts                claude plugin test 套件
-    ├── fixture.ts、host.ts      合成 transcript 构造器；test kit 之上的宿主替身
-    ├── acceptance/              独立 verifier、fixture 生成器、PTY 驱动与各场景脚本
-    └── evidence/<版本>/          发布证据（随发布提交出现）
+    ├── *.test.ts                the claude plugin test suite
+    ├── fixture.ts, host.ts      the synthetic transcript builder; the host stand-in over the test kit
+    ├── acceptance/              the independent verifier, fixture generator, PTY driver and scenario scripts
+    └── evidence/<version>/      release evidence (added by the release commit)
 ```
 
-宿主有一条加载期静态检查：`$` 只能传给 `register.tsx` 顶层声明的函数，写成 `$.noun.method(...)`。传给 import 进来的函数或闭包会让模块加载失败，所以新代码里碰 `$` 的部分一律放进 `register.tsx`。
+The host has a static check at load: `$` may only be passed to functions declared at the top of `register.tsx`, spelled `$.noun.method(...)`. Passing it to an imported function or a closure makes the module fail to load, so new code that touches `$` always goes in `register.tsx`.
 
-## 本地加载
+## Language
+
+The words follow the system's language (`hooks/text.ts`): Chinese when the first set of `LC_ALL`, `LC_MESSAGES` and `LANG` starts with `zh`, English otherwise. The host has no locale API, so `register.tsx` reads those variables once a load, at the first start event. A new word goes into both tables in `text.ts`; tests for the English words are in `tests/language.test.ts`. The older suites check the Chinese words: `tests/host.ts` starts its worlds with `LANG=zh_CN.UTF-8`, the pure tests call `setLanguage('zh')`, and the PTY worlds set `LC_MESSAGES=zh_CN.UTF-8`.
+
+## Loading it locally
 
 ```sh
 claude --plugin-dir /path/to/cc-mods/mods/chat-toc
 ```
 
-- 不需要 `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS`。全屏布局用 `/tui fullscreen` 打开（或设置里 `"tui": "fullscreen"`）。
-- 热重载：在 `--plugin-dir` 下改动（或 touch）`hooks/register.tsx`。`/reload-plugins` 对没改动的 hooks 模块不重载（debug 日志 `hooks modules unchanged, kept as loaded`）。
-- 看插件做了什么：启动时加 `--debug-file <路径>`，日志里有 `hooks module chat-toc@inline reloaded`、`ui.open chat-toc chat-toc (unasked|asked, N columns): …`、`ui.close …` 等行。
-- 量耗时：再加环境变量 `CHAT_TOC_PERF=1`，插件把读取、重组、Pane 重画、Current position 的耗时以 `chat-toc-perf {...}` 行写进 debug 日志，每秒最多一批。只有数字（毫秒与计数），没有 prompt、uuid、路径；不设这个变量时什么都不量、不写。
-- 与 marketplace 安装不要同时启用。
+- `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` is not needed. Turn on the fullscreen layout with `/tui fullscreen` (or `"tui": "fullscreen"` in settings).
+- Hot reload: change (or touch) `hooks/register.tsx` under `--plugin-dir`. `/reload-plugins` does not reload an unchanged hooks module (debug log `hooks modules unchanged, kept as loaded`).
+- To see what the plugin did, start with `--debug-file <path>`: the log has lines like `hooks module chat-toc@inline reloaded`, `ui.open chat-toc chat-toc (unasked|asked, N columns): …`, `ui.close …`.
+- To time it, also set `CHAT_TOC_PERF=1`: the plugin writes the time spent reading, regrouping, redrawing the Pane and computing the Current position as `chat-toc-perf {...}` lines in the debug log, at most one batch a second. Numbers only (milliseconds and counts), no prompts, uuids or paths; without the variable nothing is timed or written.
+- Do not enable it together with a marketplace install.
 
-最低兼容版本 2.1.287 不装到全局，二选一：
+Do not install the minimum host, 2.1.287, globally; either:
 
 ```sh
-npm install --prefix <临时目录>/cc287 @anthropic-ai/claude-code@2.1.287   # 二进制在 node_modules/.bin/claude
-npx -y -p @anthropic-ai/claude-code@2.1.287 claude ...                     # PTY 驱动的 Host("2.1.287") 走这条
+npm install --prefix <temp dir>/cc287 @anthropic-ai/claude-code@2.1.287   # the binary is node_modules/.bin/claude
+npx -y -p @anthropic-ai/claude-code@2.1.287 claude ...                     # what the PTY driver's Host("2.1.287") does
 ```
 
-## 自动化测试
+## Automated tests
 
-快速门禁 `mods/chat-toc/scripts/verify-startup.sh`（约 20 秒）把下面这些和验收工具的单元测试串起来跑，两个版本都走 `npx`，不用本机全局安装。仓库的 pre-commit 钩子（`.githooks/pre-commit`，每个 clone 执行一次 `git config core.hooksPath .githooks` 启用）在提交改到某个 mod 的非 Markdown 文件时跑那个 mod 的门禁。
+The fast gate `mods/chat-toc/scripts/verify-startup.sh` (about 20 seconds) runs the checks below and the acceptance tools' unit tests, both versions through `npx`, with nothing installed globally. The repository's pre-commit hook (`.githooks/pre-commit`; enable it once per clone with `git config core.hooksPath .githooks`) runs a mod's gate when a commit touches that mod's non-Markdown files.
 
-单独跑某一项，在仓库根目录：
+To run one of them, from the repository root:
 
 ```sh
-claude plugin test mods/chat-toc                 # 只要求当前版本通过
-claude plugin validate mods/chat-toc             # 当前版本
+claude plugin test mods/chat-toc                 # only the current version must pass
+claude plugin validate mods/chat-toc             # current version
 <cc287>/node_modules/.bin/claude plugin validate mods/chat-toc   # 2.1.287
-(cd mods/chat-toc && npx -y -p typescript@5.6.3 tsc -p tsconfig.json)   # 对 2.1.287 的类型声明
+(cd mods/chat-toc && npx -y -p typescript@5.6.3 tsc -p tsconfig.json)   # against 2.1.287's type declarations
 ```
 
-- 2.1.287 的 test kit 没有 `session.append` 的底层实现，依赖它的用例只在当前版本上跑。
-- test kit 不把插件对 transcript 的 `$.ui.scroll` 和插件自己的 `$.ui.focus` 交给测试的 hook（报 no implementation），也触发不了使用者的 ✕。跳转、焦点落点、使用者关闭这几样在纯函数上测，真实效果靠 PTY 验收。
-- 要求「自动打开」的用例必须先画一次提示行（`tests/host.ts` 的 `start()` 已经做了；手动触发启动事件时调用 `drawHint($)`），因为全屏与否从 `PromptHint` 的绘制里才知道。
-- 对 2.1.295 等新版本做类型检查：在插件外写一个 tsconfig，包含 `plugin-authoring` skill 给出的 `types/claude-code.d.ts` 和 `mods/chat-toc/{types,hooks,tests}`。
+- 2.1.287's test kit has no bottom for `session.append`, so the tests that rely on it run on the current version only.
+- The test kit hands neither the plugin's `$.ui.scroll` of the transcript nor its own `$.ui.focus` to the test's hooks (it says no implementation), and cannot press the person's ✕. Jumps, where the focus lands and the person's close are tested on pure functions; their real effect is checked in PTY acceptance.
+- To type-check against 2.1.295 or another newer version, write a tsconfig outside the plugin that includes the `types/claude-code.d.ts` the `plugin-authoring` skill writes and `mods/chat-toc/{types,hooks,tests}`.
 
-验收工具自身的单元测试（verifier、fixture 生成器、驱动），只用标准库：
+The acceptance tools' own unit tests (verifier, fixture generator, driver) use the standard library only:
 
 ```sh
 cd mods/chat-toc/tests/acceptance && python3 -m unittest test_toc_verifier test_transcript_fixture test_pty_harness
 ```
 
-## PTY 验收
+## PTY acceptance
 
-第二层验收在真实宿主里跑，判据是 `tests/acceptance/toc_verifier.py`：它独立地沿 transcript 文件的对话链算出期望的条目序列，与 Pane 上读到的条目逐条比对，不与插件共享实现。
+The second layer runs in the real host, judged by `tests/acceptance/toc_verifier.py`: it works out the expected entries on its own along the transcript file's conversation chain and compares them one by one with the entries read off the Pane, sharing no code with the plugin.
 
-**环境**。驱动终端需要 pyte，版本见 `tests/acceptance/requirements.txt`：
+**Setup**. Driving the terminal needs pyte, at the version in `tests/acceptance/requirements.txt`:
 
 ```sh
 python3 -m venv <venv> && <venv>/bin/pip install --require-hashes -r mods/chat-toc/tests/acceptance/requirements.txt
 PY=<venv>/bin/python
 ```
 
-每次启动都在临时的 HOME 与 `CLAUDE_CONFIG_DIR` 里：已过引导、项目已信任、全屏、除 `--plugin-dir` 给的之外没有任何插件、不登录。不碰本人的 `~/.claude`。不登录时可以 `--resume` 合成 transcript、点击、滚动、跑本地斜杠命令，提交的 prompt 也会写进 transcript（宿主自己回一行 `Not logged in · Please run /login`），都不调用模型。确实需要真实一轮时设 `CHAT_TOC_PTY_TOKEN`（`claude setup-token` 的 token），驱动会以 `CLAUDE_CODE_OAUTH_TOKEN` 传入并加 `--model haiku`。只用合成 prompt，不放真实会话内容。
+Every start is in a temporary HOME and `CLAUDE_CONFIG_DIR`: onboarding done, the project trusted, fullscreen, no plugin but the one given with `--plugin-dir`, not logged in. Your own `~/.claude` is never touched. Logged out, you can `--resume` a synthetic transcript, click, scroll and run local slash commands, and a submitted prompt is still written to the transcript (the host answers with its own line `Not logged in · Please run /login`), all without calling a model. When a real turn is needed, set `CHAT_TOC_PTY_TOKEN` (a token from `claude setup-token`): the driver passes it as `CLAUDE_CODE_OAUTH_TOKEN` and adds `--model haiku`. Synthetic prompts only; no real conversation content.
 
-**场景脚本**（仓库根目录执行，`--host` 取 `2.1.287` 或 `current`，后者是 PATH 上的 `claude`）：
+**Scenario scripts** (run from the repository root; `--host` takes `2.1.287` or `current`, the latter the `claude` on PATH):
 
-| 场景 | 命令 |
+| Scenario | Command |
 | --- | --- |
-| 冒烟：整列表与 verifier 一致、点击跳转 | `$PY mods/chat-toc/tests/acceptance/pty_harness.py smoke --host 2.1.287 --plugin mods/chat-toc [--fixture forms] [--terminal cmux]` |
+| Smoke: the whole list matches the verifier, a click jumps | `$PY mods/chat-toc/tests/acceptance/pty_harness.py smoke --host 2.1.287 --plugin mods/chat-toc [--fixture forms] [--terminal cmux]` |
 | CT-COMPAT-003 | `$PY mods/chat-toc/tests/acceptance/ct_compat.py --host 2.1.287 --host current [--scenario waiting\|narrowed\|asked\|main\|reload]` |
-| CT-LIFE-001、002、005（fork） | `$PY mods/chat-toc/tests/acceptance/ct_life.py --host 2.1.287 --host current [--scenario 001\|002\|fork]` |
-| CT-LIFE-007 | `$PY mods/chat-toc/tests/acceptance/ct_mid_session.py --host 2.1.287 --host current [--scenario cli\|ui]`（从运行目录里临时搭的目录 marketplace 安装并先禁用，再分别用 CLI 和 `/plugin` 界面在会话中途启用） |
-| CT-LIFE-003、004、005、008，CT-DATA-006 | `$PY mods/chat-toc/tests/acceptance/chain_scenarios.py --host 2.1.287 [--only life-003,...]` |
-| CT-JUMP-001～003、005，CT-UI-005 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003 005]`（005 同时记录 CT-UI-005：约每 30 ms 读一次提示行的反色与前景色） |
-| CT-POS-001～003、CT-COEX-001、CT-LIFE-006 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6]`（coex 在临时项目里 `git init` 一份有改动的仓库，`/diff` 才会打开） |
-| CT-PERF-001（20 MiB many/heavy，各跑 3 次） | `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py run 2.1.287 many --runs 3`（再换 `heavy`、`current`）；汇总成发布报告的表：`$PY mods/chat-toc/tests/acceptance/perf_scenarios.py table <运行目录>...`。3000 条残留在屏记录下的 Current position 与条目表在 `tests/long_session.test.ts` 里量（`claude plugin test` 输出 `CT-PERF` 行） |
-| CT-COMPAT-001，CT-DATA-001～005，CT-TURN-001～005，CT-UI-001～003，CT-SEC-001 | `$PY mods/chat-toc/tests/acceptance/gate_scenarios.py --host 2.1.287 [--only compat-001,data-002,forms,turn-004-live,ui-003,sec-001,...]` |
-| CT-COMPAT-002（marketplace 冒烟） | `$PY mods/chat-toc/tests/acceptance/ct_marketplace.py --host 2.1.287 --host current --source local\|github`（`local` 是本仓库目录，发布前跑；`github` 是 `lkangd/cc-mods`，发布后的安装级检查） |
-| 三种 Layout 截屏（人工目检用） | `.scratch/chat-toc/assets/25-layouts/capture.py`（另有 `check_screens.py`、`probe.py`、`remember.py`、`ring_check.py`） |
-| 整个发布门禁 | `$PY mods/chat-toc/tests/acceptance/release_gate.py run --host 2.1.287 --gate <目录> --screens`（当前版本另加 `--types <claude-code.d.ts>`），两个版本可以并行；再 `release_gate.py report --gate <目录> --out mods/chat-toc/tests/evidence/<版本> --commit <被测提交> --screens` 生成证据目录 |
+| CT-LIFE-001, 002, 005 (fork) | `$PY mods/chat-toc/tests/acceptance/ct_life.py --host 2.1.287 --host current [--scenario 001\|002\|fork]` |
+| CT-LIFE-007 | `$PY mods/chat-toc/tests/acceptance/ct_mid_session.py --host 2.1.287 --host current [--scenario cli\|ui]` (installs from a folder marketplace set up in the run folder, disabled first, then enabled mid-session from the CLI and from the `/plugin` screen) |
+| CT-LIFE-003, 004, 005, 008, CT-DATA-006 | `$PY mods/chat-toc/tests/acceptance/chain_scenarios.py --host 2.1.287 [--only life-003,...]` |
+| CT-PREV-001 (the preview region, opened by `p` on an entry selected), CT-PREV-002 (expanded) | `$PY mods/chat-toc/tests/acceptance/ct_preview.py --host 2.1.287 [--host current] [--only press,close,facts,cut,short,widths,expand,cap,running]` (`expand`, `cap` and `running` record CT-PREV-002; `running` runs against `fake_api.py`, no model call) |
+| CT-REUSE-001 (Reuse and copy) | `$PY mods/chat-toc/tests/acceptance/ct_reuse.py --host 2.1.287 [--host current] [--only fill,copy,rules,closed,dialog,running,widths]` (writes the system clipboard and puts the person's back at the end; `running` runs against `fake_api.py`; `widths` also runs in English) |
+| CT-FIND-001, CT-FIND-002 (search) | `$PY mods/chat-toc/tests/acceptance/ct_search.py --host 2.1.287 [--host current] [--only narrow,filter,live,widths,keys,entry,keep,minimap]` (`widths` also runs in English; `keep` makes a temporary project a repository with a change, so `/diff` opens) |
+| CT-STEP-001 (‹ ›, the keys bound) | `$PY mods/chat-toc/tests/acceptance/ct_walk.py --host 2.1.287 [--host current] [--only pane,keys]` (`keys` writes the world's `keybindings.json` binding `meta+k`/`meta+j`, runs one turn against `fake_api.py` on 127.0.0.1, and makes the project a repository with a change, so `/diff` opens) |
+| CT-CMPCT-001 (a query's part too), CT-CTX-001, CT-LIFE-003 (live `/compact`) | `$PY mods/chat-toc/tests/acceptance/ct_compaction.py --host 2.1.287 [--only fixture,fork,live]` (`live` runs against `fake_api.py` on 127.0.0.1 stating chosen `usage` figures; no model call) |
+| CT-JUMP-001–003, 005, CT-UI-005 | `$PY mods/chat-toc/tests/acceptance/jump_scenarios.py 2.1.287 [001 002 002b 003 005]` (005 also records CT-UI-005: the notice line's inverse and foreground read about every 30 ms) |
+| CT-POS-001–003, CT-COEX-001, CT-LIFE-006, CT-MAP-001 | `$PY mods/chat-toc/tests/acceptance/position_scenarios.py 2.1.287 [pos1 pos2 pos3 coex life6 map1]` (coex runs `git init` on a repository with changes in a temporary project, so `/diff` opens) |
+| CT-PERF-001, CT-PERF-002 (20 MiB many/heavy, 3 runs each; the preview opened by a click, queries typed into the search field) | `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py run 2.1.287 many --runs 3` (then `heavy`, `current`); the release report's tables: `$PY mods/chat-toc/tests/acceptance/perf_scenarios.py table <run folder>...`. The Current position and the entry table under 3000 stale on-screen records, and the search index and a keystroke's matching on 4432 turns, are measured in `tests/long_session.test.ts` (`claude plugin test` prints `CT-PERF` lines) |
+| CT-COMPAT-001, CT-DATA-001–005, CT-TURN-001–005, CT-UI-001–003, CT-SEC-001 | `$PY mods/chat-toc/tests/acceptance/gate_scenarios.py --host 2.1.287 [--only compat-001,data-002,forms,turn-004-live,ui-003,sec-001,...]` |
+| CT-COMPAT-002 (marketplace smoke) | `$PY mods/chat-toc/tests/acceptance/ct_marketplace.py --host 2.1.287 --host current --source local\|github` (`local` is this repository's folder, run before a release; `github` is `lkangd/cc-mods`, the install-level check after it) |
+| Screens of the three Layouts (for the visual check) | `.scratch/chat-toc/assets/25-layouts/capture.py` (with `check_screens.py`, `probe.py`, `remember.py`, `ring_check.py`) |
+| The whole release gate | `$PY mods/chat-toc/tests/acceptance/release_gate.py run --host 2.1.287 --gate <folder> --screens` (the current version also takes `--types <claude-code.d.ts>`); the two versions can run in parallel. Then `release_gate.py report --gate <folder> --out mods/chat-toc/tests/evidence/<version> --commit <commit under test> --screens` writes the evidence folder |
 
-CT-TURN-004 的「进行中 · N 步」要一轮真正在跑：`gate_scenarios.py` 的 `turn-004-live` 用 `fake_api.py`（本机一个按脚本应答的 Messages API 替身，`ANTHROPIC_BASE_URL` 指向它）跑两步 Read 再收尾，不调用模型。fixture 生成器 `transcript_fixture.py` 有 `forms`（规格点名的全部行形态）、`turns`、`many`（20 MiB 约 4500 轮）、`heavy`（20 MiB 约 108 轮、大工具结果）四种，种子固定。
+CT-TURN-004's in-progress state (`进行中 · N 步`) needs a turn actually running: `gate_scenarios.py`'s `turn-004-live` uses `fake_api.py` (a local stand-in for the Messages API that answers from a script; `ANTHROPIC_BASE_URL` points at it) to run two Read steps and finish, with no model call. The fixture generator `transcript_fixture.py` has four kinds, with fixed seeds: `forms` (every row shape the spec names), `turns`, `many` (20 MiB, about 4500 turns), `heavy` (20 MiB, about 108 turns with large tool results).
 
-**cmux**。场景脚本默认用 pyte（无头、尺寸可控、能读颜色）。要在 cmux 里看着跑，`pty_harness.py smoke --terminal cmux` 会在当前 workspace 开一个 `--focus false` 的分屏，结束时关掉；只动自己开的分屏。注意：
+The PTY worlds check the Chinese words (see Language). The English words are covered by `tests/language.test.ts`; in the PTY only `ct_search.py widths` and `ct_reuse.py widths` run in English.
 
-- cmux 分屏的宽度不受控，不足 144 列不会自动停靠，smoke 会改用 `/chat-toc`（110 列起停靠），transcript 里因此多一组。
-- cmux 发出的滚轮和点击序列也会被宿主当成 Escape：每次点击可能弹出 rewind 对话框，一轮进行中滚动 Pane 会中断这一轮。整列表比对用 pyte。
-- 宿主把 `dimColor` 画成当前主题的 `inactive` 前景色（不是 SGR 2；验收世界是 dark 主题，即 `999999`）；悬停的条目是反色。在 pyte 里判断淡化前，先把指针移开。
+**cmux**. The scenario scripts use pyte by default (headless, sized at will, colours readable). To watch a run in cmux, `pty_harness.py smoke --terminal cmux` opens a `--focus false` split in the current workspace and closes it at the end; it only touches the split it opened. Note:
 
-**运行记录**。每次运行写到 `mods/chat-toc/build/pty-runs/<时间>-<标签>/`（gitignore）：`run.jsonl` 每个场景一行（场景 ID、Claude Code 版本、插件、fixture、预期、实际、结果、证据、OS、架构、时间），`screens/` 是截屏文本。发布时只把选中的运行目录拷进证据目录。
+- A cmux split's width is not under control. Below 144 columns the pane does not dock by itself, so smoke uses `/chat-toc` instead (docks from 110 columns), which adds a group to the transcript.
+- The wheel and click sequences cmux sends are also taken by the host as Escape: each click may raise the rewind dialog, and wheeling the Pane during a turn interrupts it. Use pyte for whole-list comparisons.
+- The host draws `dimColor` as the current theme's `inactive` foreground (not SGR 2; the acceptance worlds use the dark theme, `999999`), and a hovered entry is inverse. Move the pointer off before judging dimness in pyte.
 
-## 证据目录
+**Run records**. Each run writes to `mods/chat-toc/build/pty-runs/<time>-<label>/` (gitignored): `run.jsonl` has one line per scenario (scenario ID, Claude Code version, plugin, fixture, expected, actual, result, evidence, OS, architecture, time); `screens/` holds the screen texts. A release copies only the chosen run folders into the evidence folder.
 
-- `tests/evidence/<插件版本>/`，一个版本一个目录，提交进仓库。改版本号就在新目录里重跑完整 MUST 门禁，旧目录不改。不建 CHANGELOG。
-- 目录里放三个文件：
-  - `report.md`：给人看，两个 Claude Code 版本合在一份里、按版本分列，含人工目检签字；
-  - `report.json`：每个场景一条，字段为插件版本、Claude Code 版本、OS、架构、fixture、场景 ID、预期、实际、结果、证据链接，另记被测提交的哈希；
-  - `marketplace.md`：本地目录 marketplace 冒烟（CT-COMPAT-002）与发布后 GitHub 安装级检查的结果。
-- 场景清单与 MUST 等级以 `.scratch/chat-toc/issues/06-grill-acceptance-contract.md` §4 为准。任一 MUST 失败、缺失、跳过，或没有可追溯证据，都不能发布。
-- 证据里只有合成 prompt。CT-SEC-001 的唯一标记不得出现在证据里。
+## Evidence folder
 
-## 发布清单
+- `tests/evidence/<plugin version>/`, one folder per version, committed. A new version reruns the full MUST gate in a new folder; old folders are not changed. There is no CHANGELOG.
+- The folder holds three files:
+  - `report.md`: for people; both Claude Code versions in one report, a column each, with the visual check's sign-off;
+  - `report.json`: one record per scenario with the plugin version, Claude Code version, OS, architecture, fixture, scenario ID, expected, actual, result and evidence links, plus the hash of the commit under test;
+  - `marketplace.md`: the local folder marketplace smoke (CT-COMPAT-002) and the GitHub install-level check after the release.
+- The scenario list and MUST levels follow `.scratch/chat-toc/issues/06-grill-acceptance-contract.md` §4. Any MUST that fails, is missing, is skipped or has no traceable evidence blocks the release.
+- Evidence holds synthetic prompts only. CT-SEC-001's unique marker must not appear in it.
 
-按顺序勾选，任何一步失败就停在那一步：
+## Release checklist
 
-1. [ ] `plugin.json` 的 `version` 已改成要发布的版本；新建 `tests/evidence/<版本>/`。
-2. [ ] 在本机 macOS 上用 2.1.287 和当时的当前版本，以 `--plugin-dir` 各跑一遍全部 MUST 场景：零失败、零缺失、零跳过；`claude plugin test`、两版 `validate`、两版 `tsc` 干净。
-3. [ ] 用本地目录 marketplace 在两个版本上跑 CT-COMPAT-002 冒烟（安装、Pane 自动弹出、点击一次用户侧并跳转成功），写进 `marketplace.md`。
-4. [ ] 人工目检三种 Layout 的观感、高亮（主题的 `suggestion` 色）与反色选择光标能否分清，在 `report.md` 签字（不阻断发布）。
-5. [ ] 发布提交：在**同一个提交**里加入 marketplace 条目（`.claude-plugin/marketplace.json`，`name`/`source`/`description`/`version`/`author`，不加 `category`、`tags`）、根 README 一览表的一行与 chat-toc 一节（改版本时更新那一行和「开发」里的通过结果）、`tests/evidence/<版本>/`。不打 git tag。
-6. [ ] 推上去后，先确认 `gh repo view lkangd/cc-mods --json defaultBranchRef -q .defaultBranchRef.name` 输出 `main`（`marketplace add lkangd/cc-mods` 读的是默认分支；0.1.0 第一次发布就因默认分支不是 `main` 而撤回），再从 `lkangd/cc-mods` 做一次安装级检查：`claude plugin marketplace add lkangd/cc-mods`、`claude plugin install chat-toc@cc-mods`、`claude plugin list` 里版本号正确且 enabled、全屏会话启动时 Pane 自动弹出。结果补进 `marketplace.md`（这一步不算重新发布）。本地目录 marketplace 直接运行源码目录，只有 GitHub 远程 marketplace 才复制到缓存，所以这一步不能省。
-7. [ ] 第 6 步失败就撤回发布提交。
+Tick in order; stop at the first step that fails:
+
+1. [ ] `version` in `plugin.json` is the version to release; `tests/evidence/<version>/` is created.
+2. [ ] On this macOS machine, run every MUST scenario once with `--plugin-dir` on 2.1.287 and on the current version of the day: no failures, nothing missing, nothing skipped; `claude plugin test`, `validate` on both versions and `tsc` on both versions are clean.
+3. [ ] Run the CT-COMPAT-002 smoke from a local folder marketplace on both versions (install, the Pane opens by itself, one click on a User input side jumps), and write it into `marketplace.md`.
+4. [ ] Check by eye how the three Layouts look and whether the highlight (the theme's `suggestion` colour) and the inverse selection cursor tell apart, and sign in `report.md` (does not block the release).
+5. [ ] The release commit: in **one commit**, the marketplace entry (`.claude-plugin/marketplace.json`: `name`/`source`/`description`/`version`/`author`, no `category` or `tags`), the root README's table row and chat-toc section (for a new version, update that row and the passing results under Development), and `tests/evidence/<version>/`. No git tag.
+6. [ ] After pushing, first confirm `gh repo view lkangd/cc-mods --json defaultBranchRef -q .defaultBranchRef.name` prints `main` (`marketplace add lkangd/cc-mods` reads the default branch; 0.1.0's first release was withdrawn because it was not `main`), then run an install-level check from `lkangd/cc-mods`: `claude plugin marketplace add lkangd/cc-mods`, `claude plugin install chat-toc@cc-mods`, the right version and enabled in `claude plugin list`, and the Pane opening by itself as a fullscreen session starts. Add the result to `marketplace.md` (this step is not a new release). A local folder marketplace runs the source folder as is; only the GitHub marketplace copies it to the cache, so this step cannot be skipped.
+7. [ ] If step 6 fails, withdraw the release commit.

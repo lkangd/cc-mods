@@ -1,4 +1,4 @@
-# 决定 Layout 的切换入口与默认值
+# Decide the Layout switch's entry and default
 
 Type: grilling
 Status: resolved
@@ -6,17 +6,17 @@ Blocked by: 15
 
 ## Question
 
-正式版用什么入口切换三种 Layout（卡片 / 紧凑 / 时间轴）？默认 Layout 是哪一种？底栏是否常驻？原型用过三种入口：底栏 `‹ ›`、Pane 聚焦时的热键 `v`、`/chat-toc a|b|c`。还要定这些入口与 View filter 的 1/2/3 热键、`/chat-toc` 重新打开 Pane 的命令语义如何共存。结论供 `CT-UI-002` 引用。
+What entry does the release use to switch among the three Layouts (Card / Compact / Timeline)? Which Layout is the default? Is the footer permanent? The prototype used three entries: the footer's `‹ ›`, the hotkey `v` with the Pane focused, and `/chat-toc a|b|c`. It must also be decided how these entries coexist with the View filter's 1/2/3 hotkeys and with the meaning of `/chat-toc` reopening the Pane. The conclusion is for `CT-UI-002` to cite.
 
 ## Answer
 
-**结论（使用者已确认，2026-10-09）：默认卡片；唯一入口是 Pane 顶部过滤行右端的一个「布局:<当前 Layout>」按钮，点击或聚焦时按 `l` 循环切换；不提供命令参数；底栏不常驻；`/chat-toc` 只打开并聚焦，从不关闭。** 供 `CT-UI-002` 引用的是下面第 2、3、5 条。
+**Verdict (confirmed by the user, 2026-10-09): the default is Card; the only entry is one "Layout: <current Layout>" button at the right end of the filter row at the top of the Pane, which cycles on a click or on `l` when focused; no command argument is provided; the footer is not permanent; `/chat-toc` only opens and focuses, and never closes.** `CT-UI-002` cites items 2, 3 and 5 below.
 
-1. **默认 Layout**：卡片。`$.store` 里没有记录或值认不出时，也回到卡片。
-2. **入口**：过滤行右端一个 `plain` Button，文字为「布局:卡片」「布局:紧凑」「布局:时间轴」，显示**当前**的 Layout，不显示下一种。点击它或 Pane 聚焦时按 `l`，按「卡片 → 紧凑 → 时间轴 → 卡片」循环。选择立即写进 `$.store`；写入失败时本次仍然切换。原型里的底栏 `‹ ›`、热键 `v`、`/chat-toc a|b|c` 都不用：`v` 容易被读成 View filter 的键；只有三种、选择又会被记住，命令参数得不偿失，还会搅乱 `/chat-toc` 的语义。
-3. **热键共存**：Pane 聚焦时，1/2/3 切 View filter，`l` 切 Layout，↑↓/Enter 选择与跳转，互不冲突。
-4. **底栏不常驻**：只在显示「暂停」或跳转被拒的说明时出现。过滤行约 18 列，加上间隔和「布局:卡片」约 9 列，再给 2.1.287 的 ✕ 留 3 列，共约 30 列，最窄 36 列也放得下。
-5. **切换时的位置**：Pane 聚焦且有选择光标时以选中的组为锚，否则以 Current position 所在组为锚；切换后锚定的组留在可见窗口内，位置尽量不变。跟随或暂停的状态不变，恢复跟随仍按原规则（Current position 下一次变化时）。
-6. **`/chat-toc`**：没有参数。Pane 关着时重新打开；已打开（前台或后台标签）时提到前台并 `focus:true` 聚焦，从不关闭——关闭只有 ✕ 这一个入口。若实现时发现对已开的 id 再 open 不会切换标签，就退化为只聚焦。
+1. **Default Layout**: Card. It also falls back to Card when `$.store` holds no record or a value that is not recognized.
+2. **Entry**: a `plain` Button at the right end of the filter row, with the text "Layout: Card", "Layout: Compact" or "Layout: Timeline", showing the **current** Layout, not the next one. A click on it, or `l` while the Pane is focused, cycles "Card → Compact → Timeline → Card". The choice is written to `$.store` at once; if the write fails, this switch still happens. The prototype's footer `‹ ›`, hotkey `v` and `/chat-toc a|b|c` are not used: `v` is easily read as a View filter key; with only three Layouts and the choice remembered, a command argument is not worth it and would muddy what `/chat-toc` means.
+3. **Hotkeys coexist**: with the Pane focused, 1/2/3 switch the View filter, `l` switches the Layout, and ↑↓/Enter select and jump, with no conflict.
+4. **The footer is not permanent**: it appears only when showing the "paused" note or a refused-jump note. The filter row is about 18 columns, the gap plus "Layout: Card" about 9 columns, and 3 more columns are left for 2.1.287's ✕, about 30 columns in all, so it fits even at the narrowest 36 columns.
+5. **Position on a switch**: when the Pane is focused and has a selection cursor, the selected group is the anchor; otherwise the group of the Current position is. After the switch the anchored group stays inside the visible window, and the position changes as little as possible. The following or paused state does not change, and resuming following still follows the old rule (at the Current position's next change).
+6. **`/chat-toc`**: no arguments. When the Pane is closed it reopens it; when it is already open (foreground or background tab) it brings it to the front and focuses it with `focus:true`, and never closes it, since ✕ is the only way to close. If the implementation finds that opening an already open id does not switch tabs, it degrades to focusing only.
 
-宿主事实（来自 `plugins__mods__interface.md`、`reference.md`、`api.md`）：Pane 内热键只能挂在画出的 `Button` 上（一位数字或一个小写字母），只在 Pane 聚焦时生效；命令参数走 `e.args`。不改 `CONTEXT.md`（「布局」只是界面用字），不写 ADR（改起来很便宜）。
+Host facts (from `plugins__mods__interface.md`, `reference.md`, `api.md`): a hotkey inside a Pane can only be put on a drawn `Button` (one digit or one lowercase letter) and works only while the Pane is focused; command arguments come through `e.args`. `CONTEXT.md` is not changed ("Layout" is only a word on the interface), and no ADR is written (it is cheap to change).

@@ -1,34 +1,34 @@
-# 31: 会话中途启用后，目录立即列出已有对话
+# 31: Enabled mid-session, the contents list the conversation at once
 
-**What to build:** 在已经运行的会话里启用 chat-toc（不重启），Pane 弹出时就列出本会话已有的对话，不再是一片空白。
+**What to build:** Enable chat-toc in a session that is already running (no restart), and the Pane lists the conversation the session already has when it pops up, instead of staying blank.
 
-**Blocked by:** 无
+**Blocked by:** none
 
 **Status:** done
 
-## 问题
+## Problem
 
-使用者反馈：在运行中的会话里启用 chat-toc 后，右侧 Pane 弹出，但内容为空，要重启会话才有内容。
+The user reported: after enabling chat-toc in a running session, the right-hand Pane pops up but is empty, and the session has to be restarted before it has any content.
 
-原因：transcript 路径只从 `classic.SessionStart` 取（`register.tsx`），中途加载时宿主只触发 `session.start`（debug log：`session.start: raised for chat-toc (loaded later)`），路径一直是 `''`，`load` 直接返回，`source` 停在 `unknown`，面板既无条目也无说明。提交下一条消息也不会恢复：chat-toc 不读 `classic.UserPromptSubmit` 带来的路径。
+The cause: the transcript path is taken only from `classic.SessionStart` (`register.tsx`). On a mid-session load the host fires only `session.start` (debug log: `session.start: raised for chat-toc (loaded later)`), so the path stays `''`, `load` returns at once, `source` stays at `unknown`, and the pane has neither entries nor a note. Submitting the next message does not recover it either: chat-toc does not read the path that `classic.UserPromptSubmit` brings.
 
-## 已定的决定（2026-10-12 grilling）
+## Decisions made (grilling, 2026-10-12)
 
-- `session.start` 时推算路径：`$.session.id()`（即 transcript 文件名）+ `$.session.cwd()` + 配置目录（`$.env.get('CLAUDE_CONFIG_DIR')`，没有则 `HOME/.claude`；Windows 取 `USERPROFILE`），然后立即读。
-- 目录名照搬宿主规则（两版二进制读出并实测）：`[^a-zA-Z0-9]` 每个 UTF-16 单元换成 `-`；结果超过 200 字符时取前 200 个，再接 `-` + `Math.abs(javaHash(cwd)).toString(36)`，`javaHash` 为 `e=(e<<5)-e+charCode|0`。依赖了宿主未公开的规则，使用者接受这个风险；不做 `find` 搜索。
-- 之后任何 classic 钩子（`SessionStart`、`UserPromptSubmit` 等）带来的 `transcript_path` 与当前不同，就以它为准，`forget()` 后从头重读。
-- 推不出路径时，Pane 显示一行「提交下一条消息后显示目录」，等 classic 钩子补上路径。
-- 推出的路径文件不存在，按现有「新会话还没有文件」处理。
+- On `session.start`, work out the path: `$.session.id()` (the transcript file name) + `$.session.cwd()` + the config directory (`$.env.get('CLAUDE_CONFIG_DIR')`, or `HOME/.claude` when it is absent; `USERPROFILE` on Windows), then read at once.
+- The directory name copies the host's rule (read out of the binaries of both versions and measured): each UTF-16 unit matching `[^a-zA-Z0-9]` becomes `-`; when the result is longer than 200 characters, take the first 200 and append `-` + `Math.abs(javaHash(cwd)).toString(36)`, where `javaHash` is `e=(e<<5)-e+charCode|0`. This relies on a rule the host has not published; the user accepts the risk; no `find` search.
+- After that, when a `transcript_path` from any classic hook (`SessionStart`, `UserPromptSubmit` and so on) differs from the current one, that one wins, and the file is re-read from the start after `forget()`.
+- When the path cannot be worked out, the Pane shows one line, "The contents appear after the next message", and waits for a classic hook to supply the path.
+- When the worked-out path's file does not exist, handle it as the existing "new session has no file yet" case.
 
-## 步骤
+## Steps
 
-- [x] 测试先行：目录名推算的纯函数（短路径、含中文与空格、超过 200 字符的非 ASCII 路径，期望值取自 spike 的 `sanitize.py` 实测）
-- [x] 测试先行：`session.start` 无 classic 路径时按推算路径读出目录；classic 路径不同时改用它并重读；推不出时显示兜底文字
-- [x] 实现
-- [x] 验收契约新增 `CT-LIFE-007`（`CT-LIFE-006` 已被热重载占用）：两种启用路径——`/plugin` 界面启用（关闭菜单时自动 reload），以及 `claude plugin enable` 加 `/reload-plugins`——都在不重启的情况下列出已有对话；两版宿主 PTY 验收
-- [x] 更新 `docs/agents/mod-host-gotchas.md`：中途加载只触发 `session.start`；`$.session.id()` 是文件名；目录名规则
+- [x] Test first: the pure function that works out the directory name (short path, Chinese and spaces, a non-ASCII path over 200 characters; the expected values come from the spike's `sanitize.py` measurements)
+- [x] Test first: with no classic path on `session.start`, read the contents from the worked-out path; when a classic path differs, switch to it and re-read; when nothing can be worked out, show the fallback text
+- [x] Implement
+- [x] The acceptance contract gains `CT-LIFE-007` (`CT-LIFE-006` is taken by hot reload): both ways of enabling, the `/plugin` screen (it reloads automatically when the menu closes) and `claude plugin enable` plus `/reload-plugins`, list the existing conversation without a restart; PTY acceptance on the host's two versions
+- [x] Update `docs/agents/mod-host-gotchas.md`: a mid-session load fires only `session.start`; `$.session.id()` is the file name; the directory name rule
 
 ## Comments
 
-- 2026-10-12 spike（两版行为一致，证据在当时 scratchpad 的 `spike/runs/A*`）：`$.session.id()`、`cwd()`、`root()`、`$.env.get('CLAUDE_CONFIG_DIR')` 都可用；`classic.UserPromptSubmit` 带 `transcript_path`；`classic.Stop` 在未登录世界里不触发，未确认。
-- 2026-10-12 实现（分支 `chat-toc/31-mid-session-enable`）：`hooks/locate.ts` 推算路径，`session.start` 在没有已知路径时调用；`classic.SessionStart` 与 `classic.UserPromptSubmit` 的路径不同就替换并从头重读；`load` 读完发现路径已换就丢弃结果。`classic.Stop` 没接（未确认带路径，`UserPromptSubmit` 已够）。PTY：`tests/acceptance/ct_mid_session.py` 在 2.1.287 与 2.1.295 上 cli、ui 两种启用方式都通过；同一脚本对 0.1.1 的代码失败（对照）。CLI 启用后要等宿主的设置监听生效（debug log `Settings changed from userSettings`）再 `/reload-plugins`，否则 reload 仍当它禁用。
+- 2026-10-12 spike (the two versions behave the same; evidence in `spike/runs/A*` in the scratchpad of that time): `$.session.id()`, `cwd()`, `root()` and `$.env.get('CLAUDE_CONFIG_DIR')` are all usable; `classic.UserPromptSubmit` carries `transcript_path`; `classic.Stop` does not fire in a world that is not logged in, unconfirmed.
+- 2026-10-12 implementation (branch `chat-toc/31-mid-session-enable`): `hooks/locate.ts` works out the path, and `session.start` calls it when no path is known; when the path from `classic.SessionStart` or `classic.UserPromptSubmit` differs, it replaces the current one and the file is re-read from the start; when `load` finishes reading and finds the path has changed, it drops the result. `classic.Stop` is not wired (it is unconfirmed whether it carries the path, and `UserPromptSubmit` is enough). PTY: `tests/acceptance/ct_mid_session.py` passes on 2.1.287 and 2.1.295 for both enabling ways, cli and ui; the same script fails against 0.1.1's code (the control). After a CLI enable, wait for the host's settings listener to take effect (debug log `Settings changed from userSettings`) before `/reload-plugins`, otherwise the reload still treats it as disabled.

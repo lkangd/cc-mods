@@ -1,0 +1,396 @@
+{
+ "counts": {
+  "assistant chain rows": {
+   "model <synthetic>": 90,
+   "with usage": 45182
+  },
+  "compact": {
+   "boundaries (auto)": 24,
+   "boundaries (manual)": 30,
+   "logicalParentUuid set": 51,
+   "next chain row is the summary": 37,
+   "off the chain (manual)": 3,
+   "parentUuid null": 51,
+   "summary's parentUuid is the boundary": 37
+  },
+  "compact per file": {
+   "0": 518,
+   "1": 24,
+   "2": 6,
+   "3": 3,
+   "4": 1,
+   "5": 1
+  },
+  "compact place": {
+   "auto: in a group opened by /code-review:code-review; agent rows before and after": 3,
+   "auto: in a group opened by /code-review:code-review; agent rows before only": 2,
+   "auto: in a group opened by /handoff:handoff; agent rows before only": 1,
+   "auto: in a group opened by /mattpocock-skills:handoff; agent rows before only": 1,
+   "auto: in a group opened by /mattpocock-skills:teach; agent rows before and after": 1,
+   "auto: in a group opened by /wrapup:wrapup; agent rows before only": 1,
+   "auto: in a group opened by prompt; agent rows before and after": 11,
+   "auto: in a group opened by prompt; agent rows before only": 4,
+   "manual: before the first group": 6,
+   "manual: in a group opened by /autocompact; no agent rows in the group": 1,
+   "manual: in a group opened by /clear-lifecycle-mark; no agent rows in the group": 1,
+   "manual: in a group opened by /effort; no agent rows in the group": 1,
+   "manual: in a group opened by /probe; no agent rows in the group": 1,
+   "manual: in a group opened by /prompt-history; agent rows before only": 1,
+   "manual: in a group opened by /wrapup:wrapup; agent rows before only": 1,
+   "manual: in a group opened by prompt; agent rows before only": 15
+  },
+  "compact summary.isVisibleInTranscriptOnly": {
+   "True": 37
+  },
+  "compact summary.message.content type": {
+   "str": 37
+  },
+  "compact: first user/assistant row after the summary": {
+   "assistant": 1,
+   "user meta": 21,
+   "user opener command": 2,
+   "user opener prompt": 3
+  },
+  "files": {
+   "main": 553,
+   "with groups": 419
+  },
+  "queue-operation": {
+   "dequeue": 845,
+   "enqueue": 1453,
+   "popAll": 2,
+   "remove": 601
+  },
+  "repeated message.id: usage across its rows": {
+   "identical": 15321
+  },
+  "rows": {
+   "sidechain rows in main files": 0
+  },
+  "rows after turn_duration in its group": {
+   "assistant, attachment, system/away_summary, system/compact_boundary, system/informational, system/stop_hook_summary, system/turn_duration, user": 5,
+   "assistant, attachment, system/away_summary, system/compact_boundary, system/stop_hook_summary, system/turn_duration, user": 6,
+   "assistant, attachment, system/away_summary, system/informational, system/stop_hook_summary, system/turn_duration, user": 3,
+   "assistant, attachment, system/away_summary, system/scheduled_task_fire, system/stop_hook_summary, system/turn_duration, user": 15,
+   "assistant, attachment, system/away_summary, system/stop_hook_summary, system/turn_duration, user": 121,
+   "assistant, attachment, system/away_summary, system/turn_duration, user": 1,
+   "assistant, attachment, system/compact_boundary, system/informational, system/stop_hook_summary, system/turn_duration, user": 7,
+   "assistant, attachment, system/compact_boundary, system/stop_hook_summary, system/turn_duration, user": 7,
+   "assistant, attachment, system/compact_boundary, system/turn_duration, user": 1,
+   "assistant, attachment, system/informational, system/stop_hook_summary, system/turn_duration, user": 51,
+   "assistant, attachment, system/informational, system/turn_duration, user": 1,
+   "assistant, attachment, system/informational, user": 1,
+   "assistant, attachment, system/scheduled_task_fire, system/stop_hook_summary, system/turn_duration, user": 25,
+   "assistant, attachment, system/stop_hook_summary, system/turn_duration, user": 129,
+   "assistant, attachment, system/turn_duration, user": 5,
+   "assistant, attachment, user": 1,
+   "assistant, system/informational, system/turn_duration, user": 2,
+   "assistant, system/scheduled_task_fire, system/turn_duration, user": 3,
+   "assistant, system/turn_duration, user": 3,
+   "attachment": 27,
+   "attachment, system/away_summary": 6,
+   "attachment, system/away_summary, system/compact_boundary, system/informational, user": 8,
+   "attachment, system/away_summary, user": 3,
+   "attachment, system/compact_boundary, system/informational, user": 1,
+   "attachment, system/informational": 1,
+   "attachment, system/informational, user": 2,
+   "attachment, user": 2,
+   "none": 995,
+   "system/away_summary": 246,
+   "system/away_summary, system/compact_boundary, user": 2,
+   "system/away_summary, system/informational": 12,
+   "system/away_summary, user": 14,
+   "system/compact_boundary, user": 13,
+   "system/informational": 35,
+   "system/informational, user": 2,
+   "user": 38
+  },
+  "rows per message.id": {
+   "1": 5623,
+   "2": 10106,
+   "3": 3964,
+   "4": 571,
+   "5": 243,
+   "6": 437
+  },
+  "subagent results in the main file": {
+   "with totalTokens": 2
+  },
+  "subagent results: usage keys": {
+   "cache_creation": 2,
+   "cache_creation_input_tokens": 2,
+   "cache_read_input_tokens": 2,
+   "fallback_credit": 1,
+   "inference_geo": 2,
+   "input_tokens": 2,
+   "iterations": 2,
+   "output_tokens": 2,
+   "output_tokens_details": 2,
+   "server_tool_use": 2,
+   "service_tier": 2,
+   "speed": 2
+  },
+  "subagent totalTokens vs its file": {
+   "neither": 2
+  },
+  "subagent usage vs its file's last request": {
+   "False": 2
+  },
+  "tool_use calls": {
+   "Agent": 626,
+   "Artifact": 5,
+   "AskUserQuestion": 199,
+   "Bash": 14380,
+   "Edit": 2045,
+   "EnterPlanMode": 14,
+   "EnterWorktree": 2,
+   "ExitPlanMode": 14,
+   "ExitWorktree": 1,
+   "Glob": 109,
+   "Grep": 34,
+   "ListAgents": 62,
+   "Monitor": 33,
+   "PushNotification": 6,
+   "Read": 1818,
+   "ReportFindings": 2,
+   "ScheduleWakeup": 22,
+   "SendFeedback": 5,
+   "SendMessage": 209,
+   "Skill": 286,
+   "TaskCreate": 17,
+   "TaskGet": 17,
+   "TaskList": 8,
+   "TaskOutput": 19,
+   "TaskStop": 16,
+   "TaskUpdate": 36,
+   "ToolSearch": 44,
+   "WebFetch": 46,
+   "WebSearch": 14,
+   "Write": 1326,
+   "mcp__*": 311
+  },
+  "tool_use path field": {
+   "Artifact.file_path absolute": 4,
+   "Edit.file_path absolute": 2045,
+   "EnterWorktree.path absolute": 2,
+   "Glob.path absolute": 109,
+   "Grep.path absolute": 34,
+   "Read.file_path absolute": 1818,
+   "Write.file_path absolute": 1326
+  },
+  "turn_duration present, prompt groups done, by version": {
+   "2.1.193 yes": 6,
+   "2.1.195 yes": 24,
+   "2.1.196 yes": 24,
+   "2.1.207 no": 1,
+   "2.1.207 yes": 2,
+   "2.1.229 yes": 3,
+   "2.1.233 yes": 3,
+   "2.1.234 yes": 1,
+   "2.1.246 yes": 3,
+   "2.1.260 no": 2,
+   "2.1.272 yes": 23,
+   "2.1.273 yes": 64,
+   "2.1.274 yes": 48,
+   "2.1.275 no": 1,
+   "2.1.275 yes": 66,
+   "2.1.276 yes": 11,
+   "2.1.277 yes": 39,
+   "2.1.278 no": 5,
+   "2.1.278 yes": 92,
+   "2.1.280 no": 2,
+   "2.1.280 yes": 89,
+   "2.1.281 yes": 115,
+   "2.1.282 yes": 20,
+   "2.1.283 yes": 142,
+   "2.1.284 yes": 31,
+   "2.1.285 yes": 4,
+   "2.1.286 yes": 7,
+   "2.1.290 yes": 11,
+   "2.1.292 yes": 7,
+   "2.1.293 yes": 12,
+   "2.1.294 yes": 21,
+   "2.1.295 no": 40,
+   "2.1.295 yes": 191
+  },
+  "turn_duration rows per group": {
+   "command no agent rows, done, spans a compaction: 0": 4,
+   "command no agent rows, done: 0": 457,
+   "command no agent rows, done: 1": 4,
+   "command with agent rows, done, spans a compaction: 1": 5,
+   "command with agent rows, done, spans a compaction: 2": 4,
+   "command with agent rows, done: 0": 54,
+   "command with agent rows, done: 1": 186,
+   "command with agent rows, done: 2": 92,
+   "command with agent rows, error, spans a compaction: 1": 1,
+   "command with agent rows, error, spans a compaction: 2": 1,
+   "command with agent rows, error: 0": 2,
+   "command with agent rows, error: 1": 3,
+   "command with agent rows, error: 2": 6,
+   "command with agent rows, interrupted: 0": 8,
+   "command with agent rows, interrupted: 2": 1,
+   "prompt no agent rows, done: 0": 5,
+   "prompt with agent rows, done, spans a compaction: 0": 2,
+   "prompt with agent rows, done, spans a compaction: 1": 15,
+   "prompt with agent rows, done, spans a compaction: 2": 10,
+   "prompt with agent rows, done: 0": 49,
+   "prompt with agent rows, done: 1": 961,
+   "prompt with agent rows, done: 2": 73,
+   "prompt with agent rows, error, spans a compaction: 1": 2,
+   "prompt with agent rows, error, spans a compaction: 2": 1,
+   "prompt with agent rows, error: 0": 1,
+   "prompt with agent rows, error: 1": 21,
+   "prompt with agent rows, error: 2": 4,
+   "prompt with agent rows, interrupted: 0": 21,
+   "prompt with agent rows, interrupted: 1": 6,
+   "shell with agent rows, done: 1": 12,
+   "shell with agent rows, error: 1": 1
+  },
+  "turn_duration.messageCount present": {
+   "True": 1794
+  },
+  "usage.iterations[0] equals the top-level counts": {
+   "False": 2,
+   "True": 13425
+  }
+ },
+ "distributions": {
+  "compact durationMs (auto)": {
+   "max": 472392,
+   "median": 165077.0,
+   "min": 44754,
+   "n": 24,
+   "p10": 51922,
+   "p90": 382988
+  },
+  "compact durationMs (manual)": {
+   "max": 343175,
+   "median": 27795,
+   "min": 1763,
+   "n": 21,
+   "p10": 8273,
+   "p90": 202873
+  },
+  "compact preTokens (auto)": {
+   "max": 373371,
+   "median": 227756.5,
+   "min": 207292,
+   "n": 24,
+   "p10": 224269,
+   "p90": 342884
+  },
+  "compact preTokens (manual)": {
+   "max": 838225,
+   "median": 52206,
+   "min": 27231,
+   "n": 21,
+   "p10": 33449,
+   "p90": 223309
+  },
+  "compactions on the chain per file with any": {
+   "max": 5,
+   "median": 1,
+   "min": 1,
+   "n": 35,
+   "p10": 1,
+   "p90": 3
+  },
+  "turn: all four summed": {
+   "max": 92854506,
+   "median": 553673.0,
+   "min": 0,
+   "n": 1542,
+   "p10": 35711,
+   "p90": 5199836
+  },
+  "turn: cache_creation_input_tokens": {
+   "max": 465564,
+   "median": 6777.5,
+   "min": 0,
+   "n": 1542,
+   "p10": 0,
+   "p90": 79870
+  },
+  "turn: cache_read_input_tokens": {
+   "max": 92366175,
+   "median": 518911.5,
+   "min": 0,
+   "n": 1542,
+   "p10": 22635,
+   "p90": 5081529
+  },
+  "turn: input_tokens (uncached)": {
+   "max": 2350521,
+   "median": 22.0,
+   "min": 0,
+   "n": 1542,
+   "p10": 2,
+   "p90": 62990
+  },
+  "turn: output_tokens": {
+   "max": 206053,
+   "median": 3503.0,
+   "min": 0,
+   "n": 1542,
+   "p10": 7,
+   "p90": 24846
+  },
+  "turn: requests (unique message.id)": {
+   "max": 201,
+   "median": 5.0,
+   "min": 1,
+   "n": 1542,
+   "p10": 1,
+   "p90": 34
+  },
+  "turn_duration.durationMs - (its row time - opener time), ms (done)": {
+   "max": 25697715,
+   "median": 8,
+   "min": -99203338,
+   "n": 1713,
+   "p10": -1656977,
+   "p90": 45
+  },
+  "turn_duration.durationMs - (its row time - opener time), ms (error)": {
+   "max": 2475214,
+   "median": -139,
+   "min": -4340196,
+   "n": 67,
+   "p10": -2429057,
+   "p90": 28
+  },
+  "turn_duration.durationMs - (its row time - opener time), ms (interrupted)": {
+   "max": 31,
+   "median": -41328.5,
+   "min": -27985530,
+   "n": 14,
+   "p10": -1885510,
+   "p90": 31
+  },
+  "turn_duration.durationMs - (last agent row - opener), ms (done)": {
+   "max": 8725321,
+   "median": 2871,
+   "min": -99225363,
+   "n": 1709,
+   "p10": -2782277,
+   "p90": 47993
+  },
+  "turn_duration.durationMs - (last agent row - opener), ms (error)": {
+   "max": 2475225,
+   "median": -176766,
+   "min": -4340159,
+   "n": 67,
+   "p10": -3767380,
+   "p90": 42
+  },
+  "turn_duration.durationMs - (last agent row - opener), ms (interrupted)": {
+   "max": 15888,
+   "median": -14168949.0,
+   "min": -28018450,
+   "n": 14,
+   "p10": -28008400,
+   "p90": 2954
+  }
+ },
+ "most Turn groups in one file": 66
+}

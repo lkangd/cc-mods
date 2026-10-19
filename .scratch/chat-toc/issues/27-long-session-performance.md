@@ -1,26 +1,26 @@
-# 27: 长会话性能
+# 27: Long-session performance
 
-**What to build:** 20 MB 级的长会话里，目录几秒内出现，滚动、跳转、重画都不卡，连续滚动能到达首尾、不分页。
+**What to build:** In a 20 MB-class long session the contents appear within seconds, and scrolling, jumping and redrawing do not stall; continuous scrolling reaches both ends, with no paging.
 
-规格见 [chat-toc MVP](../spec.md) §7（长会话）、§9。
+Spec: [chat-toc MVP](../spec.md) §7 (long sessions), §9.
 
-**Blocked by:** 22（大文件分块与增量读取）、24（Current position 高亮与 TOC 跟随）、25（View filter、三种 Layout 与键盘）
+**Blocked by:** 22 (Chunked and incremental reads of large files), 24 (The Current position highlight and the TOC following), 25 (View filter, three Layouts and the keyboard)
 
 **Status:** resolved
 
-- [x] 条目按组缓存（键：宽度、进行中、步数、状态、末段），只在数据、宽度、View filter、Layout 变化时重建条目表；高亮与光标绘制时叠加；只画可见窗口；组到条目的定位用表
-- [x] 用 20 MiB 的 many 与 heavy fixture，在 2.1.287 与当前版本各跑 3 次，p95 满足：首次出目录 ≤4 s、空闲整份读取加重组 ≤1 s、增量单次 ≤150 ms、追加一行到模型更新 ≤1 s、Pane 自身 ≤16 ms、含宿主 ≤100 ms、Current position ≤2 ms（3000 条残留 ≤5 ms）
-- [x] 长会话连续滚动、跳转能到达首组和末组，不分页（CT-PERF-001）
-- [x] 结果写成可进入发布报告的表
+- [x] Entries are cached per group (key: width, running, steps, outcome, last text) and the entry table is rebuilt only when the data, width, View filter or Layout changes; the highlight and the cursor are overlaid at draw time; only the visible window is drawn; locating a group's entry uses a table
+- [x] With the 20 MiB many and heavy fixtures, 3 runs each on 2.1.287 and the current version, p95 meets: first contents ≤4 s, idle whole read plus regroup ≤1 s, a single incremental read ≤150 ms, a row appended to the model updated ≤1 s, the Pane itself ≤16 ms, with the host ≤100 ms, Current position ≤2 ms (≤5 ms with 3000 leftover records)
+- [x] Continuous scrolling and jumping in a long session reach the first and last groups, with no paging (CT-PERF-001)
+- [x] The results are written as a table that can go into the release report
 
 ## Comments
 
-2026-10-11，分支 `chat-toc/27-perf`（基于 `chat-toc/mvp` c4dccaa）。
+2026-10-11, branch `chat-toc/27-perf` (based on `chat-toc/mvp` c4dccaa).
 
-- **条目表**（`hooks/table.ts`）：每组的条目按开组行缓存，键是组的位置、是否进行中、步数、结局、末段、用户侧文字（宽度、View filter、Layout、年份变了整份作废）。条目表（条目、高度、key 与反查表、每组起始条目）只在组数组、宽度、过滤、Layout、进行中变化时更新；文件只增长时只把末尾几组摘下重排（4432 组时 0.05 ms），整份重组后同样的组复用旧条目。register 的 Pane 绘制改用表：`entryOfGroup` 查表代替 `firstEntryFrom` 二分，高度、key 表不再每次重算；高亮与焦点仍在绘制时叠加，只画可见窗口。原先每次绘制都 `entriesOf` 全部条目，many 形状要 18–35 ms。
-- **计时**（`hooks/perf.ts`）：只在环境变量 `CHAT_TOC_PERF` 有值时采样，每秒最多一批，以 `chat-toc-perf {...}` 行经 `$.ui.log(..., { to: 'debug' })` 写进宿主 debug 日志（宿主约 1 万字符截断一行，所以每行 ≤ 4000 字符）。样本只有数字，测试与拷贝证据时都核对过（CT-SEC-001）。不设变量时不量不写；`validate` 的 env reads 因此多了 `CHAT_TOC_PERF`，calls 多了 `ui.log`。
-- **24 号提的残留在屏记录**：真实操作里最多 30 条（many，1500 格快速滚动），3000 条只能合成：在插件运行环境里 p95 0.31–0.34 ms（≤ 5 ms），没改 Current position 的算法。
-- **结果表**：`mods/chat-toc/release/ct-perf-001.md`，29 号直接贴进 report.md；运行记录在 `.scratch/chat-toc/assets/27-perf/runs/`。两版 × 两种 fixture × 3 次全部通过：首次出目录比 transcript 晚 0.53–0.77 s，空闲整份读取 195–375 ms，增量读取 p95 26–111 ms，追加到模型 347–514 ms，Pane 自身 p95 ≤ 0.38 ms、含宿主 ≤ 8.7 ms，Current position p95 ≤ 0.03 ms；首组、末组都由连续滚动和点击到达。
-- **已知的长尾**：读完文件后的第一次绘制要建整张表，many 55–61 ms（p95 不受影响）；热重载后的第一次增量读取约 100 ms 花在第一次 `$.process.run`。都在阈值内，没再优化。
-- **28 号文档**：`mods/chat-toc/README.md` 补了 CT-PERF-001 的命令、`CHAT_TOC_PERF`、目录结构里的 `table.ts`/`position.ts`/`perf.ts`；根 README 草稿「已知限制」那句补了参考机器上的结论；「也能跳到很早、从没显示过的轮次」在 4521 轮的会话上再次验证，不用改。
-- PTY 驱动：`tests/acceptance/perf_scenarios.py run <host> <many|heavy> --runs 3`，`table <运行目录>...` 出表；合成部分在 `tests/long_session.test.ts`。
+- **The entry table** (`hooks/table.ts`): each group's entries are cached by its opening row, the key being the group's position, running or not, steps, outcome, last text and user-side text (a change of width, View filter, Layout or year voids the whole cache). The entry table (entries, heights, the key and reverse-lookup tables, each group's first entry) is updated only when the group array, width, filter, Layout or running changes; when the file only grows, only the last few groups are taken off and re-laid out (0.05 ms at 4432 groups), and after a whole regroup the same groups reuse the old entries. The register's Pane drawing now uses the table: `entryOfGroup` looks up the table in place of `firstEntryFrom`'s binary search, and the height and key tables are no longer recomputed each time; the highlight and the focus are still overlaid at draw time, and only the visible window is drawn. Before this, every draw ran `entriesOf` over all entries, which took 18–35 ms in the many shape.
+- **Timing** (`hooks/perf.ts`): sampled only when the environment variable `CHAT_TOC_PERF` has a value, at most one batch a second, written as `chat-toc-perf {...}` lines through `$.ui.log(..., { to: 'debug' })` into the host's debug log (the host cuts a line at about 10 thousand characters, so each line is ≤ 4000 characters). The samples hold numbers only, checked in both the tests and the copying of evidence (CT-SEC-001). With the variable unset nothing is measured or written; `validate`'s env reads therefore gain `CHAT_TOC_PERF` and its calls gain `ui.log`.
+- **The leftover on-screen records raised by ticket 24**: in real use at most 30 (many, 1500 notches of fast scrolling); 3000 can only be synthetic: in the plugin's runtime p95 is 0.31–0.34 ms (≤ 5 ms), and the Current position algorithm was not changed.
+- **The result table**: `mods/chat-toc/release/ct-perf-001.md`, which ticket 29 pastes straight into report.md; the run records are in `.scratch/chat-toc/assets/27-perf/runs/`. Both versions × two fixtures × 3 runs all pass: the first contents come 0.53–0.77 s after the transcript, the idle whole read takes 195–375 ms, the incremental read p95 26–111 ms, append to model 347–514 ms, the Pane itself p95 ≤ 0.38 ms and with the host ≤ 8.7 ms, the Current position p95 ≤ 0.03 ms; the first and last groups are both reached by continuous scrolling and by clicks.
+- **Known long tails**: the first draw after a file read builds the whole table, 55–61 ms in many (p95 unaffected); the first incremental read after a hot reload spends about 100 ms on the first `$.process.run`. Both are within the thresholds and were not optimized further.
+- **Ticket 28 docs**: `mods/chat-toc/README.md` gained the CT-PERF-001 command, `CHAT_TOC_PERF`, and `table.ts`/`position.ts`/`perf.ts` in the directory structure; the root README draft's "Known limits" sentence gained the conclusion on the reference machine; "can also jump to turns from long ago that never showed" was verified again on a 4521-turn session and needs no change.
+- PTY driver: `tests/acceptance/perf_scenarios.py run <host> <many|heavy> --runs 3`, and `table <run directory>...` produces the table; the synthetic part is in `tests/long_session.test.ts`.

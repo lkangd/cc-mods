@@ -1,0 +1,43 @@
+2026-10-16T02:48:24.018Z +0.12s session.start version={"version":"2.1.287","base":"2.1.287","builtAt":"2026-10-01T16:02:06Z"} reason=undefined
+2026-10-16T02:48:24.022Z +0.12s usage (session.start) {"startedAt":1792118902624,"context":{"window":1000000},"cost":{"usd":0},"rateLimits":[]}
+2026-10-16T02:48:26.024Z +2.12s usage (command) {"startedAt":1792118902624,"context":{"window":1000000},"cost":{"usd":0},"rateLimits":[]}
+2026-10-16T02:48:28.081Z +4.18s turn.start {"text":"USAGE-PROBE plain","turnId":"12288a6a-2ca8-4acf-8b38-d5c209718467"}
+2026-10-16T02:48:28.180Z +4.28s turn.complete {"answer":"<string>","durationMs":113,"isAborted":false,"turnId":"12288a6a-2ca8-4acf-8b38-d5c209718467","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":40000,"cache_creation_input_tokens":2000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:48:28.193Z +4.29s usage (after turn.complete) {"startedAt":1792118902624,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.030764999999999997},"rateLimits":[]}
+2026-10-16T02:48:28.194Z +4.29s session.measure {"context":{"tokens":42003,"window":1000000,"percent":4},"rateLimits":[],"cost":{"usd":0.030764999999999997},"changed":["context","cost"]}
+2026-10-16T02:48:33.642Z +9.74s usage (summary) {"context":{"tokens":42003,"window":1000000,"percent":4,"breakdown":"<undefined>"},"breakdown":"<object>"}
+2026-10-16T02:48:38.205Z +14.30s turn.start {"text":"USAGE-PROBE-STEPS two steps","turnId":"540899f3-2b42-4eb6-a76c-9f44aea9479c"}
+2026-10-16T02:48:45.007Z +21.11s turn.complete {"answer":"<string>","durationMs":6812,"isAborted":false,"turnId":"540899f3-2b42-4eb6-a76c-9f44aea9479c","reason":"answer","usage":{"input_tokens":9,"output_tokens":750,"cache_read_input_tokens":120000,"cache_creation_input_tokens":6000,"model":"fake-model"},"answerLength":11}
+2026-10-16T02:48:45.025Z +21.12s usage (after turn.complete) {"startedAt":1792118902624,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.10755399999999998},"rateLimits":[]}
+2026-10-16T02:48:45.027Z +21.13s session.measure {"context":{"tokens":42003,"window":1000000,"percent":4},"rateLimits":[],"cost":{"usd":0.10755399999999998},"changed":["cost"]}
+2026-10-16T02:48:48.746Z +24.84s turn.start {"text":"USAGE-PROBE-SLOW interrupt me","turnId":"303ad235-16ad-4892-8931-10d0570a6650"}
+2026-10-16T02:48:51.955Z +28.05s turn.complete {"answer":"<string>","durationMs":3209,"isAborted":true,"turnId":"303ad235-16ad-4892-8931-10d0570a6650","reason":"aborted","answerLength":0}
+2026-10-16T02:48:51.970Z +28.07s usage (after turn.complete) {"startedAt":1792118902624,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.11530699999999998},"rateLimits":[]}
+2026-10-16T02:48:51.971Z +28.07s session.measure {"context":{"tokens":42003,"window":1000000,"percent":4},"rateLimits":[],"cost":{"usd":0.11530699999999998},"changed":["cost"]}
+2026-10-16T02:48:55.461Z +31.56s turn.start {"text":"USAGE-PROBE-SLOW interrupt meUSAGE-PROBE-SLOW the running one","turnId":"e5601359-b605-4fbb-b053-4df80147764a"}
+2026-10-16T02:49:07.552Z +43.65s turn.complete {"answer":"<string>","durationMs":12080,"isAborted":false,"turnId":"e5601359-b605-4fbb-b053-4df80147764a","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":40000,"cache_creation_input_tokens":2000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:49:07.612Z +43.71s usage (after turn.complete) {"startedAt":1792118902624,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.14607199999999998},"rateLimits":[]}
+2026-10-16T02:49:07.626Z +43.73s session.measure {"context":{"tokens":42003,"window":1000000,"percent":4},"rateLimits":[],"cost":{"usd":0.176837},"changed":["cost"]}
+2026-10-16T02:49:07.639Z +43.74s turn.start {"text":"USAGE-PROBE queued while running","turnId":"c1d51479-f6c7-42ea-b38a-13c21a55c450"}
+2026-10-16T02:49:07.648Z +43.75s turn.complete {"answer":"<string>","durationMs":66,"isAborted":false,"turnId":"c1d51479-f6c7-42ea-b38a-13c21a55c450","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":40000,"cache_creation_input_tokens":2000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:49:07.652Z +43.75s usage (after turn.complete) {"startedAt":1792118902624,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.176837},"rateLimits":[]}
+2026-10-16T02:49:16.580Z +52.68s session.compact in {"trigger":"manual","messages":"<number>"}
+2026-10-16T02:49:16.630Z +52.73s session.compact out {"tokensBefore":42253,"tokensAfter":1073,"usage":{"input_tokens":0,"output_tokens":250,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"messages":"<number>"}
+2026-10-16T02:49:16.632Z +52.73s usage (after session.compact) {"startedAt":1792118902624,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.199849},"rateLimits":[]}
+2026-10-16T02:49:17.145Z +53.24s usage (500 ms after session.compact) {"startedAt":1792118902624,"context":{"window":1000000},"cost":{"usd":0.199849},"rateLimits":[]}
+2026-10-16T02:49:27.413Z +63.51s usage (command) {"startedAt":1792118902624,"context":{"window":1000000},"cost":{"usd":0.199849},"rateLimits":[]}
+2026-10-16T02:49:29.215Z +65.31s turns=7 messages=16 roles="userassistantuserassistantuserassistantuserassistantassistantuserassistantuseruserassistantuseruser"
+2026-10-16T02:49:31.265Z +67.36s turn.start {"text":"USAGE-PROBE after compact","turnId":"66e5a2ee-55e6-4c7e-8f43-b8a7c7fe25ef"}
+2026-10-16T02:49:31.307Z +67.41s turn.complete {"answer":"<string>","durationMs":46,"isAborted":false,"turnId":"66e5a2ee-55e6-4c7e-8f43-b8a7c7fe25ef","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":40000,"cache_creation_input_tokens":2000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:49:31.316Z +67.42s usage (after turn.complete) {"startedAt":1792118902624,"context":{"tokens":42003,"window":1000000,"percent":4},"cost":{"usd":0.230614},"rateLimits":[]}
+2026-10-16T02:49:31.317Z +67.42s session.measure {"context":{"tokens":42003,"window":1000000,"percent":4},"rateLimits":[],"cost":{"usd":0.230614},"changed":["cost"]}
+2026-10-16T02:49:36.826Z +72.92s turn.start {"text":"USAGE-PROBE near the end","turnId":"b80f4e91-29b3-4b69-b2ec-b02884dc7004"}
+2026-10-16T02:49:36.845Z +72.94s turn.complete {"answer":"<string>","durationMs":22,"isAborted":false,"turnId":"b80f4e91-29b3-4b69-b2ec-b02884dc7004","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":196000,"cache_creation_input_tokens":1000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:49:36.847Z +72.95s usage (after turn.complete) {"startedAt":1792118902624,"context":{"tokens":197003,"window":1000000,"percent":20},"cost":{"usd":0.301929},"rateLimits":[]}
+2026-10-16T02:49:36.856Z +72.95s session.measure {"context":{"tokens":197003,"window":1000000,"percent":20},"rateLimits":[],"cost":{"usd":0.301929},"changed":["context","cost"]}
+2026-10-16T02:49:42.423Z +78.52s usage (summary) {"context":{"tokens":197003,"window":1000000,"percent":20,"breakdown":"<undefined>"},"breakdown":"<object>"}
+2026-10-16T02:49:46.955Z +83.05s turn.start {"text":"USAGE-PROBE after the end","turnId":"bce61a31-5b0c-4496-8a75-3d284553db92"}
+2026-10-16T02:49:46.984Z +83.08s turn.complete {"answer":"<string>","durationMs":33,"isAborted":false,"turnId":"bce61a31-5b0c-4496-8a75-3d284553db92","reason":"answer","usage":{"input_tokens":3,"output_tokens":250,"cache_read_input_tokens":30000,"cache_creation_input_tokens":2000,"model":"fake-model"},"answerLength":2}
+2026-10-16T02:49:46.994Z +83.09s usage (after turn.complete) {"startedAt":1792118902624,"context":{"tokens":32003,"window":1000000,"percent":3},"cost":{"usd":0.32969400000000004},"rateLimits":[]}
+2026-10-16T02:49:46.995Z +83.09s session.measure {"context":{"tokens":32003,"window":1000000,"percent":3},"rateLimits":[],"cost":{"usd":0.32969400000000004},"changed":["context","cost"]}
+2026-10-16T02:50:02.522Z +98.62s usage (command) {"startedAt":1792118902624,"context":{"tokens":32003,"window":1000000,"percent":3},"cost":{"usd":0.32969400000000004},"rateLimits":[]}

@@ -28,9 +28,25 @@ _Avoid_: Assistant message, output
 Which side of each Turn group the Chat TOC shows: all, User inputs only, or Agent replies only.
 _Avoid_: Mode, tab
 
+**Search**:
+Narrowing the Chat TOC to the Turn groups that match a query the person typed: each of its words found, in any case, somewhere in the User input as typed, the Agent reply's last text, or the paths of the files the Turn group's tool calls read or changed, looking only at the sides the View filter shows. A Turn group it keeps is a match.
+_Avoid_: Filter, find
+
+**Preview**:
+The region at the bottom of the Chat TOC that shows one Turn group whole without jumping: its User input as typed, the Agent reply's last text, the files its tool calls changed or read, and, when the Transcript states them, its duration and the main agent's output tokens. Closed until the person presses an entry; it then shows that Turn group and stays on it until another press or its close. Expanded, it takes the list's place until the person goes back.
+_Avoid_: Detail, peek, inspector
+
+**Reuse**:
+Putting an earlier User input back into the composer as typed, as a draft the person edits and sends themselves, never sent for them; a draft already there is kept.
+_Avoid_: Resend, replay, retry, edit
+
 **Layout**:
-How the Chat TOC draws each Turn group, chosen by the person and kept across sessions: card (up to two lines per side, the time at the right of the User input), compact (one line per side, the time in a left column), or timeline (up to two lines per side, the time in a left column). Every Layout hangs the sides on a rail, a day's rule where the day changes. It changes the drawing only, never which entries show.
+How the Chat TOC draws each Turn group, chosen by the person and kept across sessions: card (up to two lines per side, the time at the right of the User input), compact (one line per side, the time in a left column), or timeline (up to two lines per side, the time in a left column). Every Layout hangs the sides on a rail, a day's rule where the day changes and a rule where a Compaction falls. It changes the drawing only, never which entries show.
 _Avoid_: Theme, variant, style
+
+**Minimap**:
+The row at the top of the Chat TOC on the terminal that draws the whole Transcript at a glance: one cell per Turn group, as tall as the steps its Agent reply took, the Current position's cell the one not dimmed. Pressing a cell jumps to its Turn group as pressing that group's entry does; when a cell stands for several Turn groups, to the first of them that has a Jump target. It always shows every Turn group, whatever the View filter, and is left out when there is too little room or fewer than two Turn groups.
+_Avoid_: Chart, sparkline, strip, graph
 
 **Current position**:
 The Turn group the person is looking at in the transcript: the one the topmost row in view belongs to, or the last Turn group once the end of the Transcript is fully in view. Right after a jump it is the jumped-to Turn group, until the transcript view next moves. It follows the transcript view, not the person's selection in the Chat TOC.
@@ -39,3 +55,15 @@ _Avoid_: Active item, scroll-spy, selection
 **Jump target**:
 A temporary association from one side of a Turn group to the transcript row a jump scrolls to. The row need not have been drawn yet; it is good while Claude Code still lists it, and a side whose jump Claude Code refuses has no Jump target until the row is listed again. When that side's own row is shown but cannot be targeted, as with a slash command or `!` shell command, its Jump target is the nearest targetable row after it, or before it when none follows. A side known beforehand to have no Jump target, as a turn compacted away before the session was resumed, hangs on a hollow mark like a refused one.
 _Avoid_: Anchor, link
+
+**Walk**:
+Moving the transcript to the Turn group before or after the Current position, among the Turn groups the Chat TOC lists (under the View filter and, during a Search, only its matches), with `‹ ›` or a key the person bound to them. Each press locks the Current position on the group it reached, so presses go group by group.
+_Avoid_: step (a step is one tool call of an Agent reply), next/previous turn
+
+**Compaction**:
+The point where Claude Code replaced the conversation so far with a summary. The Turn groups before it stay in the Transcript, but from then on Claude holds them only as that summary. The Chat TOC marks it between Turn groups, never inside one.
+_Avoid_: Summary, reset, clear
+
+**Context use**:
+How full the context window was at the last response, as Claude Code reports it. Between a Compaction and the next response there is none.
+_Avoid_: Tokens, memory, budget

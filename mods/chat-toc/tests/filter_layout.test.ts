@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Engine } from 'claude-code/testing'
-import { PANE, TRANSCRIPT, drawnButtons, entryTexts, host, isEntryKey, mountPane, start } from './host'
+import { PANE, TRANSCRIPT, drawnButtons, entryTexts, host, isControlKey, mountPane, start } from './host'
 import type { Host } from './host'
 import { transcript } from './fixture'
 import type { Builder } from './fixture'
@@ -23,7 +23,7 @@ type Pane = Awaited<ReturnType<typeof mountPane>>
 
 async function controls(pane: Pane) {
   return drawnButtons(await pane.drawn())
-    .filter(b => !isEntryKey(b.key))
+    .filter(b => isControlKey(b.key))
     .map(b => ({ key: b.key, label: b.label }))
 }
 
@@ -50,7 +50,7 @@ async function tabRule(pane: Pane) {
 }
 
 async function hotkeys(pane: Pane) {
-  return (await pane.findAll({ type: 'Button' })).filter(b => !isEntryKey(b.key)).map(b => [b.key, b.props.hotkey, b.props.plain])
+  return (await pane.findAll({ type: 'Button' })).filter(b => isControlKey(b.key)).map(b => [b.key, b.props.hotkey, b.props.plain])
 }
 
 /* The store as the host keeps it for the plugin, seeded with `stored`. */
@@ -69,6 +69,9 @@ test('the filter row shows the three filters by name, the chosen one at full str
     ['f-all', '1', true],
     ['f-user', '2', true],
     ['f-agent', '3', true],
+    ['search.focus', 'f', true],
+    ['walk.previous', undefined, true],
+    ['walk.next', undefined, true],
     ['layout', 'l', true],
   ])
 })

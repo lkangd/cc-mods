@@ -1,4 +1,4 @@
-# 实测 requestId 与 transcript 行身份的对应
+# Measure how requestId maps to transcript rows
 
 Type: task
 Status: resolved
@@ -6,48 +6,48 @@ Blocked by:
 
 ## Question
 
-在本机 Claude Code 全屏布局下，用一个只做记录的 dev mod 打印 `ui.render` 的 `UserMessage`、`AssistantMessage`、`CommandOutput` 站点的 `e.requestId`，与当前会话 transcript 文件中对应行的 `uuid`、`message.id` 对照（覆盖普通 prompt、prompt 型斜杠命令、本地斜杠命令、`!cmd`、多块 assistant 回复、compact 前的行、rewind 前后、resume 回来的行）。记录：`requestId` 等于哪个字段；一条多块回复对应几个 `requestId`；斜杠命令和 `!cmd` 由哪个站点绘制；compact 前与被 rewind 抛弃的行能否被 `$.ui.scroll` 跳到（从停靠 Pane 的 Button 发起）。顺带实测 `props.onScreen` 在全屏交互下的实际上报（滚动时哪些站点收到、`null` 与可见行数是否和屏幕一致）。产出对应规则与实测记录，可用 cmux 驱动 PTY。本票结果决定 Current position 高亮是否留在 MVP（见「决定是否做当前位置高亮」）：需判明 `onScreen` 是否在滚动时可靠上报、`first`/`last`/`of` 是否与屏幕行一致、顶部被切的行是否给出 `first > 0`、底部是否能用 `last === of - 1` 判断。
+On the local Claude Code in the fullscreen layout, use a log-only dev mod to print `e.requestId` at the `UserMessage`, `AssistantMessage` and `CommandOutput` sites of `ui.render`, and compare it with the `uuid` and `message.id` of the matching rows in the current session's transcript file. Cover a plain prompt, a prompt-type slash command, a local slash command, `!cmd`, a multi-block assistant reply, rows from before a compaction, rows before and after a rewind, and rows that came back with a resume. Record: which field `requestId` equals; how many `requestId`s a multi-block reply has; which site draws a slash command and `!cmd`; whether rows from before a compaction and rows thrown away by a rewind can be reached with `$.ui.scroll` (started from a docked Pane's Button). Also measure what `props.onScreen` really reports in fullscreen interaction (which sites receive it while scrolling, and whether `null` and the visible row counts agree with the screen). Produce the mapping rules and the measurement record; cmux can drive the PTY. This ticket's result decides whether the Current position highlight stays in the MVP (see "Decide whether to highlight the current position"): it must settle whether `onScreen` is reported reliably while scrolling, whether `first`/`last`/`of` agree with the screen rows, whether a row cut off at the top gives `first > 0`, and whether the bottom can be judged by `last === of - 1`.
 
 ## Answer
 
-**结论：`requestId` 就是 transcript 文件里那一行的 `uuid`。滚动时 `onScreen` 上报可靠，数字和屏幕逐行一致；Current position 高亮的前提全部成立，可以留在 MVP。** 但有一批行没有任何可挂钩的绘制站点，拿不到 Jump target。
+**Verdict: `requestId` is the `uuid` of that row in the transcript file. `onScreen` reports reliably while scrolling, and its numbers agree with the screen row by row. Every precondition for the Current position highlight holds, so it can stay in the MVP.** But a batch of rows has no drawing site to hook, so they get no Jump target.
 
-### 怎么测的
+### How it was measured
 
-- 本机 Claude Code 2.1.295，全屏布局（`/tui` 输出 `Current renderer: fullscreen`），170×44 的伪终端，`--model haiku`。用 pyte 模拟终端读屏，用 SGR 鼠标序列点击和滚轮。跑过两个进程：一次新会话，一次 `--resume`。resume 那次用 `--settings` 关掉了本机装的 prompt-history，因为它在 resume 后会拦下 prompt。
-- 探针 mod 只做记录：在 `UserMessage`、`AssistantMessage`、`CommandOutput`、`ToolUse`、`ToolResult`、`ToolGroup`、`TurnDuration`、`InfoNotice`、`PromptHint`、`SessionMode`、`ToolProgress` 这些站点上，记录 `requestId`、`origin`、`onScreen` 的每次变化；另开一个停靠 Pane，每个站点一个 Button，点了就调 `$.ui.scroll({ to: { requestId }, block: 'start' })` 并记下结果。
-- 附件：[探针 mod、驱动脚本与对照脚本](../assets/09-request-id/)、[逐次运行的日志](../assets/09-request-id/logs/)、[transcript 行摘要](../assets/09-request-id/transcript-rows.txt)。
+- Local Claude Code 2.1.295, fullscreen layout (`/tui` printed `Current renderer: fullscreen`), a 170×44 pseudo-terminal, `--model haiku`. The screen was read with a pyte terminal emulator; clicks and the wheel were SGR mouse sequences. Two processes ran: one new session and one `--resume`. The resume run used `--settings` to turn off the locally installed prompt-history, because after a resume it intercepts prompts.
+- The probe mod only logs: at the sites `UserMessage`, `AssistantMessage`, `CommandOutput`, `ToolUse`, `ToolResult`, `ToolGroup`, `TurnDuration`, `InfoNotice`, `PromptHint`, `SessionMode` and `ToolProgress`, it records every change of `requestId`, `origin` and `onScreen`. A separate docked Pane has one Button per site; a press calls `$.ui.scroll({ to: { requestId }, block: 'start' })` and notes the result.
+- Attachments: [the probe mod, driver scripts and comparison scripts](../assets/09-request-id/), [the log of each run](../assets/09-request-id/logs/), [a summary of the transcript rows](../assets/09-request-id/transcript-rows.txt).
 
-### 对应规则
+### Mapping rules
 
-| 场景 | 绘制站点与 `requestId` | 能否从停靠 Pane 跳到 |
+| Case | Drawing site and `requestId` | Can the docked Pane jump to it |
 |---|---|---|
-| 普通 prompt | `UserMessage`，`origin.kind = composer`，`requestId` = 该 user 行的 `uuid` | 能，`{}` |
-| 一条回复中间夹着工具调用 | 每个文字块是 transcript 里单独一行，各有 `uuid`，各自一个 `AssistantMessage`（`requestId` = 该行 `uuid`）；本次每个文字块的 `isFirstOfReply` 都是 `true`。工具调用画在 `ToolGroup`，`requestId` 形如 `collapsed-<首个 tool_use 行 uuid 前缀>` | 文字块都能跳 |
-| 本地斜杠命令（`/tui`、`/probe`） | 提交瞬间有一个 `requestId` 字面量为 `"placeholder"` 的 `UserMessage`（乐观占位，多条输入共用这个 id）。真正落下来的命令回显行 `❯ /tui` **没有可挂钩站点**；输出行是 `CommandOutput`，`requestId` = `system/local_command` 中 stdout 那一行的 `uuid` | 回显行不能跳；`CommandOutput` 能（落点比回显行低一行）；`"placeholder"` 被拒：`nothing drawn under that requestId` |
-| prompt 型斜杠命令（项目命令 `/hi`） | 同样只有 `"placeholder"`；`<command-name>` 那一 user 行没有站点；回复的 `AssistantMessage` 正常 | User 侧不能跳，Agent 侧能 |
-| `!cmd` | `<bash-input>`、`<bash-stdout>` 两行在屏上显示为 `! echo …` 和 `⎿ …`，**没有任何可挂钩站点**。本次跑完 `!echo` 后模型还接着回了一段话，接在 `bash-stdout` 行下面，原因没查 | 两行都不能跳；后面那段回复能 |
-| `/compact`（现场执行） | `UserMessage`，`origin.kind = unclassified`，`requestId` = 文本为 `/compact` 那一 user 行的 `uuid` | 能 |
-| 当前进程里 compact 之前的行 | 照常绘制，`requestId` 不变 | 能（两次 compact 都验证过） |
-| resume 回来、compact 之前的行 | 只画出 compact 前最后一段回复（`FIVE-DONE` 及其 `TurnDuration`），更早的行和那条 prompt 都不画；compact 摘要（`isCompactSummary` 行）不画成 `AssistantMessage`；resume 后的 `/compact` 显示为 `<command-name>` 行，没有站点 | 画出来的能；没画的被拒：`nothing drawn under that requestId` |
-| resume 回来的其他行 | `requestId` 仍等于 `uuid`，和原进程里一样 | 能 |
-| rewind 抛弃的行 | rewind 不触发任何事件（没有 `session.end`/`SessionStart`），transcript 还是同一个文件，当时不写新行；下一条 prompt 的 `parentUuid` 指回分叉点 | 被拒：`nothing drawn under that requestId` |
+| Plain prompt | `UserMessage`, `origin.kind = composer`, `requestId` = that user row's `uuid` | Yes, `{}` |
+| A reply with tool calls in the middle | Each text block is its own row in the transcript with its own `uuid`, and its own `AssistantMessage` (`requestId` = that row's `uuid`); in this run every text block had `isFirstOfReply` `true`. Tool calls are drawn in a `ToolGroup`, whose `requestId` looks like `collapsed-<prefix of the first tool_use row's uuid>` | Text blocks all jump |
+| Local slash command (`/tui`, `/probe`) | At the moment of submit there is a `UserMessage` whose `requestId` is the literal `"placeholder"` (an optimistic stand-in; several inputs share this id). The command echo row that finally lands, `❯ /tui`, **has no site to hook**; the output row is a `CommandOutput` whose `requestId` = the `uuid` of the stdout row in `system/local_command` | The echo row cannot be jumped to; the `CommandOutput` can (it lands one row lower than the echo row); `"placeholder"` is refused: `nothing drawn under that requestId` |
+| Prompt-type slash command (project command `/hi`) | Likewise only `"placeholder"`; the user row holding `<command-name>` has no site; the reply's `AssistantMessage` is normal | The User side cannot be jumped to, the Agent side can |
+| `!cmd` | The two rows `<bash-input>` and `<bash-stdout>` show on screen as `! echo …` and `⎿ …`, with **no site to hook**. In this run, after `!echo` finished the model went on to reply with a paragraph under the `bash-stdout` row; the cause was not looked into | Neither row can be jumped to; the reply after them can |
+| `/compact` (run live) | `UserMessage`, `origin.kind = unclassified`, `requestId` = the `uuid` of the user row whose text is `/compact` | Yes |
+| Rows from before a compaction, in the current process | Drawn as usual, `requestId` unchanged | Yes (checked on two compactions) |
+| Rows from before a compaction, after a resume | Only the last reply before the compaction is drawn (`FIVE-DONE` and its `TurnDuration`); earlier rows and that prompt are not drawn; the compact summary (the `isCompactSummary` row) is not drawn as an `AssistantMessage`; after a resume, `/compact` shows as a `<command-name>` row, with no site | Rows that are drawn can be jumped to; rows not drawn are refused: `nothing drawn under that requestId` |
+| Other rows that came back with a resume | `requestId` is still the `uuid`, same as in the original process | Yes |
+| Rows thrown away by a rewind | A rewind fires no event (no `session.end`/`SessionStart`), the transcript is still the same file, and no new row is written at that moment; the next prompt's `parentUuid` points back to the fork point | Refused: `nothing drawn under that requestId` |
 
-- 跳转都由 Pane 里的 Button 点击发起，是使用者发起的；成功一律返回 `{}`，目标落在视口顶部。全屏顶部那一行是宿主的置顶 prompt 条，所以目标消息的第 0 行（空行）落在屏幕第 1 行。
-- 子 agent 不在本次范围内。
+- Every jump was started by a Button click in the Pane, so it was started by the person; success always returned `{}`, and the target landed at the top of the viewport. The top row of the fullscreen layout is the host's pinned prompt bar, so the target message's row 0 (a blank row) lands on screen row 1.
+- Subagents are outside this ticket.
 
-### `onScreen` 实测
+### `onScreen` measurements
 
-- 第一次绘制时 `onScreen` 是 `undefined`，排版完成后马上变成具体值；离开视口变 `null`；只有变化时才重跑 render。
-- 用滚轮滚动后对照屏幕：`first`/`last`/`of` 和屏上行逐行一致。`of` 包含消息上方那一空行（第 0 行）；被视口顶部切掉的消息给出 `first > 0`（例如 `25-26/27`）；底部被切的给出 `last < of - 1`（例如 `0-23/27`）。置顶 prompt 条不属于任何站点，不计入。
-- `"placeholder"` 站点的 `onScreen` 会残留在旧值上，必须忽略。
+- At first draw `onScreen` is `undefined`; it turns into a concrete value right after layout; it becomes `null` on leaving the viewport; render reruns only on a change.
+- Scrolling with the wheel and comparing with the screen: `first`/`last`/`of` agree with the on-screen rows row by row. `of` includes the blank row above the message (row 0); a message cut off by the top of the viewport gives `first > 0` (for example `25-26/27`); one cut off at the bottom gives `last < of - 1` (for example `0-23/27`). The pinned prompt bar belongs to no site and is not counted.
+- The `onScreen` of the `"placeholder"` site stays at its old value and must be ignored.
 
-### 实现时要注意
+### Points for the implementation
 
-- **render hook 里不能写 `$.state`**：写了就被拒（`state.set: denied: it was made while ui.render is being dispatched, and drawing is pure`），整个 hook 被跳过，改由引擎自己绘制。所以「transcript 站点收到 `onScreen` → 让 Pane 重画」不能靠 atom 写入。2.1.287 和 2.1.295 都有 `$.ui.invalidate('ui.render')`，但它会让本插件所有 `ui.render` 匹配到的实例都重跑，其中包括每一条被挂钩的 transcript 行；在终端里最多每秒 30 次。可不可行、代价多大，没有测，另开一张票。
-- `--plugin-dir` 下改动文件会热重载：模块变量清空，`session.start` 再次触发，可见行重新绘制。
+- **A render hook cannot write `$.state`**: the write is refused (`state.set: denied: it was made while ui.render is being dispatched, and drawing is pure`), the whole hook is skipped, and the engine draws on its own. So "a transcript site receives `onScreen` → make the Pane redraw" cannot go through an atom write. Both 2.1.287 and 2.1.295 have `$.ui.invalidate('ui.render')`, but it reruns every `ui.render` instance this plugin matches, including every hooked transcript row; in a terminal, at most 30 times a second. Whether that is workable and what it costs was not measured; it goes to another ticket.
+- Under `--plugin-dir`, editing a file hot-reloads: module variables are cleared, `session.start` fires again, and the visible rows are redrawn.
 
 
-## 后续修订
+## Later revisions
 
-- 「原型验证停靠 TOC Pane 的外观与交互」实测：`ToolGroup` 的 id 有时是 `collapsed-<uuid 前 24 位>000000000000`，要按前 24 位匹配；全屏 transcript 是虚拟化的，被卸掉的行不一定再报 `onScreen: null`；`$.ui.scroll` 能跳到从没画出过的行。见 [05](05-prototype-toc-pane.md)。
+- Measured in "Prototype the docked TOC Pane's look and interaction": a `ToolGroup`'s id is sometimes `collapsed-<first 24 of the uuid>000000000000`, so match on the first 24 characters; the fullscreen transcript is virtualised, and an unmounted row does not always report `onScreen: null` again; `$.ui.scroll` can jump to rows that were never drawn. See [05](05-prototype-toc-pane.md).

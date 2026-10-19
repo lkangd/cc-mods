@@ -185,12 +185,15 @@ class Transcript:
         self.user(f"<task-notification><task-id>{self.hexid(8)}</task-id><status>completed</status>"
                   f"<summary>{label} 后台任务完成</summary></task-notification>")
 
-    def compact(self) -> None:
-        leaf = self.parent
-        self.system("compact_boundary", "Conversation compacted", parent=None, logicalParentUuid=leaf,
-                    compactMetadata={"trigger": "manual", "preTokens": 1000})
+    def compact(self, trigger: str = "manual", logical_parent: str | None = None) -> dict:
+        """A boundary and its summary; `logical_parent` names a row the file
+        does not hold, as a fork's first boundary does. Returns the boundary."""
+        leaf = logical_parent or self.parent
+        boundary = self.system("compact_boundary", "Conversation compacted", parent=None, logicalParentUuid=leaf,
+                               compactMetadata={"trigger": trigger, "preTokens": 1000})
         self.user("This session is being continued from a previous conversation. 合成摘要。",
                   isCompactSummary=True, isVisibleInTranscriptOnly=True)
+        return boundary
 
     def rewind_to(self, row: dict) -> None:
         """The next row hangs off `row`; groups opened after it are abandoned."""

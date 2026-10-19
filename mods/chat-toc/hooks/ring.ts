@@ -6,13 +6,29 @@
    into a step from entry to entry, and past either end of the window into a
    scroll of it, so the arrows reach every entry. */
 
+import { isBarKey } from './bars'
+import { MORE_CONTROL, PREVIEW_CONTROL } from './preview'
+import { COPY_INPUT_CONTROL, COPY_TEXT_CONTROL, REUSE_CONTROL } from './reuse'
+import { isWalkKey } from './walk'
 import type { TocWindow } from './window'
 
 /* The controls around the entries, in the ring's order: the filter row's
-   Buttons left to right, the entries, then the footer's Layout Button. */
+   Buttons left to right, the search row's, the entries, then the
+   preview's Buttons and the footer's Layout Button. */
 export const FIRST_CONTROL = 'f-all'
 export const FILTER_END = 'f-agent'
 export const LAYOUT_CONTROL = 'layout'
+/* The controls after the entries. */
+const AFTER_LIST = new Set([LAYOUT_CONTROL, PREVIEW_CONTROL, REUSE_CONTROL, COPY_INPUT_CONTROL, COPY_TEXT_CONTROL, MORE_CONTROL])
+const isAfterList = (key: string | undefined) => key !== undefined && AFTER_LIST.has(key)
+
+/* A Button on the row under the selected entry (0.2 spec §3), keyed
+   `<entry key>:<action>`; no entry's key has a colon. */
+export const actionKey = (entry: string, action: string): string => `${entry}:${action}`
+const actionOwner = (key: string | undefined): string | undefined => {
+  const cut = key === undefined ? -1 : key.indexOf(':')
+  return cut > 0 ? key!.slice(0, cut) : undefined
+}
 
 export type RingMove =
   /* Let the ring land where the host moves it. */
@@ -46,32 +62,60 @@ export function pendingShown(pending: string | undefined, indexOf: ReadonlyMap<s
 
 /* The host moving the ring from `from` (where it was; undefined when the
    pane just took the keyboard) to `to` (undefined for one of the host's own
-   stops). `keys[i]` is entry i's key, `indexOf` the table back. */
+   stops, or a Minimap cell). `keys[i]` is entry i's key, `indexOf` the table back.
+   `after` is the first control drawn after the entries, `before` the last
+   one drawn before them (the search row's). */
 export function ringMove(
   keys: readonly string[],
   indexOf: ReadonlyMap<string, number>,
   window: TocWindow,
   from: string | undefined,
   to: string | undefined,
+  after: string = LAYOUT_CONTROL,
+  before: string = FILTER_END,
 ): RingMove {
   const was = entryAt(from, indexOf)
   const next = entryAt(to, indexOf)
+  /* The row under the selected entry is for the pointer and the hotkeys:
+     the ring steps over it, down to the entry after its owner, up to its
+     owner's first line. */
+  const owner = actionOwner(to)
+  const ownerAt = owner === undefined ? undefined : indexOf.get(owner)
+  if (owner !== undefined && ownerAt !== undefined) {
+    if (was === undefined || was.index > ownerAt) return { kind: 'land', key: owner }
+    const below = ownerAt + 1
+    if (below < window.end) return { kind: 'land', key: keys[below] ?? after }
+    if (below < keys.length) return { kind: 'reveal', index: below }
+    return { kind: 'land', key: after }
+  }
+  /* The ‹ › Buttons and the Minimap's cells are for the pointer: the ring
+     steps over them, from the search row down to the first entry in the
+     window, from an entry up to the search row. */
+  if (isBarKey(to) || isWalkKey(to)) {
+    if (was === undefined) {
+      /* Up from the Layout Button, with no entry to land on, goes on to the search row. */
+      if (isAfterList(from)) return { kind: 'land', key: before }
+      return { kind: 'land', key: keys[window.start] !== undefined && window.start < window.end ? keys[window.start]! : after }
+    }
+    if (was.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
+    return { kind: 'land', key: before }
+  }
   if (next === undefined) {
     /* Down from the window's last entry goes on to the footer: show the
        entry after it instead, while there is one. */
-    if (to === LAYOUT_CONTROL && was?.index === window.end - 1 && window.end < keys.length) return { kind: 'reveal', index: window.end }
-    /* Up from the window's first entry goes on to the filter row: show the
+    if (isAfterList(to) && was?.index === window.end - 1 && window.end < keys.length) return { kind: 'reveal', index: window.end }
+    /* Up from the window's first entry goes on to the search row: show the
        entry before it instead, while there is one. */
-    if (to === FILTER_END && was?.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
+    if (to === before && was?.index === window.start && window.start > 0) return { kind: 'reveal', index: window.start - 1 }
     return { kind: 'accept' }
   }
   if (next.line === 0) return { kind: 'accept' }
   /* Down off an entry's first line onto its second: the next entry. */
   if (was?.index === next.index) {
-    const after = next.index + 1
-    if (after < window.end) return { kind: 'land', key: keys[after] ?? LAYOUT_CONTROL }
-    if (after < keys.length) return { kind: 'reveal', index: after }
-    return { kind: 'land', key: LAYOUT_CONTROL }
+    const below = next.index + 1
+    if (below < window.end) return { kind: 'land', key: keys[below] ?? after }
+    if (below < keys.length) return { kind: 'reveal', index: below }
+    return { kind: 'land', key: after }
   }
   /* Up onto an entry's last line, or anything else onto a later line: that
      entry's first line. */

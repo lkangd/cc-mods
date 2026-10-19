@@ -1,38 +1,38 @@
-# 28: 用户文档与开发文档
+# 28: User docs and developer docs
 
-**What to build:** 想安装的人在根 README 里就能读到 chat-toc 的环境要求、安装、操作、显示规则、隐私、卸载和已知限制；开发者在插件自己的 README 里能找到本地加载、测试、PTY 验收和发布清单。
+**What to build:** Anyone who wants to install chat-toc can read its requirements, install steps, operation, display rules, privacy, uninstall and known limits in the root README. Developers find local loading, tests, PTY acceptance and the release checklist in the plugin's own README.
 
-规格见 [chat-toc MVP](../spec.md) §10。
+For the spec, see [chat-toc MVP](../spec.md) §10.
 
-**Blocked by:** 21（对话链：compact、rewind、resume、fork）、23（完整跳转：Agent 侧、兜底与被拒）、25（View filter、三种 Layout 与键盘）、26（停靠条件与状态栏说明）
+**Blocked by:** 21 (The conversation chain: compaction, rewind, resume, fork), 23 (Full jumps: the Agent side, fallbacks and refusals), 25 (View filter, three Layouts and the keyboard), 26 (Docking conditions and the status line)
 
 **Status:** resolved
 
-- [x] 根 README 开头改为「每个 mod 是独立插件，互不依赖、不共享代码与数据，可以同时启用」；一览表新增 chat-toc 一行（版本先写 0.1.0，随发布提交一起出现）
-- [x] chat-toc 一节与 prompt-history 同级，开头写两者的区别，然后按序：作用、环境要求（含「不需要 function hooks 环境变量」、OS 不限但只在 macOS 实测）、安装、快速开始、操作表、显示规则、数据与隐私、卸载（含残留 `$.store` 文件位置）、已知限制（不承诺八条）、开发
-- [x] 用界面上的字，不出现 Turn group、Current position 等内部术语
-- [x] 插件 README 只写开发内容：链接根 README 与 CONTEXT、目录结构、本地加载、`claude plugin test`、cmux PTY 验收、证据目录约定、发布清单（逐步勾选）
-- [x] 文档描述与实际行为一致（逐条对照规格与已通过的验收）
-- [x] 根 README 的 chat-toc 一节与一览表那一行留给发布提交一起进 main
+- [x] The root README opens with "each mod is an independent plugin; they do not depend on each other, share no code or data, and can be enabled together"; the overview table gains a chat-toc row (version written as 0.1.0 for now, appearing with the release commit)
+- [x] The chat-toc section sits at the same level as prompt-history and opens with how the two differ, then in order: what it does, requirements (including "no function hooks environment variable needed", any OS but tested only on macOS), install, quick start, the operation table, display rules, data and privacy, uninstall (including where the leftover `$.store` file is), known limits (the eight items not promised), development
+- [x] Use the words on the screen; no internal terms such as Turn group or Current position
+- [x] The plugin README covers development only: links to the root README and CONTEXT, directory layout, local loading, `claude plugin test`, cmux PTY acceptance, the evidence directory convention, the release checklist (ticked step by step)
+- [x] The docs match the actual behaviour (checked item by item against the spec and the passed acceptance)
+- [x] The root README's chat-toc section and the overview table row are left to go into main with the release commit
 
 ## Comments
 
-2026-10-11，分支 `chat-toc/28-docs`（基于 `chat-toc/mvp` ce384e1）。
+2026-10-11, branch `chat-toc/28-docs` (based on `chat-toc/mvp` ce384e1).
 
-- **根 README 没有改**。开头那句的改法、一览表那一行、完整的 chat-toc 一节都写成可直接粘贴的草稿 `mods/chat-toc/release/root-readme-section.md`，由 29 号在发布提交里贴进 `README.md`（与 marketplace 条目、`evidence/0.1.0/` 同一个提交）。草稿里「开发」一小节的 0.1.0 通过结果是 `<…>` 占位，留给 29 号填。
-- **`mods/chat-toc/README.md`** 正常提交：链接根 README（锚点 `#chat-toc`，发布提交之后才有效）与 `CONTEXT.md`、目录结构、本地加载与热重载、`claude plugin test`/validate/tsc、验收工具单元测试、PTY 验收（各场景脚本的命令、cmux 注意事项、运行记录）、证据目录约定、发布清单（逐步勾选）。
-- **核对方式**：界面文字全部取自代码常量——状态栏四句（`hooks/lifecycle.ts` `DOCK_STATUS`，26 号）、空状态两句（`hooks/pane.tsx` `EMPTY_TEXT`/`NOT_WRITTEN_TEXT`，17/20 号）、底部的读取失败两句与「有 N 行无法识别，目录可能不完整」（`hooks/register.tsx`，22 号）、被拒说明（`hooks/jump.ts` `REFUSED_TEXT`，23 号）、Agent 侧状态字与时间格式（`hooks/entries.ts`）、过滤行与「布局:…」（`hooks/view.ts`，宿主画成 `1: ●全部` 这样，25 号）、标题「目录」。行为逐条对照规格 §2–§8 与 17–26 号的 Comments；键盘焦点进出（Ctrl+X Tab、Esc、Ctrl+X 方向键调宽）对照 `~/.claude-code-docs/docs/plugins__mods__interface.md`，插件没设 `closeOnEscape`。停靠列数 144/110 是 26 号在两版上实测的宿主阈值，草稿里写明由宿主决定。没有 `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS` 也能跑：PTY 驱动的隔离环境从不设它。文档里写的命令都跑过：`claude plugin test mods/chat-toc` 165 通过，验收单元测试 43 通过，两版 `plugin validate` 通过，`tsc` 通过。
-- **没能验证、交给 29 号核对的两点**：
-  - store 文件名：`--plugin-dir` 实测是 `chat-toc_inline-<hash>.json`（25 号 `remember-*.txt`）；marketplace 安装的 `chat-toc_cc-mods-<hash>.json` 是照 prompt-history 的 `prompt-history_cc-mods-<hash>.json` 推断的。
-  - `claude plugin uninstall` 会不会删 store 文件：没查到说明，草稿写成「可能还留在」。
-- **依赖 24 号（高亮、跟随、「暂停」）的句子**，24 落地后逐句对照重查（都在草稿的 chat-toc 一节里）：
-  1. 操作表「在目录上滚动滚轮」一行的「滚到底后回到跟随最新条目」（24 之后跟随的是高亮那一轮，滚动会暂停跟随）。
-  2. 显示规则「三种排版」条的「切换时，选中的条目（没有选择时是正在看的那一轮）留在可见范围内」中括号里的部分（25 号目前用窗口顶部那组作锚，`anchorForSwitch`）。
-  3. 显示规则「青色高亮」整条：何为正在看的一轮、对话末尾完整显示时是最后一轮、三种排版的高亮记号（`▌`/`●`/`┃`，25 号已画好、24 号填 `litGroup`）、跳转后高亮停在目标直到再次滚动 transcript、高亮与反色选择互不相干。
-  4. 显示规则「跟随与『暂停』」整条：目录滚到高亮、transcript 在末尾时停在最新、手动滚动目录或焦点在目录里时暂停并在底部显示「暂停」、下一次滚动 transcript 时恢复。
-  5. 已知限制最后一条里的「跟随与高亮」，以及人工目检那条的「青色高亮与反色选择能否分清」（只是陈述，24 若改了记号再看措辞）。
-  6. `mods/chat-toc/README.md`「PTY 验收」里「还没有脚本的 MUST 场景」一句（CT-POS、CT-COEX-001、CT-LIFE-006）和场景表：24 加了脚本后补进表里。
-- **依赖 27 号（长会话性能）的句子**：
-  1. 已知限制「不承诺在所有机器上有固定的速度；发布时的性能数字只是在一台参考机器上测得的」：27 若给出可公开的结论（例如 20 MB 级会话的首次出目录时间），可在此条或「开发」一小节补一句。
-  2. `mods/chat-toc/README.md` 里「还没有脚本的 MUST 场景」中的 CT-PERF-001，以及场景表：27 的性能驱动落地后补命令。
-  3. 草稿「会话变化」里「也能跳到很早、从没显示过的轮次」已由 23 号 CT-JUMP-001 验过；27 的长会话跳首尾若有不同结论再改。
+- **The root README was not changed**. The change to the opening sentence, the overview table row and the full chat-toc section are written as a ready-to-paste draft, `mods/chat-toc/release/root-readme-section.md`. Ticket 29 pastes it into `README.md` in the release commit (the same commit as the marketplace entry and `evidence/0.1.0/`). In the draft, the 0.1.0 pass results in the "Development" subsection are `<…>` placeholders, left for ticket 29 to fill in.
+- **`mods/chat-toc/README.md`** is committed normally: links to the root README (anchor `#chat-toc`, valid only after the release commit) and `CONTEXT.md`, directory layout, local loading and hot reload, `claude plugin test`/validate/tsc, unit tests of the acceptance tools, PTY acceptance (the commands of each scenario script, cmux notes, run records), the evidence directory convention, the release checklist (ticked step by step).
+- **How it was checked**: all on-screen text is taken from code constants: the four status line sentences (`hooks/lifecycle.ts` `DOCK_STATUS`, ticket 26), the two empty-state sentences (`hooks/pane.tsx` `EMPTY_TEXT`/`NOT_WRITTEN_TEXT`, tickets 17/20), the two read-failure sentences at the bottom and "N lines not recognized; the contents may be incomplete" (`hooks/register.tsx`, ticket 22), the refusal note (`hooks/jump.ts` `REFUSED_TEXT`, ticket 23), the Agent side's state words and the time format (`hooks/entries.ts`), the filter row and "Layout: …" (`hooks/view.ts`, which the host draws as `1: ●All`, ticket 25), the title "Contents". Behaviour was checked item by item against spec §2–§8 and the Comments of tickets 17–26; keyboard focus in and out (Ctrl+X Tab, Esc, Ctrl+X arrow keys to resize) was checked against `~/.claude-code-docs/docs/plugins__mods__interface.md`; the plugin sets no `closeOnEscape`. The docking columns 144/110 are the host thresholds ticket 26 measured on the two versions; the draft says the host decides. It also runs without `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS`: the PTY driver's isolated environment never sets it. Every command written in the docs was run: `claude plugin test mods/chat-toc` 165 passed, the acceptance unit tests 43 passed, `plugin validate` passed on both versions, `tsc` passed.
+- **Two points that could not be verified, handed to ticket 29 to check**:
+  - The store file name: with `--plugin-dir` it was measured as `chat-toc_inline-<hash>.json` (ticket 25, `remember-*.txt`); the marketplace install's `chat-toc_cc-mods-<hash>.json` is inferred from prompt-history's `prompt-history_cc-mods-<hash>.json`.
+  - Whether `claude plugin uninstall` deletes the store file: no documentation found, so the draft says "may still be left".
+- **Sentences that depend on ticket 24 (highlight, following, "paused")**; recheck them one by one once 24 lands (all in the draft's chat-toc section):
+  1. The operation table row "scroll the wheel on the contents": "after scrolling to the bottom, go back to following the latest entry" (after 24, what it follows is the highlighted turn, and scrolling pauses following).
+  2. The display rules item "three Layouts": the part in brackets in "on a switch, the selected entry (the turn being looked at when nothing is selected) stays within the visible range" (ticket 25 currently anchors on the group at the top of the window, `anchorForSwitch`).
+  3. The display rules item "cyan highlight" as a whole: what the turn being looked at is, that it is the last turn when the end of the conversation is fully shown, the highlight marks of the three Layouts (`▌`/`●`/`┃`, drawn by ticket 25, with ticket 24 filling in `litGroup`), that after a jump the highlight stays on the target until the transcript is scrolled again, and that the highlight and the inverse selection are unrelated.
+  4. The display rules item "following and 'paused'" as a whole: the contents scroll to the highlight, stay at the latest when the transcript is at the end, pause when the contents are scrolled by hand or focus is in them and show "paused" at the bottom, and resume on the next transcript scroll.
+  5. "Following and highlight" in the last item of the known limits, and "whether the cyan highlight and the inverse selection can be told apart" in the manual visual check item (only a statement; if 24 changes the marks, look at the wording again).
+  6. The sentence "MUST scenarios without scripts yet" in `mods/chat-toc/README.md` "PTY acceptance" (CT-POS, CT-COEX-001, CT-LIFE-006) and the scenario table: add them to the table once 24 adds scripts.
+- **Sentences that depend on ticket 27 (long-session performance)**:
+  1. The known limit "no fixed speed is promised on every machine; the performance numbers at release were measured on one reference machine only": if 27 gives a conclusion that can be made public (for example the first-contents time of a 20 MB-class session), add a sentence here or in the "Development" subsection.
+  2. CT-PERF-001 in "MUST scenarios without scripts yet" in `mods/chat-toc/README.md`, and the scenario table: add the command once 27's performance driver lands.
+  3. In the draft's "Session changes", "can also jump to very early turns that were never shown" was already verified by ticket 23's CT-JUMP-001; change it if 27's jumps to the start and end of a long session reach a different conclusion.

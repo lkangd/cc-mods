@@ -1,0 +1,1278 @@
+[
+ {
+  "step": "open-36-columns",
+  "sent": "\r",
+  "events": [
+   "2.48s open open columns=36 {\"isPlaced\":true}"
+  ],
+  "renders": [
+   "render #1 q=\"\" built=19ms sinceChange=-1ms w=133"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=133 r=1 c=0 ✕",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem…",
+   "row 1 turn text 7 lorem ipsum lorem…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab-36",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #2 q=\"\" built=7ms sinceChange=-1ms w=133"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=133 r=2 c=0 ✕",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem…",
+   "row 1 turn text 7 lorem ipsum lorem…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "down-to-field-36",
+  "sent": "\u001b[B",
+  "events": [
+   "6.61s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=133 r=2 c=0 ✕",
+   "q=\"\" mode=uncontrolled rev=0",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 8 of 30 match ---",
+   "row 0 搜索 中文 0 lorem ipsum lorem…",
+   "row 1 turn text 7 lorem ipsum lorem…"
+  ],
+  "ring": [
+   "2:140-140:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   140,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-long-36",
+  "sent": "a long query that runs past the edge of the pane",
+  "events": [
+   "8.22s ui.input hook kind=change element=q value=\"a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "8.25s onInput #1 \"a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #3 q=\"a long query that runs past the edge of the pane\" built=6ms sinceChange=15ms w=133"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=133 r=3 c=1 ✕",
+   "q=\"a long query that runs past the …",
+   "find: a long query that runs ⏎ go",
+   "      past the edge of the",
+   "      pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---"
+  ],
+  "ring": [
+   "4:144-144:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   144,
+   4,
+   "hidden"
+  ]
+ },
+ {
+  "step": "home-36",
+  "sent": "\u0001",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=133 r=3 c=1 ✕",
+   "q=\"a long query that runs past the …",
+   "find: a long query that runs ⏎ go",
+   "      past the edge of the",
+   "      pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---"
+  ],
+  "ring": [
+   "2:140-140:a",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   140,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-cjk-36",
+  "sent": "搜索中文对话的轮次标题和内容",
+  "events": [
+   "12.64s ui.input hook kind=change element=q value=\"搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "12.65s onInput #2 \"搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #4 q=\"搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane\" built=1ms sinceChange=10ms w=133"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=133 r=4 c=2 ✕",
+   "q=\"搜索中文对话的轮次标题和内容a lo…",
+   "find: 搜索中文对话的轮次标题和 ⏎ go",
+   "      内容a long query that",
+   "      runs past the edge of",
+   "      the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear"
+  ],
+  "ring": [
+   "3:144-144:a",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   144,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "backspace-cjk-36",
+  "sent": "",
+  "events": [
+   "14.76s ui.input hook kind=change element=q value=\"搜索中文对话的轮次标题和内a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "14.76s onInput #3 \"搜索中文对话的轮次标题和内a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #5 q=\"搜索中文对话的轮次标题和内a long query that runs past the edge of the pane\" built=0ms sinceChange=2ms w=133"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=133 r=5 c=3 ✕",
+   "q=\"搜索中文对话的轮次标题和内a long…",
+   "find: 搜索中文对话的轮次标题和 ⏎ go",
+   "      内a long query that runs",
+   "      past the edge of the",
+   "      pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear"
+  ],
+  "ring": [
+   "3:142-142:a",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   142,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "left-cjk-36",
+  "sent": "\u001b[D\u001b[D",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=133 r=5 c=3 ✕",
+   "q=\"搜索中文对话的轮次标题和内a long…",
+   "find: 搜索中文对话的轮次标题和 ⏎ go",
+   "      内a long query that runs",
+   "      past the edge of the",
+   "      pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear"
+  ],
+  "ring": [
+   "2:162-163:和",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   162,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-mixed-36",
+  "sent": "ab中",
+  "events": [
+   "18.00s ui.input hook kind=change element=q value=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "18.01s onInput #4 \"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #6 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=1ms sinceChange=4ms w=133"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=133 r=6 c=4 ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a …",
+   "find: 搜索中文对话的轮次标题ab ⏎ go",
+   "      中和内a long query that",
+   "      runs past the edge of",
+   "      the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear"
+  ],
+  "ring": [
+   "3:142-143:和",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   142,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc-36",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [
+   "render #7 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=5ms sinceChange=1686ms w=133"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=133 r=7 c=4 ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a …",
+   "find:搜索中文对话的轮次标题ab中和内…",
+   "",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "close-36",
+  "sent": "\r",
+  "events": [
+   "22.28s ui.close hook {\"id\":\"input-probe\",\"origin\":{\"kind\":\"plugin\"}}",
+   "22.29s closed"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "open-44-columns",
+  "sent": "\r",
+  "events": [
+   "25.02s open open columns=44 {\"isPlaced\":true}"
+  ],
+  "renders": [
+   "render #8 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=12ms sinceChange=7031ms w=125"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=125 r=8 c=4 s=0     ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a long que…",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "19.69s render #7 q=\"搜索中文对话的轮次标题a…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab-44",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #9 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=2ms sinceChange=9366ms w=125"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=125 r=9 c=4 s=0     ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a long que…",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "22.28s ui.close hook {\"id\":\"input-probe\",\"o…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "down-to-field-44",
+  "sent": "\u001b[B",
+  "events": [
+   "29.01s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=125 r=9 c=4 s=0     ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a long que…",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "22.28s ui.close hook {\"id\":\"input-probe\",\"o…"
+  ],
+  "ring": [
+   "2:132-132:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   132,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-long-44",
+  "sent": "a long query that runs past the edge of the pane",
+  "events": [
+   "30.63s ui.input hook kind=change element=q value=\"a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "30.64s onInput #5 \"a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #10 q=\"a long query that runs past the edge of the pane\" built=1ms sinceChange=4ms w=125"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=125 r=10 c=5 s=0    ✕",
+   "q=\"a long query that runs past the edge of …",
+   "find: a long query that runs past the ⏎ go",
+   "      edge of the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "3:148-148:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   148,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "home-44",
+  "sent": "\u0001",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=125 r=10 c=5 s=0    ✕",
+   "q=\"a long query that runs past the edge of …",
+   "find: a long query that runs past the ⏎ go",
+   "      edge of the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "2:132-132:a",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   132,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-cjk-44",
+  "sent": "搜索中文对话的轮次标题和内容",
+  "events": [
+   "34.76s ui.input hook kind=change element=q value=\"搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "34.77s onInput #6 \"搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #11 q=\"搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane\" built=1ms sinceChange=2ms w=125"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=125 r=11 c=6 s=0    ✕",
+   "q=\"搜索中文对话的轮次标题和内容a long query…",
+   "find: 搜索中文对话的轮次标题和内容a ⏎ go",
+   "      long query that runs past the",
+   "      edge of the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---"
+  ],
+  "ring": [
+   "2:160-160:a",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   160,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "backspace-cjk-44",
+  "sent": "",
+  "events": [
+   "36.89s ui.input hook kind=change element=q value=\"搜索中文对话的轮次标题和内a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "36.89s onInput #7 \"搜索中文对话的轮次标题和内a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #12 q=\"搜索中文对话的轮次标题和内a long query that runs past the edge of the pane\" built=1ms sinceChange=3ms w=125"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=125 r=12 c=7 s=0    ✕",
+   "q=\"搜索中文对话的轮次标题和内a long query t…",
+   "find: 搜索中文对话的轮次标题和内a long ⏎ go",
+   "      query that runs past the edge",
+   "      of the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---"
+  ],
+  "ring": [
+   "2:158-158:a",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   158,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "left-cjk-44",
+  "sent": "\u001b[D\u001b[D",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=125 r=12 c=7 s=0    ✕",
+   "q=\"搜索中文对话的轮次标题和内a long query t…",
+   "find: 搜索中文对话的轮次标题和内a long ⏎ go",
+   "      query that runs past the edge",
+   "      of the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---"
+  ],
+  "ring": [
+   "2:154-155:和",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   154,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-mixed-44",
+  "sent": "ab中",
+  "events": [
+   "40.20s ui.input hook kind=change element=q value=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "40.20s onInput #8 \"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #13 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=0ms sinceChange=2ms w=125"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=125 r=13 c=8 s=0    ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a long que…",
+   "find: 搜索中文对话的轮次标题ab中和内a ⏎ go",
+   "      long query that runs past the",
+   "      edge of the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---"
+  ],
+  "ring": [
+   "2:158-159:和",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   158,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc-44",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [
+   "render #14 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=5ms sinceChange=1682ms w=125"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=125 r=14 c=8 s=0    ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a long que…",
+   "find:搜索中文对话的轮次标题ab中和内a long q…",
+   "",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "close-44",
+  "sent": "\r",
+  "events": [
+   "44.46s ui.close hook {\"id\":\"input-probe\",\"origin\":{\"kind\":\"plugin\"}}",
+   "44.46s closed"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "open-56-columns",
+  "sent": "\r",
+  "events": [
+   "46.97s open open columns=56 {\"isPlaced\":true}"
+  ],
+  "renders": [
+   "render #15 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=7ms sinceChange=6781ms w=113"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=113 r=15 c=8 s=0                ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a long query that runs…",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "41.88s render #14 q=\"搜索中文对话的轮次标题ab中和内a lo…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab-56",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #16 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=3ms sinceChange=9139ms w=113"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=113 r=16 c=8 s=0                ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a long query that runs…",
+   "find: search turns",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "44.46s ui.close hook {\"id\":\"input-probe\",\"origin\":{\"kin…"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "down-to-field-56",
+  "sent": "\u001b[B",
+  "events": [
+   "50.97s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=113 r=16 c=8 s=0                ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a long query that runs…",
+   "find: search turns ⏎ go",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---",
+   "44.46s ui.close hook {\"id\":\"input-probe\",\"origin\":{\"kin…"
+  ],
+  "ring": [
+   "2:120-120:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   120,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-long-56",
+  "sent": "a long query that runs past the edge of the pane",
+  "events": [
+   "52.62s ui.input hook kind=change element=q value=\"a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "52.62s onInput #9 \"a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #17 q=\"a long query that runs past the edge of the pane\" built=4ms sinceChange=9ms w=113"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=113 r=17 c=9 s=0                ✕",
+   "q=\"a long query that runs past the edge of the pane\" mo…",
+   "find: a long query that runs past the edge of the ⏎ go",
+   "      pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "3:124-124:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   124,
+   3,
+   "hidden"
+  ]
+ },
+ {
+  "step": "home-56",
+  "sent": "\u0001",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=113 r=17 c=9 s=0                ✕",
+   "q=\"a long query that runs past the edge of the pane\" mo…",
+   "find: a long query that runs past the edge of the ⏎ go",
+   "      pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "2:120-120:a",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   120,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-cjk-56",
+  "sent": "搜索中文对话的轮次标题和内容",
+  "events": [
+   "56.77s ui.input hook kind=change element=q value=\"搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "56.77s onInput #10 \"搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #18 q=\"搜索中文对话的轮次标题和内容a long query that runs past the edge of the pane\" built=3ms sinceChange=6ms w=113"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=113 r=18 c=10 s=0               ✕",
+   "q=\"搜索中文对话的轮次标题和内容a long query that runs p…",
+   "find: 搜索中文对话的轮次标题和内容a long query ⏎ go",
+   "      that runs past the edge of the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "2:148-148:a",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   148,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "backspace-cjk-56",
+  "sent": "",
+  "events": [
+   "58.87s ui.input hook kind=change element=q value=\"搜索中文对话的轮次标题和内a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "58.88s onInput #11 \"搜索中文对话的轮次标题和内a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #19 q=\"搜索中文对话的轮次标题和内a long query that runs past the edge of the pane\" built=1ms sinceChange=2ms w=113"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=113 r=19 c=11 s=0               ✕",
+   "q=\"搜索中文对话的轮次标题和内a long query that runs pas…",
+   "find: 搜索中文对话的轮次标题和内a long query that ⏎ go",
+   "      runs past the edge of the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "2:146-146:a",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   146,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "left-cjk-56",
+  "sent": "\u001b[D\u001b[D",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=113 r=19 c=11 s=0               ✕",
+   "q=\"搜索中文对话的轮次标题和内a long query that runs pas…",
+   "find: 搜索中文对话的轮次标题和内a long query that ⏎ go",
+   "      runs past the edge of the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "2:142-143:和",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   142,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-mixed-56",
+  "sent": "ab中",
+  "events": [
+   "62.09s ui.input hook kind=change element=q value=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" keys=plugin,element,component,requestId,surface,kind,value",
+   "62.10s onInput #12 \"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\""
+  ],
+  "renders": [
+   "render #20 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=1ms sinceChange=2ms w=113"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=113 r=20 c=12 s=0               ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a long query that runs…",
+   "find: 搜索中文对话的轮次标题ab中和内a long query ⏎ go",
+   "      that runs past the edge of the pane",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "2:146-147:和",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   146,
+   2,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc-56",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [
+   "render #21 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=4ms sinceChange=1664ms w=113"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=113 r=21 c=12 s=0               ✕",
+   "q=\"搜索中文对话的轮次标题ab中和内a long query that runs…",
+   "find:搜索中文对话的轮次标题ab中和内a long query that ru…",
+   "",
+   "to find",
+   "1: entry one",
+   "2: entry two",
+   "3: entry three",
+   "l: link (l)",
+   "clear",
+   "--- 0 of 30 match ---",
+   "--- log ---"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "close-56",
+  "sent": "\r",
+  "events": [
+   "66.34s ui.close hook {\"id\":\"input-probe\",\"origin\":{\"kind\":\"plugin\"}}",
+   "66.35s closed"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "open-inline-100",
+  "sent": "\r",
+  "events": [
+   "69.86s open  columns=undefined {\"isPlaced\":true}"
+  ],
+  "renders": [
+   "render #22 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=8ms sinceChange=7776ms w=100",
+   "render #23 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=2ms sinceChange=7781ms w=100"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=100 r=23 c=12 s=0                                                       ✕ │",
+   "q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" mode=uncontr… │",
+   "find: search turns                                                                               │",
+   "to find                                                                                          │",
+   "1: entry one                                                                                     │",
+   "2: entry two                                                                                     │",
+   "3: entry three                                                                                   │",
+   "l: link (l)                                                                                      │",
+   "clear                                                                                            │",
+   "--- 0 of 30 match ---                                                                            │",
+   "--- log ---                                                                                      │",
+   "66.34s ui.close hook {\"id\":\"input-probe\",\"origin\":{\"kind\":\"plugin\"}}                             │"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "ctrlx-tab-inline",
+  "sent": "\t",
+  "events": [],
+  "renders": [
+   "render #24 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=2ms sinceChange=10121ms w=100"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [
+   "input-probe terminal w=100 r=24 c=12 s=0                                                       ✕ │",
+   "q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" mode=uncontr… │",
+   "find: search turns                                                                               │",
+   "to find                                                                                          │",
+   "1: entry one                                                                                     │",
+   "2: entry two                                                                                     │",
+   "3: entry three                                                                                   │",
+   "l: link (l)                                                                                      │",
+   "clear                                                                                            │",
+   "--- 0 of 30 match ---                                                                            │",
+   "--- log ---                                                                                      │",
+   "66.35s closed                                                                                    │"
+  ],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "down-inline",
+  "sent": "\u001b[B",
+  "events": [],
+  "renders": [
+   "render #25 q=\"搜索中文对话的轮次标题ab中和内a long query that runs past the edge of the pane\" built=1ms sinceChange=11735ms w=100"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "tab-to-field-inline",
+  "sent": "\t",
+  "events": [
+   "75.44s ui.focus hook {\"component\":\"Pane\",\"requestId\":\"input-probe\",\"plugin\":\"input-probe\",\"element\":\"q\",\"origin\":{\"kind\":\"person\"}}"
+  ],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [],
+  "ring": [
+   "29:8-8:s",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   8,
+   29,
+   "hidden"
+  ]
+ },
+ {
+  "step": "type-cjk-inline",
+  "sent": "搜索中文",
+  "events": [
+   "77.10s ui.input hook kind=change element=q value=\"搜索中文\" keys=plugin,element,component,requestId,surface,kind,value",
+   "77.11s onInput #13 \"搜索中文\""
+  ],
+  "renders": [
+   "render #26 q=\"搜索中文\" built=1ms sinceChange=3ms w=100"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [],
+  "ring": [
+   "29:16-16:·",
+   "45:2-2:·"
+  ],
+  "cursor": [
+   16,
+   29,
+   "hidden"
+  ]
+ },
+ {
+  "step": "esc-inline",
+  "sent": "\u001b",
+  "events": [],
+  "renders": [
+   "render #27 q=\"搜索中文\" built=3ms sinceChange=1884ms w=100"
+  ],
+  "composer": [
+   "❯"
+  ],
+  "pane": [],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ },
+ {
+  "step": "log",
+  "sent": "\r",
+  "events": [],
+  "renders": [],
+  "composer": [
+   "❯"
+  ],
+  "pane": [],
+  "ring": [
+   "45:2-2:·"
+  ],
+  "cursor": [
+   2,
+   45,
+   "hidden"
+  ]
+ }
+]

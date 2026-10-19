@@ -1,0 +1,65 @@
+[
+ {
+  "step": "after ctrl+x tab",
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "hotkey p (read, no fill)",
+  "composer": [
+   "❯"
+  ],
+  "ring": []
+ },
+ {
+  "step": "down",
+  "composer": [
+   "❯"
+  ],
+  "ring": [
+   "2:r: fill replace"
+  ]
+ },
+ {
+  "step": "enter on r: fill replace",
+  "composer": [
+   "❯ FILL-R"
+  ],
+  "ring": []
+ },
+ {
+  "step": "typed Q after the fill",
+  "composer": [
+   "❯ FILL-RQ"
+  ],
+  "ring": []
+ },
+ {
+  "step": "click p, then typed r",
+  "composer": [
+   "❯ r"
+  ],
+  "ring": []
+ },
+ {
+  "step": "click e (fill), then typed p",
+  "composer": [
+   "❯ p"
+  ],
+  "ring": []
+ },
+ {
+  "step": "typed-bang",
+  "composer": [
+   "! echo typed"
+  ]
+ },
+ {
+  "step": "submitted-typed-bang",
+  "composer": [
+   "❯"
+  ]
+ }
+]
