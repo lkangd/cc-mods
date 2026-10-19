@@ -257,13 +257,19 @@ def life_005_fork(world, host, run):
         after = compare(term, forked or path, "after the first submit in the fork")
         evidence += after.pop("evidence")
         actual["afterSubmit"] = after
+        # 0.2: the fork's file starts at the original's last boundary, so the
+        # list says earlier turns are not in it
+        shown = v.parse_pane(term.settle(quiet=0.6))
+        actual["forkLineExpected"] = v.expected_toc(forked).earlier_elsewhere if forked else None
+        actual["forkLine"] = shown is not None and shown.fork_line
         original = v.expected_toc(path)
         actual["originalUntouched"] = not any("分叉之后" in g.public()["userText"] for g in original.groups)
     finally:
         term.close()
-    ok = start_ok and after["ok"] and forked is not None and actual["originalUntouched"]
+    ok = (start_ok and after["ok"] and forked is not None and actual["originalUntouched"]
+          and actual["forkLineExpected"] is True and actual["forkLine"])
     return ("before the first submit the fork has no file and the Pane says it is not written yet; after it the Pane equals "
-            "the fork file's chain; the original file keeps its own", actual, ok, evidence)
+            "the fork file's chain and shows the fork line; the original file keeps its own", actual, ok, evidence)
 
 
 def life_005_in_session(world, host, run):

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Runs each staged mod's fast gate, mods/<mod>/scripts/verify-startup.sh,
-# when the commit touches more than its Markdown (prompt-history's takes ~3 min).
+# when the commit touches more than its Markdown.
 # Enable once per clone: git config core.hooksPath .githooks
 set -eu
 

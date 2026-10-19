@@ -7,21 +7,26 @@
    every colour beside it is a `Text`'s. */
 
 import type { ElementTable, RenderElement } from 'claude-code'
+import { BAR_ROWS, barKey } from './bars'
+import type { Bar } from './bars'
 import { textCells } from './cells'
-import { GUTTER, dayRuleBefore, entryRows } from './entries'
+import type { CompactionRule } from './compactions'
+import { GUTTER, clockTime, dayRuleBefore, entryRows, isRuleBefore } from './entries'
 import type { Entry } from './entries'
-import { FIRST_CONTROL, LAYOUT_CONTROL } from './ring'
+import { FIRST_CONTROL, LAYOUT_CONTROL, actionKey } from './ring'
 import { FILTERS, LAYOUT_HOTKEY, filterLabel, layoutLabel } from './view'
 import type { Layout, ViewFilter } from './view'
 import type { TocWindow } from './window'
+import { text as words, turnsAndContextUse } from './text'
+import { BACK_CONTROL, EXPAND_HOTKEY, MORE_CONTROL, PREVIEW_CONTROL, PREVIEW_HOTKEY } from './preview'
+import { NEXT_ACTION, NEXT_CONTROL, PREVIOUS_ACTION, PREVIOUS_CONTROL } from './walk'
+import type { WalkDirection } from './walk'
+import type { ExpandedBody, PreviewBody } from './preview'
+import { COPY_INPUT_CONTROL, COPY_INPUT_HOTKEY, COPY_TEXT_CONTROL, COPY_TEXT_HOTKEY, REUSE_CONTROL, REUSE_HOTKEY } from './reuse'
+import type { CopySide } from './reuse'
 
 export const PANE_ID = 'chat-toc'
-export const PANE_TITLE = '目录'
 export const PANE_COLUMNS = 44
-
-export const EMPTY_TEXT = '本会话还没有对话'
-/* For a resumed or forked session whose file is not written yet. */
-export const NOT_WRITTEN_TEXT = '本会话还没写进 transcript 文件，提交第一条消息后显示目录'
 
 /* 2.1.287 draws the pane's ✕ at the right end of the body's first row: the
    filter row keeps these cells free for it. */
@@ -38,11 +43,80 @@ const controlCells = (label: string) => textCells(`x: ${label}`)
 /* The cells between two filter Buttons. */
 const FILTER_GAP = 3
 
-/* The head's rows: the filter row, the tab rule, a blank line. */
-export const HEAD_ROWS = 3
+/* The head's rows: the filter row, the tab rule. */
+export const HEAD_ROWS = 2
 /* The footer's rows: a rule, then the count or the pause and the Layout Button. */
 export const FOOT_ROWS = 2
-export const PAUSED_TEXT = '⏸ 暂停跟随'
+/* The search row under the tab rule, always drawn. */
+export const SEARCH_ROWS = 1
+
+/* The search row's controls: the `f` Button, the field, the clear mark. */
+export const SEARCH_CONTROL = 'search.focus'
+export const SEARCH_FIELD = 'search'
+export const CLEAR_CONTROL = 'search.clear'
+export const SEARCH_HOTKEY = 'f'
+
+/* The search row: the `f` Button moving the keys into the field, the field
+   holding the query, while there is a query the count of matches among all
+   groups and the ✕ that clears it, then ‹ › walking to the previous or
+   next Turn group (walk.ts). */
+export type SearchView = {
+  query: string
+  /* Undefined without a query. */
+  count: { matches: number; of: number } | undefined
+  onFocusSearch: () => Promise<void>
+  onInput: (value: string) => void
+  /* Hands back its promise: the host lets the transcript move only
+     while the person's submit is under way. */
+  onSubmit: (value: string) => Promise<void>
+  onClear: () => Promise<void>
+  /* Hands back its promise, as `onSubmit` does. */
+  onWalk: (direction: WalkDirection) => Promise<void>
+}
+
+/* The count of matches after the field while there is a query, dim. */
+export function matchCount(elements: ElementTable, count: SearchView['count']): RenderElement | null {
+  const { Text } = elements
+  return count === undefined ? null : <Text dimColor>{' ' + words.matchCount(count.matches, count.of)}</Text>
+}
+
+function drawSearch(elements: ElementTable<'terminal'>, search: SearchView): RenderElement {
+  const { Box, Text, Button, Input } = elements
+  const hasQuery = search.query !== ''
+  return (
+    <Box flexDirection="row">
+      <Button key={SEARCH_CONTROL} plain hotkey={SEARCH_HOTKEY} onPress={() => search.onFocusSearch()}>
+        {words.find}
+      </Button>
+      <Text> </Text>
+      <Box flexGrow={1} flexShrink={1}>
+        <Input
+          key={SEARCH_FIELD}
+          placeholder={words.searchPlaceholder}
+          value={search.query}
+          submitLabel={words.searchSubmit}
+          onInput={(value: string) => search.onInput(value)}
+          onSubmit={(value: string) => search.onSubmit(value)}
+        />
+      </Box>
+      {matchCount(elements, search.count)}
+      {hasQuery ? <Text> </Text> : null}
+      {hasQuery ? (
+        <Button key={CLEAR_CONTROL} plain dimColor onPress={() => search.onClear()}>
+          ✕
+        </Button>
+      ) : null}
+      <Text> </Text>
+      <Button key={PREVIOUS_CONTROL} plain action={PREVIOUS_ACTION} onPress={() => search.onWalk('previous')}>
+        ‹
+      </Button>
+      <Text> </Text>
+      <Button key={NEXT_CONTROL} plain action={NEXT_ACTION} onPress={() => search.onWalk('next')}>
+        ›
+      </Button>
+    </Box>
+  )
+}
 
 /* The tab rule under the filter row, as runs: heavy under the chosen
    filter's Button, thin elsewhere, across the body's width. */
@@ -74,6 +148,34 @@ export function railOf(entry: Entry, isLit: boolean): string[] {
   return entry.lines.map((_, n) => (n === 0 ? first : isLit ? '┃  ' : '│  '))
 }
 
+/* The Buttons under the selected entry, ` · ` between them, each drawn
+   only when it can act: `p: Preview`, `r: Reuse` on a User input that can
+   be filled, `c: Copy` of the entry's own side. */
+function actionButtons(elements: ElementTable, entry: Entry, selected: SelectedView): RenderElement {
+  const { Box, Text, Button } = elements
+  const { actions } = selected
+  const side: CopySide = entry.side
+  const canCopy = side === 'user' ? actions.canCopyInput : actions.canCopyText
+  const buttons: RenderElement[] = [
+    <Button key={actionKey(entry.key, OPEN_ACTION)} plain dimColor hotkey={PREVIEW_HOTKEY} onPress={() => selected.onOpen()}>
+      {words.preview}
+    </Button>,
+  ]
+  if (actions.canReuse)
+    buttons.push(
+      <Button key={actionKey(entry.key, REUSE_ACTION)} plain dimColor hotkey={REUSE_HOTKEY} onPress={() => actions.onReuse()}>
+        {words.reuse}
+      </Button>,
+    )
+  if (canCopy)
+    buttons.push(
+      <Button key={actionKey(entry.key, COPY_ACTION)} plain dimColor={actions.copied !== side} hotkey={COPY_INPUT_HOTKEY} onPress={() => actions.onCopy(side)}>
+        {actions.copied === side ? words.copied : words.copy}
+      </Button>,
+    )
+  return <Box flexDirection="row">{buttons.flatMap((b, i) => (i === 0 ? [b] : [<Text dimColor>{' · '}</Text>, b]))}</Box>
+}
+
 /* The time column of the compact and timeline Layouts: `HH:MM` and a space. */
 const TIME_COLUMN = 6
 
@@ -81,6 +183,223 @@ const TIME_COLUMN = 6
 export function timeColumnOf(entry: Entry): string {
   return entry.lines.map((_, n) => (n === 0 ? entry.time : '').padEnd(TIME_COLUMN)).join('\n')
 }
+
+/* The Buttons on the preview's label rows (reuse.ts), acting on the group
+   it shows; each is drawn only when the group offers it. */
+export type LabelActions = {
+  canReuse: boolean
+  canCopyInput: boolean
+  canCopyText: boolean
+  /* The copy Button that reads `Copied` now. */
+  copied: CopySide | undefined
+  onReuse: () => Promise<void>
+  onCopy: (which: CopySide) => Promise<void>
+}
+
+/* A dim label row, `User` or `Agent`, with its Buttons at the right end,
+   ` · ` between them; on the desktop, which has no hotkeys, without them. */
+export function labelRow(elements: ElementTable, label: string, side: 'user' | 'agent', actions: LabelActions | undefined, hasHotkeys = true): RenderElement {
+  const { Box, Text, Button } = elements
+  const key = (hotkey: string) => (hasHotkeys ? hotkey : undefined)
+  const copy = (which: CopySide, control: string, hotkey: string) => (
+    <Button key={control} plain hotkey={key(hotkey)} dimColor={actions?.copied !== which} onPress={() => actions?.onCopy(which) ?? Promise.resolve()}>
+      {actions?.copied === which ? words.copied : words.copy}
+    </Button>
+  )
+  const buttons: RenderElement[] = []
+  if (side === 'user' && actions?.canReuse)
+    buttons.push(
+      <Button key={REUSE_CONTROL} plain dimColor hotkey={key(REUSE_HOTKEY)} onPress={() => actions.onReuse()}>
+        {words.reuse}
+      </Button>,
+    )
+  if (side === 'user' && actions?.canCopyInput) buttons.push(copy('user', COPY_INPUT_CONTROL, COPY_INPUT_HOTKEY))
+  if (side === 'agent' && actions?.canCopyText) buttons.push(copy('agent', COPY_TEXT_CONTROL, COPY_TEXT_HOTKEY))
+  if (buttons.length === 0) return <Text dimColor>{label}</Text>
+  return (
+    <Box flexDirection="row" justifyContent="space-between">
+      <Text dimColor>{label}</Text>
+      <Box flexDirection="row">{buttons.flatMap((b, n) => (n === 0 ? [b] : [<Text dimColor>{' · '}</Text>, b]))}</Box>
+    </Box>
+  )
+}
+
+/* The preview region over the footer (preview.ts), drawn only while it is
+   open: its rule with the ✕ closing it, then the group's content. */
+export type PreviewView = {
+  /* The rows it takes, its rule included. */
+  rows: number
+  body: PreviewBody | undefined
+  /* Undefined draws the label rows bare. */
+  actions?: LabelActions | undefined
+  onClose: () => Promise<void>
+  onMore: () => Promise<void>
+}
+
+/* The ✕ closing the preview, hotkey `p`: at the right end of its rule, and
+   of the expanded preview's Back row. */
+function closeButton(elements: ElementTable, onClose: () => Promise<void>): RenderElement {
+  const { Button } = elements
+  return (
+    <Button key={PREVIEW_CONTROL} plain dimColor hotkey={PREVIEW_HOTKEY} onPress={() => onClose()}>
+      ✕
+    </Button>
+  )
+}
+
+/* The region: the rule line, `Preview` and the ✕ at its right end, then
+   the meta line, the User input under its label, the last text under its
+   label, the files line, blank rows, and the cut line. The last text is a
+   `Markdown`, which 2.1.287 draws as 2.1.295 does; its Box clips it at the
+   rows it was given. */
+function drawPreview(elements: ElementTable, preview: PreviewView, bodyColumns: number): RenderElement {
+  const { Box, Text, Button } = elements
+  const label = words.preview
+  const ruleRest = Math.max(0, bodyColumns - 2 - textCells(label) - 2 - controlCells('✕'))
+  const rule = (
+    <Box flexDirection="row">
+      <Text color="subtle">{'─ '}</Text>
+      <Text>{label}</Text>
+      <Text color="subtle">{' ' + '─'.repeat(ruleRest) + ' '}</Text>
+      {closeButton(elements, preview.onClose)}
+    </Box>
+  )
+  const body = preview.body
+  if (body === undefined)
+    return (
+      <Box flexDirection="column">
+        {rule}
+        {preview.rows > 1 ? <Box height={preview.rows - 1} /> : null}
+      </Box>
+    )
+  return (
+    <Box flexDirection="column">
+      {rule}
+      {previewContent(elements, body, preview.actions, true)}
+      {body.more === 0 ? null : (
+        <Box flexDirection="row">
+          <Text dimColor>{words.moreLines(body.more)}</Text>
+          <Button key={MORE_CONTROL} plain hotkey={EXPAND_HOTKEY} dimColor onPress={() => preview.onMore()}>
+            {words.expand}
+          </Button>
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+/* The region's content under its rule, down to the blank rows: the meta
+   line, the User input under its label, the last text under its label in a
+   `Markdown` its Box clips at the rows it was given, the files line. */
+export function previewContent(elements: ElementTable, body: PreviewBody, actions: LabelActions | undefined, hasHotkeys: boolean): RenderElement {
+  const { Box, Text, Markdown } = elements
+  const agent = body.agent
+  return (
+    <Box flexDirection="column">
+      <Text dimColor>{body.meta}</Text>
+      {body.user === undefined ? null : labelRow(elements, words.previewUser, 'user', actions, hasHotkeys)}
+      {body.user === undefined || body.user.length === 0 ? null : <Text>{body.user.join('\n')}</Text>}
+      {agent === undefined ? null : labelRow(elements, words.previewAgent, 'agent', actions, hasHotkeys)}
+      {agent === undefined || agent.rows === 0 ? null : (
+        <Box height={agent.rows} overflow="hidden" flexDirection="column">
+          <Markdown text={agent.text} />
+        </Box>
+      )}
+      {body.files === undefined ? null : <Text dimColor>{body.files}</Text>}
+      {body.blank > 0 ? <Box height={body.blank} /> : null}
+    </Box>
+  )
+}
+
+/* The expanded preview (preview.ts): one group whole in the list's place,
+   the Back Button at its top. */
+export type ExpandedView = {
+  body: ExpandedBody
+  actions?: LabelActions | undefined
+  /* Back to the region, or, when it was opened expanded for want of rows,
+     closed. */
+  onBack: () => Promise<void>
+  onClose: () => Promise<void>
+}
+
+/* The Back Button with the ✕ at the row's right end, the meta line, the
+   User input under its label, the last text in one `Markdown` per part
+   under its label, a line after a part the cap cut, then the files one per
+   line under their headings. Drawn uncut: the host scrolls the tree. */
+function drawExpanded(elements: ElementTable, expanded: ExpandedView): RenderElement {
+  const { Box, Button } = elements
+  return (
+    <Box flexDirection="column">
+      <Box flexDirection="row" justifyContent="space-between">
+        <Button key={BACK_CONTROL} plain hotkey={EXPAND_HOTKEY} onPress={() => expanded.onBack()}>
+          {words.back}
+        </Button>
+        {closeButton(elements, expanded.onClose)}
+      </Box>
+      {expandedContent(elements, expanded, true)}
+    </Box>
+  )
+}
+
+/* The expanded preview under its Back Button: the meta line, the User
+   input under its label, the last text in one `Markdown` per part under
+   its label, a line after a part the cap cut, then the files one per line
+   under their headings. */
+export function expandedContent(elements: ElementTable, expanded: ExpandedView, hasHotkeys: boolean): RenderElement {
+  const { Box, Text, Markdown } = elements
+  const { body } = expanded
+  const files = (heading: string, paths: readonly string[]) =>
+    paths.length === 0 ? null : (
+      <Box flexDirection="column">
+        <Text dimColor>{heading}</Text>
+        {paths.map(path => (
+          <Text>{path}</Text>
+        ))}
+      </Box>
+    )
+  return (
+    <Box flexDirection="column">
+      <Text dimColor>{body.meta}</Text>
+      {labelRow(elements, words.previewUser, 'user', expanded.actions, hasHotkeys)}
+      {body.user.parts.map(part => (part === '' ? null : <Text>{part}</Text>))}
+      {body.user.cut === undefined ? null : <Text dimColor>{body.user.cut}</Text>}
+      {body.agent === undefined ? null : labelRow(elements, words.previewAgent, 'agent', expanded.actions, hasHotkeys)}
+      {body.agent === undefined ? null : body.agent.parts.map(part => <Markdown text={part} />)}
+      {body.agent?.cut === undefined ? null : <Text dimColor>{body.agent.cut}</Text>}
+      {files(words.changedHeading, body.changed)}
+      {files(words.readHeading, body.read)}
+    </Box>
+  )
+}
+
+/* A compaction's words, as its rule says them. */
+export function compactionLabel(rule: CompactionRule): string {
+  return words.compactionRule(rule.trigger === 'auto', rule.count, clockTime(rule.timestamp))
+}
+
+/* The gap between the footer's left and the Layout Button. */
+const FOOT_GAP = 2
+
+/* The footer's left: the turn count, then the context use as long as it
+   fits beside the Layout Button, shorter, else left out. */
+export function footerStatus(count: number, percent: number | undefined, bodyColumns: number, layout: Layout): string {
+  const room = bodyColumns - FOOT_GAP - controlCells(layoutLabel(layout))
+  return turnsAndContextUse(count, percent, status => textCells(status) <= room)
+}
+
+/* The selected entry while the preview is closed: under it, a row of
+   Buttons opening the preview on its group, reusing its User input and
+   copying its side (0.2 spec §3). */
+export type SelectedView = {
+  key: string
+  actions: LabelActions
+  onOpen: () => Promise<void>
+}
+
+/* The actions under the selected entry, by their key's suffix. */
+export const OPEN_ACTION = 'preview'
+export const REUSE_ACTION = 'reuse'
+export const COPY_ACTION = 'copy'
 
 export type PaneView = {
   entries: readonly Entry[]
@@ -100,16 +419,34 @@ export type PaneView = {
   why: string | undefined
   /* The Turn groups the list holds, for the footer; undefined says none. */
   count: number | undefined
-  /* Whether following the transcript is paused. */
-  isPaused: boolean
+  /* The context use, a whole percent; undefined leaves it out. */
+  contextPercent: number | undefined
+  /* Whether the list starts with the line saying earlier turns are not in
+     this session's file. */
+  isEarlierElsewhere: boolean
   /* The body's rows: the footer sits on the last two. */
   bodyRows: number
+  /* The Minimap's cells; none draws no Minimap. */
+  bars: readonly Bar[]
+  /* The cells drawn lit: the Current position's, or a query's matches. */
+  litBars: ReadonlySet<number>
+  /* The times under the cells, and the spaces between them. */
+  barLabels: { left: string; right: string; gap: number }
+  /* The preview region while it is open; undefined draws none. */
+  preview: PreviewView | undefined
+  /* The expanded preview, drawn in place of the Minimap, the list and the
+     region; undefined draws those. */
+  expanded?: ExpandedView | undefined
+  /* The selected entry's row of Buttons; undefined draws none. */
+  selected?: SelectedView | undefined
+  search: SearchView
+  onBar: (cell: number) => Promise<void>
   onPress: (entry: Entry) => Promise<void>
   onFilter: (filter: ViewFilter) => Promise<void>
   onLayout: () => Promise<void>
 }
 
-export function drawPane(elements: ElementTable, view: PaneView): RenderElement {
+export function drawPane(elements: ElementTable<'terminal'>, view: PaneView): RenderElement {
   const { Box, Text, Button } = elements
   const filters = (
     <Box flexDirection="row" columnGap={FILTER_GAP}>
@@ -141,9 +478,60 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
           <Text color={run.isChosen ? 'suggestion' : 'subtle'}>{run.text}</Text>
         ))}
       </Box>
-      <Text> </Text>
     </Box>
   )
+  const status = view.count === undefined ? (
+    <Text> </Text>
+  ) : (
+    <Text dimColor>{footerStatus(view.count, view.contextPercent, view.bodyColumns, view.layout)}</Text>
+  )
+  const footer = (
+    <Box flexDirection="column">
+      <Text color="subtle">{'─'.repeat(view.bodyColumns)}</Text>
+      <Box flexDirection="row" justifyContent="space-between">
+        {status}
+        {layoutButton}
+      </Box>
+    </Box>
+  )
+  if (view.expanded !== undefined) {
+    const spare = Math.max(0, view.bodyRows - HEAD_ROWS - SEARCH_ROWS - view.expanded.body.rows - FOOT_ROWS)
+    return (
+      <Box flexDirection="column">
+        {head}
+        {drawSearch(elements, view.search)}
+        {drawExpanded(elements, view.expanded)}
+        {spare > 0 ? <Box height={spare} /> : null}
+        {footer}
+      </Box>
+    )
+  }
+  const hasBars = view.bars.length > 0
+  const barRows = hasBars ? (
+    <Box flexDirection="column">
+      <Box flexDirection="row">
+        {view.bars.map((bar, cell) => (
+          <Button key={barKey(cell)} plain dimColor={!view.litBars.has(cell)} onPress={() => view.onBar(cell)}>
+            {bar.glyph}
+          </Button>
+        ))}
+        {view.bars.length < view.bodyColumns ? <Text color="subtle">{'▁'.repeat(view.bodyColumns - view.bars.length)}</Text> : null}
+      </Box>
+      <Text dimColor>{`${view.barLabels.left}${' '.repeat(view.barLabels.gap)}${view.barLabels.right}` || ' '}</Text>
+      <Text> </Text>
+    </Box>
+  ) : null
+  /* A compaction's rule: dashed, breaking the rail, not pressable. */
+  const compactionRow = (key: string, rule: CompactionRule) => {
+    const label = compactionLabel(rule)
+    return (
+      <Box key={key} flexDirection="row">
+        <Text color="subtle">{'╌ '}</Text>
+        <Text dimColor>{label}</Text>
+        <Text color="subtle">{' ' + '╌'.repeat(Math.max(0, view.bodyColumns - 3 - textCells(label)))}</Text>
+      </Box>
+    )
+  }
   const rows: RenderElement[] = []
   let drawnRows = 0
   const hasTimeColumn = view.layout !== 'card'
@@ -167,8 +555,10 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
         <Text color="subtle">{rails[n]}</Text>
       )
     const timeColumn = hasTimeColumn ? isLit ? <Text color="suggestion">{timeColumnOf(entry)}</Text> : <Text dimColor>{timeColumnOf(entry)}</Text> : null
-    /* The gap goes on with the rail, unless a new day's rule comes next. */
-    const gap = !hasGap ? null : dayRuleBefore(view.entries, i + 1) !== undefined ? (
+    /* The gap goes on with the rail, unless a new day's rule or a
+       compaction's comes next. */
+    const isRuleNext = isRuleBefore(view.entries, i + 1)
+    const gap = !hasGap ? null : isRuleNext ? (
       <Text> </Text>
     ) : (
       <Text color={isLit ? 'suggestion' : 'subtle'}>{(hasTimeColumn ? ' '.repeat(TIME_COLUMN) : '') + (isLit ? '┃' : '│')}</Text>
@@ -178,6 +568,14 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
         {text || ' '}
       </Button>
     )
+    const selected = view.selected?.key === entry.key ? view.selected : undefined
+    const actionRow =
+      selected === undefined ? null : (
+        <Box flexDirection="row">
+          <Text color={isLit ? 'suggestion' : 'subtle'}>{(hasTimeColumn ? ' '.repeat(TIME_COLUMN) : '') + (isLit ? '┃  ' : '│  ')}</Text>
+          {actionButtons(elements, entry, selected)}
+        </Box>
+      )
     rows.push(
       <Box key={`row-${entry.key}`} flexDirection="column">
         {rule === undefined ? null : (
@@ -187,6 +585,7 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
             <Text color="subtle">{' ' + '─'.repeat(Math.max(0, view.bodyColumns - 3 - textCells(rule)))}</Text>
           </Box>
         )}
+        {entry.compactionBefore === undefined ? null : compactionRow(`compaction-${entry.key}`, entry.compactionBefore)}
         <Box flexDirection="row">
           {timeColumn}
           <Box flexDirection="column">{entry.lines.map((_, n) => railTone(n))}</Box>
@@ -204,24 +603,24 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
             )}
           </Box>
         </Box>
+        {actionRow}
         {gap}
+        {entry.compactionAfter === undefined ? null : compactionRow(`compaction-after-${entry.key}`, entry.compactionAfter)}
       </Box>,
     )
-    drawnRows += (rule === undefined ? 0 : 1) + entry.lines.length + (hasGap ? 1 : 0)
+    const compactionRows = (entry.compactionBefore === undefined ? 0 : 1) + (entry.compactionAfter === undefined ? 0 : 1)
+    drawnRows += (rule === undefined ? 0 : 1) + compactionRows + entry.lines.length + (hasGap ? 1 : 0) + (actionRow === null ? 0 : 1)
   }
-  const status = view.isPaused ? (
-    <Text color="warning">{PAUSED_TEXT}</Text>
-  ) : view.count === undefined ? (
-    <Text> </Text>
-  ) : (
-    <Text dimColor>{`${view.count} 轮`}</Text>
-  )
   const whyLines = view.why === undefined ? 0 : view.why.split('\n').length
-  const used = HEAD_ROWS + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + FOOT_ROWS
+  const previewRows = view.preview?.rows ?? 0
+  const used = HEAD_ROWS + SEARCH_ROWS + (hasBars ? BAR_ROWS : 0) + (view.isEarlierElsewhere ? 1 : 0) + (view.notice === undefined ? 0 : 1) + drawnRows + (view.alert === undefined ? 0 : 1) + whyLines + previewRows + FOOT_ROWS
   const spare = Math.max(0, view.bodyRows - used)
   return (
     <Box flexDirection="column">
       {head}
+      {drawSearch(elements, view.search)}
+      {barRows}
+      {view.isEarlierElsewhere ? <Text dimColor>{words.earlierElsewhere}</Text> : null}
       {view.notice === undefined ? null : <Text dimColor>{view.notice}</Text>}
       {rows}
       {view.alert === undefined ? null : (
@@ -231,11 +630,8 @@ export function drawPane(elements: ElementTable, view: PaneView): RenderElement 
       )}
       {view.why === undefined ? null : <Text dimColor>{view.why}</Text>}
       {spare > 0 ? <Box height={spare} /> : null}
-      <Text color="subtle">{'─'.repeat(view.bodyColumns)}</Text>
-      <Box flexDirection="row" justifyContent="space-between">
-        {status}
-        {layoutButton}
-      </Box>
+      {view.preview === undefined ? null : drawPreview(elements, view.preview, view.bodyColumns)}
+      {footer}
     </Box>
   )
 }

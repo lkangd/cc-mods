@@ -12,8 +12,10 @@
    an entry carries what it needs, its `time` and whether it runs. */
 
 import { textCells, wrapCells } from './cells'
+import type { CompactionRule } from './compactions'
 import type { TurnGroup } from './groups'
 import type { Layout, ViewFilter } from './view'
+import { text as words } from './text'
 
 /* A line of an entry; `aside`, on a card's first User input line, is the
    time the pane draws at the right of it. */
@@ -41,6 +43,10 @@ export type Entry = {
   /* Whether a blank line follows: one parts each Turn group from the next
      in the card and timeline Layouts. */
   gapAfter: boolean
+  /* A compaction's rule drawn above the entry (below its day's rule), and,
+     on the list's last entry, one drawn below it (compactions.ts). */
+  compactionBefore?: CompactionRule
+  compactionAfter?: CompactionRule
 }
 
 /* The gutter each Layout keeps left of its Buttons, in cells: the rail and
@@ -63,20 +69,20 @@ function timeOf(timestamp: string | undefined): Date | undefined {
   return Number.isNaN(at.getTime()) ? undefined : at
 }
 
-function dayOf(at: Date | undefined, now: Date): string {
+function dayOf(at: Date | undefined, now: Date, isTodaySaid: boolean): string {
   if (at === undefined) return ''
-  const day = `${at.getMonth() + 1}月${at.getDate()}日`
-  if (at.getFullYear() !== now.getFullYear()) return `${at.getFullYear()}年${day}`
-  return at.getMonth() === now.getMonth() && at.getDate() === now.getDate() ? `今天 · ${day}` : day
+  const day = words.monthDay(at.getMonth(), at.getDate())
+  if (at.getFullYear() !== now.getFullYear()) return words.withYear(day, at.getFullYear())
+  return isTodaySaid && at.getMonth() === now.getMonth() && at.getDate() === now.getDate() ? words.today(day) : day
 }
 
 const clockOf = (at: Date | undefined) => (at === undefined ? '' : `${pad2(at.getHours())}:${pad2(at.getMinutes())}`)
 
-/* A transcript timestamp's local day for the day's rule: `M月D日`, today
-   `今天 · M月D日`, another year's with the year; '' when there is none to
-   read. */
-export function dayLabel(timestamp: string | undefined, nowMs: number): string {
-  return dayOf(timeOf(timestamp), new Date(nowMs))
+/* A transcript timestamp's local day for the day's rule: `Oct 9` (`10月9日`),
+   today `Today · Oct 9` unless `isTodaySaid` is false, another year's with
+   the year; '' when there is none to read. */
+export function dayLabel(timestamp: string | undefined, nowMs: number, isTodaySaid = true): string {
+  return dayOf(timeOf(timestamp), new Date(nowMs), isTodaySaid)
 }
 
 /* A transcript timestamp's local `HH:MM`; '' when there is none to read. */
@@ -84,22 +90,32 @@ export function clockTime(timestamp: string | undefined): string {
   return clockOf(timeOf(timestamp))
 }
 
+/* The Agent reply's state when it is not finished: in progress,
+   interrupted or ended in an error; '' when it finished. */
+export function agentStateOf(group: TurnGroup, isRunning: boolean): string {
+  return isRunning ? words.running : group.ending === 'interrupted' ? words.interrupted : group.ending === 'error' ? words.error : ''
+}
+
 /* The Agent reply's state, as its header says it: in progress, interrupted
    or ended in an error, each with the steps so far; otherwise the steps,
    and a note when there is no reply text. No steps, no count. */
 export function agentHeadOf(group: TurnGroup, isRunning: boolean): string {
-  const steps = group.steps > 0 ? `${group.steps} 步` : ''
-  const state = isRunning ? '进行中' : group.ending === 'interrupted' ? '已中断' : group.ending === 'error' ? '出错' : ''
+  const steps = group.steps > 0 ? words.steps(group.steps) : ''
+  const state = agentStateOf(group, isRunning)
   if (state) return [state, steps].filter(Boolean).join(' · ')
-  if (!group.reply) return [steps, '无文字回复'].filter(Boolean).join(' · ')
+  if (!group.reply) return [steps, words.noReply].filter(Boolean).join(' · ')
   return steps
 }
+
+/* An entry's key, `g3.u` or `g3.a`: group 3's User input or Agent reply
+   side. Its later lines' Buttons add `.<n>`. */
+export const entryKey = (groupIndex: number, side: 'user' | 'agent'): string => `g${groupIndex}.${side === 'user' ? 'u' : 'a'}`
 
 type Side = Omit<Entry, 'time' | 'gapAfter' | 'isRunning' | 'day'>
 
 function sideOf(group: TurnGroup, groupIndex: number, side: 'user' | 'agent', lines: EntryLine[]): Side {
   return {
-    key: `g${groupIndex}.${side === 'user' ? 'u' : 'a'}`,
+    key: entryKey(groupIndex, side),
     groupIndex,
     side,
     jumpUuid: side === 'user' ? group.openerUuid : (group.reply?.uuid ?? group.lastAgentUuid ?? group.openerUuid),
@@ -112,11 +128,6 @@ const linesOf = (texts: string[], dim: boolean): EntryLine[] => texts.map(text =
 /* The Agent reply as one run of text: its state, then its reply. */
 function agentText(group: TurnGroup, isRunning: boolean): string {
   return [agentHeadOf(group, isRunning), group.reply?.text ?? ''].filter(Boolean).join(' · ')
-}
-
-/* A side's whole text, unfolded, for a surface that wraps it itself. */
-export function sideText(group: TurnGroup, side: 'user' | 'agent', isRunning: boolean): string {
-  return side === 'user' ? group.userText : agentText(group, isRunning)
 }
 
 function userSide(group: TurnGroup, i: number, layout: Layout, room: number, clock: string): Side {
@@ -154,7 +165,7 @@ export function groupEntries(group: TurnGroup, i: number, isGroupRunning: boolea
   if (filter !== 'agent') sides.push('user')
   if (filter !== 'user' && (group.hasAgentReply || isGroupRunning)) sides.push('agent')
   const at = timeOf(group.timestamp)
-  const day = dayOf(at, new Date(nowMs))
+  const day = dayOf(at, new Date(nowMs), true)
   const clock = clockOf(at)
   return sides.map((side, n) => {
     const drawn = side === 'user' ? userSide(group, i, layout, room, clock) : agentSide(group, i, layout, room, isGroupRunning)
@@ -177,11 +188,19 @@ export function dayRuleBefore(entries: readonly Entry[], i: number): string | un
   return entry.day
 }
 
-/* The rows entry `i` takes: its day's rule, its lines, the gap after it. */
+/* Whether a rule, the day's or a compaction's, is drawn above entry `i`:
+   the gap before it then breaks the rail. */
+export function isRuleBefore(entries: readonly Entry[], i: number): boolean {
+  return dayRuleBefore(entries, i) !== undefined || entries[i]?.compactionBefore !== undefined
+}
+
+/* The rows entry `i` takes: its day's rule, its compaction rules, its
+   lines, the gap after it. */
 export function entryRows(entries: readonly Entry[], i: number): number {
   const entry = entries[i]
   if (entry === undefined) return 0
-  return (dayRuleBefore(entries, i) === undefined ? 0 : 1) + entry.lines.length + (entry.gapAfter ? 1 : 0)
+  const rules = (dayRuleBefore(entries, i) === undefined ? 0 : 1) + (entry.compactionBefore ? 1 : 0) + (entry.compactionAfter ? 1 : 0)
+  return rules + entry.lines.length + (entry.gapAfter ? 1 : 0)
 }
 
 /* The list's last entry, which has nothing after it to part from. */

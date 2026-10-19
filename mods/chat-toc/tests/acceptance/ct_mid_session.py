@@ -87,15 +87,26 @@ def session_file(world):
     return max(files, key=lambda f: f.stat().st_mtime) if files else None
 
 
-def matches_file(world):
-    """The Pane lists the session file's chain (the verifier's reading)."""
+def notes_but_minimap(p) -> list[str]:
+    """The Pane's notes without the Minimap's rows (its bars and the dates
+    under them), which the parser keeps as notes too."""
+    bars = len(p.notes) >= 2 and set(p.notes[0]) <= set("▁▂▃▄▅▆▇█")
+    return p.notes[2:] if bars else p.notes
+
+
+def matches_file(world, last=None):
+    """The Pane lists the session file's chain (the verifier's reading);
+    `last` keeps the latest diff for the record."""
     def check(t):
         p = v.parse_pane(t.rows())
         found = session_file(world)
         if p is None or not p.entries or found is None:
             return None
         groups = v.expected_toc(found).groups
-        return p if groups and v.compare_window(groups, p)["ok"] and not p.notes else None
+        diff = v.compare_window(groups, p) if groups else {"ok": False}
+        if last is not None:
+            last["diff"], last["notes"] = diff, notes_but_minimap(p)
+        return p if diff["ok"] and not notes_but_minimap(p) else None
     return check
 
 
@@ -123,7 +134,12 @@ def select(t, needle, limit=30):
 
 
 def outcome(world, t, evidence, actual, label):
-    p = t.wait_for(matches_file(world), "the Pane to list the session's chain", timeout=30)
+    last = {}
+    try:
+        p = t.wait_for(matches_file(world, last), "the Pane to list the session's chain", timeout=30)
+    except h.ScenarioFailure:
+        actual["lastDiff"] = last
+        raise
     t.settle()
     p = matches_file(world)(t) or p
     evidence.append(t.snap(f"{label} listed after enabling"))

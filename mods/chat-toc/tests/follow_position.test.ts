@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
-import { PANE, entryTexts, host, mountPane, start } from './host'
+import { PANE, drawnButtons, entryTexts, host, isBarKey, mountPane, start, openOn } from './host'
 import { transcript } from './fixture'
 
 /* CT-POS-001..003, CT-COEX-001: the pane lights the group the transcript
@@ -12,7 +12,7 @@ type Pane = Awaited<ReturnType<typeof mountPane>>
 type Rows = { first: number; last: number; of: number } | null
 
 /* Twenty groups, each a prompt and a reply. */
-async function session($: Engine, on: Parameters<typeof host>[0]) {
+async function session($: Engine, on: Parameters<typeof host>[0], rows = 14) {
   const t = transcript()
   const prompts: string[] = []
   const replies: string[] = []
@@ -24,7 +24,7 @@ async function session($: Engine, on: Parameters<typeof host>[0]) {
   /* What Claude Code draws at a transcript site, beneath chat-toc's hooks. */
   on('ui.render', () => ({ type: 'Text', props: {}, children: ['drawn by Claude Code'] }))
   await start($, world)
-  const pane = await mountPane($, 14)
+  const pane = await mountPane($, rows)
   const drawn = new Map<string, { redraw: (props: unknown) => Promise<unknown> }>()
   /* A transcript site reporting where its row is in the view. */
   const report = async (component: 'UserMessage' | 'AssistantMessage', requestId: string, onScreen: Rows) => {
@@ -82,7 +82,6 @@ async function litKeys(pane: Pane): Promise<string[]> {
 }
 
 const prompts = async (pane: Pane) => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN prompt'))
-const saysPaused = async (pane: Pane) => (await pane.find({ type: 'Text', text: /暂停/ })) !== undefined
 
 async function scrollPane($: Engine, by: number) {
   await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by, bodyRows: 14, contentRows: 14, origin: { kind: 'person' } } as never)
@@ -139,17 +138,14 @@ test('with the last drawn row wholly in view the last group is lit', async ($, o
   expect(await litKeys(pane)).toEqual(['g19.u', 'g19.a'])
 })
 
-test('scrolling the pane pauses following and says so; the next change of position follows again', async ($, on) => {
+test('scrolling the pane pauses following; the next change of position follows again', async ($, on) => {
   const { pane, view } = await session($, on)
   await view(10)
-  expect(await saysPaused(pane)).toBe(false)
 
   await scrollPane($, -30)
   expect(await prompts(pane)).not.toContain('CT-SYN prompt 10')
-  expect(await saysPaused(pane)).toBe(true)
 
   await view(12)
-  expect(await saysPaused(pane)).toBe(false)
   expect(await prompts(pane)).toContain('CT-SYN prompt 12')
   expect(await litKeys(pane)).toEqual(['g12.u', 'g12.a'])
 })
@@ -161,7 +157,6 @@ test('the transcript redrawing the same view does not end the pause', async ($, 
 
   await view(10)
 
-  expect(await saysPaused(pane)).toBe(true)
   expect(await prompts(pane)).not.toContain('CT-SYN prompt 10')
 })
 
@@ -170,16 +165,13 @@ test('the pane holding the keyboard pauses following', async ($, on) => {
   const props = { title: '目录', bodyColumns: 44, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 14 }, view: {} }
 
   await pane.redraw({ ...props, isFocused: true })
-  expect(await saysPaused(pane)).toBe(true)
 
   /* The highlight still moves; the window does not. */
   await view(3)
-  expect(await saysPaused(pane)).toBe(true)
   expect(await prompts(pane)).not.toContain('CT-SYN prompt 3')
 
   /* Given the keyboard back, the position moved meanwhile: it follows. */
   await pane.redraw({ ...props, isFocused: false })
-  expect(await saysPaused(pane)).toBe(false)
   expect(await prompts(pane)).toContain('CT-SYN prompt 3')
   expect(await litKeys(pane)).toEqual(['g3.u', 'g3.a'])
 })
@@ -201,7 +193,6 @@ test('a change of position while the pane is a tab behind another ends the pause
   tab(true)
   const back = await mountPane($, 14)
 
-  expect(await saysPaused(back)).toBe(false)
   expect(await prompts(back)).toContain('CT-SYN prompt 10')
 })
 
@@ -215,7 +206,6 @@ test('a Layout switch with no selection keeps the lit group in the window', asyn
 
   const texts = await entryTexts(pane)
   expect(texts.some(s => s.includes('CT-SYN prompt 10'))).toBe(true)
-  expect(await saysPaused(pane)).toBe(true)
 })
 
 test('a switch with the focus ring on the filter row, where a hotkey finds it, keeps the lit group in the window', async ($, on) => {
@@ -231,4 +221,110 @@ test('a switch with the focus ring on the filter row, where a hotkey finds it, k
 
   const texts = await entryTexts(pane)
   expect(texts.some(s => s.includes('CT-SYN prompt 10'))).toBe(true)
+})
+
+test('a view holding only standalone tool rows, such as file edits, lights their group', async ($, on) => {
+  /* Group 1 makes edits after its text; each draws as its own ToolUse row
+     and ToolResult block, never folded into a ToolGroup. */
+  const t = transcript()
+  const asked: string[] = []
+  const edits: string[] = []
+  for (let i = 0; i < 3; i++) {
+    asked.push(t.prompt(`CT-SYN prompt ${i}`))
+    t.reply([{ type: 'text', text: `CT-SYN looking ${i}` }])
+    if (i === 1) {
+      for (let k = 0; k < 4; k++) {
+        const id = `toolu_edit_${k}`
+        edits.push(id)
+        t.reply([{ type: 'tool_use', id, name: 'Edit', input: {} }])
+        t.toolResult(id)
+      }
+    }
+    t.reply([{ type: 'text', text: `CT-SYN answer ${i}` }])
+  }
+  const world = host(on, t.jsonl())
+  on('ui.render', () => ({ type: 'Text', props: {}, children: ['drawn by Claude Code'] }))
+  await start($, world)
+  const pane = await mountPane($, 14)
+  const site = async (component: string, requestId: string, props: Record<string, unknown>) => {
+    await $.ui.mount({
+      plugin: 'chat-toc',
+      surface: 'terminal',
+      component,
+      requestId,
+      viewport: { columns: 160, rows: 40, isFullscreen: true },
+      props,
+    } as never)
+    await world.clock.settle()
+  }
+  const tool = (id: string, first: number, last: number) =>
+    ({ tool_use_id: id, tool: 'Edit', input: {}, isRunning: false, isErrored: false, isInterrupted: false, output: {}, onScreen: { first, last, of: 30 } })
+
+  /* The view: the middle of the second edit's diff down to the third's. */
+  await site('ToolUse', edits[1]!, tool(edits[1]!, 12, 29))
+  await site('ToolResult', edits[1]!, { tool_use_id: edits[1]!, tool: 'Edit', output: {}, isErrored: false, onScreen: { first: 0, last: 0, of: 1 } })
+  await site('ToolUse', edits[2]!, tool(edits[2]!, 0, 9))
+
+  expect(await litKeys(pane)).toEqual(['g1.u', 'g1.a'])
+})
+
+test('the Minimap\'s cell of the lit group is the only one not dim, and moves with the view', async ($, on) => {
+  /* Rows for the Minimap beside the preview and the list's eight. */
+  const { pane, view } = await session($, on, 23)
+  const bright = async () =>
+    drawnButtons(await pane.drawn())
+      .filter(b => isBarKey(b.key))
+      .flatMap(b => (b.dimColor === false ? [b.key] : []))
+
+  expect(await bright()).toEqual([])
+  await view(4)
+  expect(await bright()).toEqual(['m.4'])
+  await view(11)
+  expect(await bright()).toEqual(['m.11'])
+})
+
+/* CT-FIND-001: while a query is set the rail lights the Current position
+   only when its group matches, and the list keeps the match nearest it in
+   view (at or before it, else the first after it). */
+test('under a query the lit group shows only when it matches, and the nearest match stays in view', async ($, on) => {
+  const { pane, view, world } = await session($, on, 20)
+  const search = (text: string) => $.ui.input({ plugin: 'chat-toc', key: 'search', text, kind: 'change' })
+
+  await view(4)
+  await search('prompt 4')
+  await world.clock.settle()
+  expect(await litKeys(pane)).toEqual(['g4.u', 'g4.a'])
+
+  /* Groups 1 and 10..19 match: the nearest at or before group 4 is 1. */
+  await search('prompt 1')
+  await world.clock.settle()
+  expect(await litKeys(pane)).toEqual([])
+  expect(await prompts(pane)).toContain('CT-SYN prompt 1')
+  expect(await prompts(pane)).not.toContain('CT-SYN prompt 19')
+
+  /* None at or before group 4 matches: the first after it. */
+  await search('prompt 7')
+  await world.clock.settle()
+  expect(await prompts(pane)).toEqual(['CT-SYN prompt 7', 'CT-SYN prompt 17'])
+})
+
+/* CT-PREV-001: the preview opens only on a press and holds that group: the
+   Current position moving and the walk to the previous group move it not. */
+test('the Current position moving and ‹ open nothing, and leave an open preview on the group pressed', async ($, on) => {
+  const { pane, view, world } = await session($, on, 30)
+  const markdown = async () => (await pane.findAll({ type: 'Markdown' })).map(m => m.props.text)
+
+  await view(18)
+  await pane.press({ key: 'walk.previous' })
+  await world.clock.settle()
+  expect(await markdown()).toEqual([])
+
+  await openOn(pane, 'g19.u')
+  expect(await markdown()).toEqual(['CT-SYN answer 19'])
+  await view(17)
+  expect(await litKeys(pane)).toEqual(['g17.u', 'g17.a'])
+  expect(await markdown()).toEqual(['CT-SYN answer 19'])
+  await pane.press({ key: 'walk.previous' })
+  await world.clock.settle()
+  expect(await markdown()).toEqual(['CT-SYN answer 19'])
 })

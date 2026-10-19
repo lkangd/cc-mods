@@ -1,27 +1,40 @@
 /* chat-toc: a docked table of contents of the current session's
    conversation. This module wires the host's events to the parts:
      transcript.ts / chain.ts / groups.ts / regroup.ts  the file to Turn groups
+     compactions.ts                                     where each compaction's rule goes
      source.ts / reader.ts / locate.ts                  how, when and where it is read
      rewind.ts                                          what a rewind took, before the file says
      view.ts / entries.ts / cells.ts / window.ts        what the pane draws
+     facts.ts / preview.ts                              the preview of one Turn group
+     reuse.ts                                           Reuse and copy from the preview
+     search.ts                                          which groups a query matches
      pane.tsx / ring.ts                                 how it draws, the keyboard
      sites.ts / jump.ts                                 where a press scrolls
+     walk.ts                                            the walk to the previous and next Turn group
      position.ts                                        what the view is on
+     memo.ts                                            what a drawing keeps for the next
    The host's `$` may only be handed to functions declared at the top of
    this file, so every call on `$` is made here or in one of them. */
 
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, RenderViewport } from 'claude-code'
+import type { EngineInterface, Register, RenderSurface } from 'claude-code'
+import { entryKey } from './entries'
 import type { Entry } from './entries'
-import { sideText } from './entries'
-import { drawDesktopPane } from './desktop'
+import { compactionsOf, hasEarlierTurnsElsewhere, layRules } from './compactions'
+import type { Compaction, Listed } from './compactions'
+import { LIST_BUDGET, TOP_CONTROL, desktopList, drawDesktopPane } from './desktop'
+import type { ListMove } from './desktop'
+import { endOfGroup, groupsIn, spanEndingFilled, spanStarting } from './span'
+import { BAR_ROWS, barKey, barLabels, barOfGroup, barTarget, barsOf } from './bars'
+import { stripLabels } from './minimap'
+import { groupIndexOf } from './groups'
 import type { TurnGroup } from './groups'
+import { newMemo, remember } from './memo'
 import {
-  COMPACTED_TEXT,
   FLASHES,
   FLASH_MS,
   REFUSED_MS,
-  REFUSED_TEXT,
+  isUnscrollable,
   compactedSides,
   dimRefused,
   jumpTargetsOf,
@@ -31,12 +44,24 @@ import {
   sideKeyOf,
 } from './jump'
 import type { Refused } from './jump'
-import { DOCK_STATUS, carriesHistory, isClosedByPerson, placementFate, reopensOn } from './lifecycle'
-import { EMPTY_TEXT, NOT_WRITTEN_TEXT, PANE_COLUMNS, PANE_ID, PANE_TITLE, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
-import { entryAt, pendingShown, ringMove } from './ring'
-import { UNLOCATED_TEXT, derivedTranscriptPath } from './locate'
+import { carriesHistory, hidesPane, isClosedByPerson, reopensOn } from './lifecycle'
+import { CLEAR_CONTROL, PANE_COLUMNS, PANE_ID, SEARCH_FIELD, SEARCH_ROWS, drawPane, FOOT_ROWS, HEAD_ROWS } from './pane'
+import type { ExpandedView, LabelActions, PreviewView, SearchView } from './pane'
+import { PREVIEW_CONTROL, expandedBody, filesLine, metaLine, previewBody, previewPlan, typedInput } from './preview'
+import type { ExpandedBody, PathBase, PreviewBody } from './preview'
+import { FILTER_END, LAYOUT_CONTROL, entryAt, pendingShown, ringMove } from './ring'
+import { COPIED_MS, fillOf, fillRefusedText, hasReuse, reusableOf } from './reuse'
+import type { CopySide } from './reuse'
+import { indexGroups, matchShown, matchedFields, matchesOf, nearestMatch, newSearchIndex, queryWords } from './search'
+import type { Match } from './search'
+import { derivedTranscriptPath } from './locate'
+import { listedGroups, walkFrom } from './walk'
+import type { WalkDirection } from './walk'
+import { languageOf, setLanguage, text as words } from './text'
+import type { BandCounts } from './text'
+import { drawBand } from './band'
 import { rewoundFrom } from './rewind'
-import { FILTER_KEY, LAYOUT_KEY, filterOf, layoutOf, nextLayout } from './view'
+import { FILTER_KEY, LAYOUT_KEY, filterOf, jumpSide, layoutOf, nextLayout } from './view'
 import type { Layout, ViewFilter } from './view'
 import { PERF_FLUSH_MS, newPerf, note, perfNow, takeLines } from './perf'
 import type { PerfMetric } from './perf'
@@ -60,7 +85,7 @@ import {
   siteReport,
 } from './position'
 import type { JumpLock } from './position'
-import { entryOfGroup, entryTable, newEntryCache } from './table'
+import { entryOfGroup, entryTable, narrowedTable, newEntryCache } from './table'
 import type { EntryTable } from './table'
 import { scrolledTop, topOfDrawing, topRevealing, windowOf } from './window'
 import type { SwitchAnchor, TocWindow } from './window'
@@ -69,21 +94,17 @@ const transcriptPath = atom({ plugin: 'chat-toc', key: 'transcriptPath' } as con
 const rev = atom({ plugin: 'chat-toc', key: 'rev' } as const, 0)
 const isClosed = atom({ plugin: 'chat-toc', key: 'isClosed' } as const, false)
 const isCarriedOver = atom({ plugin: 'chat-toc', key: 'isCarriedOver' } as const, false)
-const isInlineAsked = atom({ plugin: 'chat-toc', key: 'isInlineAsked' } as const, false)
+const isPaneHidden = atom({ plugin: 'chat-toc', key: 'isPaneHidden' } as const, false)
 const currentPosition = atom({ plugin: 'chat-toc', key: 'currentPosition' } as const, null as number | null)
 const compactedAt = atom({ plugin: 'chat-toc', key: 'compactedAt' } as const, null as string | null)
+/* The search field's text: conversation text, so `$.state` only, never
+   `$.store`; it lasts the process, across closing the pane. */
+const query = atom({ plugin: 'chat-toc', key: 'query' } as const, '')
 
 type SourceState = 'unknown' | 'missing' | 'ok' | 'failed'
 
 /* Why nothing is listed, kept at the bottom of the pane while it holds. */
-const FAILURES: Record<FailReason, string> = {
-  denied: '没有权限读本会话的 transcript，目录无法显示',
-  error: '读不到本会话的 transcript，目录无法显示',
-}
-
-function unreadableText(lines: number): string {
-  return `有 ${lines} 行无法识别，目录可能不完整`
-}
+const failureText = (reason: FailReason): string => (reason === 'denied' ? words.denied : words.readError)
 
 /* What the reads so far made of the file. Module state: a hot reload starts
    it over, and `session.start` then reads again. */
@@ -106,6 +127,24 @@ const gate = readGate()
 /* The window's top entry; undefined shows the newest. While following it
    is wherever keeps the lit group in view. */
 let top: number | undefined
+/* On the desktop, where the host scrolls the whole tree (span.ts): the
+   last Turn group the drawn part of the list holds; undefined draws the
+   newest. */
+let drawnUpTo: number | undefined
+/* The surface the pane was last drawn on: `ui.scroll` does not say it. */
+let paneSurface: RenderSurface = 'terminal'
+/* Whether the host answered a jump that it cannot scroll its transcript
+   at all (Claude Code Desktop): a press then jumps no more, and says
+   nothing (0.2 spec §8). */
+let isTranscriptUnscrollable = false
+/* The terminal's selected entry (0.2 spec §3): the one last pressed, or the
+   one the focus ring last landed on; the row of Buttons under it opens the
+   preview. Undefined selects none. */
+let selectedKey: string | undefined
+/* The first drawn entry of the group the preview holds, where the focus
+   goes when its ✕ takes itself out of the tree; undefined when none is
+   drawn. */
+let previewEntry: string | undefined
 /* Following stops while the person scrolls the pane or it has the
    keyboard, and starts again when the Current position next moves. */
 let isPaused = false
@@ -116,26 +155,32 @@ let positionDrawn: number | undefined
    events at once (a process started with --resume raises both) find the
    first one's pane and open one. */
 let opening: Promise<void> = Promise.resolve()
-/* The terminal's layout, as its drawings say it (fixed for the process);
-   undefined until one is drawn, and an unasked open waits for it. */
-let isFullscreen: boolean | undefined
-let isOpenWanted = false
-/* The status line as last set; null after a load, when what the host shows
-   is not known. */
-let statusShown: string | undefined | null = null
-/* Withdrawals since the pane last docked, so a pane the host keeps seating
-   inline is not withdrawn and reopened without end: the second one leaves
-   it closed until the terminal's width changes (`parkedAt`, the width it
-   was left at), when it opens again unasked. */
-let withdrawals = 0
-let isWithdrawing = false
-let parkedAt: number | undefined
-/* The terminal's width, as its drawings last said it. */
-let columns: number | undefined
 
 /* The person's choices, read from `$.store` at each `session.start`. */
 let filter: ViewFilter = 'all'
 let layout: Layout = 'card'
+/* What the preview shows paths against: the session's working directory
+   and the home directory, from `session.start`. */
+let pathBase: PathBase = { cwd: undefined, home: undefined }
+/* The group the preview holds while it is open, by its opener's uuid,
+   which a regroup keeps: the entry pressed last, or the match a search's
+   submit jumped to. Neither the Current position, new turns, the View
+   filter nor the query change it; undefined is closed. In memory only: it
+   closes whenever the pane opens and when its group leaves the list. */
+let previewOpener: string | undefined
+/* Whether the person expanded the open preview over the list; closing the
+   pane or the keys leaving it return it to the region. One opened without
+   room for the region is drawn expanded anyway. */
+let isExpanded = false
+/* Whether the last drawing drew the expanded preview: the host then
+   scrolls the tree and moves the ring itself. */
+let isExpandedDrawn = false
+/* The host's release, from `$.session.version()` at `session.start`. */
+let hostBase: string | undefined
+/* The copy Button reading `Copied`: the group's opener, which Button, and
+   which copy, so only its own timer takes it back. */
+let copied: { opener: string; which: CopySide; n: number } | undefined
+let copies = 0
 
 /* What the pane drew last, for the keyboard and the next switch: the
    entries, their keys and the table back, their heights, the rows the
@@ -145,14 +190,21 @@ type Drawing = {
   keys: readonly string[]
   indexOf: ReadonlyMap<string, number>
   heights: readonly number[]
+  /* The heights with entry `selected` selected: its row of Buttons takes
+     a row more while the terminal's preview is closed. */
+  heightsWith: (selected: number | undefined) => readonly number[]
   rows: number
   window: TocWindow
 }
-let lastDrawing: Drawing = { entries: [], keys: [], indexOf: new Map(), heights: [], rows: 1, window: { start: 0, end: 0, maxStart: 0 } }
+let lastDrawing: Drawing = { entries: [], keys: [], indexOf: new Map(), heights: [], heightsWith: () => [], rows: 1, window: { start: 0, end: 0, maxStart: 0 } }
 /* The Button the host's focus ring is on while the pane has the keyboard,
    as its moves and chat-toc's own sends left it. */
 let ring: string | undefined
 let isPaneFocused = false
+/* The first control the last drawing put after the entries, and the last
+   one before them. */
+let afterList = LAYOUT_CONTROL
+let beforeList = FILTER_END
 /* An entry the ring goes to once a drawing shows it: after a switch, or
    after the window moved to bring the next entry in. That drawing sends
    it, and sends it again a few times while the host refuses it (its new
@@ -185,6 +237,10 @@ let isCompactedMarked = false
 let refusal: { key: string; n: number; text: string; at: number } | undefined
 let refusals = 0
 let isRedrawQueued = false
+/* Whether the band's last drawing was chat-toc's: the host does not draw
+   the band again when the pane comes to the front by a switch of tabs, so
+   the pane's drawing asks for it. */
+let isBandDrawn = false
 
 /* For the Current position (position.ts): the drawable rows' and the group
    openers' places on the chain, the last row drawn, the group a jump
@@ -211,20 +267,70 @@ let isRewindRecheckQueued = false
 /* A rewind's check runs as the hint line is drawn and again this long
    after, should the host's messages not be cut yet. */
 const REWIND_RECHECK_MS = 300
-let shownMemo: { groups: readonly TurnGroup[]; opener: string; shown: readonly TurnGroup[] } | undefined
+const shownMemo = newMemo<readonly TurnGroup[]>()
 
 /* The groups the pane lists: the file's, short of a rewind's. */
 function shownGroups(): readonly TurnGroup[] {
-  if (rewound === undefined) return reading.groups
-  if (shownMemo?.groups === reading.groups && shownMemo.opener === rewound) return shownMemo.shown
-  const at = reading.groups.findIndex(g => g.openerUuid === rewound)
-  const shown = at === -1 ? reading.groups : reading.groups.slice(0, at)
-  shownMemo = { groups: reading.groups, opener: rewound, shown }
-  return shown
+  const groups = reading.groups
+  const opener = rewound
+  if (opener === undefined) return groups
+  return remember(shownMemo, [groups, opener], () => {
+    const at = groupIndexOf(groups, opener)
+    return at === -1 ? groups : groups.slice(0, at)
+  })
 }
 
-/* The entries kept between drawings (table.ts). */
+/* Whether the last of `groups` is under way: only while they are the
+   file's whole list, not one a rewind cut. */
+const isRunningIn = (groups: readonly TurnGroup[]) => isTurnRunning && groups === reading.groups
+
+/* The chain's compactions as last read, whether earlier turns are not in
+   the file, and the last boundary a read found. */
+let compactions: Compaction[] = []
+let isEarlierElsewhere = false
+let lastCompaction: string | undefined
+/* The context use, a whole percent of the window, as the host last gave
+   it; undefined from a compaction until a measure brings one. */
+let contextPercent: number | undefined
+
+/* The entries kept between drawings (table.ts), and the list with the
+   compactions' rules laid on, kept while neither changes. */
 let entryCache = newEntryCache()
+let ruled = newMemo<Listed>()
+
+/* Each group's searchable text (search.ts), built as reads regroup; the
+   matches of the query last drawn; the list narrowed to them; the query
+   the last drawing showed. */
+const searchIndex = newSearchIndex()
+type Searched = { matches: Match[]; groupsMatched: number[] }
+const searched = newMemo<Searched>()
+const narrowed = newMemo<EntryTable>()
+let queryDrawn = ''
+
+function matchesNow(groups: readonly TurnGroup[], words: readonly string[], isRunning: boolean): Searched {
+  return remember(searched, [groups, words.join(' '), filter, isRunning], () => {
+    const matches = matchesOf(searchIndex, groups, words, filter, isRunning)
+    return { matches, groupsMatched: matches.map(m => m.group) }
+  })
+}
+
+/* The groups the query `value` matches among those listed now, in order. */
+function matchedGroups(value: string): number[] {
+  const groups = shownGroups()
+  const words = queryWords(value)
+  return words.length === 0 ? [] : matchesNow(groups, words, isRunningIn(groups)).groupsMatched
+}
+
+/* What a read found of the chain's compactions. A new boundary no response
+   has followed yet hides the context use, as `session.compact` does: the
+   host's figure is from before it. */
+function noteCompactions(): void {
+  compactions = compactionsOf(reading.chain, reading.groups)
+  isEarlierElsewhere = hasEarlierTurnsElsewhere(reading.chain, reading.groups)
+  const last = compactions[compactions.length - 1]
+  if (last !== undefined && last.uuid !== lastCompaction && !last.isAnswered) contextPercent = undefined
+  lastCompaction = last?.uuid
+}
 const NO_ENTRIES: EntryTable = { entries: [], heights: [], keys: [], indexOf: new Map(), firstOfGroup: [] }
 
 /* The long-session timings (perf.ts): on when the host runs with
@@ -233,8 +339,11 @@ const NO_ENTRIES: EntryTable = { entries: [], heights: [], keys: [], indexOf: ne
 const perf = newPerf()
 const loadedAt = perfNow()
 let isPerfAsked = false
+let isLanguageAsked = false
 let appendedAt: number | undefined
 let isListedNoted = false
+/* The earliest change of the search field no drawing has taken yet. */
+let typedAt: number | undefined
 
 function startOver(): void {
   reading = newReading()
@@ -246,6 +355,8 @@ function forget(): void {
   startOver()
   source = 'unknown'
   top = undefined
+  drawnUpTo = undefined
+  selectedKey = undefined
   anchor = undefined
   chainRows = rowIndex([])
   sites = newSites()
@@ -255,6 +366,40 @@ function forget(): void {
   refusal = undefined
   placing = newPositioning()
   entryCache = newEntryCache()
+  compactions = []
+  isEarlierElsewhere = false
+  ruled = newMemo()
+  closePreviewNow()
+}
+
+/* The preview closed, expanded or not. */
+function closePreviewNow(): void {
+  previewOpener = undefined
+  isExpanded = false
+}
+
+/* The context use the host has now: at the start, after a hot reload,
+   which starts the module over, and at /clear and /resume. */
+async function readContextUse($: EngineInterface): Promise<void> {
+  const usage = await $.session.usage().catch(() => undefined)
+  contextPercent = usage?.context.percent
+}
+
+/* The host's release, which says whether the desktop offers Reuse
+   (reuse.ts); undefined while not known. */
+async function askVersion($: EngineInterface): Promise<void> {
+  const version = await $.session.version().catch(() => undefined)
+  hostBase = version?.base
+}
+
+/* The system's language, from the locale variables (text.ts). Asked once a
+   load, at the first start event, before any word is drawn or registered. */
+async function askLanguage($: EngineInterface): Promise<void> {
+  if (isLanguageAsked) return
+  isLanguageAsked = true
+  const read = (value: Promise<string | undefined>) => value.catch(() => undefined)
+  const [LC_ALL, LC_MESSAGES, LANG] = await Promise.all([read($.env.get('LC_ALL')), read($.env.get('LC_MESSAGES')), read($.env.get('LANG'))])
+  setLanguage(languageOf({ LC_ALL, LC_MESSAGES, LANG }))
 }
 
 async function askPerf($: EngineInterface): Promise<void> {
@@ -351,24 +496,6 @@ function sawSite($: EngineInterface, component: SiteComponent, requestId: string
   if (report.isPlaced) place($)
 }
 
-/* The terminal's layout, as a drawing on it says; the first word of it
-   lets an open that waited for it go ahead. */
-function sawViewport($: EngineInterface, viewport: RenderViewport | undefined): void {
-  if (viewport === undefined) return
-  columns = viewport.columns
-  const said = viewport.isFullscreen
-  if (said !== undefined && said !== isFullscreen) {
-    isFullscreen = said
-    if (isOpenWanted) $.clock.after(0, () => void autoOpen($))
-  }
-  /* A pane left closed after a second withdrawal: the width changed, so it
-     opens again by the auto-open rule, as the status line promised. */
-  if (parkedAt !== undefined && viewport.columns !== parkedAt) {
-    parkedAt = undefined
-    $.clock.after(0, () => void autoOpen($))
-  }
-}
-
 /* One chunk of the file at `offset`, as text. */
 async function runChunk($: EngineInterface, path: string, offset: number): Promise<string> {
   const command = chunkCommand(path, offset)
@@ -435,7 +562,11 @@ async function load($: EngineInterface): Promise<void> {
     }
     for (const lines of got.chunks.lines) readLines(reading, lines)
     countUnreadable(reading, got.chunks.overlong)
+    const indexing = perfNow()
+    const built = indexGroups(searchIndex, reading.groups)
+    if (perf.isOn) timed($, 'index', [perfNow() - indexing, built, reading.groups.length])
     resolveSites(sites, chainRows, syncRows(chainRows, reading.chain))
+    noteCompactions()
     cursor = at
     lastSize = got.size
     source = 'ok'
@@ -444,6 +575,8 @@ async function load($: EngineInterface): Promise<void> {
     await markCompacted($)
   } else {
     startOver()
+    compactions = []
+    isEarlierElsewhere = false
     source = got.kind
     if (got.kind === 'failed') failure = got.reason
   }
@@ -573,29 +706,18 @@ async function locate($: EngineInterface, cwd: string): Promise<void> {
 }
 
 function openPane($: EngineInterface, focus?: true) {
-  return $.ui.open({ id: PANE_ID, title: PANE_TITLE, columns: PANE_COLUMNS, ...(focus === undefined ? {} : { focus }) })
+  return $.ui.open({ id: PANE_ID, title: words.paneTitle, columns: PANE_COLUMNS, ...(focus === undefined ? {} : { focus }) })
 }
 
-function showStatus($: EngineInterface, text: string | undefined): void {
-  if (text === statusShown) return
-  statusShown = text
-  $.ui.status(text)
-}
-
-/* Opens the pane unasked, in the fullscreen layout only, unless the person
-   closed it in this session or it is open already, as it stays across a hot
-   reload. While it cannot dock the status line says why. */
+/* Opens the pane unasked, unless the person closed it in this session or it
+   is open already, as it stays across a hot reload. Where and whether it is
+   drawn is the host's call: it is kept however the host places it. While it
+   waits undrawn the band above the prompt offers it, as after a close. */
 async function openUnasked($: EngineInterface): Promise<void> {
-  if (isFullscreen === undefined) {
-    isOpenWanted = true
-    return
-  }
-  isOpenWanted = false
   if (await read($, isClosed)) return
-  if (!isFullscreen) return showStatus($, DOCK_STATUS.mainScreen)
   const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
   const isPlaced = pane === undefined ? (await openPane($)).isPlaced : pane.isPlaced
-  if (!isPlaced) showStatus($, DOCK_STATUS.narrow)
+  await update($, isPaneHidden, () => !isPlaced)
 }
 
 function autoOpen($: EngineInterface): Promise<void> {
@@ -608,45 +730,27 @@ function autoOpen($: EngineInterface): Promise<void> {
    unlike an open of chat-toc's own. It never closes it. */
 async function openAsked($: EngineInterface): Promise<void> {
   await update($, isClosed, () => false)
-  await update($, isInlineAsked, () => true)
-  await openPane($, true)
+  const opened = await openPane($, true)
+  if (opened.isPlaced) await update($, isPaneHidden, () => false)
 }
 
-/* Docked: nothing to explain, and a later inline is the terminal narrowing. */
-async function settleDocked($: EngineInterface): Promise<void> {
-  withdrawals = 0
-  parkedAt = undefined
-  showStatus($, undefined)
-  if (await read($, isInlineAsked)) await update($, isInlineAsked, () => false)
-}
-
-/* The host turned the docked pane inline: closed (not the person's close,
-   so not kept closed) and opened again unasked, to wait undrawn for the
-   room to dock, the status line saying so meanwhile. Seated inline again
-   before it docked, it stays closed until the width next changes. */
-async function withdraw($: EngineInterface): Promise<void> {
-  if (isWithdrawing) return
-  isWithdrawing = true
-  try {
-    withdrawals += 1
-    await $.ui.close({ id: PANE_ID }).catch(() => undefined)
-    if (withdrawals > 1) {
-      parkedAt = columns ?? -1
-      return showStatus($, DOCK_STATUS.narrow)
-    }
-    await autoOpen($)
-  } finally {
-    isWithdrawing = false
-  }
+/* The band's counts, once the file is read: the listed turns and the
+   agent's steps across them. */
+function bandCounts(): BandCounts | undefined {
+  if (source !== 'ok') return undefined
+  const groups = shownGroups()
+  return { turns: groups.length, steps: groups.reduce((sum, g) => sum + g.steps, 0), percent: contextPercent }
 }
 
 /* Only ever called from a press: the host moves the transcript only for
    the person's own input. Tries the side's targets in order; when the host
-   refuses them all, says so at the bottom for a while and dims the side. */
-async function jump($: EngineInterface, entry: Entry): Promise<void> {
+   refuses them all, says so at the bottom for a while (or, pressed while
+   the pane is not on screen, as a toast) and dims the side. */
+async function jump($: EngineInterface, entry: Pick<Entry, 'groupIndex' | 'side' | 'key'>, isPaneOnScreen = true): Promise<void> {
   const group = reading.groups[entry.groupIndex]
   if (!group) return
   const key = sideKeyOf(group, entry.side)
+  if (isTranscriptUnscrollable) return
   const wasShown = refusal !== undefined || refused.has(key)
   const why = refused.get(key)?.why ?? 'refused'
   refusal = undefined
@@ -660,10 +764,53 @@ async function jump($: EngineInterface, entry: Entry): Promise<void> {
       if (wasShown) await update($, rev, n => n + 1)
       return
     }
+    if (isUnscrollable(got.deny)) {
+      isTranscriptUnscrollable = true
+      if (wasShown) await update($, rev, n => n + 1)
+      return
+    }
   }
   refused.set(key, { side: entry.side, opener: group.openerUuid, groupIndex: entry.groupIndex, why })
+  await say($, entry.key, why === 'compacted' ? words.compacted : words.refused, isPaneOnScreen)
+}
+
+/* A refusal said at the bottom of the pane, or as a toast while the pane
+   is not on screen to say it. */
+async function say($: EngineInterface, key: string, text: string, isPaneOnScreen: boolean): Promise<void> {
+  if (isPaneOnScreen) return sayRefusal($, key, text)
+  $.ui.toast(text)
+  await update($, rev, n => n + 1)
+}
+
+/* ‹ or ›, pressed by a click or by a key the person bound to its action:
+   the transcript walks from the Current position (not the selection) to
+   the Turn group before or after it among those the list shows, the View
+   filter's and, during a search, the matches' (walk.ts), on the side the
+   View filter shows, without ending the search. The jump locks the Current
+   position on its group, so presses walk group by group. Nothing at either
+   end; groups that way but none with a Jump target say the click's notice.
+   The press hands this promise back: the scroll is the person's. */
+async function walkTurn($: EngineInterface, direction: WalkDirection, isPaneOnScreen: boolean): Promise<void> {
+  if (source !== 'ok') return
+  const groups = shownGroups()
+  const isRunning = isRunningIn(groups)
+  const searchWords = queryWords(await read($, query))
+  const matches = searchWords.length === 0 ? undefined : matchesNow(groups, searchWords, isRunning).groupsMatched
+  const shown = listedGroups(groups, filter, isRunning ? groups.length - 1 : undefined, matches)
+  const side = jumpSide(filter)
+  const hasTarget = (g: number) => {
+    const group = groups[g]
+    return group !== undefined && !refused.has(sideKeyOf(group, side)) && jumpTargetsOf(group, side, chainRows, sites).length > 0
+  }
+  const to = walkFrom(shown, placing.position, direction, hasTarget)
+  if (to.kind === 'jump') return jump($, { groupIndex: to.group, side, key: entryKey(to.group, side) }, isPaneOnScreen)
+  if (to.kind === 'unjumpable') return say($, `walk.${direction}`, words.refused, isPaneOnScreen)
+}
+
+/* Says below the entries why a press did not jump, flashing, for a while. */
+async function sayRefusal($: EngineInterface, key: string, text: string): Promise<void> {
   const n = ++refusals
-  refusal = { key: entry.key, n, text: why === 'compacted' ? COMPACTED_TEXT : REFUSED_TEXT, at: await $.clock.now() }
+  refusal = { key, n, text, at: await $.clock.now() }
   /* Each step of the flash is drawn. */
   for (let step = 1; step <= FLASHES * 2; step++) {
     $.clock.after(step * FLASH_MS, () => {
@@ -684,6 +831,7 @@ const isLineOf = (element: string | undefined, key: string) => element === key |
 /* The selection moving off the entry a refusal is about takes the refusal
    away. */
 function selectionMoved($: EngineInterface, element: string | undefined): void {
+  if (element !== undefined && lastDrawing.indexOf.has(element) && element !== selectedKey) select($, element)
   if (refusal === undefined || isLineOf(element, refusal.key)) return
   refusal = undefined
   redrawSoon($)
@@ -694,6 +842,145 @@ function selectionMoved($: EngineInterface, element: string | undefined): void {
 async function loadChoices($: EngineInterface): Promise<void> {
   filter = filterOf(await $.store.get(FILTER_KEY).catch(() => undefined))
   layout = layoutOf(await $.store.get(LAYOUT_KEY).catch(() => undefined))
+}
+
+/* `p`, or a press on the ✕: the preview closed, from the region or
+   expanded. Nothing is kept. */
+async function closePreview($: EngineInterface): Promise<void> {
+  /* On the desktop the ✕ leaving the tree takes the pane's focus with it,
+     and the next click would only give it back (0.2 spec §8): the focus goes
+     to the preview's entry first, or, expanded, once the list is back. */
+  const wasExpanded = isExpandedDrawn
+  const to = previewEntry ?? TOP_CONTROL
+  if (!wasExpanded) await keepFocus($, to)
+  closePreviewNow()
+  await update($, rev, n => n + 1)
+  if (wasExpanded) $.clock.after(0, () => void keepFocus($, to))
+}
+
+/* On the desktop, the focus moved to `key`, a Button the next drawing
+   keeps; the terminal moves its ring by itself. */
+async function keepFocus($: EngineInterface, key: string): Promise<void> {
+  if (paneSurface === 'terminal') return
+  const moved = await $.ui.focus({ requestId: PANE_ID, key }).catch((error: unknown) => ({ deny: String(error) }))
+  if (moved.deny === undefined) ring = key
+}
+
+/* The key of group `group`'s first entry in the drawn part `window`;
+   undefined when none of it is drawn. */
+function keyDrawnOfGroup(entries: readonly Entry[], window: TocWindow, group: number): string | undefined {
+  for (let i = window.start; i < window.end; i++) if (entries[i]?.groupIndex === group) return entries[i]!.key
+  return undefined
+}
+
+/* `↑ Back to top`: the pane scrolled to its first row, which Desktop
+   allows from a press (ticket 24's probe). */
+async function backToTop($: EngineInterface): Promise<void> {
+  await $.ui.scroll({ to: 'start', in: PANE_ID }).catch(() => undefined)
+}
+
+/* `f`: the keys into the search field. The host does not raise this
+   plugin's own move to its `ui.focus` hook, so the ring is noted here. */
+async function focusSearch($: EngineInterface): Promise<void> {
+  const moved = await $.ui.focus({ requestId: PANE_ID, key: SEARCH_FIELD }).catch((error: unknown) => ({ deny: String(error) }))
+  if (moved.deny === undefined) ring = SEARCH_FIELD
+}
+
+function setQuery($: EngineInterface, value: string): Promise<void> {
+  return update($, query, () => value).then(
+    () => undefined,
+    () => undefined,
+  )
+}
+
+/* Enter in the field: the search ends (the host empties the field) and,
+   when a group matches, the transcript jumps to the match nearest the
+   Current position, on the side the View filter shows. The host moves the
+   transcript only within the person's own submit: the Input's handler
+   hands this promise back, and the scroll goes before anything else is
+   written. */
+async function submitSearch($: EngineInterface, value: string): Promise<void> {
+  const found = matchedGroups(value)
+  const target = nearestMatch(found, (await read($, currentPosition)) ?? undefined)
+  if (target !== undefined) {
+    const side = jumpSide(filter)
+    selectedKey = entryKey(target, side)
+    await jump($, { groupIndex: target, side, key: selectedKey })
+  }
+  await setQuery($, '')
+}
+
+/* The preview opened, or moved, onto listed group `at`. */
+function openPreview(at: number): void {
+  const opener = shownGroups()[at]?.openerUuid
+  if (opener === undefined || opener === previewOpener) return
+  previewOpener = opener
+  isExpanded = false
+}
+
+/* The desktop's list drawn up to `group`, undefined the newest. */
+async function moveList($: EngineInterface, group: number | undefined): Promise<void> {
+  /* The pressed Button may leave the tree, and the pane's focus with it:
+     once redrawn, the focus goes to an entry the new part draws, the one
+     just above the old part (earlier, now the new part's last) or just
+     below it (later, now its first). */
+  const { window, entries, keys } = lastDrawing
+  const isEarlier = group !== undefined && group < (entries[window.start]?.groupIndex ?? 0)
+  const to = keys[isEarlier ? window.start - 1 : window.end]
+  /* The preview's group leaves the drawn part: its contents and the list
+     would not match (0.2 spec §8). */
+  closePreviewNow()
+  drawnUpTo = group
+  await update($, rev, n => n + 1)
+  if (to !== undefined) $.clock.after(0, () => void keepFocus($, to))
+}
+
+/* A click or Enter on an entry: the transcript jumps. The terminal
+   selects the entry, the person opening the preview from its row, and a
+   press while the preview is open moves it there; the desktop, which
+   cannot jump, opens it. The scroll goes first, within the person's
+   press; the desktop's refusal says nothing. */
+async function pressEntry($: EngineInterface, entry: Entry): Promise<void> {
+  if (paneSurface !== 'terminal' || previewOpener !== undefined) openPreview(entry.groupIndex)
+  if (paneSurface === 'terminal') select($, entry.key)
+  await jump($, entry)
+  await update($, rev, n => n + 1)
+}
+
+/* Entry `key` selected; when its row of Buttons would push it out of the
+   window's bottom, the window moves so both show. */
+function select($: EngineInterface, key: string): void {
+  selectedKey = key
+  const drawn = lastDrawing
+  const index = drawn.indexOf.get(key)
+  if (index !== undefined && paneSurface === 'terminal') {
+    const heights = drawn.heightsWith(index)
+    const window = windowOf(heights, drawn.rows, top ?? drawn.window.start)
+    if (index >= window.end) top = topRevealing(heights, drawn.rows, window, index)
+  }
+  redrawSoon($)
+}
+
+/* `p` or the Button under the selected entry: the preview on its group. */
+async function openSelected($: EngineInterface, groupIndex: number): Promise<void> {
+  openPreview(groupIndex)
+  await update($, rev, n => n + 1)
+}
+
+/* The desktop's submit (Enter, or the field's `show` button): the text
+   stays and the preview opens on the match nearest the Current position,
+   the newest match, the desktop having no Current position. */
+async function showMatch($: EngineInterface, value: string): Promise<void> {
+  const target = nearestMatch(matchedGroups(value), undefined)
+  if (target === undefined) return
+  openPreview(target)
+  await update($, rev, n => n + 1)
+}
+
+/* The working directory and home the preview's paths are shown against. */
+async function learnPaths($: EngineInterface, cwd: string): Promise<void> {
+  const home = await $.env.get('HOME').catch(() => undefined)
+  pathBase = { cwd: cwd || undefined, home: home || undefined }
 }
 
 /* The group a switch keeps in view: the selected entry's while the pane
@@ -749,8 +1036,158 @@ function sendRing($: EngineInterface, key: string, left = RING_RETRIES): void {
   )
 }
 
+/* The preview drawn last, kept while its group and the room are the same:
+   a long reply is folded once, not at every redraw. */
+const previewMemo = newMemo<PreviewBody>()
+
+/* The group a label-row Button acts on, found at the press among the
+   groups listed now by its opener: nothing of it is kept from the drawing. */
+function groupAtPress(opener: string): { group: TurnGroup; isRunning: boolean } | undefined {
+  const groups = shownGroups()
+  const at = groupIndexOf(groups, opener)
+  const group = groups[at]
+  return group === undefined ? undefined : { group, isRunning: isRunningIn(groups) && at === groups.length - 1 }
+}
+
+/* `r`: the User input into the composer as a draft, over an empty one,
+   else after the draft; never submitted. A fill that lands says nothing
+   more (the keyboard moves to the composer); one refused says why. */
+async function reuseInput($: EngineInterface, opener: string): Promise<void> {
+  const found = groupAtPress(opener)
+  const offered = found === undefined ? undefined : reusableOf(found.group, found.isRunning)
+  if (offered?.fill === undefined) return
+  const box = await $.prompt.read()
+  const filled = await $.prompt.fill(fillOf(box.text, offered.fill))
+  if (!filled.isFilled) {
+    $.ui.toast(fillRefusedText(filled.refusal))
+    return
+  }
+  if (offered.hasImagesLeft) $.ui.toast(words.imagesLeft)
+}
+
+/* `c` or `a`: the User input or the last text, whole, on the clipboard.
+   The Button reads `Copied` for a while; a copy refused says why. */
+async function copyOut($: EngineInterface, opener: string, which: CopySide, surface: RenderSurface): Promise<void> {
+  const found = groupAtPress(opener)
+  const offered = found === undefined ? undefined : reusableOf(found.group, found.isRunning)
+  const text = which === 'user' ? offered?.input : offered?.text
+  if (offered === undefined || text === undefined) return
+  const result = await $.ui.copy({ text, surface })
+  if (!result.isCopied) {
+    $.ui.toast(words.copyFailed(result.reason))
+    return
+  }
+  const n = ++copies
+  copied = { opener, which, n }
+  $.clock.after(COPIED_MS, () => {
+    if (copied?.n !== n) return
+    copied = undefined
+    void update($, rev, x => x + 1).catch(() => undefined)
+  })
+  await update($, rev, x => x + 1)
+  if (which === 'user' && offered.hasImagesLeft) $.ui.toast(words.imagesLeft)
+}
+
+/* The label rows' Buttons for a group, as it offers them. */
+function labelActions($: EngineInterface, group: TurnGroup, isRunning: boolean, surface: RenderSurface): LabelActions {
+  const offered = reusableOf(group, isRunning)
+  const opener = group.openerUuid
+  return {
+    canReuse: offered.fill !== undefined && hasReuse(surface, hostBase),
+    canCopyInput: offered.input !== undefined,
+    canCopyText: offered.text !== undefined,
+    copied: copied?.opener === opener ? copied.which : undefined,
+    onReuse: () => reuseInput($, opener),
+    onCopy: which => copyOut($, opener, which, surface),
+  }
+}
+
+/* What a drawing draws the preview and the expanded preview from: the
+   groups listed, whether the last is under way, the width, the time, and
+   the label rows' Buttons for a group. */
+type PreviewSource = {
+  groups: readonly TurnGroup[]
+  isRunningNow: boolean
+  width: number
+  nowMs: number
+  actionsOf: (group: TurnGroup, isRunning: boolean) => LabelActions
+}
+
+function previewOf(
+  { groups, isRunningNow, width, nowMs, actionsOf }: PreviewSource,
+  o: {
+    at: number
+    rows: number
+    search: Searched | undefined
+    onClose: () => Promise<void>
+    onMore: () => Promise<void>
+  },
+): PreviewView {
+  const { at, search } = o
+  const group = groups[at]
+  const match = search?.matches.find(m => m.group === at)
+  const isRunning = isRunningNow && at === groups.length - 1
+  const year = new Date(nowMs).getFullYear()
+  const body =
+    group === undefined
+      ? undefined
+      : remember(previewMemo, [group, isRunning, width, o.rows, year, pathBase, matchShown(match)], () =>
+          previewBody({
+            meta: metaLine(group, isRunning, nowMs, width, match === undefined ? undefined : words.matched(matchedFields(match))),
+            input: typedInput(group.facts),
+            agent: isRunning ? group.facts.latestText : group.facts.lastText,
+            files: filesLine(group.facts, pathBase, width, match?.paths),
+            rows: o.rows,
+            width,
+          }),
+        )
+  return {
+    rows: o.rows,
+    body,
+    actions: body === undefined || group === undefined ? undefined : actionsOf(group, isRunning),
+    onClose: o.onClose,
+    onMore: o.onMore,
+  }
+}
+
+/* `e`, or a press on the cut line: the preview expands over the list,
+   holding its group; `e` again, or ← Back, returns. */
+async function expandPreview($: EngineInterface, isOn: boolean): Promise<void> {
+  isExpanded = isOn
+  await update($, rev, n => n + 1)
+}
+
+/* The expanded preview drawn last, kept while its group and width are. */
+const expandedMemo = newMemo<ExpandedBody>()
+
+/* The expanded preview of the group the preview holds, listed group `at`. */
+function expandedOf(
+  { groups, isRunningNow, width, nowMs, actionsOf }: PreviewSource,
+  o: { at: number; hasHotkeys: boolean; onBack: () => Promise<void>; onClose: () => Promise<void> },
+): ExpandedView | undefined {
+  const { at } = o
+  const group = groups[at]
+  if (group === undefined) return undefined
+  const isRunning = isRunningNow && at === groups.length - 1
+  const year = new Date(nowMs).getFullYear()
+  const { hasHotkeys } = o
+  const body = remember(expandedMemo, [group, isRunning, width, year, pathBase, hasHotkeys], () =>
+    expandedBody({
+      meta: metaLine(group, isRunning, nowMs, width),
+      input: typedInput(group.facts),
+      agent: isRunning ? group.facts.latestText : group.facts.lastText,
+      files: group.facts,
+      base: pathBase,
+      width,
+      hasHotkeys,
+    }),
+  )
+  return { body, actions: actionsOf(group, isRunning), onBack: o.onBack, onClose: o.onClose }
+}
+
 export const register: Register = on => {
   on('classic.SessionStart', async ($, e, next) => {
+    await askLanguage($)
     /* A worked-out path may have come first: a resume onto the same file
        still carries history. */
     if ((await adoptPath($, e.transcript_path)) || carriesHistory(e.source)) await update($, isCarriedOver, () => carriesHistory(e.source))
@@ -762,6 +1199,10 @@ export const register: Register = on => {
        by the host: the next read finds that compaction. */
     if (e.source === 'resume') await update($, compactedAt, () => '')
     if (reopensOn(e.source)) {
+      /* The old conversation's context use is not this one's: the figure
+         is read again, none while the host has none for the new one. */
+      await readContextUse($)
+      await update($, rev, n => n + 1)
       await update($, isClosed, () => false)
       void autoOpen($)
     }
@@ -769,8 +1210,12 @@ export const register: Register = on => {
   })
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'chat-toc', description: '打开对话目录', immediate: true })
+    await askLanguage($)
+    await $.command.register({ name: 'chat-toc', description: words.commandDescription, immediate: true })
     await loadChoices($)
+    await learnPaths($, e.cwd)
+    await readContextUse($)
+    await askVersion($)
     await askPerf($)
     await locate($, e.cwd)
     readNow($)
@@ -797,7 +1242,11 @@ export const register: Register = on => {
     const closed = await next(e)
     if (isClosedByPerson(e)) {
       await update($, isClosed, () => true).catch(() => undefined)
-      showStatus($, undefined)
+    }
+    /* The pane opens again with the preview closed. */
+    if (hidesPane(e)) {
+      closePreviewNow()
+      await update($, isPaneHidden, () => true).catch(() => undefined)
     }
     return closed
   })
@@ -809,6 +1258,29 @@ export const register: Register = on => {
       requestRead($)
     }
     return next(e)
+  })
+
+  /* The context use as each measure gives it, whatever moved. */
+  on('session.measure', async ($, e, next) => {
+    contextPercent = e.context.percent
+    await update($, rev, n => n + 1).catch(() => undefined)
+    return next(e)
+  })
+
+  /* A compaction of the main conversation hides the context use at once:
+     no measure follows it, and the host's figure is gone until the next
+     response. One skipped leaves the figure as it was. */
+  on('session.compact', async ($, e, next) => {
+    if (e.agentId !== undefined || e.trigger === 'precompute') return next(e)
+    const was = contextPercent
+    contextPercent = undefined
+    await update($, rev, n => n + 1).catch(() => undefined)
+    const result = await next(e)
+    if (result.skip !== undefined && contextPercent === undefined) {
+      contextPercent = was
+      await update($, rev, n => n + 1).catch(() => undefined)
+    }
+    return result
   })
 
   /* The redraw waits for the read the turn's first rows ask for, so the
@@ -830,30 +1302,52 @@ export const register: Register = on => {
   })
 
   on('ui.scroll', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
-    if (e.origin.kind !== 'person') return next(e)
+    /* Expanded, and on the desktop, the host scrolls the whole tree. */
+    if (e.origin.kind !== 'person' || isExpandedDrawn || paneSurface !== 'terminal') return next(e)
     top = scrolledTop(lastDrawing.window, e.by)
     isPaused = true
     await update($, rev, n => n + 1)
     return {}
   })
 
-  /* The hint line is drawn from the start and again after every change of
-     width: where chat-toc learns the layout, which the start events lack. */
   on('ui.render', { component: 'PromptHint', surface: 'terminal' }, ($, e, next) => {
-    sawViewport($, e.viewport)
     checkRewindSoon($)
     return next(e)
+  })
+
+  /* While the pane is not on screen, closed, waiting undrawn or a tab
+     behind another pane, one line above the prompt counts the
+     conversation and carries ‹ ›; a press on its open is the person's
+     open, which the host seats at any width. A survey holds the band
+     first. */
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    await read($, rev)
+    await read($, isPaneHidden)
+    const pane = (await $.ui.panes()).find(p => p.id === PANE_ID)
+    isBandDrawn = !e.props.hasSurvey && (pane === undefined || !pane.isPlaced || !pane.isShown)
+    if (!isBandDrawn) return next(e)
+    return drawBand($.ui.resolve(e), { counts: bandCounts(), onOpen: () => openAsked($), onWalk: direction => walkTurn($, direction, false) })
   })
 
   /* The arrows walk the host's focus ring Button by Button; this keeps it
      on entries' first lines and scrolls the window at its ends (ring.ts). */
   on('ui.focus', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
+    /* Expanded, no entry is drawn: the ring goes where the host moves it. */
+    if (isExpandedDrawn) {
+      const result = await next(e)
+      if (result.deny === undefined) ring = e.element
+      return result
+    }
     const drawn = lastDrawing
-    const move = e.origin.kind === 'person' ? ringMove(drawn.keys, drawn.indexOf, drawn.window, ring, e.element) : { kind: 'accept' as const }
+    const move = e.origin.kind === 'person' ? ringMove(drawn.keys, drawn.indexOf, drawn.window, ring, e.element, afterList, beforeList) : { kind: 'accept' as const }
+    /* The desktop's list is no window to move: past its drawn part the
+       ring goes where the host moves it. */
+    if (move.kind === 'reveal' && paneSurface !== 'terminal') return next(e)
     if (move.kind === 'reveal') {
       const key = drawn.keys[move.index]
       if (key === undefined) return next(e)
-      top = topRevealing(drawn.heights, drawn.rows, drawn.window, move.index)
+      /* The entry brought in is selected, its row of Buttons with it. */
+      top = topRevealing(drawn.heightsWith(move.index), drawn.rows, drawn.window, move.index)
       pendingRing = key
       selectionMoved($, key)
       await update($, rev, n => n + 1)
@@ -870,13 +1364,11 @@ export const register: Register = on => {
   })
 
   /* The transcript's rows, read and never redrawn: which requestId each is
-     drawn under, and where it is on screen. The terminal's say its layout
-     too, should they come before the hint line. */
+     drawn under, and where it is on screen. */
   for (const component of SITE_COMPONENTS) {
     /* The matcher wants one component's type; every site's props carry
-       `onScreen` alike, so the first stands for all four. */
+       `onScreen` alike, so the first stands for all of them. */
     on('ui.render', { component: component as 'UserMessage' }, ($, e, next) => {
-      if (e.surface === 'terminal') sawViewport($, e.viewport)
       sawSite($, component, e.requestId, e.props.onScreen)
       return next(e)
     })
@@ -884,11 +1376,17 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
     const began = perfNow()
+    paneSurface = e.surface
     /* What the drawing needs of the host first; the rest is its own work. */
     await read($, rev)
     const position = (await read($, currentPosition)) ?? undefined
-    const isAsked = await read($, isInlineAsked)
     const isCarried = await read($, isCarriedOver)
+    const searchText = await read($, query)
+    /* Drawn: whatever waited is seated. A drawing writes nothing, so after. */
+    if (await read($, isPaneHidden)) $.clock.after(0, () => void update($, isPaneHidden, () => false).catch(() => undefined))
+    /* On screen: the band goes, also when a switch of tabs brought the pane
+       to the front, which draws no band. */
+    else if (isBandDrawn) redrawSoon($)
     const nowMs = await $.clock.now()
     const awaited = perfNow()
     const wasFocused = isPaneFocused
@@ -900,47 +1398,107 @@ export const register: Register = on => {
     /* The keyboard pauses following; once it is given back, a position
        that moved meanwhile, or moves next, is followed again. */
     if (isPaneFocused && !wasFocused) isPaused = true
+    /* Leaving the pane returns the expanded preview to the region, on the
+       terminal: on the desktop a press that takes its Button out of the
+       tree takes the focus too (0.2 spec §8). */
+    if (wasFocused && !isPaneFocused && e.surface === 'terminal') isExpanded = false
     if (!isPaneFocused && position !== positionFollowed) {
       positionFollowed = position
       isPaused = false
     }
     const isHeld = isPaused || isPaneFocused
     positionDrawn = position
-    /* A drawing writes nothing, so what its placement asks is done after. */
-    const fate = placementFate(e.props.placement, isAsked)
-    if (fate === 'docked' && (statusShown !== undefined || isAsked || withdrawals > 0)) $.clock.after(0, () => void settleDocked($).catch(() => undefined))
-    if (fate === 'withdraw' && !isWithdrawing) $.clock.after(0, () => void withdraw($).catch(() => undefined))
-    if (fate === 'asked-inline') {
-      const text = e.viewport?.isFullscreen === false ? DOCK_STATUS.askedMainScreen : DOCK_STATUS.askedNarrow
-      if (text !== statusShown) $.clock.after(0, () => showStatus($, text))
-    }
     const isOk = source === 'ok'
     const width = e.props.bodyColumns
     const wasTable = entryCache.table
     const groups = shownGroups()
-    const table = isOk ? entryTable(entryCache, groups, { layout, filter, width, nowMs, isRunning: isTurnRunning && groups === reading.groups }) : NO_ENTRIES
-    const entries = dimRefused(table.entries, groups, refused)
+    const isRunningNow = isRunningIn(groups)
+    const whole = isOk ? entryTable(entryCache, groups, { layout, filter, width, nowMs, isRunning: isRunningNow }) : NO_ENTRIES
+    /* A query narrows the list to its matches; the rules go between them. */
+    const searchWords = queryWords(searchText)
+    const search = isOk && searchWords.length > 0 ? matchesNow(groups, searchWords, isRunningNow) : undefined
+    const table = search === undefined ? whole : remember(narrowed, [whole, search.groupsMatched], () => narrowedTable(whole, search.groupsMatched))
+    /* A new query shows the match nearest the Current position, held or
+       not: the list it was on is gone. */
+    const isQueryNew = searchText !== queryDrawn
+    queryDrawn = searchText
+    if (isQueryNew) {
+      top = undefined
+      drawnUpTo = undefined
+    }
+    const listed = remember(ruled, [table, compactions], () => layRules(table, compactions))
+    const entries = dimRefused(listed.entries as Entry[], groups, refused)
     /* A resumed or forked session shows its history in the transcript
        before its own file is written; it is not without a conversation. */
-    const missing = isCarried ? NOT_WRITTEN_TEXT : EMPTY_TEXT
-    const notice = isUnlocated ? UNLOCATED_TEXT : source === 'missing' ? missing : isOk && entries.length === 0 ? EMPTY_TEXT : undefined
-    const why = source === 'failed' ? FAILURES[failure] : isOk && reading.unreadable > 0 ? unreadableText(reading.unreadable) : undefined
+    const missing = isCarried ? words.notWritten : words.empty
+    const notice = isUnlocated
+      ? words.unlocated
+      : source === 'missing'
+        ? missing
+        : isOk && groups.length === 0
+          ? words.empty
+          : search !== undefined && search.matches.length === 0
+            ? words.noMatch
+            : undefined
+    const why = source === 'failed' ? failureText(failure) : isOk && reading.unreadable > 0 ? words.unreadable(reading.unreadable) : undefined
     const alert = refusal === undefined ? undefined : { text: refusal.text, isInverse: refusalFrame(nowMs - refusal.at).isInverse }
-    const headRows = HEAD_ROWS
-    const rows = e.props.scroll.bodyRows - headRows - FOOT_ROWS - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
-    const drawnEntries = { heights: table.heights, rows, keys: table.keys, indexOf: table.indexOf }
+    const headRows = HEAD_ROWS + SEARCH_ROWS
+    const hasForkLine = isOk && isEarlierElsewhere && groups.length > 0
+    const region = e.props.scroll.bodyRows - headRows - FOOT_ROWS
+    const listRows = region - (hasForkLine ? 1 : 0) - (notice === undefined ? 0 : 1) - (alert === undefined ? 0 : 1) - (why === undefined ? 0 : 1)
+    /* The Minimap, the list and the preview share the rows (preview.ts);
+       the region's height comes from the rows before the notes. */
+    /* The preview's group gone from the list (a rewind, another
+       conversation) closes it. */
+    const previewAt = groupIndexOf(groups, previewOpener)
+    if (previewAt === -1) closePreviewNow()
+    const plan = previewPlan({ rows: listRows, region, steady: region - (hasForkLine ? 1 : 0), groups: isOk ? groups.length : 0, isOpen: previewAt !== -1 })
+    /* The Minimap's cells: a group with no Jump target is one the host
+       refused or a compaction took. */
+    const isOff = (g: number) => refused.has(sideKeyOf(groups[g] as TurnGroup, 'user'))
+    const bars = isOk && plan.hasBars ? barsOf(groups.map(g => g.steps), width, isOff) : []
+    const rows = listRows - (bars.length === 0 ? 0 : BAR_ROWS) - plan.preview
+    /* The selected entry takes a row more on the terminal, for its row of
+       Buttons, while the preview is closed. */
+    const selectedAt = e.surface === 'terminal' && previewAt === -1 && selectedKey !== undefined ? table.indexOf.get(selectedKey) : undefined
+    const hasActionRow = e.surface === 'terminal' && previewAt === -1
+    const heightsWith = (selected: number | undefined) =>
+      !hasActionRow || selected === undefined ? listed.heights : listed.heights.map((h, i) => (i === selected ? h + 1 : h))
+    const heights = heightsWith(selectedAt)
+    const drawnEntries = { heights, heightsWith, rows, keys: table.keys, indexOf: table.indexOf }
     const kept = anchor
     anchor = undefined
     const anchorIndex = kept === undefined ? undefined : entryOfGroup(table, kept.group)
+    /* While a query is set the list follows the match nearest the Current
+       position. */
+    const followed = search === undefined ? position : nearestMatch(search.groupsMatched, position)
+    const lastShown = search === undefined ? groups.length - 1 : search.groupsMatched[search.groupsMatched.length - 1]
     const placed = topOfDrawing(drawnEntries, {
       top,
-      follow: isHeld ? undefined : { index: position === undefined ? undefined : entryOfGroup(table, position), isLast: position === groups.length - 1 },
+      follow: isHeld && !isQueryNew ? undefined : { index: followed === undefined ? undefined : entryOfGroup(table, followed), isLast: followed === lastShown },
       anchor: kept === undefined || anchorIndex === undefined ? undefined : { ...kept, index: anchorIndex },
     })
     top = placed.top
     if (placed.refocusKey !== undefined) pendingRing = placed.refocusKey
-    const window = windowOf(table.heights, rows, top)
+    /* The desktop draws a part of the list within a budget of characters,
+       and Buttons moving it, instead of a window by rows. */
+    const isTerminal = e.surface === 'terminal'
+    const span = isTerminal ? undefined : desktopList(entries, layout, width)
+    const window = span === undefined ? windowOf(heights, rows, top) : spanEndingFilled(span, endOfGroup(span, drawnUpTo), LIST_BUDGET)
+    let earlier: ListMove | undefined
+    let later: ListMove | undefined
+    if (span !== undefined && window.start > 0) {
+      const upTo = span.groupOf(window.start - 1)
+      earlier = { count: groupsIn(span, 0, window.start), onPress: () => moveList($, upTo) }
+    }
+    if (span !== undefined && window.end < span.length) {
+      const next = spanStarting(span, window.end, LIST_BUDGET)
+      const upTo = next.end < span.length ? span.groupOf(next.end - 1) : undefined
+      later = { count: groupsIn(span, window.end, span.length), onPress: () => moveList($, upTo) }
+    }
     lastDrawing = { ...drawnEntries, entries, window }
+    afterList = plan.state !== 'open' || e.surface !== 'terminal' ? LAYOUT_CONTROL : PREVIEW_CONTROL
+    beforeList = e.surface !== 'terminal' ? FILTER_END : searchText === '' ? SEARCH_FIELD : CLEAR_CONTROL
     /* The ring move owed to an entry goes once this drawing shows it, and
        once more from the drawing after, which the confirm timer asks for. */
     const ringTo = pendingShown(pendingRing, table.indexOf, window)
@@ -957,7 +1515,45 @@ export const register: Register = on => {
     } else if (owed !== undefined && owed === ring && table.indexOf.has(owed)) {
       $.clock.after(0, () => sendRing($, owed))
     }
-    const isRunningNow = isTurnRunning && groups === reading.groups
+    const actionsOf = (group: TurnGroup, isRunning: boolean) => labelActions($, group, isRunning, e.surface)
+    const previewFrom: PreviewSource = { groups, isRunningNow, width, nowMs, actionsOf }
+    const onClose = () => closePreview($)
+    const preview =
+      plan.state !== 'open'
+        ? undefined
+        : previewOf(previewFrom, { at: previewAt, rows: plan.preview, search, onClose, onMore: () => expandPreview($, true) })
+    /* Expanded by the person, or opened without room for the region, when
+       ← Back closes it. */
+    const expanded =
+      plan.state === 'closed' || (!isExpanded && plan.state !== 'noRoom')
+        ? undefined
+        : expandedOf(previewFrom, {
+            at: previewAt,
+            hasHotkeys: isTerminal,
+            onBack: plan.state === 'noRoom' ? onClose : () => expandPreview($, false),
+            onClose,
+          })
+    isExpandedDrawn = expanded !== undefined
+    previewEntry = previewAt === -1 ? undefined : keyDrawnOfGroup(entries, window, previewAt)
+    const searchView: SearchView = {
+      query: searchText,
+      count: search === undefined ? undefined : { matches: search.matches.length, of: groups.length },
+      onFocusSearch: () => focusSearch($),
+      onInput: value => {
+        if (perf.isOn) typedAt ??= perfNow()
+        void setQuery($, value)
+      },
+      onSubmit: value => submitSearch($, value).catch(() => undefined),
+      onClear: () => setQuery($, ''),
+      onWalk: direction => walkTurn($, direction, true),
+    }
+    /* The Minimap lights the Current position's cell or, while a query is
+       set, the cells holding a match. */
+    const litBars = new Set<number>()
+    for (const g of search === undefined ? (position === undefined ? [] : [position]) : search.groupsMatched) {
+      const cell = barOfGroup(bars, g)
+      if (cell !== undefined) litBars.add(cell)
+    }
     const shared = {
       entries,
       window,
@@ -969,26 +1565,63 @@ export const register: Register = on => {
       alert,
       why,
       count: isOk && groups.length > 0 ? groups.length : undefined,
-      isPaused: isHeld,
-      onPress: (entry: Entry) => jump($, entry),
+      contextPercent,
+      isEarlierElsewhere: hasForkLine,
+      onPress: (entry: Entry) => pressEntry($, entry),
       onFilter: (chosen: ViewFilter) => chooseFilter($, chosen),
     }
     const drawn =
       e.surface === 'terminal'
-        ? drawPane($.ui.resolve(e), { ...shared, bodyRows: e.props.scroll.bodyRows, onLayout: () => chooseLayout($) })
+        ? drawPane($.ui.resolve(e), {
+            ...shared,
+            bodyRows: e.props.scroll.bodyRows,
+            bars,
+            litBars,
+            barLabels: barLabels(stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs), width),
+            preview,
+            expanded,
+            selected: (() => {
+              const entry = selectedAt === undefined ? undefined : entries[selectedAt]
+              const group = entry === undefined ? undefined : groups[entry.groupIndex]
+              if (entry === undefined || group === undefined) return undefined
+              const isRunning = isRunningNow && entry.groupIndex === groups.length - 1
+              return { key: entry.key, actions: actionsOf(group, isRunning), onOpen: () => openSelected($, entry.groupIndex) }
+            })(),
+            search: searchView,
+            onBar: (cell: number) => {
+              const bar = bars[cell]
+              return bar === undefined ? Promise.resolve() : jump($, { groupIndex: barTarget(bar, isOff), side: 'user', key: barKey(cell) })
+            },
+            onLayout: () => chooseLayout($),
+          })
         : drawDesktopPane($.ui.resolve(e), {
             ...shared,
-            textOf: entry => {
-              const group = groups[entry.groupIndex]
-              return group === undefined ? '' : sideText(group, entry.side, entry.isRunning)
-            },
             steps: isOk ? groups.map(g => g.steps) : [],
+            earlier,
+            later,
+            search: {
+              query: searchText,
+              count: searchView.count,
+              onInput: searchView.onInput,
+              onSubmit: value => showMatch($, value).catch(() => undefined),
+              onClear: () => setQuery($, ''),
+            },
+            matches: search?.groupsMatched,
+            preview,
+            previewGroup: previewAt === -1 ? undefined : previewAt,
+            expanded,
+            onTop: () => backToTop($),
             runningGroup: isRunningNow ? groups.length - 1 : undefined,
+            stripLabels: stripLabels(groups[0]?.timestamp, groups[groups.length - 1]?.timestamp, nowMs),
             onLayout: to => chooseLayout($, to),
           })
     if (perf.isOn) {
       const ended = perfNow()
       timed($, 'pane', [ended - awaited, ended - began, entries.length, table === wasTable ? 0 : 1])
+      if (isQueryNew && typedAt !== undefined) {
+        timed($, 'search', [ended - awaited, ended - typedAt, search?.matches.length ?? 0, groups.length])
+        typedAt = undefined
+      }
       if (!isListedNoted && entries.length > 0) {
         isListedNoted = true
         timed($, 'listed', [ended - loadedAt])

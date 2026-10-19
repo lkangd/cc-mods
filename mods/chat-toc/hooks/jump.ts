@@ -31,11 +31,12 @@ export type JumpTarget = { uuid: string; requestId: string; block: UiScrollBlock
 
 export const MAX_TRIES = 3
 
-/* Said at the bottom of the pane when every row of a side was refused,
-   after a ⚠ in the theme's warning colour. */
-export const REFUSED_TEXT = '这一条当前没有显示在对话里，无法跳转'
-/* Said instead for a side known refused as compacted before a resume. */
-export const COMPACTED_TEXT = '这一条在压缩之前，恢复会话后无法跳转'
+/* What the pane says at its bottom after a ⚠ in the theme's warning colour
+   (text.ts): `refused` when every row of a side was refused, `compacted` for
+   a side known refused as compacted before a resume, `unscrollable` when the
+   surface cannot scroll its transcript at all, as Claude Code Desktop
+   answers (2.1.295): no row is refused, nothing is dimmed. */
+export const isUnscrollable = (deny: string) => deny.includes('transcript not scrollable here')
 /* How long it stays, unless a jump or a move of the selection clears it. */
 export const REFUSED_MS = 5000
 /* As it appears it flashes inverse this many times, lit and unlit this

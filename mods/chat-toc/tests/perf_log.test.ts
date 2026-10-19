@@ -79,3 +79,28 @@ test('many samples go out in lines short enough for the debug log, none lost', (
   expect(back.flatMap(b => b.position ?? []).map(s => s[1])).toEqual(Array.from({ length: 1000 }, (_, i) => 3000 + i))
   expect(back.flatMap(b => b.pane ?? [])).toEqual([[1, 2, 3, 0]])
 })
+
+test('with CHAT_TOC_PERF a keystroke in the search field is timed to the redrawn Pane, and the index build too, numbers only', async ($, on) => {
+  const world = host(on, sample().jsonl())
+  world.env.CHAT_TOC_PERF = '1'
+  await start($, world)
+  const pane = await mountPane($)
+  await pane.drawn()
+  await $.ui.input({ plugin: 'chat-toc', key: 'search', text: 'CT-SYN secret', kind: 'change' })
+  await world.clock.settle()
+  await $.ui.input({ plugin: 'chat-toc', key: 'search', text: 'CT-SYN secret two', kind: 'change' })
+  await world.clock.settle()
+  await world.clock.advance(2000)
+
+  for (const log of world.logs) expect(log.text.includes('CT-SYN')).toBe(false)
+  const merged: Record<string, number[][]> = {}
+  for (const s of samplesOf(world.logs)) for (const [k, v] of Object.entries(s)) (merged[k] ??= []).push(...v)
+  /* [own ms, ms since the keystroke, matches, groups] per keystroke. */
+  expect(merged.search?.map(s => s.slice(2))).toEqual([
+    [2, 2],
+    [1, 2],
+  ])
+  for (const [own, total] of merged.search ?? []) expect(total!).toBeGreaterThanOrEqual(own!)
+  /* [ms, groups built, groups] per read that regrouped. */
+  expect(merged.index?.map(s => s.slice(1))).toEqual([[2, 2]])
+})

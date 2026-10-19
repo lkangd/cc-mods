@@ -20,9 +20,10 @@ declare module 'claude-code' {
       /* Whether the session began by resuming or forking another, so the
          transcript can show history before its own file is written. */
       isCarriedOver: boolean
-      /* Whether /chat-toc opened the pane and it has not docked since: the
-         one inline placement kept rather than withdrawn. */
-      isInlineAsked: boolean
+      /* Whether the pane is off screen: chat-toc's own open waits undrawn,
+         the terminal too narrow for the host to seat it, or the pane was
+         closed. The band above the prompt offers it meanwhile. */
+      isPaneHidden: boolean
       /* The Current position: the group the transcript's view is on, null
          for none. Derived in this process from what the transcript draws;
          the pane reads it to redraw the highlight. */
@@ -31,6 +32,9 @@ declare module 'claude-code' {
          the file had then (the host lists no row before it): '' until the
          first read finds it, null for none or not resumed. */
       compactedAt: string | null
+      /* The search field's text, '' for no query. Conversation text: held
+         here for the process only, never in `$.store`. */
+      query: string
     }
   }
 }

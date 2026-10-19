@@ -1,5 +1,6 @@
 /* What the transcript drew: the requestIds the host's render sites
-   (`UserMessage`, `AssistantMessage`, `CommandOutput`, `ToolGroup`) were
+   (`UserMessage`, `AssistantMessage`, `CommandOutput`, `ToolGroup`, and a
+   tool row not folded into a group: `ToolUse`, `ToolResult`) were
    drawn under, the chain row each one is, and where each is on screen.
 
    A requestId is a row's uuid, the uuid behind `collapsed-`, a tool call's
@@ -14,7 +15,7 @@
 
 import type { TranscriptRow } from './transcript'
 
-export const SITE_COMPONENTS = ['UserMessage', 'AssistantMessage', 'CommandOutput', 'ToolGroup'] as const
+export const SITE_COMPONENTS = ['UserMessage', 'AssistantMessage', 'CommandOutput', 'ToolGroup', 'ToolUse', 'ToolResult'] as const
 export type SiteComponent = (typeof SITE_COMPONENTS)[number]
 
 /* A site's rows inside the viewport, `null` while drawn outside it,

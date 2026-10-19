@@ -159,7 +159,7 @@ class TurnGroups(unittest.TestCase):
 
 
 class UserTextEdgeCases(unittest.TestCase):
-    # ticket 19's reading of 「去掉代码块、图片与 Markdown 记号」
+    # ticket 19's reading of "leave out code blocks, images and Markdown marks"
     def test_image_placeholders_go_and_a_code_only_prompt_shows_its_code(self):
         t = Rows()
         t.prompt("看 [Image #1] 这张图")
@@ -251,7 +251,7 @@ class AgentSide(unittest.TestCase):
         ])
 
     def test_an_api_error_text_is_the_last_text_of_its_group(self):
-        # spec §4: 末段文字 is the text after the last tool_use; the error row's text is one
+        # MVP spec §4: the last text is the text after the last tool_use; the error row's text is one
         t = Rows()
         t.prompt("出错")
         t.tool()
@@ -303,6 +303,98 @@ class ConversationChain(unittest.TestCase):
         self.assertEqual((toc.exists, toc.groups), (False, []))
 
 
+def boundary(t: Rows, trigger: str, logical=None) -> dict:
+    row = t.system("compact_boundary", "Conversation compacted", parent=None,
+                   logicalParentUuid=logical or t.parent, compactMetadata={"trigger": trigger})
+    t.user("摘要", isCompactSummary=True, isVisibleInTranscriptOnly=True)
+    return row
+
+
+class Compactions(unittest.TestCase):
+    """Where each compaction's rule goes (spec 0.2 §5), written out by hand."""
+
+    def test_the_four_places(self):
+        t = Rows()
+        t.prompt("零")
+        t.text("零的回复")
+        boundary(t, "manual")                                   # 09:03, before the /compact row
+        t.user("<command-name>/compact</command-name>\n<command-message>compact</command-message>\n<command-args></command-args>")
+        t.prompt("提交时压缩")
+        boundary(t, "auto")                                     # 09:07, at a submit
+        t.text("压缩后回复")
+        t.prompt("轮中压缩")
+        t.tool()
+        boundary(t, "auto")                                     # 09:13, mid-turn
+        t.text("继续")
+        t.prompt("下一轮")
+        toc = expect(t)
+        self.assertEqual([g.user_text for g in toc.groups], ["零", "/compact", "提交时压缩", "轮中压缩", "下一轮"])
+        self.assertEqual([(c.trigger, c.clock, c.before) for c in toc.compactions],
+                         [("manual", "09:03", 2), ("auto", "09:07", 2), ("auto", "09:13", 4)])
+        self.assertFalse(toc.earlier_elsewhere)
+        self.assertEqual(toc_verifier.expected_rules(toc), [{"before": 2, "text": "自动压缩 ×2 · 09:07"},
+                                                            {"before": 4, "text": "自动压缩 09:13"}])
+        self.assertEqual(toc_verifier.expected_rules(toc, "agent"), [{"before": 1, "text": "自动压缩 ×2 · 09:07"},
+                                                                     {"before": 3, "text": "自动压缩 09:13"}])
+
+    def test_a_file_starting_at_a_foreign_boundary_has_earlier_turns_elsewhere(self):
+        t = Rows()
+        boundary(t, "manual", logical="not-in-this-file")
+        t.prompt("分叉后")
+        t.text("回复")
+        toc = expect(t)
+        self.assertTrue(toc.earlier_elsewhere)
+        self.assertEqual([c.before for c in toc.compactions], [0])
+
+    def test_under_a_query_the_rules_go_between_the_matches(self):
+        t = Rows()
+        for n in range(4):
+            t.prompt(f"问题 {n}")
+            t.text(f"回复 {n}")
+            if n in (0, 1):
+                boundary(t, "auto")
+        toc = expect(t)
+        self.assertEqual([c.before for c in toc.compactions], [1, 2])
+        self.assertEqual(toc_verifier.expected_rules(toc, "all", among=[0, 3]),
+                         [{"before": 1, "text": toc_verifier.rule_label("auto", 2, toc.compactions[-1].clock)}])
+
+    def test_reads_rules_and_the_fork_line_from_a_window(self):
+        rows = ["x" * 10 + "│1: 全部   2: 用户   3: Agent",
+                "x" * 10 + "│━━━━━━━──────────────",
+                "x" * 10 + "│更早的轮次不在本会话的文件里",
+                "x" * 10 + "│╌ 已压缩 09:03 ╌╌╌╌╌╌╌╌╌╌",
+                "x" * 10 + "│●  分叉后                09:05",
+                "x" * 10 + "│├╴ 回复",
+                "x" * 10 + "│╌ 自动压缩 09:09 ╌╌╌╌╌╌╌╌",
+                "x" * 10 + "│",
+                "x" * 10 + "│",
+                "x" * 10 + "│──────────────────────────",
+                "x" * 10 + "│1 轮            l: 布局 卡片"]
+        pane = toc_verifier.parse_pane(rows)
+        self.assertTrue(pane.fork_line)
+        self.assertEqual(pane.rules, [{"text": "已压缩 09:03", "before": 0}, {"text": "自动压缩 09:09", "before": 1}])
+        self.assertEqual(pane.notes, [])
+
+
+    def test_reads_the_search_row_apart_from_the_notes(self):
+        rows = ["x" * 10 + "│1: 全部   2: 用户   3: Agent",
+                "x" * 10 + "│━━━━━━━──────────────",
+                "x" * 10 + "│f: 搜索 登录 ⏎ 跳转    1 / 8 ✕ ‹ ›",
+                "x" * 10 + "│●  修改登录页                09:05",
+                "x" * 10 + "│├╴ 回复",
+                "x" * 10 + "│──────────────────────────",
+                "x" * 10 + "│1 轮            l: 布局 卡片"]
+        pane = toc_verifier.parse_pane(rows)
+        self.assertEqual(pane.search, {"text": "登录", "count": "1 / 8", "clear": True, "focused": True, "step": True})
+        self.assertEqual([e.user_text for e in pane.entries], ["修改登录页"])
+        self.assertEqual(pane.notes, [])
+        self.assertEqual(toc_verifier.parse_search_row("f: 搜索 词或文件路径 ‹ ›"), {"text": "", "count": None, "clear": False, "focused": False, "step": True})
+        self.assertEqual(toc_verifier.parse_search_row("f: Find nowhere   0 of 3 ✕ ‹ ›"), {"text": "nowhere", "count": "0 of 3", "clear": True, "focused": False, "step": True})
+        # before 0.2's ‹ › (ticket 18)
+        self.assertEqual(toc_verifier.parse_search_row("f: 搜索 词或文件路径"), {"text": "", "count": None, "clear": False, "focused": False, "step": False})
+        self.assertIsNone(toc_verifier.parse_search_row("●  f: 搜索"))
+
+
 TESTDATA = pathlib.Path(__file__).parent / "testdata"
 
 
@@ -345,6 +437,29 @@ class PaneScreen(unittest.TestCase):
                          [("F03 粘贴： 贴进来的一段文字 结束", "09:00"), ("（只有图片）", "09:01"), ("F05 没有时间戳的 prompt", "")])
         timeline = toc_verifier.parse_pane(screen("timeline-2.1.295.txt"))
         self.assertEqual((timeline.layout, timeline.entries[0].time), ("时间轴", "09:02"))
+
+    def test_reads_the_preview_apart_from_the_entries(self):
+        pane = toc_verifier.parse_pane(screen("card-preview-2.1.295.txt"))
+        self.assertEqual(pane.entries[-1].user_text, "F19 rewind 之后的新分支")
+        self.assertEqual(len(pane.notes), 2)                                # the Minimap's two rows
+        self.assertEqual((pane.layout, pane.footer), ("卡片", "20 轮"))
+        self.assertEqual([r.strip() for r in pane.preview if r.strip()],
+                         ["─ 预览 ──────────────────────────────── p:", "10月9日 09:07 · 输出 20", "用户",
+                          "F19 rewind 之后的新分支", "Agent", "F19 回复：新分支。"])
+        self.assertIsNone(toc_verifier.parse_pane(screen("card-2.1.295.txt")).preview)
+
+    def test_reads_the_selected_entrys_row_of_buttons_apart_from_its_text(self):
+        rows = screen("card-2.1.295.txt")
+        at = next(y for y, r in enumerate(rows) if "●  F16" in r)
+        left = rows[at].index("●")
+        rows.insert(at + 1, rows[at][:left] + "│  p: 预览 · r: 填入 · c: 复制")
+        pane = toc_verifier.parse_pane(rows)
+        f16 = next(e for e in pane.entries if e.user_text.startswith("F16"))
+        self.assertEqual((f16.user_text, f16.selected, f16.actions, f16.action_row),
+                         ("F16 压缩之前的最后一轮", "user", ["p: 预览", "r: 填入", "c: 复制"], at + 1))
+        self.assertEqual((f16.agent_row, f16.agent_head), (at + 2, ""))
+        self.assertEqual([e.user_text[:3] for e in pane.entries if e.selected], ["F16"])
+        self.assertTrue(toc_verifier.compare_window(forms_groups(), pane)["ok"])
 
     def test_reads_the_filter_from_the_tab_rule(self):
         pane = toc_verifier.parse_pane(screen("card-agent-2.1.295.txt"))

@@ -149,3 +149,34 @@ export function entryTable(cache: EntryCache, groups: readonly TurnGroup[], opti
   cache.table = { entries, heights, keys, indexOf, firstOfGroup }
   return cache.table
 }
+
+/* The table narrowed to the groups `shown` (a query's matches, in order):
+   their entries only, each keeping its group's index into the whole list,
+   so a jump, the highlight and the compactions' places read as before.
+   The heights are counted again, a day's rule now coming from the entry
+   shown before, and the last entry shown loses its gap. A group not shown
+   starts where the next shown one does. */
+export function narrowedTable(table: EntryTable, shown: readonly number[]): EntryTable {
+  const groups = table.firstOfGroup.length
+  /* Every group shown (`shown` is in order, without repeats): the table
+     itself, as the first keystroke of a search often gives it. */
+  if (shown.length === groups) return table
+  const entries: Entry[] = []
+  for (const g of shown) {
+    const from = table.firstOfGroup[g]
+    if (from === undefined) continue
+    const to = table.firstOfGroup[g + 1] ?? table.entries.length
+    for (let i = from; i < to; i++) entries.push(table.entries[i]!)
+  }
+  withoutTrailingGap(entries)
+  const heights = entries.map((_, i) => entryRows(entries, i))
+  const keys = entries.map(e => e.key)
+  const indexOf = new Map(keys.map((key, i) => [key, i]))
+  const firstOfGroup: number[] = []
+  let at = 0
+  for (let g = 0; g < groups; g++) {
+    while (at < entries.length && entries[at]!.groupIndex < g) at++
+    firstOfGroup.push(at)
+  }
+  return { entries, heights, keys, indexOf, firstOfGroup }
+}

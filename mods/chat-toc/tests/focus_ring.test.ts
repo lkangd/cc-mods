@@ -46,11 +46,48 @@ test('past the top of the window the entry before is brought into view', () => {
   expect(move('g0.a', 'f-agent')).toEqual({ kind: 'reveal', index: 0 })
 })
 
+test('the row under the selected entry is stepped over: down to the next entry, up to its owner', () => {
+  expect(move('g1.u', 'g1.u:preview')).toEqual({ kind: 'land', key: 'g2.u' })
+  expect(move('g2.u', 'g1.u:copy')).toEqual({ kind: 'land', key: 'g1.u' })
+  /* At the window's last entry the next one is brought in. */
+  expect(move('g2.u', 'g2.u:preview')).toEqual({ kind: 'reveal', index: 4 })
+  const all = { start: 0, end: 5, maxStart: 0 }
+  expect(ringMove(KEYS, INDEX, all, 'g2.a', 'g2.a:preview')).toEqual({ kind: 'land', key: 'layout' })
+})
+
 test('at either end of the list the host wraps as it does', () => {
   const all = { start: 0, end: 5, maxStart: 0 }
   expect(ringMove(KEYS, INDEX, all, 'g2.a', 'layout')).toEqual({ kind: 'accept' })
   expect(ringMove(KEYS, INDEX, all, 'g2.a', 'g2.a.1')).toEqual({ kind: 'land', key: 'layout' })
   expect(ringMove(KEYS, INDEX, all, 'g0.u', 'f-agent')).toEqual({ kind: 'accept' })
+})
+
+test('the Minimap\'s cells are stepped over: down from the filter row to the first entry in view, up from an entry to the filter row', () => {
+  expect(move('f-agent', 'm.0')).toEqual({ kind: 'land', key: 'g0.a' })
+  expect(move(undefined, 'm.3')).toEqual({ kind: 'land', key: 'g0.a' })
+  /* Up from the window's first entry, with entries above it: bring one in. */
+  expect(move('g0.a', 'm.3')).toEqual({ kind: 'reveal', index: 0 })
+  const all = { start: 0, end: 5, maxStart: 0 }
+  expect(ringMove(KEYS, INDEX, all, 'g0.u', 'm.3')).toEqual({ kind: 'land', key: 'f-agent' })
+  /* No entries: up from the Layout Button goes to the filter row. */
+  expect(ringMove([], new Map(), { start: 0, end: 0, maxStart: 0 }, 'layout', 'm.3')).toEqual({ kind: 'land', key: 'f-agent' })
+  /* No entries: down from the filter row goes to the footer. */
+  expect(ringMove([], new Map(), { start: 0, end: 0, maxStart: 0 }, 'f-agent', 'm.0')).toEqual({ kind: 'land', key: 'layout' })
+})
+
+test("with the preview drawn, its Buttons come between the entries and the footer, and the ring treats them as it treats the footer", () => {
+  const after = (from: string | undefined, to: string | undefined, window = WINDOW) => ringMove(KEYS, INDEX, window, from, to, 'preview')
+  /* Down off the window's last entry onto the preview's rule: the next entry instead. */
+  expect(after('g2.u', 'preview')).toEqual({ kind: 'reveal', index: 4 })
+  const all = { start: 0, end: 5, maxStart: 0 }
+  /* Down off the list's last entry's first line: the preview's rule. */
+  expect(after('g2.a', 'g2.a.1', all)).toEqual({ kind: 'land', key: 'preview' })
+  expect(after('g2.a', 'preview', all)).toEqual({ kind: 'accept' })
+  /* Up from the cut line or the rule onto the last entry. */
+  expect(after('preview', 'g2.a.1', all)).toEqual({ kind: 'land', key: 'g2.a' })
+  /* No entries: down from the filter row to the preview, up from it to the filter row. */
+  expect(ringMove([], new Map(), { start: 0, end: 0, maxStart: 0 }, 'f-agent', 'm.0', 'preview')).toEqual({ kind: 'land', key: 'preview' })
+  expect(ringMove([], new Map(), { start: 0, end: 0, maxStart: 0 }, 'preview.more', 'm.3', 'preview')).toEqual({ kind: 'land', key: 'f-agent' })
 })
 
 test('a ring move waiting for its entry is sent by the drawing whose window shows it', () => {
@@ -101,11 +138,12 @@ test('down past the window scrolls it one entry and puts the ring there', async 
   for (let i = 0; i < 12; i++) t.prompt(`CT-SYN prompt ${i}`)
   const world = host(on, t.jsonl())
   await start($, world)
-  /* The head, three 1-line prompts with their gaps, the footer. */
+  /* The head, the search row, three 1-line prompts with their gaps, the
+     footer; the preview is closed. */
   const pane = await mountPane($, 11)
   const prompts = async () => (await entryTexts(pane)).filter(s => s.startsWith('CT-SYN'))
 
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 11, contentRows: 12, origin: { kind: 'person' } } as never)
   expect(await prompts()).toEqual(['CT-SYN prompt 3', 'CT-SYN prompt 4', 'CT-SYN prompt 5'])
 
   await arrow($, 'g5.u')
@@ -115,14 +153,15 @@ test('down past the window scrolls it one entry and puts the ring there', async 
      is checked in the terminal. */
   expect((await arrow($, 'g5.u.1')).deny).toBeDefined()
   await world.clock.advance(1)
-  expect(await prompts()).toEqual(['CT-SYN prompt 4', 'CT-SYN prompt 5', 'CT-SYN prompt 6'])
+  /* g6 selected, with its row of Buttons under it (0.2 spec §3). */
+  expect(await prompts()).toEqual(['CT-SYN prompt 5', 'CT-SYN prompt 6'])
   expect(world.focuses.map(f => f.element)).toEqual(['g5.u'])
 
-  /* Up past the top scrolls back. */
-  await arrow($, 'g4.u')
-  expect((await arrow($, 'f-agent')).deny).toBeDefined()
+  /* Up past the top, onto the search field, scrolls back. */
+  await arrow($, 'g5.u')
+  expect((await arrow($, 'search')).deny).toBeDefined()
   await world.clock.advance(1)
-  expect(await prompts()).toEqual(['CT-SYN prompt 3', 'CT-SYN prompt 4', 'CT-SYN prompt 5'])
+  expect(await prompts()).toEqual(['CT-SYN prompt 4', 'CT-SYN prompt 5'])
 })
 
 /* CT-UI-002: a switch keeps the selected group, or the window's top one,
@@ -169,7 +208,7 @@ test('switching the Layout of a scrolled window keeps its top group at the top',
   await start($, world)
   const pane = await mountPane($, 11)
 
-  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 10, contentRows: 10, origin: { kind: 'person' } } as never)
+  await $.ui.scroll({ component: 'Pane', requestId: PANE, offset: 0, by: -6, bodyRows: 11, contentRows: 11, origin: { kind: 'person' } } as never)
   await pane.press({ key: 'layout' })
 
   expect((await entryTexts(pane))[0]).toBe('CT-SYN prompt 3')
