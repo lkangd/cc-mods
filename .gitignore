@@ -15,6 +15,9 @@ __pycache__/
 # Handoff documents for the next session (local only)
 docs/handoffs/
 
+# local todo list
+docs/todos/
+
 # Shared notes of parallel implementers (local only)
 .scratch/*/notes/
 
