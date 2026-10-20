@@ -16,6 +16,8 @@ For a new mod, add a row to the table above and a section at the same level as c
 
 ## chat-toc
 
+![chat-toc in a fullscreen Claude Code terminal: clicking the minimap and an entry jumps the transcript back to that turn](docs/media/chat-toc-demo.gif)
+
 In Claude Code's fullscreen terminal, chat-toc docks the current session's contents to the right of the transcript: one entry per turn of the conversation, and a click jumps back to that turn.
 
 ### Requirements
