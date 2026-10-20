@@ -16,6 +16,8 @@
 
 ## chat-toc
 
+![chat-toc 在全屏 Claude Code 终端里：点迷你地图和条目，对话记录跳回那一轮](docs/media/chat-toc-demo.gif)
+
 在 Claude Code 的全屏终端里，chat-toc 把当前会话的内容停靠在对话记录右侧：每轮对话一条，点一下就跳回那一轮。
 
 ### 环境要求
