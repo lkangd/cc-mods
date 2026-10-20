@@ -25,3 +25,6 @@ docs/todos/
 .scratch/*/assets/*/runs/**/[0-9][0-9][0-9]-*.txt
 .scratch/*/assets/*/runs/**/debug.log
 .scratch/*/assets/*/runs/**/latest
+
+# Promo code
+promo/
