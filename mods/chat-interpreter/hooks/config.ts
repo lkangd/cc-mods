@@ -1,0 +1,56 @@
+export type Direction = 'zh-en' | 'en-zh'
+export type Scope = 'project' | 'global'
+export type OutputMode = 'automatic' | 'manual'
+
+export type Settings = {
+  punctuation: boolean
+  translateInput: boolean
+  translateOutput: boolean
+  outputMode: OutputMode
+  inputDirection: Direction
+  outputDirection: Direction
+  sendOnlyOnSuccess: boolean
+  showOriginal: boolean
+}
+
+export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
+  punctuation: false,
+  translateInput: false,
+  translateOutput: false,
+  outputMode: 'automatic',
+  inputDirection: 'zh-en',
+  outputDirection: 'en-zh',
+  sendOnlyOnSuccess: true,
+  showOriginal: true,
+})
+
+export function normalizeSettings(value?: unknown): Settings {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value as Partial<Settings> : {}
+  return {
+    punctuation: typeof source.punctuation === 'boolean' ? source.punctuation : DEFAULT_SETTINGS.punctuation,
+    translateInput: typeof source.translateInput === 'boolean' ? source.translateInput : DEFAULT_SETTINGS.translateInput,
+    translateOutput: typeof source.translateOutput === 'boolean' ? source.translateOutput : DEFAULT_SETTINGS.translateOutput,
+    outputMode: source.outputMode === 'manual' ? 'manual' : 'automatic',
+    inputDirection: source.inputDirection === 'en-zh' ? 'en-zh' : 'zh-en',
+    outputDirection: source.outputDirection === 'zh-en' ? 'zh-en' : 'en-zh',
+    sendOnlyOnSuccess: typeof source.sendOnlyOnSuccess === 'boolean' ? source.sendOnlyOnSuccess : DEFAULT_SETTINGS.sendOnlyOnSuccess,
+    showOriginal: typeof source.showOriginal === 'boolean' ? source.showOriginal : DEFAULT_SETTINGS.showOriginal,
+  }
+}
+
+export function projectKey(root: string): string {
+  return `settings:project:${root}`
+}
+
+export function activeScopeKey(root: string): string {
+  return `active-scope:${root}`
+}
+
+export function settingsKey(scope: Scope, root: string): string {
+  return scope === 'global' ? 'settings:global' : projectKey(root)
+}
+
+export function systemIsChinese(locales: readonly (string | undefined)[]): boolean {
+  const locale = locales.find(value => typeof value === 'string' && value.trim())
+  return typeof locale === 'string' && /^zh(?:[_-]|$)/i.test(locale)
+}

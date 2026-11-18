@@ -9,8 +9,19 @@ A collection of Claude Code mods. Each mod is its own plugin under `mods/<mod na
 | Mod | Version | What it does |
 | --- | --- | --- |
 | [chat-toc](#chat-toc) | 0.2.0 | Docks the current session's contents beside the conversation; a click jumps back to any turn |
+| [chat-interpreter](#chat-interpreter) | 0.1.0 | Translates submitted prompts and displays final replies in two languages |
 
 For a new mod, add a row to the table above and a section at the same level as chat-toc's below.
+
+---
+
+## chat-interpreter
+
+Chat Interpreter can convert punctuation locally, translate a user prompt before Claude receives it, and show a translated final reply while keeping Claude's stored answer intact. Its three processing switches start off. Run `/chat-interpreter` to choose the input and output directions, the send-on-success rule, and whether to show both languages.
+
+Settings can be saved and activated separately for the current project or globally. The selected scope persists, so a configured project uses its saved settings in the next session. Translation uses DeepSeek's `deepseek-chat` endpoint and reads `DEEPSEEK_API_KEY` from the Claude Code process environment. Punctuation conversion does not require a key.
+
+Install from this marketplace with `claude plugin install chat-interpreter@cc-mods`, or load the folder directly for development with `claude --plugin-dir ./mods/chat-interpreter`. See the [mod's README](mods/chat-interpreter/README.md) for behavior and limits.
 
 ---
 

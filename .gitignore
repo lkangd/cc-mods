@@ -28,3 +28,6 @@ docs/todos/
 
 # Promo code
 promo/
+
+# macOS system files
+.DS_Store
