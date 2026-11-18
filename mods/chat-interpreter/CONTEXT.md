@@ -12,6 +12,16 @@ _Avoid_: Prompt enhancement, rewrite
 A translated presentation of the main agent's final answer. The original answer remains in the conversation Claude uses.
 _Avoid_: Model response replacement
 
+**Target language**:
+The language requested for a translation. Input and output each have their own target language.
+_Avoid_: Translation direction
+
+**Translation cache**:
+Saved input and output translations associated with a conversation, a message, and a target language. A saved translation can be shown when the conversation is reopened.
+
+**Manual translation control**:
+The action below a final reply that requests a translation or toggles the visibility of one already saved.
+
 **Punctuation conversion**:
 A local substitution of punctuation marks outside protected technical text. It makes no translation service request.
 _Avoid_: Translation

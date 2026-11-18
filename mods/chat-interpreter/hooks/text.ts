@@ -1,4 +1,4 @@
-import type { Direction } from './config'
+import type { TargetLanguage } from './config'
 
 const TECHNICAL = /\b[A-Za-z][A-Za-z0-9+.-]*:[^\s<>()[\]]+|(?:@?\.\.?\/|~\/|\/)[\w.@+~/-]+|\b@?(?:[\w.-]+\/)+[\w.-]+\b|\b[A-Za-z]:\\(?:[^\s\\]+\\)*[^\s\\]+|(?<![\w.])(?:\.?[\w-]+)(?:\.[\w-]+)+(?![\w])/g
 
@@ -68,7 +68,8 @@ const EN_TO_ZH = new Map([
   ['(', '（'], [')', '）'], ['[', '【'], [']', '】'],
 ])
 
-export function convertPunctuation(text: string, direction: Direction): string {
+export function convertPunctuation(text: string, target: TargetLanguage): string {
+  const direction = target === 'en' ? 'zh-en' : 'en-zh'
   const table = direction === 'zh-en' ? ZH_TO_EN : EN_TO_ZH
   let doubleQuoteOpen = true
   let singleQuoteOpen = true
@@ -92,9 +93,8 @@ export function convertPunctuation(text: string, direction: Direction): string {
   }).join('')
 }
 
-export function hasSourceLanguage(text: string, direction: Direction): boolean {
-  const natural = splitProtected(text).filter(part => !part.protected).map(part => part.text).join('')
-  return direction === 'zh-en' ? /[\p{Script=Han}]/u.test(natural) : /[A-Za-z]/.test(natural)
+export function hasTranslatableText(text: string): boolean {
+  return splitProtected(text).some(part => !part.protected && /\p{L}/u.test(part.text))
 }
 
 export function maskProtected(text: string): { masked: string; values: Array<[string, string]> } {
@@ -114,7 +114,7 @@ export function restoreProtected(translated: string, values: ReadonlyArray<reado
   let restored = translated
   for (const [marker, value] of values) {
     if (restored.split(marker).length !== 2) throw new Error('Protected text was changed by the translation service')
-    restored = restored.replace(marker, value)
+    restored = restored.replace(marker, () => value)
   }
   return restored
 }

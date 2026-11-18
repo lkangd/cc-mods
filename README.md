@@ -17,7 +17,7 @@ For a new mod, add a row to the table above and a section at the same level as c
 
 ## chat-interpreter
 
-Chat Interpreter can convert punctuation locally, translate a user prompt before Claude receives it, and show a translated final reply while keeping Claude's stored answer intact. Its three processing switches start off. Run `/chat-interpreter` to choose the input and output directions, the send-on-success rule, and whether to show both languages.
+Chat Interpreter can convert punctuation locally, translate a user prompt before Claude receives it, and show a translated final reply while keeping Claude's stored answer intact. Its three processing switches start off. Run `/chat-interpreter` to choose the input and output target languages, the send-on-success rule, and whether to show both languages.
 
 Settings can be saved and activated separately for the current project or globally. The selected scope persists, so a configured project uses its saved settings in the next session. Translation uses DeepSeek's `deepseek-chat` endpoint and reads `DEEPSEEK_API_KEY` from the Claude Code process environment. Punctuation conversion does not require a key.
 

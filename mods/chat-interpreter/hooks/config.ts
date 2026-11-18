@@ -1,4 +1,4 @@
-export type Direction = 'zh-en' | 'en-zh'
+export type TargetLanguage = 'zh' | 'en'
 export type Scope = 'project' | 'global'
 export type OutputMode = 'automatic' | 'manual'
 
@@ -7,8 +7,8 @@ export type Settings = {
   translateInput: boolean
   translateOutput: boolean
   outputMode: OutputMode
-  inputDirection: Direction
-  outputDirection: Direction
+  inputTarget: TargetLanguage
+  outputTarget: TargetLanguage
   sendOnlyOnSuccess: boolean
   showOriginal: boolean
 }
@@ -18,8 +18,8 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   translateInput: false,
   translateOutput: false,
   outputMode: 'automatic',
-  inputDirection: 'zh-en',
-  outputDirection: 'en-zh',
+  inputTarget: 'en',
+  outputTarget: 'zh',
   sendOnlyOnSuccess: true,
   showOriginal: true,
 })
@@ -31,8 +31,8 @@ export function normalizeSettings(value?: unknown): Settings {
     translateInput: typeof source.translateInput === 'boolean' ? source.translateInput : DEFAULT_SETTINGS.translateInput,
     translateOutput: typeof source.translateOutput === 'boolean' ? source.translateOutput : DEFAULT_SETTINGS.translateOutput,
     outputMode: source.outputMode === 'manual' ? 'manual' : 'automatic',
-    inputDirection: source.inputDirection === 'en-zh' ? 'en-zh' : 'zh-en',
-    outputDirection: source.outputDirection === 'zh-en' ? 'zh-en' : 'en-zh',
+    inputTarget: source.inputTarget === 'zh' ? 'zh' : 'en',
+    outputTarget: source.outputTarget === 'en' ? 'en' : 'zh',
     sendOnlyOnSuccess: typeof source.sendOnlyOnSuccess === 'boolean' ? source.sendOnlyOnSuccess : DEFAULT_SETTINGS.sendOnlyOnSuccess,
     showOriginal: typeof source.showOriginal === 'boolean' ? source.showOriginal : DEFAULT_SETTINGS.showOriginal,
   }
