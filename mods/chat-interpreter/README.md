@@ -1,23 +1,90 @@
-# Chat Interpreter
+# chat-interpreter
 
-Translate user prompts before Claude receives them and show translated final replies without changing the conversation's original reply.
+Convert punctuation locally, translate prompts before Claude receives them, and display translations of final replies. Input and output languages can be configured independently.
 
-## Use
+## Requirements
 
-Install from this repository's marketplace with `claude plugin install chat-interpreter@cc-mods`, or load the plugin locally with `claude --plugin-dir ./mods/chat-interpreter`. Run `/chat-interpreter` to open its settings pane. Processing switches start off. The active settings scope starts at **Project**; choosing **Global** switches to an independent settings set. Both the values and the active choice persist between sessions.
+- An interactive Claude Code terminal, the Claude Desktop Code tab, or a supported VS Code extension.
+- For input or output translation, set `DEEPSEEK_API_KEY` in the Claude Code process environment before starting the session. Punctuation conversion works without a key.
 
-Set `DEEPSEEK_API_KEY` in the environment of the Claude Code process before enabling input or output translation. The plugin uses DeepSeek's `deepseek-chat` chat-completions endpoint. The key is not stored by the plugin. Punctuation conversion works without the key.
+## Install
 
-Input translation changes the prompt stored in the conversation. When input translation fails, **Send input only after successful translation** keeps the original text in the composer instead of sending it. This setting starts on. The final agent answer is translated only for display. The original answer remains available to Claude. The display shows both languages by default; **Show original text** turns the second copy off.
+### Marketplace
 
-**Output translation** starts in Automatic mode. Switch it to Manual to show a **Translate reply** button below each eligible new final agent reply. The first press translates to the output target language. Subsequent presses hide or show the saved translation. A resumed conversation displays its cached translation and retains the button. If the result is identical, the reply stays visible once with a note. **Translate agent output** must be enabled for either mode.
+Register the marketplace once, then install the plugin.
 
-When **Show original text** is on, **Original text divider** controls how the original is separated for both inputs and replies. Choose **Box** (the default), a full-width **Double line**, or **None**. A translated skill invocation shows the original arguments as a separate transcript notice below the command, before the agent starts. The notice uses the host's style and remains in the transcript after settings change. Claude Code also includes notices in its debug log when enabled.
+```sh
+claude plugin marketplace add lkangd/cc-mods
+claude plugin install chat-interpreter@cc-mods
+claude plugin list
+```
 
-Choose **English** or **Chinese** independently as the input and output target languages. The default input target is English and the default output target is Chinese. Punctuation conversion follows the corresponding target. Submitted slash commands stay intact. For skills identified from a `SKILL.md` in the user or project settings directories or the installed plugin index, Chat Interpreter processes only the arguments after the skill name. The expanded skill body stays intact. When input or skill argument translation is blocked, use **Send anyway** to send the original. For drafts with attachments or file mentions, the button arms the bypass and Enter submits the original draft with its contents intact.
+Check that `chat-interpreter@cc-mods` is enabled, then start a new Claude Code session.
 
-Translation history uses JSON files under `chat-interpreter-cache` in the Claude Code configuration directory. It keeps input translations and final replies from this version onward. Cached output is looked up by conversation, message and target language. Cleanup runs when opening a conversation and after writes. It deletes files older than six calendar months and, after 1 GB, drops the oldest files until 900 MB or less remains. Cleanup on macOS and Linux uses the host's `rm` command. The cache contains conversation text. Delete the cache directory to remove it immediately.
+### Local development
 
-Code fences, inline code, paths, and URLs are preserved. In Automatic mode, the final answer appears in its original language while it streams, then changes after translation completes.
+From the root of a local clone, run the plugin directly in a session where the marketplace copy is disabled.
 
-Interface translation requires an interactive Claude Code terminal, the Claude Desktop Code tab, or a supported VS Code extension. `claude -p`, the Agent SDK, and cloud sessions do not show mod-drawn translations.
+```sh
+claude --plugin-dir ./mods/chat-interpreter
+```
+
+## Getting started
+
+1. Run `/chat-interpreter` to open the settings pane.
+2. Choose **Project** or **Global**. The plugin starts in **Project**. Each scope has its own settings, and both the settings and the active scope persist across sessions.
+3. Enable **Convert punctuation**, **Translate user input**, or **Translate agent output** as needed. All three switches start off.
+4. Choose **English** or **Chinese** independently for input and output. Input defaults to English and output defaults to Chinese. Punctuation conversion follows the corresponding target language.
+
+## Usage
+
+### Input translation
+
+Input translation changes the prompt stored in the conversation. When translation fails, **Send input only after successful translation** keeps the original text in the composer. This setting starts on. Use **Send anyway** to send the original. For drafts with attachments or file mentions, press **Send anyway**, then press Enter to submit the original draft with its contents intact.
+
+Submitted slash commands stay intact. For skills identified from a `SKILL.md` in the user or project settings directories or the installed plugin index, Chat Interpreter processes only the arguments after the skill name. The expanded skill body stays intact.
+
+### Output translation
+
+Output translation affects the display, and Claude retains the original reply. **Output translation** starts in **Automatic** mode. The final reply appears in its original language while it streams and changes after translation completes.
+
+In **Manual** mode, a **Translate reply** button appears below each eligible new final agent reply. The first press translates it. Subsequent presses hide or show the saved translation. A resumed conversation displays its cached translation and retains the button. If both texts are identical, the reply appears once with a note. Enable **Translate agent output** to use either mode.
+
+### Bilingual display
+
+**Show original text** is on by default. **Original text divider** separates the original text from the translation for both inputs and replies. Choose **Box** (the default), a full-width **Double line**, or **None**.
+
+A translated skill invocation shows the original arguments as a separate transcript notice below the command, before the agent starts. The notice uses the host's style and remains in the transcript after settings change. Claude Code also includes notices in its debug log when enabled.
+
+Code fences, inline code, paths, and URLs are preserved during translation.
+
+## Data and privacy
+
+The plugin sends text for translation to DeepSeek's chat-completions endpoint using the `deepseek-chat` model. It reads `DEEPSEEK_API_KEY` from the process environment and never stores the key.
+
+Translation history is stored in JSON files under `chat-interpreter-cache` in the Claude Code configuration directory. It contains input translations and final replies from version 0.5.0 onward. Cached output is looked up by conversation, message, and target language. Cleanup runs when opening a conversation and after writes. It deletes files older than six calendar months. Once the cache exceeds 1 GB, it drops the oldest files until 900 MB or less remains. On macOS and Linux, cleanup uses the host's `rm` command.
+
+## Known limits
+
+`claude -p`, the Agent SDK, and cloud sessions do not show translations drawn by the plugin.
+
+## Uninstall
+
+```sh
+claude plugin uninstall chat-interpreter@cc-mods
+```
+
+For a local load, start Claude Code without `--plugin-dir ./mods/chat-interpreter`.
+
+To remove saved translations, delete the `chat-interpreter-cache` directory in the Claude Code configuration directory.
+
+## Development
+
+See [CONTEXT.md](CONTEXT.md) for domain terms.
+
+Run the automated tests and validate the plugin from the repository root.
+
+```sh
+claude plugin test mods/chat-interpreter
+claude plugin validate mods/chat-interpreter
+```
