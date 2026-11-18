@@ -20,6 +20,7 @@ const WORDS = {
     en: 'English', zh: 'Chinese', inputGroup: 'User input', outputGroup: 'Agent replies', general: 'General',
     translating: 'Translating…', hide: 'Hide translation', show: 'Show translation', sendAnyway: 'Send anyway',
     identical: 'Translation matches the original.',
+    skillOriginal: 'Original skill arguments',
     originalStyle: 'Original text divider', box: 'Box', doubleRule: 'Double line', none: 'None',
     cacheFailed: 'Translation history could not be saved.',
     originalLabel: 'Original', sentLabel: 'Sent to Claude', translationFailed: 'Translation failed; showing original text.',
@@ -36,6 +37,7 @@ const WORDS = {
     en: '英文', zh: '中文', inputGroup: '用户输入', outputGroup: 'Agent 回复', general: '通用',
     translating: '翻译中…', hide: '收起译文', show: '查看译文', sendAnyway: '仍然发送',
     identical: '译文与原文相同。',
+    skillOriginal: '技能原始参数',
     originalStyle: '原文分隔样式', box: '方框', doubleRule: '双横线', none: '无',
     cacheFailed: '无法保存翻译历史。',
     originalLabel: '原文', sentLabel: '发送给 Claude', translationFailed: '翻译失败，显示原文。',
@@ -47,7 +49,7 @@ const WORDS = {
 type ResponseRow = { uuid: string; text: string; blocks: string[]; messageId?: string }
 type Blocked = { kind: 'prompt'; text: string; attachments?: PromptSubmitInput['attachments'] }
   | { kind: 'skill'; command: string; args: string }
-type PendingInput = InputTranslation & { skill?: { command: string; args: string } }
+type PendingInput = InputTranslation & { skillMatch?: { command: string; args: string } }
 type InterpreterState = {
   root: string
   scope: Scope
@@ -56,6 +58,8 @@ type InterpreterState = {
   settings: Record<Scope, Settings>
   pendingInputs: PendingInput[]
   inputRows: Map<string, InputTranslation>
+  pendingSkillRows: string[]
+  skillReplies: Map<string, Map<string, string>>
   responseRows: ResponseRow[]
   replies: Map<string, Reply>
   replyRows: Map<string, string>
@@ -86,7 +90,15 @@ function outputKey(row: string, target: TargetLanguage): string {
 }
 
 function restoreRecord(state: InterpreterState, record: CacheRecord): void {
-  if (record.kind === 'input') state.inputRows.set(record.row, record.value)
+  if (record.kind === 'input') {
+    state.inputRows.set(record.row, record.value)
+    const skill = record.value.skill
+    if (skill?.replyRow) {
+      const originals = state.skillReplies.get(skill.replyRow) ?? new Map<string, string>()
+      originals.set(record.row, skill.originalArgs)
+      state.skillReplies.set(skill.replyRow, originals)
+    }
+  }
   if (record.kind === 'output') state.outputRows.set(outputKey(record.row, record.target), record.translated)
   if (record.kind === 'reply') {
     state.replies.set(record.row, record.value)
@@ -120,6 +132,8 @@ async function loadCache($: EngineInterface, state: InterpreterState, id?: strin
   if (state.sessionId === sessionId) return
   state.sessionId = sessionId
   state.inputRows.clear()
+  state.pendingSkillRows.length = 0
+  state.skillReplies.clear()
   state.replies.clear()
   state.replyRows.clear()
   state.unmatchedReplies.clear()
@@ -250,10 +264,10 @@ function findPendingInput(state: InterpreterState, sent: string): InputTranslati
   const command = sent.match(/<command-name>\s*\/([^<\s]+)\s*<\/command-name>/)?.[1]
   const args = sent.match(/<command-args>([\s\S]*)<\/command-args>\s*$/)?.[1]
   const index = state.pendingInputs.findIndex(item => item.sent === sent ||
-    item.skill && item.skill.command === command && item.skill.args === args)
+    item.skillMatch && item.skillMatch.command === command && item.skillMatch.args === args)
   if (index < 0) return undefined
   const item = state.pendingInputs.splice(index, 1)[0]!
-  return { original: item.original, sent: item.sent, target: item.target }
+  return { original: item.original, sent: item.sent, target: item.target, skill: item.skill }
 }
 
 function forgetPendingInput(state: InterpreterState, pending: PendingInput): void {
@@ -282,6 +296,16 @@ function drawOriginal(elements: Pick<ElementTable, 'Box' | 'Text' | 'Markdown'>,
     body.unshift(Text({ dimColor: true, children: ['═'.repeat(Math.max(1, Math.min(48, columns - 8)))] }))
   }
   return Box({ flexDirection: 'column', marginTop: 1, children: body })
+}
+
+function withSkillOriginals(elements: ElementTable, state: InterpreterState, e: RenderInput<'AssistantMessage'>, rendered: RenderElement): RenderElement {
+  const settings = current(state)
+  const originals = state.skillReplies.get(e.requestId)
+  if (!settings.showOriginal || !e.props.isFirstOfReply || !originals?.size) return rendered
+  const { Box } = elements
+  const children = [...originals.values()].map(text =>
+    drawOriginal(elements, words(state).skillOriginal, text, settings.originalStyle, e.viewport?.columns ?? 40))
+  return Box({ flexDirection: 'column', rowGap: 1, children: [...children, rendered] })
 }
 
 function findFinalRow(state: InterpreterState, answer: string): ResponseRow | undefined {
@@ -442,7 +466,7 @@ export function register(on: Parameters<Register>[0]): void {
   const state: InterpreterState = {
     root: '', scope: 'project', isChinese: false, keyAvailable: false,
     settings: { project: normalizeSettings(), global: normalizeSettings() },
-    pendingInputs: [], inputRows: new Map(), responseRows: [], outputRows: new Map(),
+    pendingInputs: [], inputRows: new Map(), pendingSkillRows: [], skillReplies: new Map(), responseRows: [], outputRows: new Map(),
     replies: new Map(), replyRows: new Map(), unmatchedReplies: new Map(), hidden: new Set(), busy: new Set(), inputBusy: 0, cacheWarning: false,
   }
 
@@ -473,7 +497,8 @@ export function register(on: Parameters<Register>[0]): void {
     const pending: PendingInput | undefined = args !== e.args ? {
       original: `/${e.command} ${e.args}`,
       sent: `/${e.command} ${args}`,
-      skill: { command: e.command, args },
+      skill: { originalArgs: e.args },
+      skillMatch: { command: e.command, args },
       target: settings.inputTarget,
     } : undefined
     if (pending) enqueuePendingInput(state, pending)
@@ -544,12 +569,25 @@ export function register(on: Parameters<Register>[0]): void {
     if (e.agentId) return next(e)
     if ((e.door === 'prompt' || e.door === 'command') && e.message.type === 'user') {
       const matched = findPendingInput(state, textBlocks(e.message).join(''))
+      if (matched?.skill) state.pendingSkillRows.push(e.uuid)
+      else if (e.door === 'prompt') state.pendingSkillRows.length = 0
       if (matched) await saveRecord($, state, { kind: 'input', row: e.uuid, value: matched })
     }
     if (e.door === 'response' && e.message.type === 'assistant') {
       const blocks = textBlocks(e.message)
       const messageId = 'id' in e.message && typeof e.message.id === 'string' ? e.message.id : undefined
-      if (blocks.length) state.responseRows.push({ uuid: e.uuid, text: blocks.join(''), blocks, messageId })
+      if (blocks.length) {
+        state.responseRows.push({ uuid: e.uuid, text: blocks.join(''), blocks, messageId })
+        if (state.pendingSkillRows.length) {
+          for (const row of state.pendingSkillRows.splice(0)) {
+            const input = state.inputRows.get(row)
+            if (!input?.skill) continue
+            const value = { ...input, skill: { ...input.skill, replyRow: e.uuid } }
+            await saveRecord($, state, { kind: 'input', row, value })
+          }
+          $.ui.invalidate('ui.render')
+        }
+      }
       if (state.responseRows.length > 100) state.responseRows.shift()
     }
     return next(e)
@@ -560,7 +598,10 @@ export function register(on: Parameters<Register>[0]): void {
     const answer = !e.agentId && e.reason === 'answer' ? e.answer : undefined
     const row = answer ? findFinalRow(state, answer) : undefined
     const group = row?.messageId ? state.responseRows.filter(item => item.messageId === row.messageId) : row ? [row] : []
-    if (!e.agentId) state.responseRows.length = 0
+    if (!e.agentId) {
+      state.responseRows.length = 0
+      state.pendingSkillRows.length = 0
+    }
     const result = await next(e)
     if (!answer || state.sessionId !== session) return result
     const settings = current(state)
@@ -579,7 +620,7 @@ export function register(on: Parameters<Register>[0]): void {
 
   on('ui.render', { component: 'UserMessage' }, async ($, e, next) => {
     const item = state.inputRows.get(e.requestId)
-    if (!item) return next(e)
+    if (!item || item.skill) return next(e)
     const settings = current(state)
     const w = words(state)
     const elements = $.ui.resolve(e)
@@ -595,7 +636,10 @@ export function register(on: Parameters<Register>[0]): void {
     const row = state.replyRows.get(e.requestId) ??
       (e.props.isFirstOfReply ? state.unmatchedReplies.get(e.props.text) : undefined)
     const reply = row ? state.replies.get(row) : undefined
-    if (!row || !reply) return next(e)
+    if (!row || !reply) {
+      if (!state.skillReplies.has(e.requestId)) return next(e)
+      return withSkillOriginals($.ui.resolve(e), state, e, await next(e))
+    }
     if (reply.rows.length === 0 && !reply.anchor) {
       reply.anchor = e.requestId
       state.replyRows.set(e.requestId, row)
@@ -612,7 +656,11 @@ export function register(on: Parameters<Register>[0]): void {
     const display = translated ?? punctuation
     const changed = display !== undefined && display !== reply.original
     const anchor = e.requestId === reply.anchor && (reply.rows.length > 1 || e.props.isFirstOfReply || e.props.text === reply.original)
-    if (!anchor) return changed ? next({ ...e, props: { ...e.props, text: '' } }) : next(e)
+    if (!anchor) {
+      const rendered = changed ? await next({ ...e, props: { ...e.props, text: '' } }) : await next(e)
+      if (!state.skillReplies.has(e.requestId)) return rendered
+      return withSkillOriginals($.ui.resolve(e), state, e, rendered)
+    }
     const rendered = await next({ ...e, props: { ...e.props, text: changed ? display : e.props.text } })
     const elements = $.ui.resolve(e)
     const { Box, Text, Button } = elements
@@ -627,6 +675,7 @@ export function register(on: Parameters<Register>[0]): void {
       key: `translate:${row}`, plain: true, label: cached === undefined ? w.translateReply : state.hidden.has(key) ? w.show : w.hide,
       onPress: () => onReplyPress($, state, row, reply),
     }))
-    return children.length === 1 ? rendered : Box({ flexDirection: 'column', children })
+    const drawn = children.length === 1 ? rendered : Box({ flexDirection: 'column', children })
+    return withSkillOriginals(elements, state, e, drawn)
   })
 }

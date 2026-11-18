@@ -1,6 +1,11 @@
 import type { TargetLanguage } from './config'
 
-export type InputTranslation = { original: string; sent: string; target: TargetLanguage }
+export type InputTranslation = {
+  original: string
+  sent: string
+  target: TargetLanguage
+  skill?: { originalArgs: string; replyRow?: string }
+}
 export type Reply = { original: string; anchor: string; rows: string[] }
 export type CacheRecord =
   | { kind: 'input'; row: string; value: InputTranslation }
@@ -30,7 +35,10 @@ export function decodeCache(text: string): CacheRecord | undefined {
   const value = record.value
   if (!object(value) || typeof value.original !== 'string') return undefined
   if (record.kind === 'input' && typeof value.sent === 'string' && (value.target === 'zh' || value.target === 'en')) {
-    return { kind: 'input', row: record.row, value: { original: value.original, sent: value.sent, target: value.target } }
+    const skill = object(value.skill) && typeof value.skill.originalArgs === 'string'
+      ? { originalArgs: value.skill.originalArgs, replyRow: typeof value.skill.replyRow === 'string' ? value.skill.replyRow : undefined }
+      : undefined
+    return { kind: 'input', row: record.row, value: { original: value.original, sent: value.sent, target: value.target, skill } }
   }
   if (record.kind === 'reply' && value.anchor === record.row && Array.isArray(value.rows)
       && value.rows.every(row => typeof row === 'string') && value.rows.includes(record.row)) {

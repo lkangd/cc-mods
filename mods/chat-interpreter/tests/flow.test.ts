@@ -241,6 +241,43 @@ test('translating a resumed reply to identical text shows the result without dup
   expect(await row.find({ type: 'Text', text: 'Translation matches the original.' })).toBeUndefined()
 })
 
+test('the skill argument comparison is shown above its reply and restored on resume', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
+  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.files['/synthetic/project/.claude/skills/review/SKILL.md'] = 'The skill instruction body.'
+  world.response.text = JSON.stringify({ choices: [{ message: { content: 'Is it normal?' } }] })
+  await $.session.start(SESSION)
+  await $.command.run({ command: 'review', args: '正常吗？', origin: { kind: 'composer' },
+    presentation: { columns: 80, isFullscreen: true } } as never)
+  await $.session.append({
+    uuid: 'skill-cmp', door: 'command', origin: { kind: 'composer' },
+    message: { type: 'user', role: 'user', content: [{ type: 'text',
+      text: '<command-name>/review</command-name>\n<command-args>Is it normal?</command-args>' }] },
+  })
+  await $.session.append({
+    uuid: 'skill-answer', door: 'response', origin: { kind: 'model', model: 'synthetic' },
+    message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text: 'My answer.' }] },
+  })
+  const target = { plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage', requestId: 'skill-answer',
+    props: { text: 'My answer.', isFirstOfReply: true } } as never
+  const row = await $.ui.mount(target)
+  expect(await row.find({ type: 'Markdown', text: '正常吗？' })).toBeDefined()
+  expect(await row.find({ type: 'Markdown', text: 'The skill instruction body.' })).toBeUndefined()
+  await row.unmount()
+  await $.classic.SessionStart({ source: 'resume', session_id: 'other-session' })
+  await $.classic.SessionStart({ source: 'resume', session_id: 'session-1' })
+  const resumed = await $.ui.mount(target)
+  expect(await resumed.find({ type: 'Markdown', text: '正常吗？' })).toBeDefined()
+  const pane = await $.ui.mount({
+    plugin: 'chat-interpreter', surface: 'terminal', component: 'Pane', requestId: 'chat-interpreter-settings',
+    props: { title: 'Chat Interpreter', isFocused: true, bodyColumns: 70, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  } as never)
+  await pane.press({ key: 'showOriginal' })
+  await resumed.redraw({ text: 'My answer.', isFirstOfReply: true } as never)
+  expect(await resumed.find({ type: 'Markdown', text: '正常吗？' })).toBeUndefined()
+  expect(world.requests).toHaveLength(1)
+})
+
 test('an unmatched final answer offers a live manual translation without caching an unverified row', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
   world.env.DEEPSEEK_API_KEY = 'synthetic-key'
