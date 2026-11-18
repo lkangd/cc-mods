@@ -18,13 +18,8 @@ docs/handoffs/
 # local todo list
 docs/todos/
 
-# Shared notes of parallel implementers (local only)
-.scratch/*/notes/
-
-# Probe captures: per-step screens and host debug logs stay local; steps.json and the probes' own logs are tracked
-.scratch/*/assets/*/runs/**/[0-9][0-9][0-9]-*.txt
-.scratch/*/assets/*/runs/**/debug.log
-.scratch/*/assets/*/runs/**/latest
+# Local scratch: tickets, specs, notes, and probe captures
+.scratch/
 
 # Promo code
 promo/
