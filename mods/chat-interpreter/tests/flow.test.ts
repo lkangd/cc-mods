@@ -11,6 +11,7 @@ type World = {
   requests: string[]
   response: { status: number; ok: boolean; headers: Record<string, string>; text: string }
   toasts: string[]
+  notices: string[]
   rendered: string[]
   dropNextPrompt: boolean
   files: Record<string, string>
@@ -23,7 +24,7 @@ type World = {
 
 function host(on: On, saved: Record<string, unknown> = {}): World {
   const world: World = {
-    store: { ...saved }, env: { LANG: 'en_US.UTF-8', HOME: '/synthetic/home' }, requests: [], toasts: [], rendered: [], dropNextPrompt: false,
+    store: { ...saved }, env: { LANG: 'en_US.UTF-8', HOME: '/synthetic/home' }, requests: [], toasts: [], notices: [], rendered: [], dropNextPrompt: false,
     files: {}, submitted: [], commands: [],
     commandList: [{ name: 'review', description: 'Review', source: 'user' }],
     response: { status: 200, ok: true, headers: {}, text: JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: 'Hello' } }] }) },
@@ -55,6 +56,10 @@ function host(on: On, saved: Record<string, unknown> = {}): World {
     return { value: world.response }
   })
   on('ui.toast', (_$, e) => { world.toasts.push(e.text); return { value: undefined } })
+  on('ui.log', (_$, e) => {
+    if (e.to === 'transcript') world.notices.push(e.text)
+    return { value: undefined }
+  })
   on('ui.invalidate', () => ({ value: undefined }))
   on('ui.render', (_$, e) => {
     const text = 'text' in e.props ? String(e.props.text) : ''
@@ -67,6 +72,7 @@ function host(on: On, saved: Record<string, unknown> = {}): World {
     return { text: e.text, context: e.context, origin: e.origin }
   })
   on('turn.complete', (_$, e) => ({ text: e.answer }))
+  on('turn.start', (_$, e) => ({ turnId: e.turnId }))
   return world
 }
 
@@ -241,7 +247,7 @@ test('translating a resumed reply to identical text shows the result without dup
   expect(await row.find({ type: 'Text', text: 'Translation matches the original.' })).toBeUndefined()
 })
 
-test('the skill argument comparison is shown above its reply and restored on resume', async ($, on) => {
+test('translated skill arguments show their original once before the agent responds', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
   world.env.DEEPSEEK_API_KEY = 'synthetic-key'
   world.files['/synthetic/project/.claude/skills/review/SKILL.md'] = 'The skill instruction body.'
@@ -254,6 +260,8 @@ test('the skill argument comparison is shown above its reply and restored on res
     message: { type: 'user', role: 'user', content: [{ type: 'text',
       text: '<command-name>/review</command-name>\n<command-args>Is it normal?</command-args>' }] },
   })
+  await $.turn.start({ text: 'Is it normal?', turnId: 'skill-turn' })
+  expect(world.notices).toEqual(['Original skill arguments: 正常吗？'])
   await $.session.append({
     uuid: 'skill-answer', door: 'response', origin: { kind: 'model', model: 'synthetic' },
     message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text: 'My answer.' }] },
@@ -261,20 +269,14 @@ test('the skill argument comparison is shown above its reply and restored on res
   const target = { plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage', requestId: 'skill-answer',
     props: { text: 'My answer.', isFirstOfReply: true } } as never
   const row = await $.ui.mount(target)
-  expect(await row.find({ type: 'Markdown', text: '正常吗？' })).toBeDefined()
-  expect(await row.find({ type: 'Markdown', text: 'The skill instruction body.' })).toBeUndefined()
+  expect(await row.find({ type: 'Markdown', text: '正常吗？' })).toBeUndefined()
   await row.unmount()
   await $.classic.SessionStart({ source: 'resume', session_id: 'other-session' })
   await $.classic.SessionStart({ source: 'resume', session_id: 'session-1' })
   const resumed = await $.ui.mount(target)
-  expect(await resumed.find({ type: 'Markdown', text: '正常吗？' })).toBeDefined()
-  const pane = await $.ui.mount({
-    plugin: 'chat-interpreter', surface: 'terminal', component: 'Pane', requestId: 'chat-interpreter-settings',
-    props: { title: 'Chat Interpreter', isFocused: true, bodyColumns: 70, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
-  } as never)
-  await pane.press({ key: 'showOriginal' })
-  await resumed.redraw({ text: 'My answer.', isFirstOfReply: true } as never)
   expect(await resumed.find({ type: 'Markdown', text: '正常吗？' })).toBeUndefined()
+  await $.turn.start({ text: 'Another turn', turnId: 'next-turn' })
+  expect(world.notices).toEqual(['Original skill arguments: 正常吗？'])
   expect(world.requests).toHaveLength(1)
 })
 

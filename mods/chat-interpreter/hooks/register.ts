@@ -228,10 +228,20 @@ function drawSettings($: EngineInterface, state: InterpreterState, e: RenderInpu
   const w = words(state)
   const settings = current(state)
   const otherTarget = (target: TargetLanguage): TargetLanguage => target === 'en' ? 'zh' : 'en'
-  const section = (label: string) => Box({ flexDirection: 'row', columnGap: 1, children: [
-    Text({ bold: true, children: [label] }),
-    Text({ dimColor: true, children: ['────────'] }),
-  ] })
+  const section = (label: string) => {
+    // The built-in labels contain only ASCII and Han characters.
+    const labelCells = [...label].reduce((cells, char) => cells + (/\p{Script=Han}/u.test(char) ? 2 : 1), 0)
+    const title = Text({ bold: true, wrap: 'truncate-end', children: [label] })
+    const ruleCells = e.props.bodyColumns - labelCells - 2
+    if (ruleCells < 2) return Box({ justifyContent: 'center', children: [title] })
+    const left = Math.floor(ruleCells / 2)
+    const right = ruleCells - left
+    return Box({ flexDirection: 'row', columnGap: 1, children: [
+      Text({ dimColor: true, children: ['─'.repeat(left)] }),
+      title,
+      Text({ dimColor: true, children: ['─'.repeat(right)] }),
+    ] })
+  }
   return Box({ flexDirection: 'column', children: [
     section(w.general),
     Button({ key: 'scope', plain: true, label: `${w.scope}: ${state.scope === 'project' ? w.project : w.global} ↔`,
@@ -288,12 +298,18 @@ function drawMessageText(elements: Pick<ElementTable, 'Markdown' | 'Text'>, text
 
 const NEXT_ORIGINAL_STYLE: Record<OriginalStyle, OriginalStyle> = { box: 'doubleRule', doubleRule: 'none', none: 'box' }
 
+function drawLabel(Text: ElementTable['Text'], label: string): RenderElement {
+  return Text({ bold: true, inverse: true, children: [` ${label} `] })
+}
+
 function drawOriginal(elements: Pick<ElementTable, 'Box' | 'Text' | 'Markdown'>, label: string, text: string, style: OriginalStyle, columns: number): RenderElement {
   const { Box, Text } = elements
-  const body = [Text({ bold: true, dimColor: true, children: [label] }), ...drawMessageText(elements, text, true)]
+  const body = [drawLabel(Text, label), ...drawMessageText(elements, text, true)]
   if (style === 'box') return Box({ flexDirection: 'column', marginTop: 1, borderStyle: 'single', borderDimColor: true, paddingX: 1, children: body })
   if (style === 'doubleRule') {
-    body.unshift(Text({ dimColor: true, children: ['═'.repeat(Math.max(1, Math.min(48, columns - 8)))] }))
+    body.unshift(Box({ height: 1, overflow: 'hidden', children: [
+      Text({ dimColor: true, children: ['═'.repeat(Math.max(1, Math.min(1000, columns)))] }),
+    ] }))
   }
   return Box({ flexDirection: 'column', marginTop: 1, children: body })
 }
@@ -576,19 +592,22 @@ export function register(on: Parameters<Register>[0]): void {
     if (e.door === 'response' && e.message.type === 'assistant') {
       const blocks = textBlocks(e.message)
       const messageId = 'id' in e.message && typeof e.message.id === 'string' ? e.message.id : undefined
-      if (blocks.length) {
-        state.responseRows.push({ uuid: e.uuid, text: blocks.join(''), blocks, messageId })
-        if (state.pendingSkillRows.length) {
-          for (const row of state.pendingSkillRows.splice(0)) {
-            const input = state.inputRows.get(row)
-            if (!input?.skill) continue
-            const value = { ...input, skill: { ...input.skill, replyRow: e.uuid } }
-            await saveRecord($, state, { kind: 'input', row, value })
-          }
-          $.ui.invalidate('ui.render')
-        }
-      }
+      if (blocks.length) state.responseRows.push({ uuid: e.uuid, text: blocks.join(''), blocks, messageId })
       if (state.responseRows.length > 100) state.responseRows.shift()
+    }
+    return next(e)
+  })
+
+  on('turn.start', ($, e, next) => {
+    const rows = state.pendingSkillRows.splice(0)
+    if (current(state).showOriginal) {
+      for (const row of rows) {
+        const skill = state.inputRows.get(row)?.skill
+        if (!skill) continue
+        const visible = skill.originalArgs.replace(/\r\n?|\n/g, ' ↵ ').replace(/\t/g, ' ')
+          .replace(/[\u0000-\u001f\u007f-\u009f]/g, '')
+        $.ui.log(`${words(state).skillOriginal}: ${visible}`, { to: 'transcript' })
+      }
     }
     return next(e)
   })
@@ -626,7 +645,7 @@ export function register(on: Parameters<Register>[0]): void {
     const elements = $.ui.resolve(e)
     const { Box, Text } = elements
     return Box({ flexDirection: 'column', children: [
-      Text({ bold: true, children: [w.sentLabel] }),
+      ...(settings.showOriginal ? [drawLabel(Text, w.sentLabel)] : []),
       ...drawMessageText(elements, item.sent),
       ...(settings.showOriginal ? [drawOriginal(elements, w.originalLabel, item.original, settings.originalStyle, e.viewport?.columns ?? 40)] : []),
     ] })
@@ -672,7 +691,8 @@ export function register(on: Parameters<Register>[0]): void {
     if (translated === reply.original) children.push(Text({ dimColor: true, children: [w.identical] }))
     if (state.busy.has(key)) children.push(Text({ dimColor: true, children: [w.translating] }))
     else if (manual) children.push(Button({
-      key: `translate:${row}`, plain: true, label: cached === undefined ? w.translateReply : state.hidden.has(key) ? w.show : w.hide,
+      key: `translate:${row}`, variant: cached === undefined ? 'primary' : 'secondary',
+      label: cached === undefined ? w.translateReply : state.hidden.has(key) ? w.show : w.hide,
       onPress: () => onReplyPress($, state, row, reply),
     }))
     const drawn = children.length === 1 ? rendered : Box({ flexDirection: 'column', children })
