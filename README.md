@@ -9,7 +9,7 @@ A collection of Claude Code mods. Each mod is its own plugin under `mods/<mod na
 | Mod | Version | What it does |
 | --- | --- | --- |
 | [chat-toc](#chat-toc) | 0.2.0 | Docks the current session's contents beside the conversation; a click jumps back to any turn |
-| [chat-interpreter](#chat-interpreter) | 0.1.0 | Translates submitted prompts and displays final replies in two languages |
+| [chat-interpreter](#chat-interpreter) | 0.3.0 | Translates submitted prompts and displays final replies in two languages |
 
 For a new mod, add a row to the table above and a section at the same level as chat-toc's below.
 

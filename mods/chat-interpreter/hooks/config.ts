@@ -1,6 +1,7 @@
 export type TargetLanguage = 'zh' | 'en'
 export type Scope = 'project' | 'global'
 export type OutputMode = 'automatic' | 'manual'
+export type OriginalStyle = 'box' | 'doubleRule' | 'none'
 
 export type Settings = {
   punctuation: boolean
@@ -11,6 +12,7 @@ export type Settings = {
   outputTarget: TargetLanguage
   sendOnlyOnSuccess: boolean
   showOriginal: boolean
+  originalStyle: OriginalStyle
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   outputTarget: 'zh',
   sendOnlyOnSuccess: true,
   showOriginal: true,
+  originalStyle: 'box',
 })
 
 export function normalizeSettings(value?: unknown): Settings {
@@ -35,6 +38,7 @@ export function normalizeSettings(value?: unknown): Settings {
     outputTarget: source.outputTarget === 'en' ? 'en' : 'zh',
     sendOnlyOnSuccess: typeof source.sendOnlyOnSuccess === 'boolean' ? source.sendOnlyOnSuccess : DEFAULT_SETTINGS.sendOnlyOnSuccess,
     showOriginal: typeof source.showOriginal === 'boolean' ? source.showOriginal : DEFAULT_SETTINGS.showOriginal,
+    originalStyle: source.originalStyle === 'doubleRule' || source.originalStyle === 'none' ? source.originalStyle : 'box',
   }
 }
 

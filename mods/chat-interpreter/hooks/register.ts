@@ -1,6 +1,6 @@
 import type { CommandRunInput, ElementTable, EngineInterface, PromptSubmitInput, Register, RenderElement, RenderInput } from 'claude-code'
 import { activeScopeKey, normalizeSettings, settingsKey, systemIsChinese } from './config'
-import type { Scope, Settings, TargetLanguage } from './config'
+import type { OriginalStyle, Scope, Settings, TargetLanguage } from './config'
 import { cacheName, decodeCache, planCacheCleanup } from './cache'
 import type { CacheRecord, InputTranslation, Reply } from './cache'
 import { DEEPSEEK_URL, translationRequest, translationResult } from './deepseek'
@@ -19,6 +19,8 @@ const WORDS = {
     keyReady: 'DeepSeek API key: configured', keyMissing: 'DeepSeek API key: missing (DEEPSEEK_API_KEY)',
     en: 'English', zh: 'Chinese', inputGroup: 'User input', outputGroup: 'Agent replies', general: 'General',
     translating: 'Translating…', hide: 'Hide translation', show: 'Show translation', sendAnyway: 'Send anyway',
+    identical: 'Translation matches the original.',
+    originalStyle: 'Original text divider', box: 'Box', doubleRule: 'Double line', none: 'None',
     cacheFailed: 'Translation history could not be saved.',
     originalLabel: 'Original', sentLabel: 'Sent to Claude', translationFailed: 'Translation failed; showing original text.',
     inputBlocked: 'Translation failed. The original input is still in the prompt box.',
@@ -33,6 +35,8 @@ const WORDS = {
     keyReady: 'DeepSeek API 密钥：已配置', keyMissing: 'DeepSeek API 密钥：缺少 DEEPSEEK_API_KEY',
     en: '英文', zh: '中文', inputGroup: '用户输入', outputGroup: 'Agent 回复', general: '通用',
     translating: '翻译中…', hide: '收起译文', show: '查看译文', sendAnyway: '仍然发送',
+    identical: '译文与原文相同。',
+    originalStyle: '原文分隔样式', box: '方框', doubleRule: '双横线', none: '无',
     cacheFailed: '无法保存翻译历史。',
     originalLabel: '原文', sentLabel: '发送给 Claude', translationFailed: '翻译失败，显示原文。',
     inputBlocked: '翻译失败，原始输入仍在输入框中。',
@@ -221,6 +225,9 @@ function drawSettings($: EngineInterface, state: InterpreterState, e: RenderInpu
     }),
     toggle($, state, Button, 'punctuation', w.punctuation, settings.punctuation),
     toggle($, state, Button, 'showOriginal', w.original, settings.showOriginal),
+    Button({ key: 'originalStyle', plain: true, label: `${w.originalStyle}: ${w[settings.originalStyle]} ↔`,
+      onPress: () => saveSetting($, state, 'originalStyle', NEXT_ORIGINAL_STYLE[settings.originalStyle]),
+    }),
     Text({ dimColor: true, children: [state.keyAvailable ? w.keyReady : w.keyMissing] }),
     section(w.inputGroup),
     toggle($, state, Button, 'translateInput', w.input, settings.translateInput),
@@ -263,6 +270,18 @@ function drawMessageText(elements: Pick<ElementTable, 'Markdown' | 'Text'>, text
   if (text.length <= 10000) return [elements.Markdown({ text, dimColor })]
   // Keep long text intact when the host's Markdown element cannot hold it.
   return (text.match(/[\s\S]{1,4000}/gu) ?? []).map(chunk => elements.Text({ dimColor, children: [chunk] }))
+}
+
+const NEXT_ORIGINAL_STYLE: Record<OriginalStyle, OriginalStyle> = { box: 'doubleRule', doubleRule: 'none', none: 'box' }
+
+function drawOriginal(elements: Pick<ElementTable, 'Box' | 'Text' | 'Markdown'>, label: string, text: string, style: OriginalStyle, columns: number): RenderElement {
+  const { Box, Text } = elements
+  const body = [Text({ bold: true, dimColor: true, children: [label] }), ...drawMessageText(elements, text, true)]
+  if (style === 'box') return Box({ flexDirection: 'column', marginTop: 1, borderStyle: 'single', borderDimColor: true, paddingX: 1, children: body })
+  if (style === 'doubleRule') {
+    body.unshift(Text({ dimColor: true, children: ['═'.repeat(Math.max(1, Math.min(48, columns - 8)))] }))
+  }
+  return Box({ flexDirection: 'column', marginTop: 1, children: body })
 }
 
 function findFinalRow(state: InterpreterState, answer: string): ResponseRow | undefined {
@@ -376,11 +395,32 @@ async function knownSkill($: EngineInterface, state: InterpreterState, command: 
   const indexPath = `${state.configDir}/plugins/installed_plugins.json`
   if (!await $.fs.exists(indexPath)) return false
   const index = JSON.parse(await $.fs.read(indexPath)) as { plugins?: Record<string, { installPath?: string }[]> }
-  for (const [id, entries] of Object.entries(index.plugins ?? {})) {
-    if (id !== plugin && id.split('@')[0] !== plugin) continue
-    for (const entry of entries) {
-      if (entry.installPath && await $.fs.exists(`${entry.installPath}/skills/${name}/SKILL.md`)) return true
+  const roots = new Set(Object.entries(index.plugins ?? {})
+    .filter(([id]) => id === plugin || id.split('@')[0] === plugin)
+    .flatMap(([, entries]) => entries.flatMap(entry => entry.installPath ? [entry.installPath] : [])))
+  for (const root of roots) {
+    if (await pluginProvidesSkill($, root, name)) return true
+  }
+  return false
+}
+
+async function pluginProvidesSkill($: EngineInterface, root: string, name: string): Promise<boolean> {
+  if (await $.fs.exists(`${root}/skills/${name}/SKILL.md`)) return true
+  try {
+    const manifest = JSON.parse(await $.fs.read(`${root}/.claude-plugin/plugin.json`)) as { skills?: unknown }
+    const declared = Array.isArray(manifest.skills) ? manifest.skills : [manifest.skills]
+    for (const value of declared) {
+      if (typeof value !== 'string') continue
+      const path = value.replace(/^\.\//, '').replace(/\/$/, '')
+      if (!path.split('/').every(part => /^[\w.-]+$/.test(part) && part !== '..' && part !== '.')) continue
+      const tail = path.split('/').at(-1)
+      const skillFile = tail === 'SKILL.md' ? path : `${path}/SKILL.md`
+      const skillFolder = skillFile.split('/').at(-2)
+      if (skillFolder === name && await $.fs.exists(`${root}/${skillFile}`)) return true
+      if (tail !== 'SKILL.md' && await $.fs.exists(`${root}/${path}/${name}/SKILL.md`)) return true
     }
+  } catch {
+    return false
   }
   return false
 }
@@ -547,10 +587,7 @@ export function register(on: Parameters<Register>[0]): void {
     return Box({ flexDirection: 'column', children: [
       Text({ bold: true, children: [w.sentLabel] }),
       ...drawMessageText(elements, item.sent),
-      ...(settings.showOriginal ? [
-        Text({ bold: true, dimColor: true, children: [w.originalLabel] }),
-        ...drawMessageText(elements, item.original, true),
-      ] : []),
+      ...(settings.showOriginal ? [drawOriginal(elements, w.originalLabel, item.original, settings.originalStyle, e.viewport?.columns ?? 40)] : []),
     ] })
   })
 
@@ -582,8 +619,9 @@ export function register(on: Parameters<Register>[0]): void {
     const w = words(state)
     const children: RenderElement[] = [rendered]
     if (changed && settings.showOriginal) {
-      children.push(Text({ bold: true, dimColor: true, children: [w.originalLabel] }), ...drawMessageText(elements, reply.original, true))
+      children.push(drawOriginal(elements, w.originalLabel, reply.original, settings.originalStyle, e.viewport?.columns ?? 40))
     }
+    if (translated === reply.original) children.push(Text({ dimColor: true, children: [w.identical] }))
     if (state.busy.has(key)) children.push(Text({ dimColor: true, children: [w.translating] }))
     else if (manual) children.push(Button({
       key: `translate:${row}`, plain: true, label: cached === undefined ? w.translateReply : state.hidden.has(key) ? w.show : w.hide,

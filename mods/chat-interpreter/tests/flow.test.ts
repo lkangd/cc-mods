@@ -16,6 +16,7 @@ type World = {
   files: Record<string, string>
   submitted: string[]
   commands: string[]
+  commandList: Array<{ name: string; description: string; source: 'user' | 'plugin'; plugin?: string }>
   waitForResponse?: Promise<void>
   fetchStarted?: () => void
 }
@@ -24,6 +25,7 @@ function host(on: On, saved: Record<string, unknown> = {}): World {
   const world: World = {
     store: { ...saved }, env: { LANG: 'en_US.UTF-8', HOME: '/synthetic/home' }, requests: [], toasts: [], rendered: [], dropNextPrompt: false,
     files: {}, submitted: [], commands: [],
+    commandList: [{ name: 'review', description: 'Review', source: 'user' }],
     response: { status: 200, ok: true, headers: {}, text: JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: 'Hello' } }] }) },
   }
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
@@ -43,7 +45,7 @@ function host(on: On, saved: Record<string, unknown> = {}): World {
     })),
   }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
-  on('command.list', () => ({ value: [{ name: 'review', description: 'Review', source: 'user' }] }))
+  on('command.list', () => ({ value: world.commandList }))
   on('command.run', (_$, e) => { world.commands.push(e.args); return { text: e.args } })
   on('prompt.read', () => ({ value: { text: 'existing draft', cursor: 0 } }))
   on('http.fetch', async (_$, e) => {
@@ -216,6 +218,29 @@ test('slash submissions stay intact and verified skills translate only typed arg
   expect(world.requests).toHaveLength(1)
 })
 
+test('translating a resumed reply to identical text shows the result without duplicating it', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  const original = '这段原文已经是中文。'
+  world.response.text = JSON.stringify({ choices: [{ message: { content: original } }] })
+  world.files['/synthetic/home/.claude/chat-interpreter-cache/resumed.first-row.reply.json'] = JSON.stringify({
+    kind: 'reply', row: 'first-row', value: { original, anchor: 'first-row', rows: ['first-row'] },
+  })
+  await $.session.start(SESSION)
+  await $.classic.SessionStart({ source: 'resume', session_id: 'resumed' })
+  const props = { text: original, isFirstOfReply: true }
+  const row = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage',
+    requestId: 'first-row', props } as never)
+  await row.press({ key: 'translate:first-row' })
+  await row.redraw(props as never)
+  expect(await row.find({ type: 'Text', text: 'Translation matches the original.' })).toBeDefined()
+  expect(await row.find({ type: 'Markdown', text: original })).toBeUndefined()
+  expect(world.requests).toHaveLength(1)
+  await row.press({ key: 'translate:first-row' })
+  await row.redraw(props as never)
+  expect(await row.find({ type: 'Text', text: 'Translation matches the original.' })).toBeUndefined()
+})
+
 test('an unmatched final answer offers a live manual translation without caching an unverified row', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
   world.env.DEEPSEEK_API_KEY = 'synthetic-key'
@@ -228,6 +253,24 @@ test('an unmatched final answer offers a live manual translation without caching
   await row.redraw(props as never)
   expect(world.rendered.at(-1)).toBe('你好')
   expect(Object.keys(world.files)).toEqual([])
+})
+
+test('a plugin skill declared in a nested manifest path translates its typed arguments', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
+  const command = 'mattpocock-skills:tdd'
+  const root = '/synthetic/installed/mattpocock-skills'
+  world.commandList.push({ name: command, description: 'TDD', source: 'plugin', plugin: 'mattpocock-skills' })
+  world.files['/synthetic/home/.claude/plugins/installed_plugins.json'] = JSON.stringify({
+    plugins: { 'mattpocock-skills@mattpocock': [{ installPath: root }] },
+  })
+  world.files[`${root}/.claude-plugin/plugin.json`] = JSON.stringify({ skills: ['./skills/engineering/tdd'] })
+  world.files[`${root}/skills/engineering/tdd/SKILL.md`] = 'This is the skill body.'
+  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.response.text = JSON.stringify({ choices: [{ message: { content: 'Is it normal?' } }] })
+  await $.session.start(SESSION)
+  const result = await $.command.run({ command, args: '正常吗？', origin: { kind: 'composer' },
+    presentation: { columns: 80, isFullscreen: true } } as never)
+  expect(result).toMatchObject({ text: 'Is it normal?' })
 })
 
 test('long input and reply originals remain visible after translation', async ($, on) => {
@@ -349,6 +392,9 @@ test('the settings pane persists project changes and switches to an independent 
   } as never)
   await pane.press({ key: 'translateInput' })
   expect(world.store[projectKey(REPO.root)]).toMatchObject({ translateInput: true })
+  expect(await pane.find({ key: 'originalStyle', text: /Box/ })).toBeDefined()
+  await pane.press({ key: 'originalStyle' })
+  expect(world.store[projectKey(REPO.root)]).toMatchObject({ originalStyle: 'doubleRule' })
   await pane.press({ key: 'scope' })
   expect(world.store[activeScopeKey(REPO.root)]).toBe('global')
   await pane.redraw({ title: 'Chat Interpreter', isFocused: true, bodyColumns: 70, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} } as never)
