@@ -4,7 +4,7 @@ import type { OriginalStyle, Scope, Settings, TargetLanguage } from './config'
 import { cacheName, decodeCache, planCacheCleanup } from './cache'
 import type { CacheRecord, InputTranslation, Reply } from './cache'
 import { DEEPSEEK_URL, translationRequest, translationResult } from './deepseek'
-import { convertPunctuation, hasTranslatableText } from './text'
+import { convertPunctuation, hasImageReference, hasTranslatableText } from './text'
 
 const PANE_ID = 'chat-interpreter-settings'
 const TRANSLATABLE_ORIGINS = new Set(['composer', 'bridge', 'sdk'])
@@ -63,6 +63,7 @@ type InterpreterState = {
   responseRows: ResponseRow[]
   replies: Map<string, Reply>
   replyRows: Map<string, string>
+  rowPrefixes: Map<string, string | null>
   unmatchedReplies: Map<string, string>
   outputRows: Map<string, string>
   hidden: Set<string>
@@ -89,11 +90,32 @@ function outputKey(row: string, target: TargetLanguage): string {
   return `${row}:${target}`
 }
 
+const ROW_UUID = /^([\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-)[\da-f]{12}$/i
+
+function indexRow(state: InterpreterState, row: string): void {
+  const prefix = ROW_UUID.exec(row)?.[1]
+  if (!prefix) return
+  const prior = state.rowPrefixes.get(prefix)
+  if (prior === undefined) state.rowPrefixes.set(prefix, row)
+  else if (prior !== row) state.rowPrefixes.set(prefix, null)
+}
+
+function transcriptRow(state: InterpreterState, requestId: string): string {
+  // The terminal replaces the UUID suffix with a block number for split messages.
+  const prefix = ROW_UUID.exec(requestId)?.[1]
+  if (prefix && /^\d{12}$/.test(requestId.slice(prefix.length))) {
+    return state.rowPrefixes.get(prefix) ?? requestId
+  }
+  return requestId
+}
+
 function restoreRecord(state: InterpreterState, record: CacheRecord): void {
   if (record.kind === 'input') {
+    indexRow(state, record.row)
     state.inputRows.set(record.row, record.value)
     const skill = record.value.skill
     if (skill?.replyRow) {
+      indexRow(state, skill.replyRow)
       const originals = state.skillReplies.get(skill.replyRow) ?? new Map<string, string>()
       originals.set(record.row, skill.originalArgs)
       state.skillReplies.set(skill.replyRow, originals)
@@ -102,7 +124,10 @@ function restoreRecord(state: InterpreterState, record: CacheRecord): void {
   if (record.kind === 'output') state.outputRows.set(outputKey(record.row, record.target), record.translated)
   if (record.kind === 'reply') {
     state.replies.set(record.row, record.value)
-    for (const row of record.value.rows) state.replyRows.set(row, record.row)
+    for (const row of record.value.rows) {
+      indexRow(state, row)
+      state.replyRows.set(row, record.row)
+    }
   }
 }
 
@@ -136,6 +161,7 @@ async function loadCache($: EngineInterface, state: InterpreterState, id?: strin
   state.skillReplies.clear()
   state.replies.clear()
   state.replyRows.clear()
+  state.rowPrefixes.clear()
   state.unmatchedReplies.clear()
   state.outputRows.clear()
   state.hidden.clear()
@@ -483,7 +509,7 @@ export function register(on: Parameters<Register>[0]): void {
     root: '', scope: 'project', isChinese: false, keyAvailable: false,
     settings: { project: normalizeSettings(), global: normalizeSettings() },
     pendingInputs: [], inputRows: new Map(), pendingSkillRows: [], skillReplies: new Map(), responseRows: [], outputRows: new Map(),
-    replies: new Map(), replyRows: new Map(), unmatchedReplies: new Map(), hidden: new Set(), busy: new Set(), inputBusy: 0, cacheWarning: false,
+    replies: new Map(), replyRows: new Map(), rowPrefixes: new Map(), unmatchedReplies: new Map(), hidden: new Set(), busy: new Set(), inputBusy: 0, cacheWarning: false,
   }
 
   on('session.start', async ($, e, next) => {
@@ -638,21 +664,24 @@ export function register(on: Parameters<Register>[0]): void {
   })
 
   on('ui.render', { component: 'UserMessage' }, async ($, e, next) => {
-    const item = state.inputRows.get(e.requestId)
+    const item = state.inputRows.get(e.requestId) ?? state.inputRows.get(transcriptRow(state, e.requestId))
     if (!item || item.skill) return next(e)
     const settings = current(state)
     const w = words(state)
     const elements = $.ui.resolve(e)
     const { Box, Text } = elements
+    // Keep the host's attachment row and its image controls intact.
+    const sent = hasImageReference(item.sent) ? [await next(e)] : drawMessageText(elements, item.sent)
     return Box({ flexDirection: 'column', children: [
       ...(settings.showOriginal ? [drawLabel(Text, w.sentLabel)] : []),
-      ...drawMessageText(elements, item.sent),
+      ...sent,
       ...(settings.showOriginal ? [drawOriginal(elements, w.originalLabel, item.original, settings.originalStyle, e.viewport?.columns ?? 40)] : []),
     ] })
   })
 
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
-    const row = state.replyRows.get(e.requestId) ??
+    const displayRow = state.replyRows.has(e.requestId) ? e.requestId : transcriptRow(state, e.requestId)
+    const row = state.replyRows.get(displayRow) ??
       (e.props.isFirstOfReply ? state.unmatchedReplies.get(e.props.text) : undefined)
     const reply = row ? state.replies.get(row) : undefined
     if (!row || !reply) {
@@ -674,7 +703,8 @@ export function register(on: Parameters<Register>[0]): void {
       ? convertPunctuation(reply.original, settings.outputTarget) : undefined
     const display = translated ?? punctuation
     const changed = display !== undefined && display !== reply.original
-    const anchor = e.requestId === reply.anchor && (reply.rows.length > 1 || e.props.isFirstOfReply || e.props.text === reply.original)
+    const anchor = (displayRow === reply.anchor || e.requestId === reply.anchor) &&
+      (reply.rows.length > 1 || e.props.isFirstOfReply || e.props.text === reply.original)
     if (!anchor) {
       const rendered = changed ? await next({ ...e, props: { ...e.props, text: '' } }) : await next(e)
       if (!state.skillReplies.has(e.requestId)) return rendered

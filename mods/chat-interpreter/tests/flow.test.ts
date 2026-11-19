@@ -201,6 +201,42 @@ test('resume restores input and reply cache with an actionable button and no req
   expect(world.requests).toHaveLength(0)
 })
 
+test('an image prompt and its reply keep their translation UI when Claude normalizes render IDs', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, translateOutput: true, outputMode: 'manual' } })
+  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  const inputId = '1f0e97b7-82dd-4768-ba10-be6f1ee002bd'
+  const replyId = '556e5bea-c008-478e-b607-f03a31f918b7'
+  const sent = '[Image #1] Explain the image.'
+  const original = '[Image #1] 请解释图片。'
+  const answer = 'The attached image is a test.'
+  world.response.text = JSON.stringify({ choices: [{ message: { content: '__CI_KEEP_0__ Explain the image.' } }] })
+  await $.session.start(SESSION)
+  const submitted = await $.prompt.submit({ text: original, attachments: [{ type: 'image', mediaType: 'image/png' }],
+    origin: { kind: 'composer' }, wait: false })
+  expect(submitted).toMatchObject({ text: sent })
+  await $.session.append({ uuid: inputId, door: 'prompt', origin: { kind: 'composer' },
+    message: { type: 'user', role: 'user', content: [
+      { type: 'text', text: sent },
+      { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo=' } },
+    ] } })
+  await $.session.append({ uuid: replyId, door: 'response', origin: { kind: 'model', model: 'synthetic' },
+    message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text: answer }] } })
+  await $.turn.complete({ answer, durationMs: 1, isAborted: false, turnId: 'image-turn', reason: 'answer' })
+  await $.classic.SessionStart({ source: 'resume', session_id: 'other-session' })
+  await $.classic.SessionStart({ source: 'resume', session_id: 'session-1' })
+  const input = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'UserMessage',
+    requestId: '1f0e97b7-82dd-4768-ba10-000000000000', props: { text: sent, origin: { kind: 'composer' }, isExpanded: false } } as never)
+  expect(await input.find({ type: 'Markdown', text: original })).toBeDefined()
+  expect(world.rendered).toContain(sent)
+  const props = { text: answer, isFirstOfReply: true }
+  const reply = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage',
+    requestId: '556e5bea-c008-478e-b607-000000000000', props } as never)
+  world.response.text = JSON.stringify({ choices: [{ message: { content: '附件是一张测试图片。' } }] })
+  await reply.press({ key: `translate:${replyId}` })
+  await reply.redraw(props as never)
+  expect(world.rendered.at(-1)).toBe('附件是一张测试图片。')
+})
+
 test('slash submissions stay intact and verified skills translate only typed arguments', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
   world.env.DEEPSEEK_API_KEY = 'synthetic-key'

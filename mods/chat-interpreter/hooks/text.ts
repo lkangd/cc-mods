@@ -1,12 +1,20 @@
 import type { TargetLanguage } from './config'
 
 const TECHNICAL = /\b[A-Za-z][A-Za-z0-9+.-]*:[^\s<>()[\]]+|(?:@?\.\.?\/|~\/|\/)[\w.@+~/-]+|\b@?(?:[\w.-]+\/)+[\w.-]+\b|\b[A-Za-z]:\\(?:[^\s\\]+\\)*[^\s\\]+|(?<![\w.])(?:\.?[\w-]+)(?:\.[\w-]+)+(?![\w])/g
+const IMAGE_REFERENCE = /\[Image #\d+\]/
+
+export function hasImageReference(text: string): boolean {
+  return IMAGE_REFERENCE.test(text)
+}
 
 export type TextPart = { text: string; protected: boolean }
 
 export function splitProtected(text: string): TextPart[] {
   const ranges: Array<[number, number]> = []
   const protect = (start: number, end: number): void => { if (end > start) ranges.push([start, end]) }
+  for (const match of text.matchAll(new RegExp(IMAGE_REFERENCE.source, 'g'))) {
+    protect(match.index, match.index + match[0].length)
+  }
 
   const fenceOpen = /^ {0,3}(`{3,}|~{3,})[^\n]*(?:\n|$)/gm
   for (const match of text.matchAll(fenceOpen)) {
