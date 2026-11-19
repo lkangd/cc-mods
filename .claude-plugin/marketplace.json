@@ -19,7 +19,7 @@
       "name": "chat-interpreter",
       "source": "./mods/chat-interpreter",
       "description": "Translate user input and display translated final replies with independent project and global settings.",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "author": {
         "name": "cc-mods contributors"
       }

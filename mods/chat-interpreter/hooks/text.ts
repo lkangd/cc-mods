@@ -9,7 +9,7 @@ export function hasImageReference(text: string): boolean {
 
 export type TextPart = { text: string; protected: boolean }
 
-export function splitProtected(text: string): TextPart[] {
+export function splitProtected(text: string, mergeAdjacent = true): TextPart[] {
   const ranges: Array<[number, number]> = []
   const protect = (start: number, end: number): void => { if (end > start) ranges.push([start, end]) }
   for (const match of text.matchAll(new RegExp(IMAGE_REFERENCE.source, 'g'))) {
@@ -53,7 +53,7 @@ export function splitProtected(text: string): TextPart[] {
   const merged: Array<[number, number]> = []
   for (const [start, end] of ranges) {
     const last = merged.at(-1)
-    if (last && start <= last[1]) last[1] = Math.max(last[1], end)
+    if (last && (start < last[1] || (mergeAdjacent && start === last[1]))) last[1] = Math.max(last[1], end)
     else merged.push([start, end])
   }
   const parts: TextPart[] = []
@@ -65,6 +65,24 @@ export function splitProtected(text: string): TextPart[] {
   }
   if (from < text.length) parts.push({ text: text.slice(from), protected: false })
   return parts
+}
+
+/** Split at host image references outside other protected spans, such as code. */
+export function splitImageReferences(text: string): TextPart[] {
+  if (!hasImageReference(text)) return [{ text, protected: false }]
+  const chunks: TextPart[] = []
+  let draft = ''
+  for (const part of splitProtected(text, false)) {
+    if (part.protected && /^\[Image #\d+\]$/.test(part.text)) {
+      if (draft) chunks.push({ text: draft, protected: false })
+      chunks.push(part)
+      draft = ''
+    } else {
+      draft += part.text
+    }
+  }
+  if (draft) chunks.push({ text: draft, protected: false })
+  return chunks
 }
 
 const ZH_TO_EN = new Map([

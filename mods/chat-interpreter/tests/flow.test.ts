@@ -209,7 +209,8 @@ test('an image prompt and its reply keep their translation UI when Claude normal
   const sent = '[Image #1] Explain the image.'
   const original = '[Image #1] 请解释图片。'
   const answer = 'The attached image is a test.'
-  world.response.text = JSON.stringify({ choices: [{ message: { content: '__CI_KEEP_0__ Explain the image.' } }] })
+  // The translator returns only prose. The host's image reference stays local.
+  world.response.text = JSON.stringify({ choices: [{ message: { content: 'Explain the image.' } }] })
   await $.session.start(SESSION)
   const submitted = await $.prompt.submit({ text: original, attachments: [{ type: 'image', mediaType: 'image/png' }],
     origin: { kind: 'composer' }, wait: false })

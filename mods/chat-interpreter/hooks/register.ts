@@ -4,7 +4,7 @@ import type { OriginalStyle, Scope, Settings, TargetLanguage } from './config'
 import { cacheName, decodeCache, planCacheCleanup } from './cache'
 import type { CacheRecord, InputTranslation, Reply } from './cache'
 import { DEEPSEEK_URL, translationRequest, translationResult } from './deepseek'
-import { convertPunctuation, hasImageReference, hasTranslatableText } from './text'
+import { convertPunctuation, hasImageReference, hasTranslatableText, splitImageReferences } from './text'
 
 const PANE_ID = 'chat-interpreter-settings'
 const TRANSLATABLE_ORIGINS = new Set(['composer', 'bridge', 'sdk'])
@@ -228,12 +228,29 @@ async function switchScope($: EngineInterface, state: InterpreterState, scope: s
   $.ui.invalidate('ui.render')
 }
 
-async function translate($: EngineInterface, text: string, target: TargetLanguage): Promise<string> {
-  const key = await $.env.get('DEEPSEEK_API_KEY')
-  if (!key) throw new Error('DEEPSEEK_API_KEY is missing')
+async function translateText($: EngineInterface, key: string, text: string, target: TargetLanguage): Promise<string> {
   const request = translationRequest(key, text, target)
   const response = await $.http.fetch(DEEPSEEK_URL, request.init)
   return translationResult(response, request.values)
+}
+
+async function translate($: EngineInterface, text: string, target: TargetLanguage): Promise<string> {
+  const key = await $.env.get('DEEPSEEK_API_KEY')
+  if (!key) throw new Error('DEEPSEEK_API_KEY is missing')
+  if (!hasImageReference(text)) return translateText($, key, text, target)
+  // The original image references must reach Claude even if DeepSeek omits them.
+  const result: string[] = []
+  for (const part of splitImageReferences(text)) {
+    if (part.protected || !hasTranslatableText(part.text)) {
+      result.push(part.text)
+      continue
+    }
+    const core = part.text.trim()
+    const start = part.text.indexOf(core)
+    const translated = await translateText($, key, core, target)
+    result.push(part.text.slice(0, start), translated.trim(), part.text.slice(start + core.length))
+  }
+  return result.join('')
 }
 
 function showFailure($: EngineInterface, state: InterpreterState, kind: 'translationFailed' | 'inputBlocked' | 'inputFallback'): void {
