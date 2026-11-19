@@ -1,6 +1,6 @@
 {
   "name": "chat-interpreter",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Translate user prompts and final agent replies between Chinese and English.",
   "author": { "name": "cc-mods contributors" }
 }

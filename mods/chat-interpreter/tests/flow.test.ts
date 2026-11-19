@@ -85,13 +85,15 @@ test('a configured project loads in a new session and sends the translated input
   expect(world.requests).toEqual(['https://api.deepseek.com/chat/completions'])
 })
 
-test('missing key blocks submission when success is required', async ($, on) => {
+test('a new session without a key reports the cause when it blocks an image prompt', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
   await $.session.start(SESSION)
-  const result = await $.prompt.submit({ text: '你好', origin: { kind: 'composer' }, wait: false })
-  expect(result).toHaveProperty('drop')
+  const result = await $.prompt.submit({ text: '[Image #1]请解释 `foo()`。',
+    attachments: [{ type: 'image', mediaType: 'image/png' }], origin: { kind: 'composer' }, wait: false })
+  const reason = 'Missing DEEPSEEK_API_KEY in this Claude Code process. Translation failed. The original input is still in the prompt box.'
+  expect(result).toMatchObject({ drop: reason })
   expect(world.requests).toHaveLength(0)
-  expect(world.toasts).toHaveLength(1)
+  expect(world.toasts).toEqual([reason])
 })
 
 test('missing key falls back to original when the success gate is off', async ($, on) => {
@@ -99,14 +101,17 @@ test('missing key falls back to original when the success gate is off', async ($
   await $.session.start(SESSION)
   const result = await $.prompt.submit({ text: '你好', origin: { kind: 'composer' }, wait: false })
   expect(result).toMatchObject({ text: '你好' })
-  expect(world.toasts).toHaveLength(1)
+  expect(world.toasts).toEqual([expect.stringContaining('DEEPSEEK_API_KEY')])
 })
 
 test('translation failure sends the original even when punctuation conversion is on', async ($, on) => {
-  host(on, { [projectKey(REPO.root)]: { translateInput: true, punctuation: true, sendOnlyOnSuccess: false } })
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, punctuation: true, sendOnlyOnSuccess: false } })
+  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.response = { ...world.response, status: 503, ok: false }
   await $.session.start(SESSION)
   const result = await $.prompt.submit({ text: '你好，', origin: { kind: 'composer' }, wait: false })
   expect(result).toMatchObject({ text: '你好，' })
+  expect(world.toasts).toEqual(['Translation failed; sending original text.'])
 })
 
 test('the final answer is translated for display while its stored row remains original', async ($, on) => {
@@ -381,6 +386,7 @@ test('failed prompt and skill translations can send their original text once', a
   const prompt = await $.prompt.submit({ text: '你好，缓存', origin: { kind: 'composer' }, wait: false })
   expect(prompt).toHaveProperty('drop')
   await band.redraw(bandProps as never)
+  expect(await band.find({ type: 'Text', text: /^Missing DEEPSEEK_API_KEY / })).toBeDefined()
   await band.press({ key: 'send-anyway' })
   expect(world.submitted).toEqual(['你好，缓存'])
   await band.redraw(bandProps as never)

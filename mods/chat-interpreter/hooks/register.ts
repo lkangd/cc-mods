@@ -17,6 +17,7 @@ const WORDS = {
     automatic: 'Automatic', manual: 'Manual', translateReply: 'Translate reply',
     onlySuccess: 'Send input only after successful translation', original: 'Show original text',
     keyReady: 'DeepSeek API key: configured', keyMissing: 'DeepSeek API key: missing (DEEPSEEK_API_KEY)',
+    missingKeyFailure: 'Missing DEEPSEEK_API_KEY in this Claude Code process.',
     en: 'English', zh: 'Chinese', inputGroup: 'User input', outputGroup: 'Agent replies', general: 'General',
     translating: 'Translating…', hide: 'Hide translation', show: 'Show translation', sendAnyway: 'Send anyway',
     identical: 'Translation matches the original.',
@@ -34,6 +35,7 @@ const WORDS = {
     automatic: '自动', manual: '手动', translateReply: '翻译此回复',
     onlySuccess: '翻译成功才发送输入', original: '显示原文',
     keyReady: 'DeepSeek API 密钥：已配置', keyMissing: 'DeepSeek API 密钥：缺少 DEEPSEEK_API_KEY',
+    missingKeyFailure: '缺少 DEEPSEEK_API_KEY，当前 Claude Code 进程无法翻译。',
     en: '英文', zh: '中文', inputGroup: '用户输入', outputGroup: 'Agent 回复', general: '通用',
     translating: '翻译中…', hide: '收起译文', show: '查看译文', sendAnyway: '仍然发送',
     identical: '译文与原文相同。',
@@ -234,8 +236,9 @@ async function translateText($: EngineInterface, key: string, text: string, targ
   return translationResult(response, request.values)
 }
 
-async function translate($: EngineInterface, text: string, target: TargetLanguage): Promise<string> {
+async function translate($: EngineInterface, state: InterpreterState, text: string, target: TargetLanguage): Promise<string> {
   const key = await $.env.get('DEEPSEEK_API_KEY')
+  state.keyAvailable = Boolean(key)
   if (!key) throw new Error('DEEPSEEK_API_KEY is missing')
   if (!hasImageReference(text)) return translateText($, key, text, target)
   // The original image references must reach Claude even if DeepSeek omits them.
@@ -253,8 +256,9 @@ async function translate($: EngineInterface, text: string, target: TargetLanguag
   return result.join('')
 }
 
-function showFailure($: EngineInterface, state: InterpreterState, kind: 'translationFailed' | 'inputBlocked' | 'inputFallback'): void {
-  $.ui.toast(words(state)[kind])
+function failureMessage(state: InterpreterState, kind: 'translationFailed' | 'inputBlocked' | 'inputFallback'): string {
+  const w = words(state)
+  return state.keyAvailable ? w[kind] : `${w.missingKeyFailure} ${w[kind]}`
 }
 
 function toggle($: EngineInterface, state: InterpreterState, Button: ElementTable['Button'], key: 'punctuation' | 'translateInput' | 'translateOutput' | 'sendOnlyOnSuccess' | 'showOriginal', label: string, enabled: boolean): RenderElement {
@@ -384,13 +388,13 @@ async function translateReply($: EngineInterface, state: InterpreterState, row: 
   $.ui.invalidate('ui.render')
   try {
     const text = settings.punctuation ? convertPunctuation(reply.original, target) : reply.original
-    const translated = await translate($, text, target)
+    const translated = await translate($, state, text, target)
     if (state.sessionId === session) {
       await saveRecord($, state, { kind: 'output', row, target, translated })
       state.hidden.delete(key)
     }
   } catch {
-    showFailure($, state, 'translationFailed')
+    $.ui.toast(failureMessage(state, 'translationFailed'))
   } finally {
     state.busy.delete(key)
     $.ui.invalidate('ui.render')
@@ -414,7 +418,7 @@ async function translateInput($: EngineInterface, state: InterpreterState, text:
   state.inputBusy++
   $.ui.invalidate('ui.render')
   try {
-    return await translate($, text, target)
+    return await translate($, state, text, target)
   } finally {
     state.inputBusy--
     $.ui.invalidate('ui.render')
@@ -428,7 +432,7 @@ async function processInput($: EngineInterface, state: InterpreterState, origina
     return await translateInput($, state, text, settings.inputTarget)
   } catch {
     if (settings.sendOnlyOnSuccess) return undefined
-    showFailure($, state, 'inputFallback')
+    $.ui.toast(failureMessage(state, 'inputFallback'))
     return original
   }
 }
@@ -552,7 +556,7 @@ export function register(on: Parameters<Register>[0]): void {
     if (e.command === 'chat-interpreter') return next(e)
     const settings = current(state)
     const args = await runSkill($, state, e, settings)
-    if (args === undefined) return { text: words(state).inputBlocked }
+    if (args === undefined) return { text: failureMessage(state, 'inputBlocked') }
     const pending: PendingInput | undefined = args !== e.args ? {
       original: `/${e.command} ${e.args}`,
       sent: `/${e.command} ${args}`,
@@ -579,7 +583,7 @@ export function register(on: Parameters<Register>[0]): void {
     const feedback = state.inputBusy
       ? Text({ dimColor: true, children: [words(state).translating] })
       : Box({ flexDirection: 'row', columnGap: 1, children: [
-        Text({ dimColor: true, children: [words(state).inputBlocked] }),
+        Text({ dimColor: true, children: [failureMessage(state, 'inputBlocked')] }),
         Button({ key: 'send-anyway', label: words(state).sendAnyway, plain: true,
           onPress: () => blocked ? resendBlocked($, state, blocked) : undefined }),
       ] })
@@ -606,10 +610,11 @@ export function register(on: Parameters<Register>[0]): void {
     const target = settings.inputTarget
     const sent = await processInput($, state, original, settings)
     if (sent === undefined) {
-      showFailure($, state, 'inputBlocked')
+      const reason = failureMessage(state, 'inputBlocked')
+      $.ui.toast(reason)
       state.blocked = { kind: 'prompt', text: original, attachments: e.attachments }
       $.ui.invalidate('ui.render')
-      return { drop: words(state).inputBlocked }
+      return { drop: reason }
     }
     const pending = sent !== original ? { original, sent, target } : undefined
     if (pending) enqueuePendingInput(state, pending)
