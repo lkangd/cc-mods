@@ -111,6 +111,14 @@ function transcriptRow(state: InterpreterState, requestId: string): string {
   return requestId
 }
 
+function visibleReply(state: InterpreterState, requestId: string, text: string): Reply | undefined {
+  const prefix = ROW_UUID.exec(requestId)?.[1]
+  if (!prefix || !hasTranslatableText(text)) return undefined
+  // Pending rows are grouped when their turn completes. Older rows can use their exact render ID.
+  if (state.responseRows.some(row => row.uuid.startsWith(prefix))) return undefined
+  return { original: text, anchor: requestId, rows: [requestId] }
+}
+
 function restoreRecord(state: InterpreterState, record: CacheRecord): void {
   if (record.kind === 'input') {
     indexRow(state, record.row)
@@ -184,13 +192,22 @@ async function loadCache($: EngineInterface, state: InterpreterState, id?: strin
 }
 
 async function saveRecord($: EngineInterface, state: InterpreterState, record: CacheRecord): Promise<void> {
-  restoreRecord(state, record)
-  if (!state.cacheDir || !state.sessionId) return
-  const name = cacheName(state.sessionId, record)
-  if (!name) return
+  await saveRecords($, state, [record])
+}
+
+async function saveRecords($: EngineInterface, state: InterpreterState, records: CacheRecord[]): Promise<void> {
+  for (const record of records) restoreRecord(state, record)
+  const { cacheDir, sessionId } = state
+  if (!cacheDir || !sessionId) return
+  let written = false
   try {
-    await $.fs.write(`${state.cacheDir}/${name}`, JSON.stringify(record))
-    await cleanCache($, state.cacheDir)
+    for (const record of records) {
+      const name = cacheName(sessionId, record)
+      if (!name) continue
+      await $.fs.write(`${cacheDir}/${name}`, JSON.stringify(record))
+      written = true
+    }
+    if (written) await cleanCache($, cacheDir)
   } catch {
     if (!state.cacheWarning) $.ui.toast(words(state).cacheFailed)
     state.cacheWarning = true
@@ -371,12 +388,31 @@ function withSkillOriginals(elements: ElementTable, state: InterpreterState, e: 
   return Box({ flexDirection: 'column', rowGap: 1, children: [...children, rendered] })
 }
 
-function findFinalRow(state: InterpreterState, answer: string): ResponseRow | undefined {
-  for (let index = state.responseRows.length - 1; index >= 0; index--) {
-    const row = state.responseRows[index]
+function findFinalRow(rows: readonly ResponseRow[], answer: string): ResponseRow | undefined {
+  for (let index = rows.length - 1; index >= 0; index--) {
+    const row = rows[index]
     if (row && (row.text === answer || row.blocks.at(-1) === answer)) return row
   }
   return undefined
+}
+
+function replyRecord(row: ResponseRow, group: ResponseRow[]): Extract<CacheRecord, { kind: 'reply' }> {
+  return { kind: 'reply', row: row.uuid, value: {
+    original: group.map(item => item.text).join('\n\n'),
+    anchor: row.uuid,
+    rows: group.map(item => item.uuid),
+  } }
+}
+
+function manualReplyRecords(rows: readonly ResponseRow[]): CacheRecord[] {
+  const groups = new Map<string, ResponseRow[]>()
+  for (const row of rows) {
+    const key = row.messageId ?? row.uuid
+    const group = groups.get(key)
+    if (group) group.push(row)
+    else groups.set(key, [row])
+  }
+  return [...groups.values()].map(group => replyRecord(group.at(-1)!, group))
 }
 
 async function translateReply($: EngineInterface, state: InterpreterState, row: string, reply: Reply, settings: Settings): Promise<void> {
@@ -641,7 +677,6 @@ export function register(on: Parameters<Register>[0]): void {
       const blocks = textBlocks(e.message)
       const messageId = 'id' in e.message && typeof e.message.id === 'string' ? e.message.id : undefined
       if (blocks.length) state.responseRows.push({ uuid: e.uuid, text: blocks.join(''), blocks, messageId })
-      if (state.responseRows.length > 100) state.responseRows.shift()
     }
     return next(e)
   })
@@ -661,17 +696,27 @@ export function register(on: Parameters<Register>[0]): void {
   })
 
   on('turn.complete', async ($, e, next) => {
+    if (e.agentId) return next(e)
     const session = state.sessionId
-    const answer = !e.agentId && e.reason === 'answer' ? e.answer : undefined
-    const row = answer ? findFinalRow(state, answer) : undefined
-    const group = row?.messageId ? state.responseRows.filter(item => item.messageId === row.messageId) : row ? [row] : []
-    if (!e.agentId) {
-      state.responseRows.length = 0
-      state.pendingSkillRows.length = 0
-    }
+    const rows = state.responseRows.splice(0)
+    state.pendingSkillRows.length = 0
+    const answer = e.reason === 'answer' ? e.answer : undefined
+    const row = answer ? findFinalRow(rows, answer) : undefined
     const result = await next(e)
-    if (!answer || state.sessionId !== session) return result
+    if (state.sessionId !== session) return result
     const settings = current(state)
+    if (settings.translateOutput && settings.outputMode === 'manual') {
+      if (answer && !row) {
+        const id = `turn:${e.turnId}`
+        state.unmatchedReplies.set(answer, id)
+        restoreRecord(state, { kind: 'reply', row: id, value: { original: answer, anchor: '', rows: [] } })
+      }
+      await saveRecords($, state, manualReplyRecords(rows))
+      $.ui.invalidate('ui.render')
+      return result
+    }
+    if (!answer) return result
+    const group = row?.messageId ? rows.filter(item => item.messageId === row.messageId) : row ? [row] : []
     const id = row?.uuid ?? `turn:${e.turnId}`
     const reply = { original: row ? group.map(item => item.text).join('\n\n') : answer, anchor: row?.uuid ?? '', rows: group.map(item => item.uuid) }
     const record = { kind: 'reply', row: id, value: reply } as const
@@ -692,21 +737,27 @@ export function register(on: Parameters<Register>[0]): void {
     const w = words(state)
     const elements = $.ui.resolve(e)
     const { Box, Text } = elements
-    // Keep the host's attachment row and its image controls intact.
-    const sent = hasImageReference(item.sent) ? [await next(e)] : drawMessageText(elements, item.sent)
+    const sent = hasImageReference(item.sent) ? await next(e) : undefined
+    if (sent && !settings.showOriginal) return sent
+    // The native terminal row includes a blank line before the image prompt.
+    const imageRow = sent && e.surface === 'terminal' ? Box({ marginTop: -1, children: [sent] }) : sent
     return Box({ flexDirection: 'column', children: [
       ...(settings.showOriginal ? [drawLabel(Text, w.sentLabel)] : []),
-      ...sent,
+      ...(imageRow ? [imageRow] : drawMessageText(elements, item.sent)),
       ...(settings.showOriginal ? [drawOriginal(elements, w.originalLabel, item.original, settings.originalStyle, e.viewport?.columns ?? 40)] : []),
     ] })
   })
 
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
+    const settings = current(state)
     const displayRow = state.replyRows.has(e.requestId) ? e.requestId : transcriptRow(state, e.requestId)
-    const row = state.replyRows.get(displayRow) ??
+    const registeredRow = state.replyRows.get(displayRow) ??
       (e.props.isFirstOfReply ? state.unmatchedReplies.get(e.props.text) : undefined)
-    const reply = row ? state.replies.get(row) : undefined
-    if (!row || !reply) {
+    const row = registeredRow ?? e.requestId
+    const reply = registeredRow ? state.replies.get(registeredRow)
+      : settings.translateOutput && settings.outputMode === 'manual'
+        ? visibleReply(state, e.requestId, e.props.text) : undefined
+    if (!reply) {
       if (!state.skillReplies.has(e.requestId)) return next(e)
       return withSkillOriginals($.ui.resolve(e), state, e, await next(e))
     }
@@ -715,7 +766,6 @@ export function register(on: Parameters<Register>[0]): void {
       state.replyRows.set(e.requestId, row)
       state.unmatchedReplies.delete(e.props.text)
     }
-    const settings = current(state)
     const key = outputKey(row, settings.outputTarget)
     const cached = state.outputRows.get(key)
     const translatable = settings.translateOutput && hasTranslatableText(reply.original)

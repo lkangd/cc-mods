@@ -48,7 +48,7 @@ Submitted slash commands stay intact. For skills identified from a `SKILL.md` in
 
 Output translation affects the display, and Claude retains the original reply. **Output translation** starts in **Automatic** mode. The final reply appears in its original language while it streams and changes after translation completes.
 
-In **Manual** mode, a **Translate reply** button appears below each eligible new final agent reply. The first press translates it. Subsequent presses hide or show the saved translation. A resumed conversation displays its cached translation and retains the button. If both texts are identical, the reply appears once with a note. Enable **Translate agent output** to use either mode.
+In **Manual** mode, a **Translate reply** button appears below each eligible agent reply after the turn ends, including earlier replies from the same turn. When you resume a conversation, visible reply text blocks without a saved reply record also get a button. The first press translates the selected reply or text block. Subsequent presses hide or show the saved translation. A resumed conversation displays its cached translation and retains the button. If both texts are identical, the reply appears once with a note. Enable **Translate agent output** to use either mode.
 
 ### Bilingual display
 
@@ -62,7 +62,7 @@ Code fences, inline code, paths, and URLs are preserved during translation.
 
 The plugin sends text for translation to DeepSeek's chat-completions endpoint using the `deepseek-chat` model. It reads `DEEPSEEK_API_KEY` from the process environment and never stores the key.
 
-Translation history is stored in JSON files under `chat-interpreter-cache` in the Claude Code configuration directory. It contains input translations and final replies from version 0.5.0 onward. Cached output is looked up by conversation, message, and target language. Cleanup runs when opening a conversation and after writes. It deletes files older than six calendar months. Once the cache exceeds 1 GB, it drops the oldest files until 900 MB or less remains. On macOS and Linux, cleanup uses the host's `rm` command.
+Translation history is stored in JSON files under `chat-interpreter-cache` in the Claude Code configuration directory. It contains input translations and saved reply records. Cached output is looked up by conversation, message, and target language. Cleanup runs when opening a conversation and after writes. It deletes files older than six calendar months. Once the cache exceeds 1 GB, it drops the oldest files until 900 MB or less remains. On macOS and Linux, cleanup uses the host's `rm` command.
 
 ## Known limits
 

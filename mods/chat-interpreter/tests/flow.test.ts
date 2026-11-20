@@ -119,6 +119,10 @@ test('the final answer is translated for display while its stored row remains or
   world.env.DEEPSEEK_API_KEY = 'synthetic-key'
   world.response.text = JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '你好' } }] })
   await $.session.start(SESSION)
+  await $.session.append({
+    uuid: 'progress-row', door: 'response', origin: { kind: 'model', model: 'synthetic' },
+    message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text: 'I will check first.' }] },
+  })
   const stored = await $.session.append({
     uuid: 'answer-row', door: 'response', origin: { kind: 'model', model: 'synthetic' },
     message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
@@ -127,6 +131,7 @@ test('the final answer is translated for display while its stored row remains or
   await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage', requestId: 'answer-row', props: { text: 'Hello', isFirstOfReply: true } } as never)
   expect(stored.message?.content).toEqual([{ type: 'text', text: 'Hello' }])
   expect(world.rendered.at(-1)).toBe('你好')
+  expect(world.requests).toHaveLength(1)
 })
 
 test('manual output translation waits for the reply button', async ($, on) => {
@@ -163,6 +168,85 @@ test('manual output translation waits for the reply button', async ($, on) => {
   expect(world.rendered.at(-1)).toBe('Hello')
   expect(await row.find({ type: 'Markdown', text: 'Hello' })).toBeUndefined()
   await row.press({ key: 'translate:manual-row' })
+  expect(world.requests).toHaveLength(1)
+})
+
+test('manual mode can translate each visible reply in the same turn independently after resume', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  await $.session.start(SESSION)
+  for (const [uuid, text] of [['progress', 'I will check the files.'], ['final', 'The files are ready.']] as const) {
+    await $.session.append({
+      uuid, door: 'response', origin: { kind: 'model', model: 'synthetic' },
+      message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text }] },
+    })
+  }
+  await $.turn.complete({ answer: 'The files are ready.', durationMs: 1, isAborted: false, turnId: 'multi-reply', reason: 'answer' })
+  await $.classic.SessionStart({ source: 'resume', session_id: 'other-session' })
+  await $.classic.SessionStart({ source: 'resume', session_id: 'session-1' })
+
+  const progressProps = { text: 'I will check the files.', isFirstOfReply: true }
+  const finalProps = { text: 'The files are ready.', isFirstOfReply: true }
+  const progress = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage',
+    requestId: 'progress', props: progressProps } as never)
+  const final = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage',
+    requestId: 'final', props: finalProps } as never)
+  expect(await progress.find({ key: 'translate:progress' })).toBeDefined()
+  expect(await final.find({ key: 'translate:final' })).toBeDefined()
+  expect(world.requests).toHaveLength(0)
+
+  world.response.text = JSON.stringify({ choices: [{ message: { content: '我来检查文件。' } }] })
+  await progress.press({ key: 'translate:progress' })
+  await progress.redraw(progressProps as never)
+  expect(world.rendered.at(-1)).toBe('我来检查文件。')
+  await final.redraw(finalProps as never)
+  expect(world.rendered.at(-1)).toBe('The files are ready.')
+  expect(world.requests).toHaveLength(1)
+  world.response.text = JSON.stringify({ choices: [{ message: { content: '文件已准备好。' } }] })
+  await final.press({ key: 'translate:final' })
+  await final.redraw(finalProps as never)
+  expect(world.rendered.at(-1)).toBe('文件已准备好。')
+  expect(world.requests).toHaveLength(2)
+})
+
+test('resumed replies without records can be translated and cached by visible block', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  await $.session.start(SESSION)
+  await $.classic.SessionStart({ source: 'resume', session_id: 'older-session' })
+  const mount = (requestId: string, text: string, isFirstOfReply: boolean) => $.ui.mount({
+    plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage',
+    requestId, props: { text, isFirstOfReply },
+  } as never)
+  const firstId = '12345678-abcd-4321-aaaa-000000000000'
+  const secondId = '12345678-abcd-4321-aaaa-000000000001'
+  const first = await mount(firstId, 'I checked the files.', true)
+  const second = await mount(secondId, 'The files are ready.', false)
+  const streaming = await mount('placeholder', 'This text is still streaming.', true)
+  expect(await first.find({ key: `translate:${firstId}` })).toBeDefined()
+  expect(await second.find({ key: `translate:${secondId}` })).toBeDefined()
+  expect(await streaming.find({ key: 'translate:placeholder' })).toBeUndefined()
+  expect(world.requests).toHaveLength(0)
+  expect(Object.keys(world.files)).toHaveLength(0)
+
+  world.response.text = JSON.stringify({ choices: [{ message: { content: '我检查了文件。' } }] })
+  await first.press({ key: `translate:${firstId}` })
+  await first.redraw({ text: 'I checked the files.', isFirstOfReply: true } as never)
+  expect(world.rendered.at(-1)).toBe('我检查了文件。')
+  await second.redraw({ text: 'The files are ready.', isFirstOfReply: false } as never)
+  expect(world.rendered.at(-1)).toBe('The files are ready.')
+  expect(world.requests).toHaveLength(1)
+
+  await first.unmount()
+  await second.unmount()
+  await $.classic.SessionStart({ source: 'resume', session_id: 'session-1' })
+  await $.classic.SessionStart({ source: 'resume', session_id: 'older-session' })
+  const reopenedFirst = await mount(firstId, 'I checked the files.', true)
+  expect(world.rendered.at(-1)).toBe('我检查了文件。')
+  expect(await reopenedFirst.find({ key: `translate:${firstId}` })).toBeDefined()
+  const reopenedSecond = await mount(secondId, 'The files are ready.', false)
+  expect(world.rendered.at(-1)).toBe('The files are ready.')
+  expect(await reopenedSecond.find({ key: `translate:${secondId}` })).toBeDefined()
   expect(world.requests).toHaveLength(1)
 })
 
