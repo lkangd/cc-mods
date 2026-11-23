@@ -7,6 +7,7 @@ import { DEEPSEEK_URL, translationRequest, translationResult } from './deepseek'
 import { convertPunctuation, hasImageReference, hasTranslatableText, splitImageReferences } from './text'
 
 const PANE_ID = 'chat-interpreter-settings'
+const REPLY_LAYOUT_DELAY_MS = 100
 const TRANSLATABLE_ORIGINS = new Set(['composer', 'bridge', 'sdk'])
 
 const WORDS = {
@@ -459,6 +460,7 @@ async function revealTranslation($: EngineInterface, state: InterpreterState, ke
 async function onReplyPress($: EngineInterface, state: InterpreterState, row: string, reply: Reply, requestId: string): Promise<void> {
   const settings = current(state)
   if (!settings.translateOutput || settings.outputMode !== 'manual') return
+  const session = state.sessionId
   const key = outputKey(row, settings.outputTarget)
   if (state.outputRows.has(key)) {
     const showing = state.hidden.delete(key)
@@ -468,8 +470,11 @@ async function onReplyPress($: EngineInterface, state: InterpreterState, row: st
   } else if (!await translateReply($, state, row, reply, settings)) {
     return
   }
+  // Scrolling against the old row layout can snap back when the terminal lays out the translation.
+  await $.clock.sleep(REPLY_LAYOUT_DELAY_MS)
   const active = current(state)
-  if (active.translateOutput && active.outputTarget === settings.outputTarget) {
+  if (state.sessionId === session && active.translateOutput && active.outputTarget === settings.outputTarget &&
+      !state.hidden.has(key)) {
     await revealTranslation($, state, key, requestId)
   }
 }

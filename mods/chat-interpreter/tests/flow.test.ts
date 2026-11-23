@@ -61,6 +61,7 @@ function host(on: On, saved: Record<string, unknown> = {}): World {
     return { value: undefined }
   })
   on('ui.invalidate', () => ({ value: undefined }))
+  on('clock.sleep', () => ({ value: undefined }))
   on('ui.render', (_$, e) => {
     const text = 'text' in e.props ? String(e.props.text) : ''
     world.rendered.push(text)
