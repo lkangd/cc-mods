@@ -20,6 +20,7 @@ const WORDS = {
     missingKeyFailure: 'Missing DEEPSEEK_API_KEY in this Claude Code process.',
     en: 'English', zh: 'Chinese', inputGroup: 'User input', outputGroup: 'Agent replies', general: 'General',
     translating: 'Translating…', hide: 'Hide translation', show: 'Show translation', sendAnyway: 'Send anyway',
+    jumpToTranslation: 'Jump to translation',
     identical: 'Translation matches the original.',
     skillOriginal: 'Original skill arguments',
     originalStyle: 'Original text divider', box: 'Box', doubleRule: 'Double line', none: 'None',
@@ -38,6 +39,7 @@ const WORDS = {
     missingKeyFailure: '缺少 DEEPSEEK_API_KEY，当前 Claude Code 进程无法翻译。',
     en: '英文', zh: '中文', inputGroup: '用户输入', outputGroup: 'Agent 回复', general: '通用',
     translating: '翻译中…', hide: '收起译文', show: '查看译文', sendAnyway: '仍然发送',
+    jumpToTranslation: '跳到译文',
     identical: '译文与原文相同。',
     skillOriginal: '技能原始参数',
     originalStyle: '原文分隔样式', box: '方框', doubleRule: '双横线', none: '无',
@@ -69,6 +71,7 @@ type InterpreterState = {
   unmatchedReplies: Map<string, string>
   outputRows: Map<string, string>
   hidden: Set<string>
+  pendingJumps: Set<string>
   busy: Set<string>
   inputBusy: number
   blocked?: Blocked
@@ -175,6 +178,7 @@ async function loadCache($: EngineInterface, state: InterpreterState, id?: strin
   state.unmatchedReplies.clear()
   state.outputRows.clear()
   state.hidden.clear()
+  state.pendingJumps.clear()
   state.pendingInputs.length = 0
   state.responseRows.length = 0
   state.blocked = undefined
@@ -415,39 +419,59 @@ function manualReplyRecords(rows: readonly ResponseRow[]): CacheRecord[] {
   return [...groups.values()].map(group => replyRecord(group.at(-1)!, group))
 }
 
-async function translateReply($: EngineInterface, state: InterpreterState, row: string, reply: Reply, settings: Settings): Promise<void> {
+async function translateReply($: EngineInterface, state: InterpreterState, row: string, reply: Reply, settings: Settings): Promise<boolean> {
   const target = settings.outputTarget
   const key = outputKey(row, target)
-  if (state.busy.has(key)) return
+  if (state.busy.has(key)) return false
   state.busy.add(key)
   const session = state.sessionId
   $.ui.invalidate('ui.render')
   try {
     const text = settings.punctuation ? convertPunctuation(reply.original, target) : reply.original
     const translated = await translate($, state, text, target)
-    if (state.sessionId === session) {
-      await saveRecord($, state, { kind: 'output', row, target, translated })
-      state.hidden.delete(key)
-    }
+    if (state.sessionId !== session) return false
+    await saveRecord($, state, { kind: 'output', row, target, translated })
+    if (state.sessionId !== session) return false
+    state.hidden.delete(key)
+    return true
   } catch {
     $.ui.toast(failureMessage(state, 'translationFailed'))
+    return false
   } finally {
     state.busy.delete(key)
     $.ui.invalidate('ui.render')
   }
 }
 
-async function onReplyPress($: EngineInterface, state: InterpreterState, row: string, reply: Reply): Promise<void> {
+async function revealTranslation($: EngineInterface, state: InterpreterState, key: string, requestId: string): Promise<void> {
+  const session = state.sessionId
+  const result = await $.ui.scroll({ to: { requestId }, block: 'start' }).catch(() => undefined)
+  if (!result || session !== state.sessionId) return
+  // A slow translation can outlive the click that authorized transcript scrolling.
+  if (result.deny === 'not person-initiated') {
+    state.pendingJumps.add(key)
+    $.ui.invalidate('ui.render')
+  } else if (!result.deny && state.pendingJumps.delete(key)) {
+    $.ui.invalidate('ui.render')
+  }
+}
+
+async function onReplyPress($: EngineInterface, state: InterpreterState, row: string, reply: Reply, requestId: string): Promise<void> {
   const settings = current(state)
   if (!settings.translateOutput || settings.outputMode !== 'manual') return
   const key = outputKey(row, settings.outputTarget)
   if (state.outputRows.has(key)) {
-    if (state.hidden.has(key)) state.hidden.delete(key)
-    else state.hidden.add(key)
+    const showing = state.hidden.delete(key)
+    if (!showing) state.hidden.add(key)
     $.ui.invalidate('ui.render')
+    if (!showing) return
+  } else if (!await translateReply($, state, row, reply, settings)) {
     return
   }
-  await translateReply($, state, row, reply, settings)
+  const active = current(state)
+  if (active.translateOutput && active.outputTarget === settings.outputTarget) {
+    await revealTranslation($, state, key, requestId)
+  }
 }
 
 async function translateInput($: EngineInterface, state: InterpreterState, text: string, target: TargetLanguage): Promise<string> {
@@ -566,7 +590,8 @@ export function register(on: Parameters<Register>[0]): void {
     root: '', scope: 'project', isChinese: false, keyAvailable: false,
     settings: { project: normalizeSettings(), global: normalizeSettings() },
     pendingInputs: [], inputRows: new Map(), pendingSkillRows: [], skillReplies: new Map(), responseRows: [], outputRows: new Map(),
-    replies: new Map(), replyRows: new Map(), rowPrefixes: new Map(), unmatchedReplies: new Map(), hidden: new Set(), busy: new Set(), inputBusy: 0, cacheWarning: false,
+    replies: new Map(), replyRows: new Map(), rowPrefixes: new Map(), unmatchedReplies: new Map(),
+    hidden: new Set(), pendingJumps: new Set(), busy: new Set(), inputBusy: 0, cacheWarning: false,
   }
 
   on('session.start', async ($, e, next) => {
@@ -754,8 +779,10 @@ export function register(on: Parameters<Register>[0]): void {
     const registeredRow = state.replyRows.get(displayRow) ??
       (e.props.isFirstOfReply ? state.unmatchedReplies.get(e.props.text) : undefined)
     const row = registeredRow ?? e.requestId
+    const key = outputKey(row, settings.outputTarget)
+    const cached = state.outputRows.get(key)
     const reply = registeredRow ? state.replies.get(registeredRow)
-      : settings.translateOutput && settings.outputMode === 'manual'
+      : settings.translateOutput && (settings.outputMode === 'manual' || cached !== undefined)
         ? visibleReply(state, e.requestId, e.props.text) : undefined
     if (!reply) {
       if (!state.skillReplies.has(e.requestId)) return next(e)
@@ -766,8 +793,6 @@ export function register(on: Parameters<Register>[0]): void {
       state.replyRows.set(e.requestId, row)
       state.unmatchedReplies.delete(e.props.text)
     }
-    const key = outputKey(row, settings.outputTarget)
-    const cached = state.outputRows.get(key)
     const translatable = settings.translateOutput && hasTranslatableText(reply.original)
     const manual = settings.outputMode === 'manual' && translatable
     const translated = settings.translateOutput && !state.hidden.has(key) ? cached : undefined
@@ -791,11 +816,15 @@ export function register(on: Parameters<Register>[0]): void {
       children.push(drawOriginal(elements, w.originalLabel, reply.original, settings.originalStyle, e.viewport?.columns ?? 40))
     }
     if (translated === reply.original) children.push(Text({ dimColor: true, children: [w.identical] }))
+    if (translated !== undefined && state.pendingJumps.has(key)) children.push(Button({
+      key: `jump:${row}`, variant: 'secondary', label: w.jumpToTranslation,
+      onPress: () => revealTranslation($, state, key, e.requestId),
+    }))
     if (state.busy.has(key)) children.push(Text({ dimColor: true, children: [w.translating] }))
     else if (manual) children.push(Button({
       key: `translate:${row}`, variant: cached === undefined ? 'primary' : 'secondary',
       label: cached === undefined ? w.translateReply : state.hidden.has(key) ? w.show : w.hide,
-      onPress: () => onReplyPress($, state, row, reply),
+      onPress: () => onReplyPress($, state, row, reply, e.requestId),
     }))
     const drawn = children.length === 1 ? rendered : Box({ flexDirection: 'column', children })
     return withSkillOriginals(elements, state, e, drawn)

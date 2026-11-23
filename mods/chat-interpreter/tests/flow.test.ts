@@ -250,6 +250,36 @@ test('resumed replies without records can be translated and cached by visible bl
   expect(world.requests).toHaveLength(1)
 })
 
+test('a requested historical translation survives a switch to automatic mode', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.response.text = JSON.stringify({ choices: [{ message: { content: '译文。' } }] })
+  await $.session.start(SESSION)
+  await $.classic.SessionStart({ source: 'resume', session_id: 'older-session' })
+  const requestId = '12345678-abcd-4321-aaaa-000000000000'
+  const props = { text: 'An older reply.', isFirstOfReply: true }
+  const reply = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal',
+    component: 'AssistantMessage', requestId, props } as never)
+  const pane = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal',
+    component: 'Pane', requestId: 'chat-interpreter-settings',
+    props: { title: 'Chat Interpreter', isFocused: true, bodyColumns: 70, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  } as never)
+  let release!: () => void
+  world.waitForResponse = new Promise(resolve => { release = resolve })
+  const started = new Promise<void>(resolve => { world.fetchStarted = resolve })
+  const press = reply.press({ key: `translate:${requestId}` })
+  await started
+  try {
+    await pane.press({ key: 'outputMode' })
+    expect(world.store[projectKey(REPO.root)]).toMatchObject({ outputMode: 'automatic' })
+  } finally {
+    release()
+  }
+  await press
+  await reply.redraw(props as never)
+  expect(world.rendered.at(-1)).toBe('译文。')
+})
+
 test('a final reply with two text blocks displays the aggregate translation once', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true } })
   world.env.DEEPSEEK_API_KEY = 'synthetic-key'

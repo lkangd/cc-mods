@@ -7,7 +7,7 @@ A collection of Claude Code mods. Each mod is an independent plugin under `mods/
 | Mod | Version | What it does |
 | --- | --- | --- |
 | [chat-toc](mods/chat-toc/README.md) | 0.2.0 | Adds a table of contents for the current session and lets you jump to a turn in the terminal. |
-| [chat-interpreter](mods/chat-interpreter/README.md) | 0.6.3 | Translates submitted prompts and displays final replies in two languages. |
+| [chat-interpreter](mods/chat-interpreter/README.md) | 0.6.4 | Translates submitted prompts and displays final replies in two languages. |
 
 ## Install
 
