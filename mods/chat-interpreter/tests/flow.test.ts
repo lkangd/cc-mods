@@ -129,9 +129,10 @@ test('the final answer is translated for display while its stored row remains or
     message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
   })
   await $.turn.complete({ answer: 'Hello', durationMs: 1, isAborted: false, turnId: 'turn-1', reason: 'answer' })
-  await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage', requestId: 'answer-row', props: { text: 'Hello', isFirstOfReply: true } } as never)
+  const reply = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage', requestId: 'answer-row', props: { text: 'Hello', isFirstOfReply: true } } as never)
   expect(stored.message?.content).toEqual([{ type: 'text', text: 'Hello' }])
   expect(world.rendered.at(-1)).toBe('你好')
+  expect(await reply.find({ key: 'jump:answer-row', text: 'Jump to translation' })).toBeDefined()
   expect(world.requests).toHaveLength(1)
 })
 

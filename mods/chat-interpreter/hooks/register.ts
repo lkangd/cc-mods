@@ -821,7 +821,9 @@ export function register(on: Parameters<Register>[0]): void {
       children.push(drawOriginal(elements, w.originalLabel, reply.original, settings.originalStyle, e.viewport?.columns ?? 40))
     }
     if (translated === reply.original) children.push(Text({ dimColor: true, children: [w.identical] }))
-    if (translated !== undefined && state.pendingJumps.has(key)) children.push(Button({
+    const showJump = translated !== undefined && (state.pendingJumps.has(key) ||
+      (e.surface === 'terminal' && settings.outputMode === 'automatic' && changed))
+    if (showJump) children.push(Button({
       key: `jump:${row}`, variant: 'secondary', label: w.jumpToTranslation,
       onPress: () => revealTranslation($, state, key, e.requestId),
     }))

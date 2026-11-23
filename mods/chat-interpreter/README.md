@@ -46,7 +46,7 @@ Submitted slash commands stay intact. For skills identified from a `SKILL.md` in
 
 ### Output translation
 
-Output translation affects the display, and Claude retains the original reply. **Output translation** starts in **Automatic** mode. The final reply appears in its original language while it streams and changes after translation completes.
+Output translation affects the display, and Claude retains the original reply. **Output translation** starts in **Automatic** mode. The final reply appears in its original language while it streams and changes after translation completes. In the fullscreen terminal, **Jump to translation** under the reply takes you to the beginning of the translation. Claude Code requires a click to scroll the transcript.
 
 In **Manual** mode, a **Translate reply** button appears below each eligible agent reply after the turn ends, including earlier replies from the same turn. When you resume a conversation, visible reply text blocks without a saved reply record also get a button. The first press translates the selected reply or text block. Subsequent presses hide or show the saved translation. A resumed conversation displays its cached translation and retains the button. If both texts are identical, the reply appears once with a note. Enable **Translate agent output** to use either mode.
 
