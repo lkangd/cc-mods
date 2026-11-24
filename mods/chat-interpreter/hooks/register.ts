@@ -3,8 +3,9 @@ import { activeScopeKey, normalizeSettings, settingsKey, systemIsChinese } from 
 import type { OriginalStyle, Scope, Settings, TargetLanguage } from './config'
 import { cacheName, decodeCache, planCacheCleanup } from './cache'
 import type { CacheRecord, InputTranslation, Reply } from './cache'
-import { DEEPSEEK_URL, translationRequest, translationResult } from './deepseek'
-import { convertPunctuation, hasImageReference, hasTranslatableText, splitImageReferences } from './text'
+import { CONNECTION_KEY, extractTranslation, fillTemplate, httpRequest, validateConnection, validEndpoint } from './connection'
+import type { TranslationConnection } from './connection'
+import { convertPunctuation, hasImageReference, hasTranslatableText, maskProtected, restoreProtected, splitImageReferences } from './text'
 
 const PANE_ID = 'chat-interpreter-settings'
 const REPLY_LAYOUT_DELAY_MS = 100
@@ -17,8 +18,7 @@ const WORDS = {
     inputTarget: 'Input target language', outputTarget: 'Output target language', outputMode: 'Output translation',
     automatic: 'Automatic', manual: 'Manual', translateReply: 'Translate reply',
     onlySuccess: 'Send input only after successful translation', original: 'Show original text',
-    keyReady: 'DeepSeek API key: configured', keyMissing: 'DeepSeek API key: missing (DEEPSEEK_API_KEY)',
-    missingKeyFailure: 'Missing DEEPSEEK_API_KEY in this Claude Code process.',
+    connectionReady: 'Translation connection configured. Change it with /chat-interpreter:setup.', connectionMissing: 'Connect a translator with /chat-interpreter:setup.',
     en: 'English', zh: 'Chinese', inputGroup: 'User input', outputGroup: 'Agent replies', general: 'General',
     translating: 'Translating…', hide: 'Hide translation', show: 'Show translation', sendAnyway: 'Send anyway',
     jumpToTranslation: 'Jump to translation',
@@ -36,8 +36,7 @@ const WORDS = {
     inputTarget: '输入目标语言', outputTarget: '输出目标语言', outputMode: '输出翻译方式',
     automatic: '自动', manual: '手动', translateReply: '翻译此回复',
     onlySuccess: '翻译成功才发送输入', original: '显示原文',
-    keyReady: 'DeepSeek API 密钥：已配置', keyMissing: 'DeepSeek API 密钥：缺少 DEEPSEEK_API_KEY',
-    missingKeyFailure: '缺少 DEEPSEEK_API_KEY，当前 Claude Code 进程无法翻译。',
+    connectionReady: '已配置翻译连接。运行 /chat-interpreter:setup 可更改。', connectionMissing: '请运行 /chat-interpreter:setup 配置翻译连接。',
     en: '英文', zh: '中文', inputGroup: '用户输入', outputGroup: 'Agent 回复', general: '通用',
     translating: '翻译中…', hide: '收起译文', show: '查看译文', sendAnyway: '仍然发送',
     jumpToTranslation: '跳到译文',
@@ -59,7 +58,7 @@ type InterpreterState = {
   root: string
   scope: Scope
   isChinese: boolean
-  keyAvailable: boolean
+  connectionAvailable: boolean
   settings: Record<Scope, Settings>
   pendingInputs: PendingInput[]
   inputRows: Map<string, InputTranslation>
@@ -222,17 +221,17 @@ async function saveRecords($: EngineInterface, state: InterpreterState, records:
 async function loadState($: EngineInterface, state: InterpreterState): Promise<void> {
   const repo = await $.session.repo()
   state.root = repo?.root ?? await $.session.cwd()
-  const [active, project, global, key, lcAll, lcMessages, lang] = await Promise.all([
+  const [active, project, global, connection, lcAll, lcMessages, lang] = await Promise.all([
     $.store.get(activeScopeKey(state.root)),
     $.store.get(settingsKey('project', state.root)),
     $.store.get(settingsKey('global', state.root)),
-    $.env.get('DEEPSEEK_API_KEY'),
+    $.store.get(CONNECTION_KEY),
     $.env.get('LC_ALL'), $.env.get('LC_MESSAGES'), $.env.get('LANG'),
   ])
   state.scope = active === 'global' ? 'global' : 'project'
   state.settings.project = normalizeSettings(project)
   state.settings.global = normalizeSettings(global)
-  state.keyAvailable = Boolean(key)
+  state.connectionAvailable = Boolean(connection)
   state.isChinese = systemIsChinese([lcAll, lcMessages, lang])
   const home = await $.env.get('HOME') ?? await $.env.get('USERPROFILE')
   state.configDir = await $.env.get('CLAUDE_CONFIG_DIR') || (home ? `${home}/.claude` : undefined)
@@ -252,18 +251,58 @@ async function switchScope($: EngineInterface, state: InterpreterState, scope: s
   $.ui.invalidate('ui.render')
 }
 
-async function translateText($: EngineInterface, key: string, text: string, target: TargetLanguage): Promise<string> {
-  const request = translationRequest(key, text, target)
-  const response = await $.http.fetch(DEEPSEEK_URL, request.init)
-  return translationResult(response, request.values)
+async function privateConfig($: EngineInterface, state: InterpreterState, connection: TranslationConnection): Promise<{ secret?: string; endpoint?: string }> {
+  const localUrl = connection.kind === 'http' && connection.url === 'local'
+  if (!connection.credential && !localUrl) return {}
+  let config: { secret?: string; endpoint?: string } = {}
+  if (state.configDir) {
+    try {
+      config = JSON.parse(await $.fs.read(`${state.configDir}/chat-interpreter/credentials/${connection.id}.json`)) ?? {}
+    } catch { /* The operator can provision this candidate while the session stays open. */ }
+  }
+  if (connection.credential && (typeof config.secret !== 'string' || !config.secret.trim() || /[\r\n\0]/.test(config.secret))) {
+    throw new Error('Translation credential is missing or invalid. Provision it locally for this candidate.')
+  }
+  if (localUrl && !validEndpoint(config.endpoint)) throw new Error('The local translation endpoint is missing or invalid.')
+  return config
+}
+
+async function credentialReady($: EngineInterface, state: InterpreterState, connection: TranslationConnection): Promise<boolean> {
+  try { await privateConfig($, state, connection); return true } catch { return false }
+}
+
+async function translateText($: EngineInterface, connection: TranslationConnection, config: { secret?: string; endpoint?: string }, text: string, target: TargetLanguage): Promise<string> {
+  const { masked, values } = maskProtected(text)
+  let response: string
+  if (connection.kind === 'http') {
+    const endpoint = connection.url === 'local' ? config.endpoint! : connection.url
+    const result = await $.http.fetch(endpoint, httpRequest(connection, masked, target, config.secret))
+      .catch(() => { throw new Error('Translation HTTP request unavailable or failed on this surface.') })
+    if (result.status === 401 || result.status === 403) throw new Error('Translation credential was rejected. Check local credentials and access.')
+    if (!result.ok) throw new Error(`Translation HTTP request failed (status ${result.status}).`)
+    response = result.text
+  } else {
+    const argv = [connection.program, ...connection.args.map(arg => fillTemplate(arg, masked, target))]
+    const result = await $.process.run(argv, {
+      stdin: fillTemplate(connection.stdin, masked, target),
+      ...(connection.credential && { env: { [connection.credential.env]: config.secret! } }),
+    }).catch(() => { throw new Error('Translation CLI unavailable on this surface or could not be launched.') })
+    if (result.exitCode !== 0 || result.isStdoutTruncated) throw new Error('Translation CLI failed or its output was truncated.')
+    response = result.stdout.replace(/\r?\n$/, '')
+  }
+  return restoreProtected(extractTranslation(response, connection.resultPath, config.secret), values)
 }
 
 async function translate($: EngineInterface, state: InterpreterState, text: string, target: TargetLanguage): Promise<string> {
-  const key = await $.env.get('DEEPSEEK_API_KEY')
-  state.keyAvailable = Boolean(key)
-  if (!key) throw new Error('DEEPSEEK_API_KEY is missing')
-  if (!hasImageReference(text)) return translateText($, key, text, target)
-  // The original image references must reach Claude even if DeepSeek omits them.
+  const saved = await $.store.get(CONNECTION_KEY)
+  state.connectionAvailable = Boolean(saved)
+  return runTranslation($, state, validateConnection(saved), text, target)
+}
+
+async function runTranslation($: EngineInterface, state: InterpreterState, connection: TranslationConnection, text: string, target: TargetLanguage): Promise<string> {
+  const config = await privateConfig($, state, connection)
+  if (!hasImageReference(text)) return translateText($, connection, config, text, target)
+  // Keep the original image references even if the translator omits them.
   const result: string[] = []
   for (const part of splitImageReferences(text)) {
     if (part.protected || !hasTranslatableText(part.text)) {
@@ -272,7 +311,7 @@ async function translate($: EngineInterface, state: InterpreterState, text: stri
     }
     const core = part.text.trim()
     const start = part.text.indexOf(core)
-    const translated = await translateText($, key, core, target)
+    const translated = await translateText($, connection, config, core, target)
     result.push(part.text.slice(0, start), translated.trim(), part.text.slice(start + core.length))
   }
   return result.join('')
@@ -280,7 +319,7 @@ async function translate($: EngineInterface, state: InterpreterState, text: stri
 
 function failureMessage(state: InterpreterState, kind: 'translationFailed' | 'inputBlocked' | 'inputFallback'): string {
   const w = words(state)
-  return state.keyAvailable ? w[kind] : `${w.missingKeyFailure} ${w[kind]}`
+  return state.connectionAvailable ? w[kind] : `${w.connectionMissing} ${w[kind]}`
 }
 
 function toggle($: EngineInterface, state: InterpreterState, Button: ElementTable['Button'], key: 'punctuation' | 'translateInput' | 'translateOutput' | 'sendOnlyOnSuccess' | 'showOriginal', label: string, enabled: boolean): RenderElement {
@@ -296,7 +335,7 @@ function drawSettings($: EngineInterface, state: InterpreterState, e: RenderInpu
   const { Box, Text, Button } = $.ui.resolve(e)
   const w = words(state)
   const settings = current(state)
-  const otherTarget = (target: TargetLanguage): TargetLanguage => target === 'en' ? 'zh' : 'en'
+  const language = (target: TargetLanguage) => target === 'en' || target === 'zh' ? w[target] : target
   const section = (label: string) => {
     // The built-in labels contain only ASCII and Han characters.
     const labelCells = [...label].reduce((cells, char) => cells + (/\p{Script=Han}/u.test(char) ? 2 : 1), 0)
@@ -321,21 +360,17 @@ function drawSettings($: EngineInterface, state: InterpreterState, e: RenderInpu
     Button({ key: 'originalStyle', plain: true, label: `${w.originalStyle}: ${w[settings.originalStyle]} ↔`,
       onPress: () => saveSetting($, state, 'originalStyle', NEXT_ORIGINAL_STYLE[settings.originalStyle]),
     }),
-    Text({ dimColor: true, children: [state.keyAvailable ? w.keyReady : w.keyMissing] }),
+    Text({ dimColor: true, children: [state.connectionAvailable ? w.connectionReady : w.connectionMissing] }),
     section(w.inputGroup),
     toggle($, state, Button, 'translateInput', w.input, settings.translateInput),
-    Button({ key: 'inputTarget', plain: true, label: `${w.inputTarget}: ${w[settings.inputTarget]} ↔`,
-      onPress: () => saveSetting($, state, 'inputTarget', otherTarget(settings.inputTarget)),
-    }),
+    Text({ children: [`${w.inputTarget}: ${language(settings.inputTarget)}`] }),
     toggle($, state, Button, 'sendOnlyOnSuccess', w.onlySuccess, settings.sendOnlyOnSuccess),
     section(w.outputGroup),
     toggle($, state, Button, 'translateOutput', w.output, settings.translateOutput),
     Button({ key: 'outputMode', plain: true, label: `${w.outputMode}: ${settings.outputMode === 'automatic' ? w.automatic : w.manual} ↔`,
       onPress: () => saveSetting($, state, 'outputMode', settings.outputMode === 'automatic' ? 'manual' : 'automatic'),
     }),
-    Button({ key: 'outputTarget', plain: true, label: `${w.outputTarget}: ${w[settings.outputTarget]} ↔`,
-      onPress: () => saveSetting($, state, 'outputTarget', otherTarget(settings.outputTarget)),
-    }),
+    Text({ children: [`${w.outputTarget}: ${language(settings.outputTarget)}`] }),
   ] })
 }
 
@@ -592,7 +627,7 @@ async function runSkill($: EngineInterface, state: InterpreterState, e: CommandR
 
 export function register(on: Parameters<Register>[0]): void {
   const state: InterpreterState = {
-    root: '', scope: 'project', isChinese: false, keyAvailable: false,
+    root: '', scope: 'project', isChinese: false, connectionAvailable: false,
     settings: { project: normalizeSettings(), global: normalizeSettings() },
     pendingInputs: [], inputRows: new Map(), pendingSkillRows: [], skillReplies: new Map(), responseRows: [], outputRows: new Map(),
     replies: new Map(), replyRows: new Map(), rowPrefixes: new Map(), unmatchedReplies: new Map(),
@@ -613,7 +648,7 @@ export function register(on: Parameters<Register>[0]): void {
   })
 
   on('command.run', { command: 'chat-interpreter' }, async ($) => {
-    state.keyAvailable = Boolean(await $.env.get('DEEPSEEK_API_KEY'))
+    state.connectionAvailable = Boolean(await $.store.get(CONNECTION_KEY))
     await $.ui.open({ id: PANE_ID, title: words(state).title, focus: true, closeOnEscape: true })
     return {}
   })

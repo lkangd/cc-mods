@@ -95,7 +95,10 @@ const EN_TO_ZH = new Map([
 ])
 
 export function convertPunctuation(text: string, target: TargetLanguage): string {
-  const direction = target === 'en' ? 'zh-en' : 'en-zh'
+  const english = /^(?:en(?:[-_].+)?|English|英语|英文)$/i.test(target)
+  const chinese = /^(?:zh(?:[-_].+)?|(?:(?:simplified|traditional) )?Chinese|中文|简体中文|繁體中文)$/i.test(target)
+  if (!english && !chinese) return text
+  const direction = english ? 'zh-en' : 'en-zh'
   const table = direction === 'zh-en' ? ZH_TO_EN : EN_TO_ZH
   let doubleQuoteOpen = true
   let singleQuoteOpen = true

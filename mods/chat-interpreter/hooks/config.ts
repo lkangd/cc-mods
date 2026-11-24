@@ -1,4 +1,4 @@
-export type TargetLanguage = 'zh' | 'en'
+export type TargetLanguage = string
 export type Scope = 'project' | 'global'
 export type OutputMode = 'automatic' | 'manual'
 export type OriginalStyle = 'box' | 'doubleRule' | 'none'
@@ -27,6 +27,10 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   originalStyle: 'box',
 })
 
+export function validTarget(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && !/[\u0000-\u001f\u007f]/.test(value)
+}
+
 export function normalizeSettings(value?: unknown): Settings {
   const source = value && typeof value === 'object' && !Array.isArray(value) ? value as Partial<Settings> : {}
   return {
@@ -34,8 +38,8 @@ export function normalizeSettings(value?: unknown): Settings {
     translateInput: typeof source.translateInput === 'boolean' ? source.translateInput : DEFAULT_SETTINGS.translateInput,
     translateOutput: typeof source.translateOutput === 'boolean' ? source.translateOutput : DEFAULT_SETTINGS.translateOutput,
     outputMode: source.outputMode === 'manual' ? 'manual' : 'automatic',
-    inputTarget: source.inputTarget === 'zh' ? 'zh' : 'en',
-    outputTarget: source.outputTarget === 'en' ? 'en' : 'zh',
+    inputTarget: validTarget(source.inputTarget) ? source.inputTarget.trim() : DEFAULT_SETTINGS.inputTarget,
+    outputTarget: validTarget(source.outputTarget) ? source.outputTarget.trim() : DEFAULT_SETTINGS.outputTarget,
     sendOnlyOnSuccess: typeof source.sendOnlyOnSuccess === 'boolean' ? source.sendOnlyOnSuccess : DEFAULT_SETTINGS.sendOnlyOnSuccess,
     showOriginal: typeof source.showOriginal === 'boolean' ? source.showOriginal : DEFAULT_SETTINGS.showOriginal,
     originalStyle: source.originalStyle === 'doubleRule' || source.originalStyle === 'none' ? source.originalStyle : 'box',

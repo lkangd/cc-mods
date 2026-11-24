@@ -3,11 +3,18 @@ import type { On } from 'claude-code'
 import { activeScopeKey, projectKey, settingsKey } from '../hooks/config'
 
 const SESSION = { cwd: '/synthetic/project', surface: 'terminal', isInteractive: true } as const
+const MODEL = {
+  kind: 'http', id: 'local-model-1', url: 'https://model.example.test/completions',
+  body: { model: 'test-model', messages: [{ role: 'system', content: 'Translate into {{target}}.' }, { role: 'user', content: '{{text}}' }] },
+  resultPath: ['choices', 0, 'message', 'content'],
+}
 const REPO = { root: '/synthetic/project', remote: null, internal: false, name: null }
 
 type World = {
   store: Record<string, unknown>
   env: Record<string, string>
+  requestHeaders: Array<Record<string, string>>
+  requestBodies: string[]
   requests: string[]
   response: { status: number; ok: boolean; headers: Record<string, string>; text: string }
   toasts: string[]
@@ -24,7 +31,7 @@ type World = {
 
 function host(on: On, saved: Record<string, unknown> = {}): World {
   const world: World = {
-    store: { ...saved }, env: { LANG: 'en_US.UTF-8', HOME: '/synthetic/home' }, requests: [], toasts: [], notices: [], rendered: [], dropNextPrompt: false,
+    store: { ...saved }, env: { LANG: 'en_US.UTF-8', HOME: '/synthetic/home' }, requests: [], requestBodies: [], requestHeaders: [], toasts: [], notices: [], rendered: [], dropNextPrompt: false,
     files: {}, submitted: [], commands: [],
     commandList: [{ name: 'review', description: 'Review', source: 'user' }],
     response: { status: 200, ok: true, headers: {}, text: JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: 'Hello' } }] }) },
@@ -51,6 +58,8 @@ function host(on: On, saved: Record<string, unknown> = {}): World {
   on('prompt.read', () => ({ value: { text: 'existing draft', cursor: 0 } }))
   on('http.fetch', async (_$, e) => {
     world.requests.push(e.url)
+    world.requestHeaders.push(e.init?.headers ?? {})
+    world.requestBodies.push(e.init?.body ?? '')
     world.fetchStarted?.()
     await world.waitForResponse
     return { value: world.response }
@@ -79,35 +88,104 @@ function host(on: On, saved: Record<string, unknown> = {}): World {
 
 test('a configured project loads in a new session and sends the translated input', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   await $.session.start(SESSION)
   const result = await $.prompt.submit({ text: '你好', origin: { kind: 'composer' }, wait: false })
   expect(result).toMatchObject({ text: 'Hello' })
-  expect(world.requests).toEqual(['https://api.deepseek.com/chat/completions'])
+  expect(world.requests).toEqual([MODEL.url])
 })
 
-test('a new session without a key reports the cause when it blocks an image prompt', async ($, on) => {
+test('a translation API receives the chosen target and protected input and extracts its own result shape', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, punctuation: true, inputTarget: 'Français' },
+    'translation-connection': { kind: 'http', id: 'internal-api', url: 'https://translate.example.test/v1',
+      body: { sentence: '{{text}}', to: '{{target}}' }, resultPath: ['results', 0, 'translation'] } })
+  world.response.text = JSON.stringify({ results: [{ translation: 'Vérifiez __CI_KEEP_0__！' }] })
+  await $.session.start(SESSION)
+  const result = await $.prompt.submit({ text: 'Check `a.b`！', origin: { kind: 'composer' }, wait: false })
+  expect(result).toMatchObject({ text: 'Vérifiez `a.b`！' })
+  expect(JSON.parse(world.requestBodies[0]!)).toEqual({ sentence: 'Check __CI_KEEP_0__！', to: 'Français' })
+})
+
+test('a cached translation in a new target language survives replacement and resume', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputTarget: 'Français' },
+    'translation-connection': MODEL })
+  world.response.text = JSON.stringify({ choices: [{ message: { content: 'Bonjour' } }] })
+  await $.session.start(SESSION)
+  await $.session.append({ uuid: 'french-row', door: 'response', origin: { kind: 'model', model: 'test' },
+    message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text: 'Hello' }] } })
+  await $.turn.complete({ answer: 'Hello', durationMs: 1, isAborted: false, turnId: 'french-turn', reason: 'answer' })
+  world.store['translation-connection'] = { ...MODEL, url: 'https://replacement.example.test/v2' }
+  await $.classic.SessionStart({ source: 'resume', session_id: 'other-session' })
+  await $.classic.SessionStart({ source: 'resume', session_id: 'session-1' })
+  await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage', requestId: 'french-row',
+    props: { text: 'Hello', isFirstOfReply: true } } as never)
+  expect(world.rendered.at(-1)).toBe('Bonjour')
+  expect(world.requests).toEqual([MODEL.url])
+})
+
+test('the next submission uses a replacement CLI and keeps text on stdin', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, inputTarget: 'de' },
+    'translation-connection': MODEL })
+  const calls: Array<{ argv: readonly string[]; stdin?: string }> = []
+  on('process.run', (_$, e) => {
+    calls.push({ argv: e.argv, stdin: e.init?.stdin })
+    return { value: { exitCode: 0, stdout: 'Guten Tag __CI_KEEP_0__\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  await $.session.start(SESSION)
+  await $.prompt.submit({ text: 'First message', origin: { kind: 'composer' }, wait: false })
+  world.store['translation-connection'] = { kind: 'cli', id: 'local-cli', program: '/opt/translator',
+    args: ['--target', '{{target}}'], stdin: '{{text}}', resultPath: [] }
+  const result = await $.prompt.submit({ text: 'Hello `--flag`', origin: { kind: 'composer' }, wait: false })
+  expect(result).toMatchObject({ text: 'Guten Tag `--flag`' })
+  expect(world.requests).toEqual([MODEL.url])
+  expect(calls).toEqual([{ argv: ['/opt/translator', '--target', 'de'], stdin: 'Hello __CI_KEEP_0__' }])
+})
+
+test('private credentials and endpoint can be provisioned during the session and errors never echo the secret', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true },
+    'translation-connection': { ...MODEL, url: 'local', credential: { header: 'X-Translator-Key', prefix: '' } } })
+  await $.session.start(SESSION)
+  const prompt = { text: 'How are you?', origin: { kind: 'composer' }, wait: false } as const
+  expect(await $.prompt.submit(prompt)).toHaveProperty('drop')
+  expect(world.requests).toHaveLength(0)
+  const key = 'synthetic-test-secret'
+  const endpoint = 'https://my-service.example.test/translate'
+  world.files['/synthetic/home/.claude/chat-interpreter/credentials/local-model-1.json'] = JSON.stringify({ secret: key, endpoint })
+  expect(await $.prompt.submit(prompt)).toMatchObject({ text: 'Hello' })
+  expect(world.requests).toEqual([endpoint])
+  expect(world.requestHeaders[0]?.['X-Translator-Key']).toBe(key)
+  world.response.text = JSON.stringify({ choices: [{ message: { content: key } }] })
+  expect(await $.prompt.submit(prompt)).toHaveProperty('drop')
+  world.response.text = JSON.stringify({ error: key })
+  expect(await $.prompt.submit(prompt)).toHaveProperty('drop')
+  world.response = { ...world.response, status: 401, ok: false }
+  expect(await $.prompt.submit(prompt)).toHaveProperty('drop')
+  expect(world.submitted).toEqual(['Hello'])
+  expect(world.toasts.join(' ')).not.toContain(key)
+})
+
+test('a new session without a connection reports the cause when it blocks an image prompt', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
   await $.session.start(SESSION)
   const result = await $.prompt.submit({ text: '[Image #1]请解释 `foo()`。',
     attachments: [{ type: 'image', mediaType: 'image/png' }], origin: { kind: 'composer' }, wait: false })
-  const reason = 'Missing DEEPSEEK_API_KEY in this Claude Code process. Translation failed. The original input is still in the prompt box.'
+  const reason = 'Connect a translator with /chat-interpreter:setup. Translation failed. The original input is still in the prompt box.'
   expect(result).toMatchObject({ drop: reason })
   expect(world.requests).toHaveLength(0)
   expect(world.toasts).toEqual([reason])
 })
 
-test('missing key falls back to original when the success gate is off', async ($, on) => {
+test('missing connection falls back to original when the success gate is off', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, sendOnlyOnSuccess: false } })
   await $.session.start(SESSION)
   const result = await $.prompt.submit({ text: '你好', origin: { kind: 'composer' }, wait: false })
   expect(result).toMatchObject({ text: '你好' })
-  expect(world.toasts).toEqual([expect.stringContaining('DEEPSEEK_API_KEY')])
+  expect(world.toasts).toEqual([expect.stringContaining('/chat-interpreter:setup')])
 })
 
 test('translation failure sends the original even when punctuation conversion is on', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, punctuation: true, sendOnlyOnSuccess: false } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   world.response = { ...world.response, status: 503, ok: false }
   await $.session.start(SESSION)
   const result = await $.prompt.submit({ text: '你好，', origin: { kind: 'composer' }, wait: false })
@@ -117,7 +195,7 @@ test('translation failure sends the original even when punctuation conversion is
 
 test('the final answer is translated for display while its stored row remains original', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '你好' } }] })
   await $.session.start(SESSION)
   await $.session.append({
@@ -138,7 +216,7 @@ test('the final answer is translated for display while its stored row remains or
 
 test('manual output translation waits for the reply button', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '你好' } }] })
   await $.session.start(SESSION)
   await $.session.append({
@@ -175,7 +253,7 @@ test('manual output translation waits for the reply button', async ($, on) => {
 
 test('manual mode can translate each visible reply in the same turn independently after resume', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   await $.session.start(SESSION)
   for (const [uuid, text] of [['progress', 'I will check the files.'], ['final', 'The files are ready.']] as const) {
     await $.session.append({
@@ -213,7 +291,7 @@ test('manual mode can translate each visible reply in the same turn independentl
 
 test('resumed replies without records can be translated and cached by visible block', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   await $.session.start(SESSION)
   await $.classic.SessionStart({ source: 'resume', session_id: 'older-session' })
   const mount = (requestId: string, text: string, isFirstOfReply: boolean) => $.ui.mount({
@@ -254,7 +332,7 @@ test('resumed replies without records can be translated and cached by visible bl
 
 test('a requested historical translation survives a switch to automatic mode', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ message: { content: '译文。' } }] })
   await $.session.start(SESSION)
   await $.classic.SessionStart({ source: 'resume', session_id: 'older-session' })
@@ -284,7 +362,7 @@ test('a requested historical translation survives a switch to automatic mode', a
 
 test('a final reply with two text blocks displays the aggregate translation once', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '你好世界' } }] })
   await $.session.start(SESSION)
   await $.session.append({
@@ -324,7 +402,7 @@ test('resume restores input and reply cache with an actionable button and no req
 
 test('an image prompt and its reply keep their translation UI when Claude normalizes render IDs', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, translateOutput: true, outputMode: 'manual' } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   const inputId = '1f0e97b7-82dd-4768-ba10-be6f1ee002bd'
   const replyId = '556e5bea-c008-478e-b607-f03a31f918b7'
   const sent = '[Image #1] Explain the image.'
@@ -361,7 +439,7 @@ test('an image prompt and its reply keep their translation UI when Claude normal
 
 test('slash submissions stay intact and verified skills translate only typed arguments', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   world.files['/synthetic/project/.claude/skills/review/SKILL.md'] = 'Skill body'
   await $.session.start(SESSION)
   const slash = await $.prompt.submit({ text: '/review 请审查', origin: { kind: 'composer' }, wait: false })
@@ -384,7 +462,7 @@ test('slash submissions stay intact and verified skills translate only typed arg
 
 test('translating a resumed reply to identical text shows the result without duplicating it', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   const original = '这段原文已经是中文。'
   world.response.text = JSON.stringify({ choices: [{ message: { content: original } }] })
   world.files['/synthetic/home/.claude/chat-interpreter-cache/resumed.first-row.reply.json'] = JSON.stringify({
@@ -407,7 +485,7 @@ test('translating a resumed reply to identical text shows the result without dup
 
 test('translated skill arguments show their original once before the agent responds', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   world.files['/synthetic/project/.claude/skills/review/SKILL.md'] = 'The skill instruction body.'
   world.response.text = JSON.stringify({ choices: [{ message: { content: 'Is it normal?' } }] })
   await $.session.start(SESSION)
@@ -440,7 +518,7 @@ test('translated skill arguments show their original once before the agent respo
 
 test('an unmatched final answer offers a live manual translation without caching an unverified row', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '你好' } }] })
   await $.session.start(SESSION)
   await $.turn.complete({ answer: 'Hello', durationMs: 1, isAborted: false, turnId: 'fallback-turn', reason: 'answer' })
@@ -462,7 +540,7 @@ test('a plugin skill declared in a nested manifest path translates its typed arg
   })
   world.files[`${root}/.claude-plugin/plugin.json`] = JSON.stringify({ skills: ['./skills/engineering/tdd'] })
   world.files[`${root}/skills/engineering/tdd/SKILL.md`] = 'This is the skill body.'
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ message: { content: 'Is it normal?' } }] })
   await $.session.start(SESSION)
   const result = await $.command.run({ command, args: '正常吗？', origin: { kind: 'composer' },
@@ -472,7 +550,7 @@ test('a plugin skill declared in a nested manifest path translates its typed arg
 
 test('long input and reply originals remain visible after translation', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, translateOutput: true } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   const original = 'Original text '.repeat(850) + '最後一段'
   await $.session.start(SESSION)
   await $.prompt.submit({ text: original, origin: { kind: 'composer' }, wait: false })
@@ -502,7 +580,7 @@ test('failed prompt and skill translations can send their original text once', a
   const prompt = await $.prompt.submit({ text: '你好，缓存', origin: { kind: 'composer' }, wait: false })
   expect(prompt).toHaveProperty('drop')
   await band.redraw(bandProps as never)
-  expect(await band.find({ type: 'Text', text: /^Missing DEEPSEEK_API_KEY / })).toBeDefined()
+  expect(await band.find({ type: 'Text', text: /Connect a translator/ })).toBeDefined()
   await band.press({ key: 'send-anyway' })
   expect(world.submitted).toEqual(['你好，缓存'])
   await band.redraw(bandProps as never)
@@ -516,7 +594,7 @@ test('failed prompt and skill translations can send their original text once', a
 
 test('input shows translation progress before the prompt enters', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   await $.session.start(SESSION)
   const bandProps = { hasSurvey: false, isWorking: false, maxRows: 12, bodyColumns: 100, scroll: { offset: 0, bodyRows: 12 } }
   const band = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AbovePrompt', requestId: 'band', props: bandProps } as never)
@@ -545,7 +623,7 @@ test('a new session reuses the saved global scope without changing project setti
     [activeScopeKey(REPO.root)]: 'global',
   }
   const world = host(on, saved)
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   await $.session.start(SESSION)
   const result = await $.prompt.submit({ text: '你好', origin: { kind: 'composer' }, wait: false })
   expect(result).toMatchObject({ text: 'Hello' })
@@ -554,7 +632,7 @@ test('a new session reuses the saved global scope without changing project setti
 
 test('the user row shows both original input and the text sent to Claude', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   await $.session.start(SESSION)
   await $.prompt.submit({ text: '你好', origin: { kind: 'composer' }, wait: false })
   await $.session.append({
@@ -568,7 +646,7 @@ test('the user row shows both original input and the text sent to Claude', async
 
 test('a downstream drop does not attach the earlier original to a later prompt', async ($, on) => {
   const world = host(on, { [projectKey(REPO.root)]: { translateInput: true } })
-  world.env.DEEPSEEK_API_KEY = 'synthetic-key'
+  world.store['translation-connection'] = MODEL
   await $.session.start(SESSION)
   world.dropNextPrompt = true
   await $.prompt.submit({ text: '你好', origin: { kind: 'composer' }, wait: false })

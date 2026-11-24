@@ -1,7 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { activeScopeKey, normalizeSettings, settingsKey, systemIsChinese } from '../hooks/config'
-import { translationRequest, translationResult } from '../hooks/deepseek'
-import { convertPunctuation, hasTranslatableText, restoreProtected } from '../hooks/text'
+import { convertPunctuation, hasTranslatableText, maskProtected, restoreProtected } from '../hooks/text'
 import { planCacheCleanup } from '../hooks/cache'
 
 test('punctuation conversion preserves code, URLs, paths, and decimal numbers', () => {
@@ -24,20 +23,12 @@ test('all Markdown code delimiters and technical addresses stay unchanged', () =
   expect(convertPunctuation(text, 'zh')).toBe('README.md； mailto:user@example.com； ftp://example.com/a.b； ``a,b``；\n~~~ts\na,b\n~~~\n；\n```ts\na,b')
 })
 
-test('DeepSeek request follows the fixed API contract and restores protected content', () => {
-  const request = translationRequest('synthetic-key', '你好 `const x=1`', 'en')
-  const body = JSON.parse(request.init.body ?? '{}') as { model: string; stream: boolean; messages: Array<{ content: string }> }
-  expect(body.model).toBe('deepseek-chat')
-  expect(body.stream).toBe(false)
-  expect(body.messages[0]?.content).toContain('into English')
-  expect(body.messages[1]?.content).toContain('__CI_KEEP_0__')
-  const result = translationResult({ ok: true, status: 200, headers: {}, text: JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: 'Hello __CI_KEEP_0__' } }] }) }, request.values)
-  expect(result).toBe('Hello `const x=1`')
-  expect(() => translationResult({ ok: true, status: 200, headers: {}, text: JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: 'Hello (missing marker)' } }] }) }, request.values)).toThrow()
-  const collision = translationRequest('synthetic-key', '你好 `__CI_KEEP_0__`', 'en')
-  const marker = collision.values[0]?.[0]
-  expect(marker).toBeDefined()
-  expect(translationResult({ ok: true, status: 200, headers: {}, text: JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: `Hello ${marker}` } }] }) }, collision.values)).toBe('Hello `__CI_KEEP_0__`')
+test('protected markers avoid collisions and reject missing or duplicated text', () => {
+  const { masked, values } = maskProtected('你好 `__CI_KEEP_0__`')
+  expect(masked).toBe('你好 __CI_KEEP_1__')
+  expect(restoreProtected('Hello __CI_KEEP_1__', values)).toBe('Hello `__CI_KEEP_0__`')
+  expect(() => restoreProtected('Hello', values)).toThrow()
+  expect(() => restoreProtected('Hello __CI_KEEP_1__ __CI_KEEP_1__', values)).toThrow()
   expect(restoreProtected('Hello __CI_KEEP_0__', [['__CI_KEEP_0__', '`$&`']])).toBe('Hello `$&`')
 })
 
