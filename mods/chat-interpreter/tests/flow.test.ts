@@ -154,6 +154,8 @@ test('private credentials and endpoint can be provisioned during the session and
   expect(await $.prompt.submit(prompt)).toMatchObject({ text: 'Hello' })
   expect(world.requests).toEqual([endpoint])
   expect(world.requestHeaders[0]?.['X-Translator-Key']).toBe(key)
+  world.response.text = JSON.stringify({ choices: [{ message: { content: 'Service address ' + endpoint } }] })
+  expect(await $.prompt.submit(prompt)).toHaveProperty('drop')
   world.response.text = JSON.stringify({ choices: [{ message: { content: key } }] })
   expect(await $.prompt.submit(prompt)).toHaveProperty('drop')
   world.response.text = JSON.stringify({ error: key })
@@ -162,6 +164,7 @@ test('private credentials and endpoint can be provisioned during the session and
   expect(await $.prompt.submit(prompt)).toHaveProperty('drop')
   expect(world.submitted).toEqual(['Hello'])
   expect(world.toasts.join(' ')).not.toContain(key)
+  expect(world.toasts.join(' ')).not.toContain(endpoint)
 })
 
 test('a new session without a connection reports the cause when it blocks an image prompt', async ($, on) => {
@@ -666,8 +669,9 @@ test('the settings pane persists project changes and switches to an independent 
     plugin: 'chat-interpreter', surface: 'terminal', component: 'Pane', requestId: 'chat-interpreter-settings',
     props: { title: 'Chat Interpreter', isFocused: true, bodyColumns: 70, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
   } as never)
+  world.store[projectKey(REPO.root)] = { inputTarget: 'German', punctuation: true }
   await pane.press({ key: 'translateInput' })
-  expect(world.store[projectKey(REPO.root)]).toMatchObject({ translateInput: true })
+  expect(world.store[projectKey(REPO.root)]).toMatchObject({ translateInput: true, inputTarget: 'German', punctuation: true })
   expect(await pane.find({ key: 'originalStyle', text: /Box/ })).toBeDefined()
   await pane.press({ key: 'originalStyle' })
   expect(world.store[projectKey(REPO.root)]).toMatchObject({ originalStyle: 'doubleRule' })

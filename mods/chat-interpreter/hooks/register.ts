@@ -1,7 +1,7 @@
 import type { CommandRunInput, ElementTable, EngineInterface, PromptSubmitInput, Register, RenderElement, RenderInput } from 'claude-code'
 import { activeScopeKey, normalizeSettings, settingsKey, systemIsChinese } from './config'
 import type { OriginalStyle, Scope, Settings, TargetLanguage } from './config'
-import { sampleSource, sameDestination, SETUP_TOOL, setupChoices, setupResult, trialTargets } from './setup'
+import { currentChoices, sampleSource, sameDestination, SETUP_TOOL, setupChoices, setupResult, trialTargets } from './setup'
 import type { Interview } from './setup'
 import { cacheName, decodeCache, planCacheCleanup } from './cache'
 import type { CacheRecord, InputTranslation, Reply } from './cache'
@@ -222,20 +222,24 @@ async function saveRecords($: EngineInterface, state: InterpreterState, records:
   }
 }
 
-async function loadState($: EngineInterface, state: InterpreterState): Promise<void> {
-  const repo = await $.session.repo()
-  state.root = repo?.root ?? await $.session.cwd()
-  const [active, project, global, connection, lcAll, lcMessages, lang] = await Promise.all([
+async function refreshSettings($: EngineInterface, state: InterpreterState): Promise<void> {
+  const [active, project, global, connection] = await Promise.all([
     $.store.get(activeScopeKey(state.root)),
     $.store.get(settingsKey('project', state.root)),
     $.store.get(settingsKey('global', state.root)),
     $.store.get(CONNECTION_KEY),
-    $.env.get('LC_ALL'), $.env.get('LC_MESSAGES'), $.env.get('LANG'),
   ])
   state.scope = active === 'global' ? 'global' : 'project'
   state.settings.project = normalizeSettings(project)
   state.settings.global = normalizeSettings(global)
   state.connectionAvailable = Boolean(connection)
+}
+
+async function loadState($: EngineInterface, state: InterpreterState): Promise<void> {
+  const repo = await $.session.repo()
+  state.root = repo?.root ?? await $.session.cwd()
+  await refreshSettings($, state)
+  const [lcAll, lcMessages, lang] = await Promise.all([$.env.get('LC_ALL'), $.env.get('LC_MESSAGES'), $.env.get('LANG')])
   state.isChinese = systemIsChinese([lcAll, lcMessages, lang])
   const home = await $.env.get('HOME') ?? await $.env.get('USERPROFILE')
   state.configDir = await $.env.get('CLAUDE_CONFIG_DIR') || (home ? `${home}/.claude` : undefined)
@@ -244,8 +248,11 @@ async function loadState($: EngineInterface, state: InterpreterState): Promise<v
 }
 
 async function saveSetting<K extends keyof Settings>($: EngineInterface, state: InterpreterState, field: K, value: Settings[K]): Promise<void> {
-  state.settings[state.scope] = { ...current(state), [field]: value }
-  await $.store.set(settingsKey(state.scope, state.root), current(state))
+  const scope = state.scope
+  const key = settingsKey(scope, state.root)
+  const settings = { ...normalizeSettings(await $.store.get(key)), [field]: value }
+  await $.store.set(key, settings)
+  state.settings[scope] = settings
   $.ui.invalidate('ui.render')
 }
 
@@ -294,7 +301,7 @@ async function translateText($: EngineInterface, connection: TranslationConnecti
     if (result.exitCode !== 0 || result.isStdoutTruncated) throw new Error('Translation CLI failed or its output was truncated.')
     response = result.stdout.replace(/\r?\n$/, '')
   }
-  return restoreProtected(extractTranslation(response, connection.resultPath, config.secret), values)
+  return restoreProtected(extractTranslation(response, connection, config), values)
 }
 
 async function translate($: EngineInterface, state: InterpreterState, text: string, target: TargetLanguage): Promise<string> {
@@ -632,9 +639,9 @@ async function runSkill($: EngineInterface, state: InterpreterState, e: CommandR
 async function setupAction($: EngineInterface, state: InterpreterState, interview: Interview, e: Record<string, unknown>) {
   const candidate = interview.candidate
   if (e.action === 'status') {
-    const { translateInput, translateOutput, inputTarget, outputTarget } = current(state)
+    await refreshSettings($, state)
     return setupResult({
-      scope: state.scope, translateInput, translateOutput, inputTarget, outputTarget, connected: state.connectionAvailable,
+      scope: state.scope, ...currentChoices(current(state)), connected: state.connectionAvailable,
       ...(candidate ? { candidateId: candidate.id, credentialReady: await credentialReady($, state, candidate) } : {}),
     })
   }
@@ -644,25 +651,29 @@ async function setupAction($: EngineInterface, state: InterpreterState, intervie
   }
   if (interview.busy) return { deny: 'Another setup operation is in progress.' }
   if (e.action === 'stage') {
+    interview.review = undefined
+    interview.samples.clear()
+    interview.candidate = undefined
     if (!e.connection || typeof e.connection !== 'object' || Array.isArray(e.connection)) return { deny: 'Supply a connection description.' }
     try {
       const description = { ...e.connection, id: crypto.randomUUID() }
       const next = validateConnection(description)
       if (candidate && !e.renewCredentials && sameDestination(candidate, next)) next.id = candidate.id
       interview.candidate = next
-      interview.samples.clear()
-      interview.review = undefined
       return setupResult({ candidateId: next.id, credentialReady: await credentialReady($, state, next) })
     } catch {
       return { deny: 'Invalid translation connection. Check the request description, credential reference, and result path.' }
     }
   }
   if (!candidate) return { deny: 'Stage a translation connection first.' }
-  const scope = state.scope
   if (e.action === 'trial') {
     interview.review = undefined
     interview.busy = 'trial'
     try {
+      await refreshSettings($, state)
+      if (state.setup !== interview) return { deny: 'The interview ended before the trial.' }
+      const scope = state.scope
+      const previous = currentChoices(current(state))
       const choices = setupChoices(e.mode, e.inputTarget, e.outputTarget)
       const samples = []
       for (const target of trialTargets(choices)) {
@@ -677,7 +688,7 @@ async function setupAction($: EngineInterface, state: InterpreterState, intervie
         }
         samples.push(sample)
       }
-      interview.review = { scope, choices, replies: interview.replies }
+      interview.review = { scope, previous, choices, replies: interview.replies }
       return setupResult({ scope, ...choices, samples })
     } catch (error) {
       return { deny: error instanceof Error ? error.message : 'Translation trial failed.' }
@@ -687,16 +698,19 @@ async function setupAction($: EngineInterface, state: InterpreterState, intervie
   }
   if (e.action !== 'confirm') return { deny: 'Unknown setup action.' }
   const review = interview.review
-  if (!review || review.scope !== scope) return { deny: 'Run a trial for the current scope and choices first.' }
+  if (!review) return { deny: 'Run a trial for the current scope and choices first.' }
   if (interview.replies <= review.replies) return { deny: 'Show the samples and choices and wait for the person to confirm.' }
   interview.busy = 'confirm'
   try {
-    const key = settingsKey(scope, state.root)
-    const storedScope = await $.store.get(activeScopeKey(state.root))
-    const prior = normalizeSettings(await $.store.get(key))
-    if (state.setup !== interview || state.scope !== scope || (storedScope === 'global' ? 'global' : 'project') !== scope) {
-      return { deny: 'The interview or active scope changed. Review the choices again.' }
+    await refreshSettings($, state)
+    const scope = state.scope
+    const prior = current(state)
+    if (state.setup !== interview || review.scope !== scope ||
+        JSON.stringify(currentChoices(prior)) !== JSON.stringify(review.previous)) {
+      interview.review = undefined
+      return { deny: 'The active scope or preferences changed. Check status and review the choices again.' }
     }
+    const key = settingsKey(scope, state.root)
     const settings = { ...prior, ...review.choices }
     await $.store.set(key, settings)
     try {
@@ -742,7 +756,7 @@ export function register(on: Parameters<Register>[0]): void {
   })
 
   on('command.run', { command: 'chat-interpreter' }, async ($) => {
-    state.connectionAvailable = Boolean(await $.store.get(CONNECTION_KEY))
+    await refreshSettings($, state)
     await $.ui.open({ id: PANE_ID, title: words(state).title, focus: true, closeOnEscape: true })
     return {}
   })
@@ -762,6 +776,7 @@ export function register(on: Parameters<Register>[0]): void {
         return { text: state.isChinese ? '已退出翻译设置。' : 'Translation setup closed.' }
       }
       state.setup = { replies: 0, samples: new Map() }
+      await refreshSettings($, state)
       state.blocked = undefined
       state.bypassDraft = undefined
       $.ui.invalidate('ui.render')

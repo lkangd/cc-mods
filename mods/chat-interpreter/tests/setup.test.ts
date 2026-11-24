@@ -63,6 +63,27 @@ const SERVICE = {
   body: { source: '{{text}}', language: '{{target}}' }, resultPath: ['translation'],
 }
 
+test('a model connection requires its documented completion status for trials and ordinary translations', async ($, on) => {
+  const world = setupHost(on)
+  await $.session.start(SESSION)
+  await $.command.run({ command: COMMAND, args: '', origin: PERSON } as never)
+  const setup = (action: string, fields = {}) => decoded($.tool.call({ tool: TOOL, action, ...fields }))
+  await setup('stage', { connection: { ...SERVICE, resultPath: ['choices', 0, 'message', 'content'],
+    completion: { path: ['choices', 0, 'finish_reason'], accepted: ['stop'] } } })
+  const trial = () => setup('trial', { mode: 'input', inputTarget: 'fr', outputTarget: 'en' })
+  const response = (finish_reason?: string) => JSON.stringify({ choices: [{ finish_reason, message: { content: 'Bonjour' } }] })
+  for (const status of ['length', undefined]) {
+    world.service.text = response(status)
+    expect(await trial()).toMatchObject({ deny: expect.any(String) })
+  }
+  world.service.text = response('stop')
+  expect(await trial()).toMatchObject({ result: { samples: [{ translation: 'Bonjour' }] } })
+  await $.prompt.submit({ text: 'Yes', origin: PERSON, wait: false })
+  await setup('confirm')
+  world.service.text = response('length')
+  expect(await $.prompt.submit({ text: 'Hello', origin: PERSON, wait: false })).toHaveProperty('drop')
+})
+
 test('both directions share a trial, and a new target must be reviewed before confirmation', async ($, on) => {
   const world = setupHost(on)
   await $.session.start(SESSION)
@@ -85,6 +106,48 @@ test('both directions share a trial, and a new target must be reviewed before co
 })
 
 
+test('an open interview sees the latest scope and preferences and can review a stale proposal again', async ($, on) => {
+  const world = setupHost(on)
+  await $.session.start(SESSION)
+  const key = 'active-scope:' + ROOT
+  world.store[key] = 'global'
+  world.store['settings:global'] = { translateOutput: true, outputTarget: 'it' }
+  await $.command.run({ command: COMMAND, args: '', origin: PERSON } as never)
+  const setup = (action: string, fields = {}) => decoded($.tool.call({ tool: TOOL, action, ...fields }))
+  expect(await setup('status')).toMatchObject({ result: { scope: 'global', translateOutput: true, outputTarget: 'it' } })
+  await setup('stage', { connection: SERVICE })
+  const trial = () => setup('trial', { mode: 'output', inputTarget: 'en', outputTarget: 'fr' })
+  expect(await trial()).toMatchObject({ result: { scope: 'global' } })
+  await $.prompt.submit({ text: 'Yes', origin: PERSON, wait: false })
+  world.store['settings:global'] = { translateInput: true, outputTarget: 'de' }
+  expect(await setup('confirm')).toMatchObject({ deny: expect.any(String) })
+  expect(await setup('status')).toMatchObject({ result: { translateInput: true, outputTarget: 'de' } })
+  await trial()
+  world.store[key] = 'project'
+  await $.prompt.submit({ text: 'Yes', origin: PERSON, wait: false })
+  expect(await setup('confirm')).toMatchObject({ deny: expect.any(String) })
+  expect(await trial()).toMatchObject({ result: { scope: 'project' } })
+  expect(await setup('confirm')).toMatchObject({ deny: expect.any(String) })
+  await $.prompt.submit({ text: 'Save in project', origin: PERSON, wait: false })
+  expect(await setup('confirm')).toMatchObject({ result: { saved: true, scope: 'project' } })
+  expect(world.store['settings:global']).toEqual({ translateInput: true, outputTarget: 'de' })
+})
+
+test('a failed correction invalidates the rejected review', async ($, on) => {
+  const world = setupHost(on)
+  await $.session.start(SESSION)
+  await $.command.run({ command: COMMAND, args: '', origin: PERSON } as never)
+  const setup = (action: string, fields = {}) => decoded($.tool.call({ tool: TOOL, action, ...fields }))
+  for (const invalid of [{}, { connection: { kind: 'invalid' } }]) {
+    await setup('stage', { connection: SERVICE })
+    await setup('trial', { mode: 'output', inputTarget: 'en', outputTarget: 'fr' })
+    await $.prompt.submit({ text: 'Try a different service.', origin: PERSON, wait: false })
+    expect(await setup('stage', invalid)).toMatchObject({ deny: expect.any(String) })
+    expect(await setup('confirm')).toMatchObject({ deny: expect.any(String) })
+    expect(world.store['translation-connection']).toBeUndefined()
+  }
+})
+
 test('credentials can be provided in the same session, and a failed extraction cannot replace the active service', async ($, on) => {
   const existing = { ...SERVICE, id: 'existing-123', url: 'https://previous.example/translate' }
   const world = setupHost(on, { 'translation-connection': existing, [projectKey(ROOT)]: { translateInput: true } })
@@ -101,6 +164,10 @@ test('credentials can be provided in the same session, and a failed extraction c
   const endpoint = 'https://private.example/translate'
   world.files[`/config/chat-interpreter/credentials/${staged.result.candidateId}.json`] = JSON.stringify({ secret, endpoint })
   expect(await setup('status')).toMatchObject({ result: { credentialReady: true } })
+  world.service.text = JSON.stringify({ translation: 'Service address ' + endpoint })
+  const echoed = await trial()
+  expect(echoed).toMatchObject({ deny: expect.any(String) })
+  expect(JSON.stringify(echoed)).not.toContain(endpoint)
   world.service.text = JSON.stringify({ wrongField: secret })
   const failed = await trial()
   expect(failed).toMatchObject({ deny: expect.stringContaining('result') })
@@ -117,7 +184,7 @@ test('credentials can be provided in the same session, and a failed extraction c
   await $.command.run({ command: COMMAND, args: 'cancel', origin: PERSON } as never)
   world.service.text = JSON.stringify({ translation: 'Previous service' })
   expect(await $.prompt.submit({ text: 'Hello', origin: PERSON, wait: false })).toMatchObject({ text: 'Previous service' })
-  expect(world.requests).toEqual([endpoint, endpoint, existing.url])
+  expect(world.requests).toEqual([endpoint, endpoint, endpoint, existing.url])
 })
 
 for (const [mode, translateInput, translateOutput, sampleTarget] of [

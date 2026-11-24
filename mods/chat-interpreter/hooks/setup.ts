@@ -7,7 +7,7 @@ export type TrialSample = { target: string; source: string; translation: string 
 export type Interview = {
   candidate?: TranslationConnection
   samples: Map<string, TrialSample>
-  review?: { scope: Scope; choices: SetupChoices; replies: number }
+  review?: { scope: Scope; previous: SetupChoices; choices: SetupChoices; replies: number }
   replies: number
   busy?: 'trial' | 'confirm'
 }
@@ -28,6 +28,11 @@ export const SETUP_TOOL = {
     required: ['action'],
     additionalProperties: false,
   },
+}
+
+export function currentChoices(settings: Settings): SetupChoices {
+  const { translateInput, translateOutput, inputTarget, outputTarget } = settings
+  return { translateInput, translateOutput, inputTarget, outputTarget }
 }
 
 export function setupChoices(mode: unknown, inputTarget: unknown, outputTarget: unknown): SetupChoices {

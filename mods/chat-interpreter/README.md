@@ -6,6 +6,7 @@ Convert punctuation locally, translate prompts before Claude receives them, and 
 
 - An interactive Claude Code terminal, the Claude Desktop Code tab, or a supported VS Code extension.
 - For translation, bring a model API, a translation API, or an installed local translation CLI. Local punctuation conversion works on its own. CLI connections require a surface that supports local processes.
+- Provisioning a credential or private endpoint requires Python 3.8 or newer. On native Windows use an ACL-capable filesystem such as NTFS, and install pywin32 for the helper's interpreter with `py -3 -m pip install pywin32`. The helper creates directories with a protected, inheritable ACL granting access only to your Windows account.
 
 ## Install
 
@@ -34,7 +35,7 @@ claude --plugin-dir ./mods/chat-interpreter
 1. Run `/chat-interpreter` and choose **Project** or **Global**. The plugin starts in **Project** with translation and punctuation conversion off. Each scope retains its own switches, targets and display settings.
 2. Run `/chat-interpreter:setup` in the conversation and describe the service or CLI you already have. For a private service, give the model a sanitized local document or example request with placeholders. For a CLI, setup can inspect its help and prepare a local adapter when needed.
 3. Choose input only, output only, both, or save for later. You can use any target language separately for each direction. Setup suggests English for input and the language of your prompt for output. The service detects the source for each message.
-4. If credentials or a private endpoint are needed, run the command setup gives you in a separate terminal and return to the same conversation. It can reuse a named environment variable or prompt privately. Keep keys and private addresses out of the conversation.
+4. If credentials or a private endpoint are needed, run the command setup gives you in a separate terminal and return to the same conversation. Use `--from-env PROVIDER_KEY` in the terminal where that variable is set to copy its value to the candidate's private file, or let the helper prompt privately. Keep keys and private addresses out of the conversation.
 5. Review each synthetic source and its extracted translation. Setup tries each distinct enabled target once, or one sample when saving for later. Confirm the samples and scope to save. The connection is shared across projects. The choices for input and output apply to the scope shown in the review.
 
 Run setup again to replace a connection. Automatic translations pause in the interviewing session. Other sessions can continue with the saved connection until confirmation. Type `/chat-interpreter:setup cancel` to leave immediately. The settings pane also provides **Convert punctuation**. It follows the selected English or Chinese target and preserves punctuation for other languages.
@@ -90,4 +91,5 @@ Run the automated tests and validate the plugin from the repository root.
 ```sh
 claude plugin test mods/chat-interpreter
 claude plugin validate mods/chat-interpreter
+python3 -m unittest discover -s mods/chat-interpreter/tests
 ```
