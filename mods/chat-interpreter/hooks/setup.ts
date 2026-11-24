@@ -2,7 +2,7 @@ import type { TranslationConnection } from './connection'
 import { validTarget } from './config'
 import type { Scope, Settings } from './config'
 
-export type SetupChoices = Pick<Settings, 'inputTarget' | 'outputTarget' | 'translateInput' | 'translateOutput'>
+export type SetupChoices = Pick<Settings, 'inputTarget' | 'outputTarget' | 'translateInput' | 'outputMode'>
 export type TrialSample = { target: string; source: string; translation: string }
 export type Interview = {
   candidate?: TranslationConnection
@@ -21,7 +21,9 @@ export const SETUP_TOOL = {
       action: { type: 'string', enum: ['status', 'stage', 'trial', 'confirm', 'cancel'] },
       connection: { type: 'object', description: 'For stage. HTTP or CLI description, without an id or any secrets.' },
       renewCredentials: { type: 'boolean', description: 'For stage. Allocate a new private credential file even for the same destination.' },
-      mode: { type: 'string', enum: ['input', 'output', 'both', 'later'] },
+      scope: { type: 'string', enum: ['global', 'project'] },
+      translateInput: { type: 'boolean' },
+      outputMode: { type: 'string', enum: ['manual', 'automatic'] },
       inputTarget: { type: 'string' },
       outputTarget: { type: 'string' },
     },
@@ -31,27 +33,27 @@ export const SETUP_TOOL = {
 }
 
 export function currentChoices(settings: Settings): SetupChoices {
-  const { translateInput, translateOutput, inputTarget, outputTarget } = settings
-  return { translateInput, translateOutput, inputTarget, outputTarget }
+  const { translateInput, outputMode, inputTarget, outputTarget } = settings
+  return { translateInput, outputMode, inputTarget, outputTarget }
 }
 
-export function setupChoices(mode: unknown, inputTarget: unknown, outputTarget: unknown): SetupChoices {
-  if (mode !== 'input' && mode !== 'output' && mode !== 'both' && mode !== 'later') {
-    throw new Error('Choose input, output, both, or later before running a trial.')
+export function setupChoices(translateInput: unknown, outputMode: unknown, inputTarget: unknown, outputTarget: unknown): SetupChoices {
+  if (typeof translateInput !== 'boolean' || (outputMode !== 'manual' && outputMode !== 'automatic')) {
+    throw new Error('Choose whether to translate input and select manual or automatic replies before the trial.')
   }
   if (!validTarget(inputTarget) || !validTarget(outputTarget)) {
     throw new Error('Give a target language for each direction.')
   }
   return {
-    translateInput: mode === 'input' || mode === 'both', translateOutput: mode === 'output' || mode === 'both',
+    translateInput, outputMode,
     inputTarget: inputTarget.trim(), outputTarget: outputTarget.trim(),
   }
 }
 
 export function trialTargets(choices: SetupChoices): string[] {
   const targets: string[] = []
-  if (choices.translateInput || !choices.translateOutput) targets.push(choices.inputTarget)
-  if (choices.translateOutput && !targets.some(target => target.toLowerCase() === choices.outputTarget.toLowerCase())) {
+  if (choices.translateInput) targets.push(choices.inputTarget)
+  if ((!choices.translateInput || choices.outputMode === 'automatic') && !targets.some(target => target.toLowerCase() === choices.outputTarget.toLowerCase())) {
     targets.push(choices.outputTarget)
   }
   return targets

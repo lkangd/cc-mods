@@ -1,6 +1,6 @@
 {
   "name": "chat-interpreter",
-  "version": "0.6.6",
+  "version": "0.7.0",
   "description": "Translate prompts and final replies with your own translation service or local CLI.",
   "author": { "name": "cc-mods contributors" }
 }

@@ -1,13 +1,13 @@
 import type { CommandRunInput, ElementTable, EngineInterface, PromptSubmitInput, Register, RenderElement, RenderInput } from 'claude-code'
-import { activeScopeKey, normalizeSettings, settingsKey, systemIsChinese } from './config'
+import { LEGACY_GLOBAL_KEY, normalizeSettings, readPreferences, settingsKey, systemIsChinese } from './config'
 import type { OriginalStyle, Scope, Settings, TargetLanguage } from './config'
 import { currentChoices, sampleSource, sameDestination, SETUP_TOOL, setupChoices, setupResult, trialTargets } from './setup'
-import type { Interview } from './setup'
+import type { Interview, SetupChoices } from './setup'
 import { cacheName, decodeCache, planCacheCleanup } from './cache'
 import type { CacheRecord, InputTranslation, Reply } from './cache'
 import { CONNECTION_KEY, extractTranslation, fillTemplate, httpRequest, validateConnection, validEndpoint } from './connection'
 import type { TranslationConnection } from './connection'
-import { convertPunctuation, hasImageReference, hasTranslatableText, maskProtected, restoreProtected, splitImageReferences } from './text'
+import { hasImageReference, hasTranslatableText, maskProtected, restoreProtected, splitImageReferences } from './text'
 
 const PANE_ID = 'chat-interpreter-settings'
 const REPLY_LAYOUT_DELAY_MS = 100
@@ -15,8 +15,8 @@ const TRANSLATABLE_ORIGINS = new Set(['composer', 'bridge', 'sdk'])
 
 const WORDS = {
   en: {
-    title: 'Chat Interpreter', project: 'Project', global: 'Global', scope: 'Active scope',
-    punctuation: 'Convert punctuation', input: 'Translate user input', output: 'Translate agent output',
+    title: 'Chat Interpreter', project: 'Project', global: 'Global', inherited: 'Use global',
+    input: 'Translate user input',
     inputTarget: 'Input target language', outputTarget: 'Output target language', outputMode: 'Output translation',
     automatic: 'Automatic', manual: 'Manual', translateReply: 'Translate reply',
     onlySuccess: 'Send input only after successful translation', original: 'Show original text',
@@ -33,8 +33,8 @@ const WORDS = {
     inputFallback: 'Translation failed; sending original text.',
   },
   zh: {
-    title: '聊天翻译', project: '项目', global: '全局', scope: '当前范围',
-    punctuation: '转换标点符号', input: '翻译用户输入', output: '翻译 Agent 输出',
+    title: '聊天翻译', project: '项目', global: '全局', inherited: '使用全局值',
+    input: '翻译用户输入',
     inputTarget: '输入目标语言', outputTarget: '输出目标语言', outputMode: '输出翻译方式',
     automatic: '自动', manual: '手动', translateReply: '翻译此回复',
     onlySuccess: '翻译成功才发送输入', original: '显示原文',
@@ -60,7 +60,8 @@ type InterpreterState = {
   setup?: Interview
   setupTurn?: string
   root: string
-  scope: Scope
+  tab: Scope
+  overrides: Partial<Settings>
   isChinese: boolean
   connectionAvailable: boolean
   settings: Record<Scope, Settings>
@@ -87,7 +88,7 @@ type InterpreterState = {
 }
 
 function words(state: InterpreterState): typeof WORDS.en { return WORDS[state.isChinese ? 'zh' : 'en'] }
-function current(state: InterpreterState): Settings { return state.settings[state.scope] }
+function current(state: InterpreterState): Settings { return state.settings.project }
 function textBlocks(message: { content: readonly unknown[] }): string[] {
   return message.content.flatMap(block => {
     if (typeof block !== 'object' || block === null || !('type' in block) || block.type !== 'text') return []
@@ -223,15 +224,29 @@ async function saveRecords($: EngineInterface, state: InterpreterState, records:
 }
 
 async function refreshSettings($: EngineInterface, state: InterpreterState): Promise<void> {
-  const [active, project, global, connection] = await Promise.all([
-    $.store.get(activeScopeKey(state.root)),
-    $.store.get(settingsKey('project', state.root)),
-    $.store.get(settingsKey('global', state.root)),
-    $.store.get(CONNECTION_KEY),
+  const key = settingsKey('project', state.root)
+  const [global, saved, connection] = await Promise.all([
+    $.store.get(settingsKey('global', state.root)), $.store.get(key), $.store.get(CONNECTION_KEY),
   ])
-  state.scope = active === 'global' ? 'global' : 'project'
-  state.settings.project = normalizeSettings(project)
-  state.settings.global = normalizeSettings(global)
+  const defaults = normalizeSettings(global ?? await $.store.get(LEGACY_GLOBAL_KEY))
+  let overrides = readPreferences(saved)
+  if (saved === undefined) {
+    const legacy = await $.store.get(`settings:project:${state.root}`)
+    if (legacy !== undefined) {
+      const active = await $.store.get(`active-scope:${state.root}`)
+      if (active !== 'global') {
+        const legacyDefaults = global === undefined ? defaults : normalizeSettings(await $.store.get(LEGACY_GLOBAL_KEY))
+        overrides = readPreferences(legacy)
+        for (const field of Object.keys(overrides) as (keyof Settings)[]) {
+          if (overrides[field] === legacyDefaults[field]) delete overrides[field]
+        }
+      }
+      await $.store.set(key, overrides)
+    }
+  }
+  state.overrides = overrides
+  state.settings.global = defaults
+  state.settings.project = { ...defaults, ...overrides }
   state.connectionAvailable = Boolean(connection)
 }
 
@@ -247,18 +262,15 @@ async function loadState($: EngineInterface, state: InterpreterState): Promise<v
   await loadCache($, state).catch(() => undefined)
 }
 
-async function saveSetting<K extends keyof Settings>($: EngineInterface, state: InterpreterState, field: K, value: Settings[K]): Promise<void> {
-  const scope = state.scope
+async function saveSetting<K extends keyof Settings>($: EngineInterface, state: InterpreterState, scope: Scope, field: K, value?: Settings[K]): Promise<void> {
   const key = settingsKey(scope, state.root)
-  const settings = { ...normalizeSettings(await $.store.get(key)), [field]: value }
-  await $.store.set(key, settings)
-  state.settings[scope] = settings
-  $.ui.invalidate('ui.render')
-}
-
-async function switchScope($: EngineInterface, state: InterpreterState, scope: string): Promise<void> {
-  state.scope = scope === 'global' ? 'global' : 'project'
-  await $.store.set(activeScopeKey(state.root), state.scope)
+  let saved = await $.store.get(key)
+  if (scope === 'global' && saved === undefined) saved = await $.store.get(LEGACY_GLOBAL_KEY)
+  const preferences = readPreferences(saved)
+  if (value === undefined) delete preferences[field]
+  else preferences[field] = value
+  await $.store.set(key, preferences)
+  await refreshSettings($, state)
   $.ui.invalidate('ui.render')
 }
 
@@ -333,19 +345,20 @@ function failureMessage(state: InterpreterState, kind: 'translationFailed' | 'in
   return state.connectionAvailable ? w[kind] : `${w.connectionMissing} ${w[kind]}`
 }
 
-function toggle($: EngineInterface, state: InterpreterState, Button: ElementTable['Button'], key: 'punctuation' | 'translateInput' | 'translateOutput' | 'sendOnlyOnSuccess' | 'showOriginal', label: string, enabled: boolean): RenderElement {
-  return Button({
-    key,
-    label: `${enabled ? '☑' : '☐'} ${label}`,
-    plain: true,
-    onPress: () => saveSetting($, state, key, !enabled),
-  })
-}
-
 function drawSettings($: EngineInterface, state: InterpreterState, e: RenderInput<'Pane'>): RenderElement {
   const { Box, Text, Button } = $.ui.resolve(e)
   const w = words(state)
-  const settings = current(state)
+  const tab = state.tab
+  const settings = state.settings[tab]
+  const row = (field: keyof Settings, element: RenderElement) =>
+    tab === 'project' && Object.hasOwn(state.overrides, field)
+      ? Box({ flexDirection: 'row', columnGap: 1, children: [
+        element, Button({ key: `inherit-${field}`, plain: true, label: w.inherited,
+          onPress: () => saveSetting($, state, tab, field) }),
+      ] }) : element
+  const toggle = (key: 'translateInput' | 'sendOnlyOnSuccess' | 'showOriginal', label: string) => row(key,
+    Button({ key, label: `${settings[key] ? '☑' : '☐'} ${label}`, plain: true,
+      onPress: () => saveSetting($, state, tab, key, !settings[key]) }))
   const language = (target: TargetLanguage) => target === 'en' || target === 'zh' ? w[target] : target
   const section = (label: string) => {
     // The built-in labels contain only ASCII and Han characters.
@@ -362,26 +375,24 @@ function drawSettings($: EngineInterface, state: InterpreterState, e: RenderInpu
     ] })
   }
   return Box({ flexDirection: 'column', children: [
+    Box({ flexDirection: 'row', columnGap: 2, children: (['global', 'project'] as const).map(scope =>
+      Button({ key: `tab-${scope}`, plain: true, label: tab === scope ? `[${w[scope]}]` : w[scope],
+        onPress: () => { state.tab = scope; $.ui.invalidate('ui.render') } })) }),
     section(w.general),
-    Button({ key: 'scope', plain: true, label: `${w.scope}: ${state.scope === 'project' ? w.project : w.global} ↔`,
-      onPress: () => switchScope($, state, state.scope === 'project' ? 'global' : 'project'),
-    }),
-    toggle($, state, Button, 'punctuation', w.punctuation, settings.punctuation),
-    toggle($, state, Button, 'showOriginal', w.original, settings.showOriginal),
-    Button({ key: 'originalStyle', plain: true, label: `${w.originalStyle}: ${w[settings.originalStyle]} ↔`,
-      onPress: () => saveSetting($, state, 'originalStyle', NEXT_ORIGINAL_STYLE[settings.originalStyle]),
-    }),
+    toggle('showOriginal', w.original),
+    row('originalStyle', Button({ key: 'originalStyle', plain: true, label: `${w.originalStyle}: ${w[settings.originalStyle]} ↔`,
+      onPress: () => saveSetting($, state, tab, 'originalStyle', NEXT_ORIGINAL_STYLE[settings.originalStyle]),
+    })),
     Text({ dimColor: true, children: [state.connectionAvailable ? w.connectionReady : w.connectionMissing] }),
     section(w.inputGroup),
-    toggle($, state, Button, 'translateInput', w.input, settings.translateInput),
-    Text({ children: [`${w.inputTarget}: ${language(settings.inputTarget)}`] }),
-    toggle($, state, Button, 'sendOnlyOnSuccess', w.onlySuccess, settings.sendOnlyOnSuccess),
+    toggle('translateInput', w.input),
+    row('inputTarget', Text({ children: [`${w.inputTarget}: ${language(settings.inputTarget)}`] })),
+    toggle('sendOnlyOnSuccess', w.onlySuccess),
     section(w.outputGroup),
-    toggle($, state, Button, 'translateOutput', w.output, settings.translateOutput),
-    Button({ key: 'outputMode', plain: true, label: `${w.outputMode}: ${settings.outputMode === 'automatic' ? w.automatic : w.manual} ↔`,
-      onPress: () => saveSetting($, state, 'outputMode', settings.outputMode === 'automatic' ? 'manual' : 'automatic'),
-    }),
-    Text({ children: [`${w.outputTarget}: ${language(settings.outputTarget)}`] }),
+    row('outputMode', Button({ key: 'outputMode', plain: true, label: `${w.outputMode}: ${settings.outputMode === 'automatic' ? w.automatic : w.manual} ↔`,
+      onPress: () => saveSetting($, state, tab, 'outputMode', settings.outputMode === 'automatic' ? 'manual' : 'automatic'),
+    })),
+    row('outputTarget', Text({ children: [`${w.outputTarget}: ${language(settings.outputTarget)}`] })),
   ] })
 }
 
@@ -474,8 +485,7 @@ async function translateReply($: EngineInterface, state: InterpreterState, row: 
   const session = state.sessionId
   $.ui.invalidate('ui.render')
   try {
-    const text = settings.punctuation ? convertPunctuation(reply.original, target) : reply.original
-    const translated = await translate($, state, text, target)
+    const translated = await translate($, state, reply.original, target)
     if (state.sessionId !== session) return false
     await saveRecord($, state, { kind: 'output', row, target, translated })
     if (state.sessionId !== session) return false
@@ -504,9 +514,13 @@ async function revealTranslation($: EngineInterface, state: InterpreterState, ke
 }
 
 async function onReplyPress($: EngineInterface, state: InterpreterState, row: string, reply: Reply, requestId: string): Promise<void> {
-  const settings = current(state)
-  if (!settings.translateOutput || settings.outputMode !== 'manual') return
   const session = state.sessionId
+  await refreshSettings($, state)
+  const settings = current(state)
+  if (state.sessionId !== session || settings.outputMode !== 'manual') {
+    $.ui.invalidate('ui.render')
+    return
+  }
   const key = outputKey(row, settings.outputTarget)
   if (state.outputRows.has(key)) {
     const showing = state.hidden.delete(key)
@@ -519,7 +533,7 @@ async function onReplyPress($: EngineInterface, state: InterpreterState, row: st
   // Scrolling against the old row layout can snap back when the terminal lays out the translation.
   await $.clock.sleep(REPLY_LAYOUT_DELAY_MS)
   const active = current(state)
-  if (state.sessionId === session && active.translateOutput && active.outputTarget === settings.outputTarget &&
+  if (state.sessionId === session && active.outputTarget === settings.outputTarget &&
       !state.hidden.has(key)) {
     await revealTranslation($, state, key, requestId)
   }
@@ -537,10 +551,9 @@ async function translateInput($: EngineInterface, state: InterpreterState, text:
 }
 
 async function processInput($: EngineInterface, state: InterpreterState, original: string, settings: Settings): Promise<string | undefined> {
-  const text = settings.punctuation ? convertPunctuation(original, settings.inputTarget) : original
-  if (!settings.translateInput || !hasTranslatableText(text)) return text
+  if (!settings.translateInput || !hasTranslatableText(original)) return original
   try {
-    return await translateInput($, state, text, settings.inputTarget)
+    return await translateInput($, state, original, settings.inputTarget)
   } catch {
     if (settings.sendOnlyOnSuccess) return undefined
     $.ui.toast(failureMessage(state, 'inputFallback'))
@@ -624,7 +637,7 @@ async function pluginProvidesSkill($: EngineInterface, root: string, name: strin
 }
 
 async function runSkill($: EngineInterface, state: InterpreterState, e: CommandRunInput, settings: Settings): Promise<string | undefined> {
-  if (!TRANSLATABLE_ORIGINS.has(e.origin.kind) || !e.args.trim() || (!settings.translateInput && !settings.punctuation)) return e.args
+  if (!TRANSLATABLE_ORIGINS.has(e.origin.kind) || !e.args.trim() || !settings.translateInput) return e.args
   if (!await knownSkill($, state, e.command).catch(() => false)) return e.args
   state.blocked = undefined
   const args = await processInput($, state, e.args, settings)
@@ -638,10 +651,12 @@ async function runSkill($: EngineInterface, state: InterpreterState, e: CommandR
 
 async function setupAction($: EngineInterface, state: InterpreterState, interview: Interview, e: Record<string, unknown>) {
   const candidate = interview.candidate
+  const scope = e.scope ?? 'project'
+  if (scope !== 'project' && scope !== 'global') return { deny: 'Choose global or project preferences.' }
   if (e.action === 'status') {
     await refreshSettings($, state)
     return setupResult({
-      scope: state.scope, ...currentChoices(current(state)), connected: state.connectionAvailable,
+      scope, ...currentChoices(state.settings[scope]), connected: state.connectionAvailable,
       ...(candidate ? { candidateId: candidate.id, credentialReady: await credentialReady($, state, candidate) } : {}),
     })
   }
@@ -672,9 +687,8 @@ async function setupAction($: EngineInterface, state: InterpreterState, intervie
     try {
       await refreshSettings($, state)
       if (state.setup !== interview) return { deny: 'The interview ended before the trial.' }
-      const scope = state.scope
-      const previous = currentChoices(current(state))
-      const choices = setupChoices(e.mode, e.inputTarget, e.outputTarget)
+      const previous = currentChoices(state.settings[scope])
+      const choices = setupChoices(e.translateInput, e.outputMode, e.inputTarget, e.outputTarget)
       const samples = []
       for (const target of trialTargets(choices)) {
         const key = target.toLowerCase()
@@ -703,23 +717,31 @@ async function setupAction($: EngineInterface, state: InterpreterState, intervie
   interview.busy = 'confirm'
   try {
     await refreshSettings($, state)
-    const scope = state.scope
-    const prior = current(state)
-    if (state.setup !== interview || review.scope !== scope ||
+    const scope = review.scope
+    const prior = state.settings[scope]
+    if (state.setup !== interview ||
         JSON.stringify(currentChoices(prior)) !== JSON.stringify(review.previous)) {
       interview.review = undefined
-      return { deny: 'The active scope or preferences changed. Check status and review the choices again.' }
+      return { deny: 'The reviewed preferences changed. Check status and review the choices again.' }
     }
     const key = settingsKey(scope, state.root)
-    const settings = { ...prior, ...review.choices }
+    const stored = scope === 'global' ? prior : state.overrides
+    const settings = { ...stored }
+    for (const field of Object.keys(review.choices) as (keyof SetupChoices)[]) {
+      if (scope === 'project' && prior[field] === review.choices[field]) continue
+      if (scope === 'project' && state.settings.global[field] === review.choices[field]) delete settings[field]
+      else Object.assign(settings, { [field]: review.choices[field] })
+    }
     await $.store.set(key, settings)
     try {
       await $.store.set(CONNECTION_KEY, candidate)
     } catch {
-      await $.store.set(key, prior)
+      await $.store.set(key, stored)
       throw new Error('Save failed')
     }
-    state.settings[scope] = settings
+    if (scope === 'global') state.settings.global = normalizeSettings(settings)
+    else state.overrides = settings
+    state.settings.project = { ...state.settings.global, ...state.overrides }
     state.connectionAvailable = true
     state.setup = undefined
     $.ui.invalidate('ui.render')
@@ -733,7 +755,7 @@ async function setupAction($: EngineInterface, state: InterpreterState, intervie
 
 export function register(on: Parameters<Register>[0]): void {
   const state: InterpreterState = {
-    root: '', scope: 'project', isChinese: false, connectionAvailable: false,
+    root: '', tab: 'project', overrides: {}, isChinese: false, connectionAvailable: false,
     settings: { project: normalizeSettings(), global: normalizeSettings() },
     pendingInputs: [], inputRows: new Map(), pendingSkillRows: [], skillReplies: new Map(), responseRows: [], outputRows: new Map(),
     replies: new Map(), replyRows: new Map(), rowPrefixes: new Map(), unmatchedReplies: new Map(),
@@ -784,6 +806,7 @@ export function register(on: Parameters<Register>[0]): void {
     }
     if (state.setup) return next(e)
     if (e.command === 'chat-interpreter') return next(e)
+    await refreshSettings($, state)
     const settings = current(state)
     const args = await runSkill($, state, e, settings)
     if (args === undefined) return { text: failureMessage(state, 'inputBlocked') }
@@ -839,6 +862,7 @@ export function register(on: Parameters<Register>[0]): void {
       $.ui.invalidate('ui.render')
     }
     if (/^\s*\//.test(e.text)) return next(e)
+    await refreshSettings($, state)
     const settings = current(state)
     const original = e.text
     const target = settings.inputTarget
@@ -907,8 +931,10 @@ export function register(on: Parameters<Register>[0]): void {
       return result
     }
     if (state.sessionId !== session || state.setup) return result
+    await refreshSettings($, state)
+    if (state.sessionId !== session || state.setup) return result
     const settings = current(state)
-    if (settings.translateOutput && settings.outputMode === 'manual') {
+    if (settings.outputMode === 'manual') {
       if (answer && !row) {
         const id = `turn:${e.turnId}`
         state.unmatchedReplies.set(answer, id)
@@ -924,10 +950,10 @@ export function register(on: Parameters<Register>[0]): void {
     const reply = { original: row ? group.map(item => item.text).join('\n\n') : answer, anchor: row?.uuid ?? '', rows: group.map(item => item.uuid) }
     const record = { kind: 'reply', row: id, value: reply } as const
     if (!row) state.unmatchedReplies.set(answer, id)
-    if (row && (settings.translateOutput || settings.punctuation)) await saveRecord($, state, record)
+    if (row) await saveRecord($, state, record)
     else restoreRecord(state, record)
     $.ui.invalidate('ui.render')
-    if (settings.translateOutput && settings.outputMode === 'automatic' && hasTranslatableText(reply.original)) {
+    if (settings.outputMode === 'automatic' && hasTranslatableText(reply.original)) {
       await translateReply($, state, id, reply, settings)
     }
     return result
@@ -960,7 +986,7 @@ export function register(on: Parameters<Register>[0]): void {
     const key = outputKey(row, settings.outputTarget)
     const cached = state.outputRows.get(key)
     const reply = registeredRow ? state.replies.get(registeredRow)
-      : settings.translateOutput && (settings.outputMode === 'manual' || cached !== undefined)
+      : (settings.outputMode === 'manual' || cached !== undefined)
         ? visibleReply(state, e.requestId, e.props.text) : undefined
     if (!reply) {
       if (!state.skillReplies.has(e.requestId)) return next(e)
@@ -971,13 +997,10 @@ export function register(on: Parameters<Register>[0]): void {
       state.replyRows.set(e.requestId, row)
       state.unmatchedReplies.delete(e.props.text)
     }
-    const translatable = settings.translateOutput && hasTranslatableText(reply.original)
+    const translatable = hasTranslatableText(reply.original)
     const manual = settings.outputMode === 'manual' && translatable
-    const translated = settings.translateOutput && !state.hidden.has(key) ? cached : undefined
-    const punctuation = settings.punctuation && !translatable
-      ? convertPunctuation(reply.original, settings.outputTarget) : undefined
-    const display = translated ?? punctuation
-    const changed = display !== undefined && display !== reply.original
+    const translated = state.hidden.has(key) ? undefined : cached
+    const changed = translated !== undefined && translated !== reply.original
     const anchor = (displayRow === reply.anchor || e.requestId === reply.anchor) &&
       (reply.rows.length > 1 || e.props.isFirstOfReply || e.props.text === reply.original)
     if (!anchor) {
@@ -985,7 +1008,7 @@ export function register(on: Parameters<Register>[0]): void {
       if (!state.skillReplies.has(e.requestId)) return rendered
       return withSkillOriginals($.ui.resolve(e), state, e, rendered)
     }
-    const rendered = await next({ ...e, props: { ...e.props, text: changed ? display : e.props.text } })
+    const rendered = await next({ ...e, props: { ...e.props, text: changed ? translated : e.props.text } })
     const elements = $.ui.resolve(e)
     const { Box, Text, Button } = elements
     const w = words(state)

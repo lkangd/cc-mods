@@ -4,9 +4,7 @@ export type OutputMode = 'automatic' | 'manual'
 export type OriginalStyle = 'box' | 'doubleRule' | 'none'
 
 export type Settings = {
-  punctuation: boolean
   translateInput: boolean
-  translateOutput: boolean
   outputMode: OutputMode
   inputTarget: TargetLanguage
   outputTarget: TargetLanguage
@@ -16,10 +14,8 @@ export type Settings = {
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
-  punctuation: false,
   translateInput: false,
-  translateOutput: false,
-  outputMode: 'automatic',
+  outputMode: 'manual',
   inputTarget: 'en',
   outputTarget: 'zh',
   sendOnlyOnSuccess: true,
@@ -31,32 +27,40 @@ export function validTarget(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0 && !/[\u0000-\u001f\u007f]/.test(value)
 }
 
-export function normalizeSettings(value?: unknown): Settings {
-  const source = value && typeof value === 'object' && !Array.isArray(value) ? value as Partial<Settings> : {}
-  return {
-    punctuation: typeof source.punctuation === 'boolean' ? source.punctuation : DEFAULT_SETTINGS.punctuation,
-    translateInput: typeof source.translateInput === 'boolean' ? source.translateInput : DEFAULT_SETTINGS.translateInput,
-    translateOutput: typeof source.translateOutput === 'boolean' ? source.translateOutput : DEFAULT_SETTINGS.translateOutput,
-    outputMode: source.outputMode === 'manual' ? 'manual' : 'automatic',
-    inputTarget: validTarget(source.inputTarget) ? source.inputTarget.trim() : DEFAULT_SETTINGS.inputTarget,
-    outputTarget: validTarget(source.outputTarget) ? source.outputTarget.trim() : DEFAULT_SETTINGS.outputTarget,
-    sendOnlyOnSuccess: typeof source.sendOnlyOnSuccess === 'boolean' ? source.sendOnlyOnSuccess : DEFAULT_SETTINGS.sendOnlyOnSuccess,
-    showOriginal: typeof source.showOriginal === 'boolean' ? source.showOriginal : DEFAULT_SETTINGS.showOriginal,
-    originalStyle: source.originalStyle === 'doubleRule' || source.originalStyle === 'none' ? source.originalStyle : 'box',
+export function readPreferences(value: unknown): Partial<Settings> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const source = value as Record<string, unknown>
+  const preferences: Partial<Settings> = {}
+  for (const field of ['translateInput', 'sendOnlyOnSuccess', 'showOriginal'] as const) {
+    if (typeof source[field] === 'boolean') preferences[field] = source[field]
   }
+  for (const field of ['inputTarget', 'outputTarget'] as const) {
+    if (validTarget(source[field])) preferences[field] = source[field].trim()
+  }
+  // The former output switch took precedence over the saved mode.
+  if (source.translateOutput === false) preferences.outputMode = 'manual'
+  else if (source.outputMode === 'manual' || source.outputMode === 'automatic') preferences.outputMode = source.outputMode
+  else if (source.translateOutput === true) preferences.outputMode = 'automatic'
+  if (source.originalStyle === 'box' || source.originalStyle === 'doubleRule' || source.originalStyle === 'none') {
+    preferences.originalStyle = source.originalStyle
+  }
+  return preferences
+}
+
+export function normalizeSettings(value?: unknown): Settings {
+  return { ...DEFAULT_SETTINGS, ...readPreferences(value) }
 }
 
 export function projectKey(root: string): string {
-  return `settings:project:${root}`
-}
-
-export function activeScopeKey(root: string): string {
-  return `active-scope:${root}`
+  return `settings:overrides:${root}`
 }
 
 export function settingsKey(scope: Scope, root: string): string {
-  return scope === 'global' ? 'settings:global' : projectKey(root)
+  return scope === 'global' ? 'settings:defaults' : projectKey(root)
 }
+
+// Retain the old defaults so unopened projects can migrate against the same baseline.
+export const LEGACY_GLOBAL_KEY = 'settings:global'
 
 export function systemIsChinese(locales: readonly (string | undefined)[]): boolean {
   const locale = locales.find(value => typeof value === 'string' && value.trim())

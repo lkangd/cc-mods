@@ -172,7 +172,7 @@ def exercise(route, world, host, model, service):
         else:
             assert "reads text from stdin" in tool_result(model.messages, "Bash")
 
-        trial = {"action": "trial", "mode": "both", "inputTarget": "fr", "outputTarget": "fr"}
+        trial = {"action": "trial", "scope": "project", "translateInput": True, "outputMode": "automatic", "inputTarget": "fr", "outputTarget": "fr"}
         visible = "The window is open. → La fenêtre est ouverte. (fr). Confirm both in project?"
         turn("Configuration is ready.", [(TOOL, {"action": "status"}), (TOOL, trial)], show_sample, visible)
         assert tool_result(model.messages, TOOL, "status")["credentialReady"] is True

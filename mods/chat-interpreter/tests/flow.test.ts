@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
-import { activeScopeKey, projectKey, settingsKey } from '../hooks/config'
+import { projectKey, settingsKey } from '../hooks/config'
 
 const SESSION = { cwd: '/synthetic/project', surface: 'terminal', isInteractive: true } as const
 const MODEL = {
@@ -11,6 +11,7 @@ const MODEL = {
 const REPO = { root: '/synthetic/project', remote: null, internal: false, name: null }
 
 type World = {
+  repoRoot: string
   store: Record<string, unknown>
   env: Record<string, string>
   requestHeaders: Array<Record<string, string>>
@@ -31,6 +32,7 @@ type World = {
 
 function host(on: On, saved: Record<string, unknown> = {}): World {
   const world: World = {
+    repoRoot: REPO.root,
     store: { ...saved }, env: { LANG: 'en_US.UTF-8', HOME: '/synthetic/home' }, requests: [], requestBodies: [], requestHeaders: [], toasts: [], notices: [], rendered: [], dropNextPrompt: false,
     files: {}, submitted: [], commands: [],
     commandList: [{ name: 'review', description: 'Review', source: 'user' }],
@@ -38,7 +40,7 @@ function host(on: On, saved: Record<string, unknown> = {}): World {
   }
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('classic.SessionStart', () => ({}))
-  on('session.repo', () => ({ value: REPO }))
+  on('session.repo', () => ({ value: { ...REPO, root: world.repoRoot } }))
   on('session.cwd', () => ({ value: SESSION.cwd }))
   on('session.id', () => ({ value: 'session-1' }))
   on('store.get', (_$, e) => ({ value: world.store[e.key] }))
@@ -53,6 +55,7 @@ function host(on: On, saved: Record<string, unknown> = {}): World {
     })),
   }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
+  on('tool.register', () => ({ value: { tool: 'mcp__chat-interpreter__setup' } }))
   on('command.list', () => ({ value: world.commandList }))
   on('command.run', (_$, e) => { world.commands.push(e.args); return { text: e.args } })
   on('prompt.read', () => ({ value: { text: 'existing draft', cursor: 0 } }))
@@ -96,7 +99,7 @@ test('a configured project loads in a new session and sends the translated input
 })
 
 test('a translation API receives the chosen target and protected input and extracts its own result shape', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, punctuation: true, inputTarget: 'Français' },
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, inputTarget: 'Français' },
     'translation-connection': { kind: 'http', id: 'internal-api', url: 'https://translate.example.test/v1',
       body: { sentence: '{{text}}', to: '{{target}}' }, resultPath: ['results', 0, 'translation'] } })
   world.response.text = JSON.stringify({ results: [{ translation: 'Vérifiez __CI_KEEP_0__！' }] })
@@ -107,7 +110,7 @@ test('a translation API receives the chosen target and protected input and extra
 })
 
 test('a cached translation in a new target language survives replacement and resume', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputTarget: 'Français' },
+  const world = host(on, { [projectKey(REPO.root)]: { outputMode: 'automatic', outputTarget: 'Français' },
     'translation-connection': MODEL })
   world.response.text = JSON.stringify({ choices: [{ message: { content: 'Bonjour' } }] })
   await $.session.start(SESSION)
@@ -186,8 +189,8 @@ test('missing connection falls back to original when the success gate is off', a
   expect(world.toasts).toEqual([expect.stringContaining('/chat-interpreter:setup')])
 })
 
-test('translation failure sends the original even when punctuation conversion is on', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, punctuation: true, sendOnlyOnSuccess: false } })
+test('translation failure sends the original unchanged', async ($, on) => {
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, sendOnlyOnSuccess: false } })
   world.store['translation-connection'] = MODEL
   world.response = { ...world.response, status: 503, ok: false }
   await $.session.start(SESSION)
@@ -197,7 +200,7 @@ test('translation failure sends the original even when punctuation conversion is
 })
 
 test('the final answer is translated for display while its stored row remains original', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true } })
+  const world = host(on, { [projectKey(REPO.root)]: { outputMode: 'automatic' } })
   world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '你好' } }] })
   await $.session.start(SESSION)
@@ -217,8 +220,19 @@ test('the final answer is translated for display while its stored row remains or
   expect(world.requests).toHaveLength(1)
 })
 
+test('a manual click uses the inherited target last saved in another session', async ($, on) => {
+  const world = host(on, { 'translation-connection': MODEL })
+  await $.session.start(SESSION)
+  const requestId = '12345678-abcd-4321-aaaa-000000000000'
+  const row = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage',
+    requestId, props: { text: 'An older reply.', isFirstOfReply: true } } as never)
+  world.store[settingsKey('global', REPO.root)] = { outputTarget: 'de' }
+  await row.press({ key: `translate:${requestId}` })
+  expect(JSON.parse(world.requestBodies[0]!).messages[0].content).toBe('Translate into de.')
+})
+
 test('manual output translation waits for the reply button', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  const world = host(on, { [projectKey(REPO.root)]: { outputMode: 'manual' } })
   world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '你好' } }] })
   await $.session.start(SESSION)
@@ -255,7 +269,7 @@ test('manual output translation waits for the reply button', async ($, on) => {
 })
 
 test('manual mode can translate each visible reply in the same turn independently after resume', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  const world = host(on, { [projectKey(REPO.root)]: { outputMode: 'manual' } })
   world.store['translation-connection'] = MODEL
   await $.session.start(SESSION)
   for (const [uuid, text] of [['progress', 'I will check the files.'], ['final', 'The files are ready.']] as const) {
@@ -293,7 +307,7 @@ test('manual mode can translate each visible reply in the same turn independentl
 })
 
 test('resumed replies without records can be translated and cached by visible block', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  const world = host(on, { [projectKey(REPO.root)]: { outputMode: 'manual' } })
   world.store['translation-connection'] = MODEL
   await $.session.start(SESSION)
   await $.classic.SessionStart({ source: 'resume', session_id: 'older-session' })
@@ -334,7 +348,7 @@ test('resumed replies without records can be translated and cached by visible bl
 })
 
 test('a requested historical translation survives a switch to automatic mode', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  const world = host(on, { [projectKey(REPO.root)]: { outputMode: 'manual' } })
   world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ message: { content: '译文。' } }] })
   await $.session.start(SESSION)
@@ -364,7 +378,7 @@ test('a requested historical translation survives a switch to automatic mode', a
 })
 
 test('a final reply with two text blocks displays the aggregate translation once', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true } })
+  const world = host(on, { [projectKey(REPO.root)]: { outputMode: 'automatic' } })
   world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '你好世界' } }] })
   await $.session.start(SESSION)
@@ -380,7 +394,7 @@ test('a final reply with two text blocks displays the aggregate translation once
 })
 
 test('resume restores input and reply cache with an actionable button and no request', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  const world = host(on, { [projectKey(REPO.root)]: { outputMode: 'manual' } })
   await $.session.start(SESSION)
   const directory = '/synthetic/home/.claude/chat-interpreter-cache/resumed'
   world.files[`${directory}.input-row.input.json`] = JSON.stringify({
@@ -404,7 +418,7 @@ test('resume restores input and reply cache with an actionable button and no req
 })
 
 test('an image prompt and its reply keep their translation UI when Claude normalizes render IDs', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, translateOutput: true, outputMode: 'manual' } })
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, outputMode: 'manual' } })
   world.store['translation-connection'] = MODEL
   const inputId = '1f0e97b7-82dd-4768-ba10-be6f1ee002bd'
   const replyId = '556e5bea-c008-478e-b607-f03a31f918b7'
@@ -464,7 +478,7 @@ test('slash submissions stay intact and verified skills translate only typed arg
 })
 
 test('translating a resumed reply to identical text shows the result without duplicating it', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  const world = host(on, { [projectKey(REPO.root)]: { outputMode: 'manual' } })
   world.store['translation-connection'] = MODEL
   const original = '这段原文已经是中文。'
   world.response.text = JSON.stringify({ choices: [{ message: { content: original } }] })
@@ -520,7 +534,7 @@ test('translated skill arguments show their original once before the agent respo
 })
 
 test('an unmatched final answer offers a live manual translation without caching an unverified row', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateOutput: true, outputMode: 'manual' } })
+  const world = host(on, { [projectKey(REPO.root)]: { outputMode: 'manual' } })
   world.store['translation-connection'] = MODEL
   world.response.text = JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: '你好' } }] })
   await $.session.start(SESSION)
@@ -552,7 +566,7 @@ test('a plugin skill declared in a nested manifest path translates its typed arg
 })
 
 test('long input and reply originals remain visible after translation', async ($, on) => {
-  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, translateOutput: true } })
+  const world = host(on, { [projectKey(REPO.root)]: { translateInput: true, outputMode: 'automatic' } })
   world.store['translation-connection'] = MODEL
   const original = 'Original text '.repeat(850) + '最後一段'
   await $.session.start(SESSION)
@@ -619,18 +633,58 @@ test('input shows translation progress before the prompt enters', async ($, on) 
   expect(await band.find({ type: 'Text', text: 'Translating…' })).toBeUndefined()
 })
 
-test('a new session reuses the saved global scope without changing project settings', async ($, on) => {
-  const saved = {
-    [projectKey(REPO.root)]: { translateInput: false },
-    [settingsKey('global', REPO.root)]: { translateInput: true },
-    [activeScopeKey(REPO.root)]: 'global',
-  }
-  const world = host(on, saved)
-  world.store['translation-connection'] = MODEL
+test('a later project migration inherits global changes made after upgrade', async ($, on) => {
+  const laterRoot = '/synthetic/later'
+  const world = host(on, {
+    'settings:global': { translateInput: true, inputTarget: 'de' },
+    [`settings:project:${laterRoot}`]: { translateInput: true, inputTarget: 'fr' },
+    'translation-connection': MODEL,
+  })
+  await $.session.start(SESSION)
+  const props = { title: 'Chat Interpreter', isFocused: true, bodyColumns: 70, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} }
+  const pane = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'Pane',
+    requestId: 'chat-interpreter-settings', props } as never)
+  await pane.press({ key: 'tab-global' })
+  await pane.redraw(props as never)
+  await pane.press({ key: 'translateInput' })
+  world.repoRoot = laterRoot
+  await $.session.start({ ...SESSION, cwd: laterRoot })
+  expect(await $.prompt.submit({ text: 'Hello', origin: { kind: 'composer' }, wait: false })).toMatchObject({ text: 'Hello' })
+  expect(world.requests).toHaveLength(0)
+  expect(world.store[projectKey(laterRoot)]).toEqual({ inputTarget: 'fr' })
+  expect(world.store[settingsKey('global', laterRoot)]).toEqual({ translateInput: false, inputTarget: 'de' })
+})
+
+test('a legacy global selection inherits global settings on upgrade', async ($, on) => {
+  const world = host(on, {
+    [`settings:project:${REPO.root}`]: { translateInput: false },
+    'settings:global': { translateInput: true },
+    [`active-scope:${REPO.root}`]: 'global', 'translation-connection': MODEL,
+  })
   await $.session.start(SESSION)
   const result = await $.prompt.submit({ text: '你好', origin: { kind: 'composer' }, wait: false })
   expect(result).toMatchObject({ text: 'Hello' })
-  expect(world.store[projectKey(REPO.root)]).toEqual({ translateInput: false })
+  expect(world.store[projectKey(REPO.root)]).toEqual({})
+})
+
+test('legacy punctuation-only settings preserve input and reply verbatim without a request', async ($, on) => {
+  const world = host(on, {
+    [`settings:project:${REPO.root}`]: { punctuation: true, showOriginal: true, translateOutput: false, outputMode: 'automatic' },
+    'translation-connection': MODEL,
+  })
+  await $.session.start(SESSION)
+  const input = '使用英文回答我。'
+  expect(await $.prompt.submit({ text: input, origin: { kind: 'composer' }, wait: false })).toMatchObject({ text: input })
+  const text = 'Done, thanks.'
+  await $.session.append({ uuid: 'unchanged', door: 'response', origin: { kind: 'model', model: 'synthetic' },
+    message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text }] } })
+  await $.turn.complete({ answer: text, durationMs: 1, isAborted: false, turnId: 't', reason: 'answer' })
+  const row = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'AssistantMessage', requestId: 'unchanged',
+    props: { text, isFirstOfReply: true } } as never)
+  expect(world.rendered.at(-1)).toBe(text)
+  expect(await row.find({ text: 'Original' })).toBeUndefined()
+  expect(await row.find({ key: 'translate:unchanged' })).toBeDefined()
+  expect(world.requests).toHaveLength(0)
 })
 
 test('the user row shows both original input and the text sent to Claude', async ($, on) => {
@@ -662,25 +716,30 @@ test('a downstream drop does not attach the earlier original to a later prompt',
   expect(await row.find({ type: 'Markdown', text: '您好' })).toBeDefined()
 })
 
-test('the settings pane persists project changes and switches to an independent global set', async ($, on) => {
-  const world = host(on)
+test('tabs edit separate preferences while translations always use project overrides on top of global defaults', async ($, on) => {
+  const world = host(on, { 'translation-connection': MODEL })
   await $.session.start(SESSION)
-  const pane = await $.ui.mount({
-    plugin: 'chat-interpreter', surface: 'terminal', component: 'Pane', requestId: 'chat-interpreter-settings',
-    props: { title: 'Chat Interpreter', isFocused: true, bodyColumns: 70, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
-  } as never)
-  world.store[projectKey(REPO.root)] = { inputTarget: 'German', punctuation: true }
-  await pane.press({ key: 'translateInput' })
-  expect(world.store[projectKey(REPO.root)]).toMatchObject({ translateInput: true, inputTarget: 'German', punctuation: true })
-  expect(await pane.find({ key: 'originalStyle', text: /Box/ })).toBeDefined()
-  await pane.press({ key: 'originalStyle' })
-  expect(world.store[projectKey(REPO.root)]).toMatchObject({ originalStyle: 'doubleRule' })
-  await pane.press({ key: 'scope' })
-  expect(world.store[activeScopeKey(REPO.root)]).toBe('global')
-  await pane.redraw({ title: 'Chat Interpreter', isFocused: true, bodyColumns: 70, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} } as never)
-  await pane.press({ key: 'translateOutput' })
-  await pane.press({ key: 'outputMode' })
-  expect(world.store[settingsKey('global', REPO.root)]).toMatchObject({ outputMode: 'manual' })
-  expect(world.store[settingsKey('global', REPO.root)]).toMatchObject({ translateOutput: true, translateInput: false })
-  expect(world.store[projectKey(REPO.root)]).toMatchObject({ translateInput: true, translateOutput: false })
+  const props = { title: 'Chat Interpreter', isFocused: true, bodyColumns: 70, placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} }
+  const pane = await $.ui.mount({ plugin: 'chat-interpreter', surface: 'terminal', component: 'Pane',
+    requestId: 'chat-interpreter-settings', props } as never)
+  const press = async (key: string) => { await pane.press({ key }); await pane.redraw(props as never) }
+  expect(await pane.find({ key: 'tab-project', text: '[Project]' })).toBeDefined()
+  expect(await pane.find({ key: 'tab-global', text: 'Global' })).toBeDefined()
+  for (const key of ['punctuation', 'scope', 'translateOutput']) expect(await pane.find({ key })).toBeUndefined()
+  await press('tab-global')
+  await press('translateInput')
+  await press('outputMode')
+  expect(world.store[settingsKey('global', REPO.root)]).toEqual({ translateInput: true, outputMode: 'automatic' })
+  expect(world.store[projectKey(REPO.root)]).toBeUndefined()
+  await press('tab-project')
+  expect(await pane.find({ key: 'outputMode', text: /Automatic/ })).toBeDefined()
+  await press('translateInput')
+  expect(world.store[projectKey(REPO.root)]).toEqual({ translateInput: false })
+  await press('tab-global')
+  const submit = () => $.prompt.submit({ text: '你好。', origin: { kind: 'composer' }, wait: false })
+  expect(await submit()).toMatchObject({ text: '你好。' })
+  await press('tab-project')
+  await press('inherit-translateInput')
+  expect(world.store[projectKey(REPO.root)]).toEqual({})
+  expect(await submit()).toMatchObject({ text: 'Hello' })
 })

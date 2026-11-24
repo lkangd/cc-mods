@@ -1,5 +1,3 @@
-import type { TargetLanguage } from './config'
-
 const TECHNICAL = /\b[A-Za-z][A-Za-z0-9+.-]*:[^\s<>()[\]]+|(?:@?\.\.?\/|~\/|\/)[\w.@+~/-]+|\b@?(?:[\w.-]+\/)+[\w.-]+\b|\b[A-Za-z]:\\(?:[^\s\\]+\\)*[^\s\\]+|(?<![\w.])(?:\.?[\w-]+)(?:\.[\w-]+)+(?![\w])/g
 const IMAGE_REFERENCE = /\[Image #\d+\]/
 
@@ -83,43 +81,6 @@ export function splitImageReferences(text: string): TextPart[] {
   }
   if (draft) chunks.push({ text: draft, protected: false })
   return chunks
-}
-
-const ZH_TO_EN = new Map([
-  ['，', ','], ['。', '.'], ['！', '!'], ['？', '?'], ['；', ';'], ['：', ':'], ['、', ','],
-  ['（', '('], ['）', ')'], ['【', '['], ['】', ']'], ['“', '"'], ['”', '"'], ['‘', "'"], ['’', "'"],
-])
-const EN_TO_ZH = new Map([
-  [',', '，'], ['.', '。'], ['!', '！'], ['?', '？'], [';', '；'], [':', '：'],
-  ['(', '（'], [')', '）'], ['[', '【'], [']', '】'],
-])
-
-export function convertPunctuation(text: string, target: TargetLanguage): string {
-  const english = /^(?:en(?:[-_].+)?|English|英语|英文)$/i.test(target)
-  const chinese = /^(?:zh(?:[-_].+)?|(?:(?:simplified|traditional) )?Chinese|中文|简体中文|繁體中文)$/i.test(target)
-  if (!english && !chinese) return text
-  const direction = english ? 'zh-en' : 'en-zh'
-  const table = direction === 'zh-en' ? ZH_TO_EN : EN_TO_ZH
-  let doubleQuoteOpen = true
-  let singleQuoteOpen = true
-  return splitProtected(text).map(part => {
-    if (part.protected) return part.text
-    return part.text.replace(/[，。！？；：、（）【】“”‘’.,!?;:()\[\]"']/g, (mark, index, source) => {
-      if (direction === 'en-zh' && mark === '.' && /\d/.test(source[index - 1] ?? '') && /\d/.test(source[index + 1] ?? '')) return mark
-      if (direction === 'en-zh' && mark === '"') {
-        const converted = doubleQuoteOpen ? '“' : '”'
-        doubleQuoteOpen = !doubleQuoteOpen
-        return converted
-      }
-      if (direction === 'en-zh' && mark === "'") {
-        if (/[A-Za-z]/.test(source[index - 1] ?? '') && /[A-Za-z]/.test(source[index + 1] ?? '')) return mark
-        const converted = singleQuoteOpen ? '‘' : '’'
-        singleQuoteOpen = !singleQuoteOpen
-        return converted
-      }
-      return table.get(mark) ?? mark
-    })
-  }).join('')
 }
 
 export function hasTranslatableText(text: string): boolean {

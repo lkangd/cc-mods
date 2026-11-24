@@ -28,14 +28,12 @@ Saved input and output translations associated with a conversation, a message, a
 **Manual translation control**:
 The action below a final reply that requests a translation or toggles the visibility of one already saved.
 
-**Punctuation conversion**:
-A local substitution of punctuation marks outside protected technical text. It makes no translation service request.
-_Avoid_: Translation
+**Global defaults**:
+Translation and display preferences shared by projects. A project inherits each default until the person sets a project override for that preference.
 
-**Active scope**:
-The selected set of scope-specific settings, either project or global. The two sets are independent. The translation connection applies across both.
-_Avoid_: Override, precedence
+**Project override**:
+A value set for one preference in one project. Removing it makes the project follow the corresponding global default again.
 
 **Protected text**:
-Code fences, inline code, paths, and URLs that retain their exact characters during translation or punctuation conversion.
+Code fences, inline code, paths, and URLs that retain their exact characters during translation.
 _Avoid_: Plain text

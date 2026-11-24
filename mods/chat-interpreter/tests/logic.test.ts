@@ -1,16 +1,7 @@
 import { expect, test } from 'claude-code/testing'
-import { activeScopeKey, normalizeSettings, settingsKey, systemIsChinese } from '../hooks/config'
-import { convertPunctuation, hasTranslatableText, maskProtected, restoreProtected } from '../hooks/text'
+import { normalizeSettings, settingsKey, systemIsChinese } from '../hooks/config'
+import { hasTranslatableText, maskProtected, restoreProtected } from '../hooks/text'
 import { planCacheCleanup } from '../hooks/cache'
-
-test('punctuation conversion preserves code, URLs, paths, and decimal numbers', () => {
-  const source = 'Check `call(a,b)` and https://example.com/a.b, ./src/a.ts; version 3.14 is ready!'
-  expect(convertPunctuation(source, 'zh')).toBe('Check `call(a,b)` and https://example.com/a.b， ./src/a.ts； version 3.14 is ready！')
-  expect(convertPunctuation('你好，世界！`x，y`', 'en')).toBe('你好,世界!`x，y`')
-  expect(convertPunctuation('See [guide](https://example.com/a.b), src/main.ts and @lib/a.ts.', 'zh'))
-    .toBe('See [guide](https://example.com/a.b)， src/main.ts and @lib/a.ts。')
-  expect(convertPunctuation('"Don\'t stop!"', 'zh')).toBe('“Don\'t stop！”')
-})
 
 test('translatable text can be in any language and excludes protected spans', () => {
   expect(hasTranslatableText('`中文` https://example.com/中文')).toBe(false)
@@ -20,7 +11,10 @@ test('translatable text can be in any language and excludes protected spans', ()
 
 test('all Markdown code delimiters and technical addresses stay unchanged', () => {
   const text = 'README.md; mailto:user@example.com; ftp://example.com/a.b; ``a,b``;\n~~~ts\na,b\n~~~\n;\n```ts\na,b'
-  expect(convertPunctuation(text, 'zh')).toBe('README.md； mailto:user@example.com； ftp://example.com/a.b； ``a,b``；\n~~~ts\na,b\n~~~\n；\n```ts\na,b')
+  const { masked, values } = maskProtected(text)
+  expect(restoreProtected(masked, values)).toBe(text)
+  expect(masked).not.toContain('mailto:')
+  expect(masked).not.toContain('a,b')
 })
 
 test('protected markers avoid collisions and reject missing or duplicated text', () => {
@@ -32,14 +26,16 @@ test('protected markers avoid collisions and reject missing or duplicated text',
   expect(restoreProtected('Hello __CI_KEEP_0__', [['__CI_KEEP_0__', '`$&`']])).toBe('Hello `$&`')
 })
 
-test('project and global settings are independent and default to off', () => {
+test('defaults are manual and legacy disabled output stays manual', () => {
   const project = normalizeSettings({ translateInput: true, inputTarget: 'zh' })
   const global = normalizeSettings()
   expect(project.translateInput).toBe(true)
   expect(global.translateInput).toBe(false)
   expect(global.sendOnlyOnSuccess).toBe(true)
   expect(settingsKey('project', '/repo')).not.toBe(settingsKey('global', '/repo'))
-  expect(activeScopeKey('/repo')).toBe('active-scope:/repo')
+  expect(global.outputMode).toBe('manual')
+  expect(normalizeSettings({ translateOutput: false, outputMode: 'automatic' }).outputMode).toBe('manual')
+  expect(normalizeSettings({ translateOutput: true, outputMode: 'automatic' }).outputMode).toBe('automatic')
   expect(systemIsChinese(['en_US.UTF-8', undefined, 'zh_CN.UTF-8'])).toBe(false)
   expect(systemIsChinese(['', 'zh_CN.UTF-8', 'en_US.UTF-8'])).toBe(true)
 })

@@ -23,3 +23,7 @@ Saved translations remain associated with the conversation, message, and target 
 ## Languages
 
 Setup suggests English as the input target and the language of the person's prompt as the output target. The person can request any target language. The source language is detected for each message. Local punctuation conversion applies the existing rules for Chinese and English and leaves punctuation intact for other target languages.
+
+## Settings revision
+
+Global preferences now supply defaults and individual project fields can override them. The Global and Project tabs select the settings to edit. Reply translation offers manual (default) and automatic modes. Setup saves the reviewed preferences at the requested level, and input and output use the original punctuation. This revises the settings and punctuation decisions above.
