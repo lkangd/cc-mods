@@ -80,4 +80,3 @@ class ProvisionTest(unittest.TestCase):
                                             security.DACL_SECURITY_INFORMATION).GetSecurityDescriptorDacl()
         self.assertEqual(acl.GetAceCount(), 1)
         self.assertEqual(acl.GetAce(0)[2], sid)
-

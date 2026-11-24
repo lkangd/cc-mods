@@ -46,6 +46,7 @@ Host and test-kit behaviour that the `plugin-authoring` skill does not state, me
 
 ## Test kit (`claude plugin test`)
 
+- On 2.1.311, a tool declared with `$.tool.register` can return a plain object in the test kit, but the live host rejects that result before it reaches the model. For structured setup results, return `{ result: JSON.stringify(payload) }`. Chat Interpreter's terminal acceptance reads the resulting JSON from the actual Messages tool result.
 - A plugin's own `$.ui.scroll` and `$.ui.focus` never reach the test's `on(...)`; they reject with "no implementation for ui.scroll". Test the target at a pure seam and confirm in a PTY. Return the promise from `onPress` so `press` awaits it.
 - `FoundElement.props` has no `hover` (it is on the element in `await pane.drawn()`). `pane.find({ text })` returns the outermost match, a Box: add `type: 'Text'`.
 - Engine-built `command.run` in tests: `$.command.run({ command, args } as never)`.

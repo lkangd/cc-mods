@@ -1,6 +1,6 @@
 # Guided setup on the terminal
 
-On 2026-11-24, both scenarios passed on macOS with Claude Code 2.1.311, using plugin revision `e469249`. Each scenario installed the checkout from a local marketplace into a fresh temporary Claude configuration, then submitted `/chat-interpreter:setup` in the real terminal. A scripted loopback Messages server drove the interview.
+On 2026-11-24, both scenarios passed on macOS with Claude Code 2.1.311. They passed again at plugin revision `3e44fc1` after the review fixes. Each scenario installed the checkout from a local marketplace into a fresh temporary Claude configuration, then submitted `/chat-interpreter:setup` in the real terminal. A scripted loopback Messages server drove the interview.
 
 | Route | Observed result |
 | --- | --- |
