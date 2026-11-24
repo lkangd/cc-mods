@@ -1,3 +1,4 @@
+import { validTarget } from './config'
 import type { TargetLanguage } from './config'
 
 export type InputTranslation = {
@@ -12,12 +13,20 @@ export type CacheRecord =
   | { kind: 'reply'; row: string; value: Reply }
   | { kind: 'output'; row: string; target: TargetLanguage; translated: string }
 
-const CACHE_NAME = /^[\w-]+\.[\w-]+\.(?:input|reply|output-(?:en|zh))\.json$/
+const CACHE_NAME = /^[\w-]+\.[\w-]+\.(?:input|reply|output-(?:en|zh|lang-[a-f0-9]{16}))\.json$/
 const HIGH_WATER = 1_000_000_000
 const LOW_WATER = 900_000_000
 
+function targetName(target: TargetLanguage): string {
+  if (target === 'en' || target === 'zh') return target
+  // Keep arbitrary language names within filesystem limits and out of the path.
+  let hash = 0xcbf29ce484222325n
+  for (const char of target) hash = BigInt.asUintN(64, (hash ^ BigInt(char.codePointAt(0)!)) * 0x100000001b3n)
+  return `lang-${hash.toString(16).padStart(16, '0')}`
+}
+
 export function cacheName(session: string, record: CacheRecord): string | undefined {
-  const kind = record.kind === 'output' ? `output-${record.target}` : record.kind
+  const kind = record.kind === 'output' ? `output-${targetName(record.target)}` : record.kind
   const name = `${session}.${record.row}.${kind}.json`
   return CACHE_NAME.test(name) ? name : undefined
 }
@@ -29,12 +38,12 @@ function object(value: unknown): value is Record<string, unknown> {
 export function decodeCache(text: string): CacheRecord | undefined {
   const record: unknown = JSON.parse(text)
   if (!object(record) || typeof record.row !== 'string') return undefined
-  if (record.kind === 'output' && (record.target === 'zh' || record.target === 'en') && typeof record.translated === 'string') {
+  if (record.kind === 'output' && validTarget(record.target) && typeof record.translated === 'string') {
     return { kind: 'output', row: record.row, target: record.target, translated: record.translated }
   }
   const value = record.value
   if (!object(value) || typeof value.original !== 'string') return undefined
-  if (record.kind === 'input' && typeof value.sent === 'string' && (value.target === 'zh' || value.target === 'en')) {
+  if (record.kind === 'input' && typeof value.sent === 'string' && validTarget(value.target)) {
     const skill = object(value.skill) && typeof value.skill.originalArgs === 'string'
       ? { originalArgs: value.skill.originalArgs, replyRow: typeof value.skill.replyRow === 'string' ? value.skill.replyRow : undefined }
       : undefined
