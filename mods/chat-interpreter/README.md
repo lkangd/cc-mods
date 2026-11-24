@@ -5,7 +5,7 @@ Convert punctuation locally, translate prompts before Claude receives them, and 
 ## Requirements
 
 - An interactive Claude Code terminal, the Claude Desktop Code tab, or a supported VS Code extension.
-- For input or output translation, set `DEEPSEEK_API_KEY` in the Claude Code process environment before starting the session. Punctuation conversion works without a key.
+- For translation, bring a model API, a translation API, or an installed local translation CLI. Local punctuation conversion works on its own. CLI connections require a surface that supports local processes.
 
 ## Install
 
@@ -31,10 +31,13 @@ claude --plugin-dir ./mods/chat-interpreter
 
 ## Getting started
 
-1. Run `/chat-interpreter` to open the settings pane.
-2. Choose **Project** or **Global**. The plugin starts in **Project**. Each scope has its own settings, and both the settings and the active scope persist across sessions.
-3. Enable **Convert punctuation**, **Translate user input**, or **Translate agent output** as needed. All three switches start off.
-4. Choose **English** or **Chinese** independently for input and output. Input defaults to English and output defaults to Chinese. Punctuation conversion follows the corresponding target language.
+1. Run `/chat-interpreter` and choose **Project** or **Global**. The plugin starts in **Project** with translation and punctuation conversion off. Each scope retains its own switches, targets and display settings.
+2. Run `/chat-interpreter:setup` in the conversation and describe the service or CLI you already have. For a private service, give the model a sanitized local document or example request with placeholders. For a CLI, setup can inspect its help and prepare a local adapter when needed.
+3. Choose input only, output only, both, or save for later. You can use any target language separately for each direction. Setup suggests English for input and the language of your prompt for output. The service detects the source for each message.
+4. If credentials or a private endpoint are needed, run the command setup gives you in a separate terminal and return to the same conversation. It can reuse a named environment variable or prompt privately. Keep keys and private addresses out of the conversation.
+5. Review each synthetic source and its extracted translation. Setup tries each distinct enabled target once, or one sample when saving for later. Confirm the samples and scope to save. The connection is shared across projects. The choices for input and output apply to the scope shown in the review.
+
+Run setup again to replace a connection. Automatic translations pause in the interviewing session. Other sessions can continue with the saved connection until confirmation. Type `/chat-interpreter:setup cancel` to leave immediately. The settings pane also provides **Convert punctuation**. It follows the selected English or Chinese target and preserves punctuation for other languages.
 
 ## Usage
 
@@ -60,7 +63,7 @@ Code fences, inline code, paths, and URLs are preserved during translation.
 
 ## Data and privacy
 
-The plugin sends text for translation to DeepSeek's chat-completions endpoint using the `deepseek-chat` model. It reads `DEEPSEEK_API_KEY` from the process environment and never stores the key.
+The confirmed service or CLI receives text when a translation is requested. Request descriptions, executable paths and credential references live in the plugin’s user-wide store. The provisioning helper writes credentials and private endpoints to user-only files under `chat-interpreter/credentials` in the Claude Code configuration directory. A CLI can also use its own installed credentials. Connection changes preserve previously cached translations.
 
 Translation history is stored in JSON files under `chat-interpreter-cache` in the Claude Code configuration directory. It contains input translations and saved reply records. Cached output is looked up by conversation, message, and target language. Cleanup runs when opening a conversation and after writes. It deletes files older than six calendar months. Once the cache exceeds 1 GB, it drops the oldest files until 900 MB or less remains. On macOS and Linux, cleanup uses the host's `rm` command.
 
@@ -76,7 +79,7 @@ claude plugin uninstall chat-interpreter@cc-mods
 
 For a local load, start Claude Code without `--plugin-dir ./mods/chat-interpreter`.
 
-To remove saved translations, delete the `chat-interpreter-cache` directory in the Claude Code configuration directory.
+To remove saved translations, delete the `chat-interpreter-cache` directory in the Claude Code configuration directory. To erase private credentials and endpoints provisioned by setup, remove its `chat-interpreter/credentials` directory there.
 
 ## Development
 

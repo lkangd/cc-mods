@@ -1,6 +1,9 @@
 import type { CommandRunInput, ElementTable, EngineInterface, PromptSubmitInput, Register, RenderElement, RenderInput } from 'claude-code'
 import { activeScopeKey, normalizeSettings, settingsKey, systemIsChinese } from './config'
 import type { OriginalStyle, Scope, Settings, TargetLanguage } from './config'
+import { CONNECTION_KEY, validateConnection } from './connection'
+import { sampleSource, sameDestination, SETUP_TOOL, setupChoices, setupResult, trialTargets } from './setup'
+import type { Interview } from './setup'
 import { cacheName, decodeCache, planCacheCleanup } from './cache'
 import type { CacheRecord, InputTranslation, Reply } from './cache'
 import { DEEPSEEK_URL, translationRequest, translationResult } from './deepseek'
@@ -56,6 +59,8 @@ type Blocked = { kind: 'prompt'; text: string; attachments?: PromptSubmitInput['
   | { kind: 'skill'; command: string; args: string }
 type PendingInput = InputTranslation & { skillMatch?: { command: string; args: string } }
 type InterpreterState = {
+  setup?: Interview
+  setupTurn?: string
   root: string
   scope: Scope
   isChinese: boolean
@@ -590,6 +595,94 @@ async function runSkill($: EngineInterface, state: InterpreterState, e: CommandR
   return undefined
 }
 
+async function setupAction($: EngineInterface, state: InterpreterState, interview: Interview, e: Record<string, unknown>) {
+  const candidate = interview.candidate
+  if (e.action === 'status') {
+    const { translateInput, translateOutput, inputTarget, outputTarget } = current(state)
+    return setupResult({
+      scope: state.scope, translateInput, translateOutput, inputTarget, outputTarget, connected: state.connectionAvailable,
+      ...(candidate ? { candidateId: candidate.id, credentialReady: await credentialReady($, state, candidate) } : {}),
+    })
+  }
+  if (e.action === 'cancel' && interview.busy !== 'confirm') {
+    state.setup = undefined
+    return setupResult({ cancelled: true })
+  }
+  if (interview.busy) return { deny: 'Another setup operation is in progress.' }
+  if (e.action === 'stage') {
+    if (!e.connection || typeof e.connection !== 'object' || Array.isArray(e.connection)) return { deny: 'Supply a connection description.' }
+    try {
+      const description = { ...e.connection, id: crypto.randomUUID() }
+      const next = validateConnection(description)
+      if (candidate && !e.renewCredentials && sameDestination(candidate, next)) next.id = candidate.id
+      interview.candidate = next
+      interview.samples.clear()
+      interview.review = undefined
+      return setupResult({ candidateId: next.id, credentialReady: await credentialReady($, state, next) })
+    } catch {
+      return { deny: 'Invalid translation connection. Check the request description, credential reference, and result path.' }
+    }
+  }
+  if (!candidate) return { deny: 'Stage a translation connection first.' }
+  const scope = state.scope
+  if (e.action === 'trial') {
+    interview.review = undefined
+    interview.busy = 'trial'
+    try {
+      const choices = setupChoices(e.mode, e.inputTarget, e.outputTarget)
+      const samples = []
+      for (const target of trialTargets(choices)) {
+        const key = target.toLowerCase()
+        let sample = interview.samples.get(key)
+        if (!sample) {
+          const source = sampleSource(target)
+          const translation = await runTranslation($, state, candidate, source, target)
+          if (state.setup !== interview) return { deny: 'The interview ended during the trial.' }
+          sample = { target, source, translation }
+          interview.samples.set(key, sample)
+        }
+        samples.push(sample)
+      }
+      interview.review = { scope, choices, replies: interview.replies }
+      return setupResult({ scope, ...choices, samples })
+    } catch (error) {
+      return { deny: error instanceof Error ? error.message : 'Translation trial failed.' }
+    } finally {
+      interview.busy = undefined
+    }
+  }
+  if (e.action !== 'confirm') return { deny: 'Unknown setup action.' }
+  const review = interview.review
+  if (!review || review.scope !== scope) return { deny: 'Run a trial for the current scope and choices first.' }
+  if (interview.replies <= review.replies) return { deny: 'Show the samples and choices and wait for the person to confirm.' }
+  interview.busy = 'confirm'
+  try {
+    const key = settingsKey(scope, state.root)
+    const storedScope = await $.store.get(activeScopeKey(state.root))
+    const prior = normalizeSettings(await $.store.get(key))
+    if (state.setup !== interview || state.scope !== scope || (storedScope === 'global' ? 'global' : 'project') !== scope) {
+      return { deny: 'The interview or active scope changed. Review the choices again.' }
+    }
+    const settings = { ...prior, ...review.choices }
+    await $.store.set(key, settings)
+    try {
+      await $.store.set(CONNECTION_KEY, candidate)
+    } catch {
+      await $.store.set(key, prior)
+      throw new Error('Save failed')
+    }
+    state.settings[scope] = settings
+    state.connectionAvailable = true
+    state.setup = undefined
+    $.ui.invalidate('ui.render')
+    return setupResult({ saved: true, scope })
+  } catch {
+    return { deny: 'Could not save the translation setup. Check local storage and retry.' }
+  } finally {
+    interview.busy = undefined
+  }
+}
+
 export function register(on: Parameters<Register>[0]): void {
   const state: InterpreterState = {
     root: '', scope: 'project', isChinese: false, keyAvailable: false,
@@ -601,12 +694,14 @@ export function register(on: Parameters<Register>[0]): void {
 
   on('session.start', async ($, e, next) => {
     await loadState($, state)
+    await $.tool.register(SETUP_TOOL)
     await $.command.register({ name: 'chat-interpreter', description: 'Configure prompt and reply translation' })
     $.ui.invalidate('ui.render')
     return next(e)
   })
 
   on('classic.SessionStart', async ($, e, next) => {
+    if (e.source !== 'compact') state.setup = undefined
     await loadCache($, state, e.session_id).catch(() => undefined)
     $.ui.invalidate('ui.render')
     return next(e)
@@ -618,7 +713,27 @@ export function register(on: Parameters<Register>[0]): void {
     return {}
   })
 
+  on('tool.call', { tool: 'mcp__chat-interpreter__setup' }, async ($, e) => {
+    const interview = state.setup
+    if (!interview || e.agentId) return { deny: 'Start /chat-interpreter:setup in this conversation first.' }
+    return setupAction($, state, interview, e)
+  })
+
   on('command.run', async ($, e, next) => {
+    if (e.command === 'chat-interpreter:setup') {
+      if (e.origin.kind !== 'composer' && e.origin.kind !== 'bridge') return { text: 'Run /chat-interpreter:setup yourself to start the interview.' }
+      if (state.setup?.busy === 'confirm') return { text: state.isChinese ? '正在保存翻译连接。' : 'Saving the translation connection.' }
+      if (e.args.trim().toLowerCase() === 'cancel') {
+        state.setup = undefined
+        return { text: state.isChinese ? '已退出翻译设置。' : 'Translation setup closed.' }
+      }
+      state.setup = { replies: 0, samples: new Map() }
+      state.blocked = undefined
+      state.bypassDraft = undefined
+      $.ui.invalidate('ui.render')
+      return next(e)
+    }
+    if (state.setup) return next(e)
     if (e.command === 'chat-interpreter') return next(e)
     const settings = current(state)
     const args = await runSkill($, state, e, settings)
@@ -662,6 +777,10 @@ export function register(on: Parameters<Register>[0]): void {
   })
 
   on('prompt.submit', async ($, e, next) => {
+    if (state.setup) {
+      if (e.origin.kind === 'composer' || e.origin.kind === 'bridge') state.setup.replies++
+      return next(e)
+    }
     if (!TRANSLATABLE_ORIGINS.has(e.origin.kind) && !(e.origin.kind === 'plugin' && e.origin.asUser && e.origin.name !== 'chat-interpreter')) return next(e)
     const bypass = state.bypassDraft
     state.bypassDraft = undefined
@@ -712,6 +831,7 @@ export function register(on: Parameters<Register>[0]): void {
   })
 
   on('turn.start', ($, e, next) => {
+    if (!e.agentId && state.setup) state.setupTurn = e.turnId
     const rows = state.pendingSkillRows.splice(0)
     if (current(state).showOriginal) {
       for (const row of rows) {
@@ -733,7 +853,11 @@ export function register(on: Parameters<Register>[0]): void {
     const answer = e.reason === 'answer' ? e.answer : undefined
     const row = answer ? findFinalRow(rows, answer) : undefined
     const result = await next(e)
-    if (state.sessionId !== session) return result
+    if (state.setupTurn === e.turnId) {
+      state.setupTurn = undefined
+      return result
+    }
+    if (state.sessionId !== session || state.setup) return result
     const settings = current(state)
     if (settings.translateOutput && settings.outputMode === 'manual') {
       if (answer && !row) {
